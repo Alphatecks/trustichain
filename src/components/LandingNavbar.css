@@ -1,0 +1,133 @@
+.landing-navbar {
+  background: transparent;
+  padding: 1rem 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 80px;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: all 0.3s ease;
+}
+
+.landing-navbar.scrolled {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.landing-navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.landing-navbar-brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  position: absolute;
+  top: 50%;
+  left: 3rem;
+  transform: translateY(-50%);
+}
+
+.landing-navbar-brand:hover {
+  opacity: 0.8;
+}
+
+.brand-logo {
+  width: 250px;
+  height: 250px;
+  object-fit: contain;
+}
+
+.landing-navbar-menu {
+  display: flex;
+  gap: 2rem;
+  margin-left: auto;
+  margin-right: 3rem;
+}
+
+.landing-navbar-link {
+  color: #666;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+  position: relative;
+}
+
+.landing-navbar-link:hover {
+  color: #0066ff;
+}
+
+.landing-navbar-link.active {
+  color: #0066ff;
+}
+
+.landing-navbar-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #0066ff;
+  border-radius: 1px;
+}
+
+.landing-navbar-actions {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+}
+
+.login-button {
+  background: #c3d7f8;
+  border: none;
+  color: #0066ff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.login-button:hover {
+  background: #7BA3F0;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .landing-navbar-container {
+    padding: 0 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .landing-navbar-menu {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 1rem;
+    margin-left: 0;
+    margin-top: 1rem;
+  }
+
+  .landing-navbar-brand {
+    left: 1rem;
+  }
+
+  .brand-logo {
+    width: 200px;
+    height: 200px;
+  }
+}
