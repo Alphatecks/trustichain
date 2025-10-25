@@ -25,7 +25,7 @@ const Home = () => {
               escrow solutions for remittance, freelance, and B2B payments.
             </p>
             <div className="hero-actions">
-              <Link to="/create" className="cta-button primary">
+              <Link to="/waitlist" className="cta-button primary">
                 Join waitlist
                 <ArrowRight className="button-icon" />
               </Link>
@@ -451,12 +451,12 @@ const Home = () => {
               <h2 className="cta-heading-line2">Released with Confidence.</h2>
               
               <div className="cta-buttons">
-                <button className="cta-button cta-button-primary">
+                <Link to="/waitlist" className="cta-button cta-button-primary">
                   Join waitlist
                   <div className="cta-button-icon">
                     <ArrowRight size={16} />
                   </div>
-                </button>
+                </Link>
                 <button className="cta-button cta-button-secondary">Learn more</button>
               </div>
             </div>

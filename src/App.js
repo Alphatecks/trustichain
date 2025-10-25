@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Features from './pages/Features';
 import Pricing from './pages/Pricing';
+import Waitlist from './pages/Waitlist';
 import CreateEscrow from './pages/CreateEscrow';
 import MyEscrows from './pages/MyEscrows';
 import EscrowDetails from './pages/EscrowDetails';
@@ -16,7 +17,7 @@ function AppContent() {
   const location = useLocation();
   
   // Use LandingNavbar for landing pages, Navbar for app pages
-  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing';
+  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
 
   return (
@@ -27,6 +28,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/features" element={<Features />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/create" element={<CreateEscrow />} />
           <Route path="/my-escrows" element={<MyEscrows />} />
           <Route path="/escrow/:id" element={<EscrowDetails />} />
