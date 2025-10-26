@@ -621,28 +621,62 @@
 }
 
 @media (max-width: 768px) {
+  .home-content {
+    padding: 4rem 0 0 0;
+  }
+
   .hero-container {
     grid-template-columns: 1fr;
     gap: 2rem;
     text-align: center;
-    padding: 0 1rem;
+    padding: 0 1.5rem;
+    min-height: auto;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+    transform: none;
+    text-align: left;
   }
 
   .hero-title {
     font-size: 2.5rem;
+    white-space: normal;
+    margin-top: 4rem;
   }
 
   .hero-description {
-    font-size: 1.125rem;
+    font-size: 1rem;
+    margin-bottom: 2rem;
   }
 
   .hero-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .cta-button {
     justify-content: center;
+    width: auto;
+    padding: 0.5625rem 1.125rem;
+    font-size: 0.6875rem;
+  }
+
+  .cta-button.primary,
+  .cta-button.secondary {
+    font-size: 0.6875rem;
+    padding: 0.5625rem 1.125rem;
+  }
+
+  .hero-visual::after {
+    display: none;
+  }
+
+  .stats-section {
+    padding: 3rem 0 0 0;
   }
 
   .stats-grid {
@@ -651,32 +685,41 @@
   }
 
   .stats-heading {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
   }
 
   .stat-number {
     font-size: 2.5rem;
   }
 
+  .stat-label {
+    font-size: 0.875rem;
+  }
+
   .decorative-graphic {
-    width: 400px;
-    height: 200px;
+    width: 100%;
+    max-width: 500px;
+    height: 250px;
+    margin: -10rem auto 0 auto;
   }
   
   .decorative-graphic::before {
-    width: 360px;
-    height: 180px;
-    border-radius: 180px 180px 0 0;
+    width: 90%;
+    height: 225px;
   }
   
   .decorative-graphic::after {
-    width: 440px;
-    height: 220px;
-    border-radius: 220px 220px 0 0;
+    width: 110%;
+    height: 275px;
+  }
+
+  .features-intro {
+    padding: 3rem 0;
   }
 
   .features-main-title {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
   }
 
   .features-description {
@@ -689,27 +732,53 @@
   }
 
   .feature-card {
-    height: 350px;
+    height: auto;
+    min-height: 320px;
   }
 
   .feature-card-image {
-    height: 200px;
+    height: 180px;
   }
 
   .feature-title {
     font-size: 1.25rem;
   }
 
-  .security-badges {
-    gap: 1rem;
-  }
-
-  .security-badge {
+  .feature-description {
     font-size: 0.9rem;
   }
 
+  .security-section {
+    padding: 3rem 0;
+  }
+
+  .security-standards {
+    margin-bottom: 6rem;
+  }
+
+  .security-heading {
+    font-size: 1.75rem;
+    margin-bottom: 3rem;
+  }
+
+  .security-badges {
+    gap: 2rem;
+  }
+
+  .security-badge {
+    font-size: 0.875rem;
+  }
+
+  .why-section {
+    margin-bottom: 3rem;
+  }
+
   .why-main-title {
-    font-size: 2rem;
+    font-size: 2.25rem;
+  }
+
+  .why-tagline {
+    font-size: 1rem;
   }
 
   .features-showcase {
@@ -719,45 +788,173 @@
 
   .features-list {
     gap: 1.5rem;
-  }
-
-  .feature-item {
-    padding-left: 1rem;
-  }
-
-  .feature-item::before {
-    width: 2px;
+    padding-left: 1.5rem;
   }
 
   .feature-item-title {
     font-size: 1.25rem;
   }
+
+  .feature-item-description {
+    font-size: 0.9rem;
+  }
+
+  .ui-preview {
+    max-width: 100%;
+  }
+
+  .dashboard-screenshot {
+    width: 100%;
+  }
+
+  .how-it-works-section {
+    padding: 3rem 0;
+  }
+
+  .how-main-title {
+    font-size: 2rem;
+  }
+
+  .steps-grid {
+    gap: 0;
+  }
+
+  .step-item {
+    padding: 1.5rem;
+  }
+
+  .step-title {
+    font-size: 1.25rem;
+  }
+
+  .step-description {
+    font-size: 0.9rem;
+  }
 }
 
 @media (max-width: 480px) {
+  .home-content {
+    padding: 3rem 0 0 0;
+  }
+
+  .hero-container {
+    padding: 0 1rem;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+    line-height: 1.15;
+  }
+
+  .hero-description {
+    font-size: 0.9rem;
+  }
+
+  .cta-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .stats-container {
+    padding: 0 1rem;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .stats-heading {
+    font-size: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+
+  .decorative-graphic {
+    max-width: 350px;
+    height: 175px;
+    margin: -6rem auto 0 auto;
+  }
+
+  .features-container {
+    padding: 0 1rem;
   }
 
   .features-main-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+
+  .features-description {
+    font-size: 0.9rem;
+  }
+
+  .feature-card {
+    min-height: 300px;
+  }
+
+  .feature-card-image {
+    height: 160px;
   }
 
   .feature-title {
     font-size: 1.125rem;
   }
 
+  .feature-description {
+    font-size: 0.85rem;
+  }
+
+  .security-container {
+    padding: 0 1rem;
+  }
+
+  .security-standards {
+    margin-bottom: 4rem;
+  }
+
+  .security-heading {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
   .security-badges {
     flex-direction: column;
     align-items: center;
+    gap: 1rem;
+  }
+
+  .security-badge {
+    font-size: 0.8rem;
   }
 
   .why-main-title {
     font-size: 1.75rem;
   }
 
+  .why-tagline {
+    font-size: 0.9rem;
+  }
+
+  .features-list {
+    padding-left: 1rem;
+  }
+
   .feature-item-title {
     font-size: 1.125rem;
+  }
+
+  .feature-item-description {
+    font-size: 0.85rem;
+  }
+
+  .how-it-works-container {
+    padding: 0 1rem;
   }
 
   .how-main-title {
@@ -772,6 +969,7 @@
   .step-item {
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
+    padding: 1.25rem;
   }
 
   .step-item:last-child {
@@ -779,15 +977,118 @@
   }
 
   .step-item:nth-child(2n) {
-    border-right: 1px solid #e5e7eb;
+    border-right: none;
   }
 
   .step-item:nth-child(n+3) {
     border-bottom: 1px solid #e5e7eb;
   }
 
+  .step-number {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+
   .step-title {
     font-size: 1.125rem;
+  }
+
+  .step-description {
+    font-size: 0.85rem;
+  }
+
+  .testimonials-container {
+    padding: 0 1rem;
+  }
+
+  .testimonials-main-title {
+    font-size: 1.75rem;
+  }
+
+  .testimonials-tagline {
+    font-size: 1rem;
+  }
+
+  .testimonial-card {
+    width: 350px;
+    max-width: 350px;
+    padding: 1.25rem;
+  }
+
+  .testimonial-text {
+    font-size: 0.8rem;
+  }
+
+  .testimonial-profile-pic {
+    width: 50px;
+    height: 50px;
+  }
+
+  .testimonial-name {
+    font-size: 0.9rem;
+  }
+
+  .testimonial-role {
+    font-size: 0.7rem;
+  }
+
+  .faq-container {
+    padding: 0 1rem;
+  }
+
+  .faq-heading-line1,
+  .faq-heading-line2 {
+    font-size: 1.75rem;
+  }
+
+  .faq-description {
+    font-size: 0.9rem;
+  }
+
+  .faq-question-text {
+    font-size: 0.95rem;
+  }
+
+  .faq-answer-text {
+    font-size: 0.8rem;
+  }
+
+  .pricing-container {
+    padding: 0 1rem;
+  }
+
+  .pricing-main-title {
+    font-size: 1.75rem;
+  }
+
+  .pricing-description {
+    font-size: 0.9rem;
+  }
+
+  .pricing-card {
+    padding: 1.75rem;
+  }
+
+  .pricing-card-title {
+    font-size: 1.75rem;
+  }
+
+  .pricing-card-description {
+    font-size: 0.8rem;
+  }
+
+  .cta-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .cta-heading-line1,
+  .cta-heading-line2 {
+    font-size: 1.75rem;
+  }
+
+  .cta-button {
+    padding: 0.875rem 1.5rem;
   }
 }
 
