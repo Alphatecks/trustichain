@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  height: 80px;
+  height: 60px;
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   transition: all 0.3s ease;
 }
@@ -32,8 +32,8 @@
   text-decoration: none;
   transition: opacity 0.2s;
   position: absolute;
-  top: 50%;
-  left: 3rem;
+  top: 55%;
+  left: 1rem;
   transform: translateY(-50%);
 }
 
@@ -45,6 +45,7 @@
   width: 250px;
   height: 250px;
   object-fit: contain;
+  transform: translateX(10px) translateY(8px);
 }
 
 .landing-navbar-menu {
@@ -111,15 +112,15 @@
   display: none;
   background: none;
   border: none;
-  color: #666;
+  color: #0066ff;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
   position: absolute;
   right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 55%;
+  transform: translateY(-5%);
 }
 
 .mobile-menu-button:hover {
@@ -211,7 +212,9 @@
   }
 
   .landing-navbar-brand {
-    left: 1rem;
+    top: 55%;
+    padding-top: 20px;
+    padding-right: 30px;
   }
 
   .brand-logo {

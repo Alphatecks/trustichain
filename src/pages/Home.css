@@ -672,7 +672,15 @@
   }
 
   .hero-visual::after {
-    display: none;
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: -1px;
+    right: 0;
+    height: 80%;
+    background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.3) 20%, rgba(255, 255, 255, 0.7) 50%, rgba(255, 255, 255, 0.95) 80%, #ffffff 100%);
+    border-radius: 0 0 0.75rem 0.75rem;
+    pointer-events: none;
   }
 
   .stats-section {
@@ -801,11 +809,14 @@
 
   .ui-preview {
     max-width: 100%;
+    position: relative;
   }
 
   .dashboard-screenshot {
     width: 100%;
   }
+
+
 
   .how-it-works-section {
     padding: 3rem 0;

@@ -186,37 +186,37 @@ const Home = () => {
         </section>
 
         {/* How It Works Section */}
-        <section className="how-it-works-section">
-          <div className="how-it-works-container">
-            <div className="how-header">
-              <h3 className="how-subtitle">How it works</h3>
-              <h2 className="how-main-title">See how Trustichain works</h2>
+        <section className="features-how-it-works-section">
+          <div className="features-how-it-works-container">
+            <div className="features-how-header">
+              <h3 className="features-how-subtitle">How it works</h3>
+              <h2 className="features-how-main-title">See how Trustichain works</h2>
             </div>
             
-            <div className="steps-grid-container">
-              <div className="steps-grid">
-                <div className="step-item">
-                  <div className="step-number">1</div>
-                  <h3 className="step-title">Create an Escrow</h3>
-                  <p className="step-description">Start by setting up a secure escrow for your transaction, choose amount, duration, and recipient.</p>
+            <div className="features-steps-grid-container">
+              <div className="features-steps-grid">
+                <div className="features-step-item">
+                  <div className="features-step-number">1</div>
+                  <h3 className="features-step-title">Create an Escrow</h3>
+                  <p className="features-step-description">Start by setting up a secure escrow for your transaction, choose amount, duration, and recipient.</p>
                 </div>
                 
-                <div className="step-item">
-                  <div className="step-number">2</div>
-                  <h3 className="step-title">Deposit Funds</h3>
-                  <p className="step-description">Transfer funds into the escrow wallet. Your money stays locked and protected until delivery is confirmed.</p>
+                <div className="features-step-item">
+                  <div className="features-step-number">2</div>
+                  <h3 className="features-step-title">Deposit Funds</h3>
+                  <p className="features-step-description">Transfer funds into the escrow wallet. Your money stays locked and protected until delivery is confirmed.</p>
                 </div>
                 
-                <div className="step-item">
-                  <div className="step-number">3</div>
-                  <h3 className="step-title">Deliver & Confirm</h3>
-                  <p className="step-description">Once the service or goods are delivered, the buyer confirms completion directly in-app.</p>
+                <div className="features-step-item">
+                  <div className="features-step-number">3</div>
+                  <h3 className="features-step-title">Deliver & Confirm</h3>
+                  <p className="features-step-description">Once the service or goods are delivered, the buyer confirms completion directly in-app.</p>
                 </div>
                 
-                <div className="step-item">
-                  <div className="step-number">4</div>
-                  <h3 className="step-title">Release or Resolve</h3>
-                  <p className="step-description">Funds are instantly released to the seller or, if there's an issue, a dispute can be opened for fair resolution.</p>
+                <div className="features-step-item">
+                  <div className="features-step-number">4</div>
+                  <h3 className="features-step-title">Release or Resolve</h3>
+                  <p className="features-step-description">Funds are instantly released to the seller or, if there's an issue, a dispute can be opened for fair resolution.</p>
                 </div>
               </div>
             </div>
