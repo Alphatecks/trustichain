@@ -29,22 +29,25 @@ const Waitlist = () => {
 
     setIsSubmitting(true);
 
-    // Simulate API call
+    // Submit to Formspree
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store email in localStorage
-      const existingEmails = JSON.parse(localStorage.getItem('waitlistEmails') || '[]');
-      if (!existingEmails.includes(email)) {
-        existingEmails.push(email);
-        localStorage.setItem('waitlistEmails', JSON.stringify(existingEmails));
+      const response = await fetch('https://formspree.io/f/xwpwvqkd', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email }),
+      });
+
+      if (response.ok) {
+        setIsSuccess(true);
+        toast.success('Successfully joined the waitlist!');
+        setEmail('');
+      } else {
+        toast.error('Something went wrong. Please try again.');
       }
-      
-      setIsSuccess(true);
-      toast.success('Successfully joined the waitlist!');
-      setEmail('');
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error('Unable to submit. Please check your connection.');
     } finally {
       setIsSubmitting(false);
     }
