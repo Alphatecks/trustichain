@@ -21,6 +21,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #ffffff;
   min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] body {
+  background: #0a1929;
 }
 
 code {

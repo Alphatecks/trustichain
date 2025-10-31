@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, DollarSign, User, FileText, Calendar, Shield } from 'lucide-react';
-import { useWeb3 } from '../context/Web3Context';
+import { useWeb3 } from '../../context/Web3Context';
 import toast from 'react-hot-toast';
 import './CreateEscrow.css';
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, Rocket, Shield, Zap, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './Waitlist.css';
-import logoWhite from '../assets/images/logo/logo_white.png';
+import logoWhite from '../../assets/images/logo/logo_white.png';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');

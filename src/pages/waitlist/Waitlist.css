@@ -535,3 +535,69 @@
     justify-content: center;
   }
 }
+
+/* Dark Mode Styles */
+[data-theme="dark"] .waitlist-page {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .waitlist-hero-title {
+  background: none !important;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #ffffff;
+  background-clip: unset;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .waitlist-hero-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .waitlist-input-group {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .waitlist-input {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .waitlist-success {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+[data-theme="dark"] .waitlist-success-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .waitlist-success-message {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .waitlist-another-email {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.3);
+  color: #0066ff;
+}
+
+[data-theme="dark"] .waitlist-another-email:hover {
+  background: rgba(42, 52, 66, 0.8);
+  border-color: #0066ff;
+}
+
+[data-theme="dark"] .waitlist-feature-item {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+[data-theme="dark"] .waitlist-feature-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .waitlist-feature-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .waitlist-hero-description,
+[data-theme="dark"] .waitlist-success-message {
+  color: #cbd5e1;
+}

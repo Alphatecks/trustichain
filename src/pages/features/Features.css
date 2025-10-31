@@ -1758,3 +1758,187 @@
     justify-content: center;
   }
 }
+
+/* Dark Mode Styles */
+[data-theme="dark"] .features-page {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .features-stats-section,
+[data-theme="dark"] .features-protection-section,
+[data-theme="dark"] .features-how-it-works-section,
+[data-theme="dark"] .features-about-section,
+[data-theme="dark"] .features-remittance-section,
+[data-theme="dark"] .features-b2b-section,
+[data-theme="dark"] .features-p2p-section,
+[data-theme="dark"] .features-resolution-section,
+[data-theme="dark"] .features-why-section,
+[data-theme="dark"] .features-cta-section {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .features-hero-title,
+[data-theme="dark"] .features-protection-title,
+[data-theme="dark"] .features-how-main-title,
+[data-theme="dark"] .features-about-title {
+  background: none !important;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #ffffff;
+  background-clip: unset;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-hero-description,
+[data-theme="dark"] .features-stat-label,
+[data-theme="dark"] .features-protection-description,
+[data-theme="dark"] .features-about-description,
+[data-theme="dark"] .features-step-description,
+[data-theme="dark"] .features-protection-card-description,
+[data-theme="dark"] .features-testimonial-card-description,
+[data-theme="dark"] .features-final-cta-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-steps-grid-container {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .features-step-item {
+  border-color: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .features-protection-card {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .features-protection-card-title {
+  color: #4E91FF;
+}
+
+[data-theme="dark"] .features-protection-card-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-testimonial-section {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .features-testimonial-container {
+  background: #2563EB;
+}
+
+[data-theme="dark"] .features-testimonial-card {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .features-testimonial-card-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-final-cta-section {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .features-final-cta-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-final-cta-title-blue,
+[data-theme="dark"] .features-final-cta-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-final-cta-title-blue {
+  background: none !important;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #cbd5e1;
+  background-clip: unset;
+}
+
+[data-theme="dark"] .features-remittance-title,
+[data-theme="dark"] .features-b2b-title,
+[data-theme="dark"] .features-p2p-title {
+  color: #0066ff;
+}
+
+[data-theme="dark"] .features-remittance-description,
+[data-theme="dark"] .features-b2b-description,
+[data-theme="dark"] .features-p2p-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-remittance-feature,
+[data-theme="dark"] .features-b2b-feature,
+[data-theme="dark"] .features-p2p-feature {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-remittance-image-container,
+[data-theme="dark"] .features-b2b-image-container,
+[data-theme="dark"] .features-p2p-image-container {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+[data-theme="dark"] .features-resolution-image-container {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+[data-theme="dark"] .features-resolution-title-dark {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-resolution-title-blue {
+  color: #0066ff;
+}
+
+[data-theme="dark"] .features-resolution-description,
+[data-theme="dark"] .features-resolution-feature {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-why-main-title {
+  background: none !important;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #ffffff;
+  background-clip: unset;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-trustichain-highlight {
+  color: #0066ff;
+}
+
+[data-theme="dark"] .features-why-tagline {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-why-item-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-why-item-title.primary {
+  color: #0066ff;
+}
+
+[data-theme="dark"] .features-why-item-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .features-cta-card {
+  background: radial-gradient(ellipse at top, #4E91FF 0%, #0a1929 70%);
+}
+
+[data-theme="dark"] .features-cta-heading-line1,
+[data-theme="dark"] .features-cta-heading-line2 {
+  background: none !important;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #ffffff;
+  background-clip: unset;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .features-cta-subheading {
+  color: #ffffff;
+}

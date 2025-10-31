@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import './LandingNavbar.css';
 
 const LandingNavbar = () => {
   const location = useLocation();
+  const { toggleTheme, isDark } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -55,8 +57,15 @@ const LandingNavbar = () => {
         </div>
 
         <div className="landing-navbar-actions">
-          <button className="login-button">
+          <Link to="/login" className="login-button">
             Login
+          </Link>
+          <button 
+            onClick={toggleTheme}
+            className="theme-toggle-btn"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Moon size={20} /> : <Sun size={20} />}
           </button>
         </div>
 
@@ -90,9 +99,9 @@ const LandingNavbar = () => {
           >
             Plans & Pricing
           </Link>
-          <button className="mobile-login-button" onClick={closeMobileMenu}>
+          <Link to="/login" className="mobile-login-button" onClick={closeMobileMenu}>
             Login
-          </button>
+          </Link>
         </div>
       </div>
     </nav>

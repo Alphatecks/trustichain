@@ -2,33 +2,40 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
+import { ThemeProvider } from './context/ThemeContext';
 import LandingNavbar from './components/LandingNavbar';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import Features from './pages/Features';
-import Pricing from './pages/Pricing';
-import Waitlist from './pages/Waitlist';
-import CreateEscrow from './pages/CreateEscrow';
-import MyEscrows from './pages/MyEscrows';
-import EscrowDetails from './pages/EscrowDetails';
+import Home from './pages/home/Home';
+import Features from './pages/features/Features';
+import Pricing from './pages/pricing/Pricing';
+import Waitlist from './pages/waitlist/Waitlist';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
+import CreateEscrow from './pages/create-escrow/CreateEscrow';
+import MyEscrows from './pages/my-escrows/MyEscrows';
+import EscrowDetails from './pages/escrow-details/EscrowDetails';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
   
+  // Hide navbar on login and signup pages
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
 
   return (
     <div className="App">
-      <NavbarComponent />
+      {!isAuthPage && <NavbarComponent />}
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/features" element={<Features />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/waitlist" element={<Waitlist />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/create" element={<CreateEscrow />} />
           <Route path="/my-escrows" element={<MyEscrows />} />
           <Route path="/escrow/:id" element={<EscrowDetails />} />
@@ -50,11 +57,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Web3Provider>
-      <Router>
-        <AppContent />
-      </Router>
-    </Web3Provider>
+    <ThemeProvider>
+      <Web3Provider>
+        <Router>
+          <AppContent />
+        </Router>
+      </Web3Provider>
+    </ThemeProvider>
   );
 }
 

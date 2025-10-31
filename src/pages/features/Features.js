@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './Features.css';
-import logoWhite from '../assets/images/logo/logo_white.png';
+import logoWhite from '../../assets/images/logo/logo_white.png';
 
 const Features = () => {
   return (
@@ -67,25 +67,25 @@ const Features = () => {
 
             <div className="features-protection-cards">
               <div className="features-protection-card">
-                <img src={require('../assets/images/icons/SOC.png')} alt="SOC 2" className="features-protection-icon" />
+                <img src={require('../../assets/images/icons/SOC.png')} alt="SOC 2" className="features-protection-icon" />
                 <h3 className="features-protection-card-title">SOC 2 Compliant</h3>
                 <p className="features-protection-card-description">Independently audited for trust and reliability.</p>
               </div>
 
               <div className="features-protection-card">
-                <img src={require('../assets/images/icons/Encryption.png')} alt="256-bit Encryption" className="features-protection-icon" />
+                <img src={require('../../assets/images/icons/Encryption.png')} alt="256-bit Encryption" className="features-protection-icon" />
                 <h3 className="features-protection-card-title">256-bit Encryption</h3>
                 <p className="features-protection-card-description">Advanced encryption ensuring total transaction privacy.</p>
               </div>
 
               <div className="features-protection-card">
-                <img src={require('../assets/images/icons/kyc.png')} alt="KYC/AML" className="features-protection-icon" />
+                <img src={require('../../assets/images/icons/kyc.png')} alt="KYC/AML" className="features-protection-icon" />
                 <h3 className="features-protection-card-title">KYC/AML Verified</h3>
                 <p className="features-protection-card-description">Every user is identity-verified to prevent fraud and ensure compliance.</p>
               </div>
 
               <div className="features-protection-card">
-                <img src={require('../assets/images/icons/audit.png')} alt="Audit Trail" className="features-protection-icon" />
+                <img src={require('../../assets/images/icons/audit.png')} alt="Audit Trail" className="features-protection-icon" />
                 <h3 className="features-protection-card-title">Audit Trail</h3>
                 <p className="features-protection-card-description">Every transaction recorded for full transparency.</p>
               </div>
@@ -169,13 +169,13 @@ const Features = () => {
             <div className="features-testimonial-content">
               <div className="features-testimonial-cards">
                 <div className="features-testimonial-card soc-card">
-                  <img src={require('../assets/images/icons/SOC.png')} alt="SOC 2" className="features-testimonial-icon" />
+                  <img src={require('../../assets/images/icons/SOC.png')} alt="SOC 2" className="features-testimonial-icon" />
                   <h3 className="features-testimonial-card-title">SOC 2 Compliant</h3>
                   <p className="features-testimonial-card-description">Independently audited for trust and reliability.</p>
                 </div>
 
                 <div className="features-testimonial-card encryption-card">
-                  <img src={require('../assets/images/icons/Encryption.png')} alt="256-bit Encryption" className="features-testimonial-icon" />
+                  <img src={require('../../assets/images/icons/Encryption.png')} alt="256-bit Encryption" className="features-testimonial-icon" />
                   <h3 className="features-testimonial-card-title">256-bit Encryption</h3>
                   <p className="features-testimonial-card-description">Advanced encryption ensuring total transaction privacy.</p>
                 </div>
@@ -183,7 +183,7 @@ const Features = () => {
 
               <div className="features-testimonial-image-wrapper">
                 <div className="features-testimonial-background-text">TrustiChain</div>
-                <img src={require('../assets/images/backgrounds/woman.png')} alt="Trusted by users" className="features-testimonial-image" />
+                <img src={require('../../assets/images/backgrounds/woman.png')} alt="Trusted by users" className="features-testimonial-image" />
               </div>
             </div>
           </div>
@@ -215,11 +215,11 @@ const Features = () => {
                 </p>
                 <div className="features-remittance-features">
                   <div className="features-remittance-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-remittance-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-remittance-check" />
                     <span>Near-Instant Settlements</span>
                   </div>
                   <div className="features-remittance-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-remittance-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-remittance-check" />
                     <span>Low Fees</span>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ const Features = () => {
 
               <div className="features-remittance-right">
                 <div className="features-remittance-image-container">
-                  <img src={require('../assets/images/backgrounds/remittance.png')} alt="Remittance" className="features-remittance-image" />
+                  <img src={require('../../assets/images/backgrounds/remittance.png')} alt="Remittance" className="features-remittance-image" />
                 </div>
               </div>
             </div>
@@ -240,7 +240,7 @@ const Features = () => {
             <div className="features-b2b-content">
               <div className="features-b2b-left">
                 <div className="features-b2b-image-container">
-                  <img src={require('../assets/images/backgrounds/b2b.png')} alt="B2B Payments" className="features-b2b-image" />
+                  <img src={require('../../assets/images/backgrounds/b2b.png')} alt="B2B Payments" className="features-b2b-image" />
                 </div>
               </div>
 
@@ -251,11 +251,11 @@ const Features = () => {
                 </p>
                 <div className="features-b2b-features">
                   <div className="features-b2b-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-b2b-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-b2b-check" />
                     <span>Automated Settlements</span>
                   </div>
                   <div className="features-b2b-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-b2b-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-b2b-check" />
                     <span>Global Trade Confidence</span>
                   </div>
                 </div>
@@ -275,11 +275,11 @@ const Features = () => {
                 </p>
                 <div className="features-p2p-features">
                   <div className="features-p2p-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-p2p-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-p2p-check" />
                     <span>No Middlemen</span>
                   </div>
                   <div className="features-p2p-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-p2p-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-p2p-check" />
                     <span>Guaranteed Trust</span>
                   </div>
                 </div>
@@ -287,7 +287,7 @@ const Features = () => {
 
               <div className="features-p2p-right">
                 <div className="features-p2p-image-container">
-                  <img src={require('../assets/images/backgrounds/cryptos.png')} alt="P2P Transactions" className="features-p2p-image" />
+                  <img src={require('../../assets/images/backgrounds/cryptos.png')} alt="P2P Transactions" className="features-p2p-image" />
                 </div>
               </div>
             </div>
@@ -300,7 +300,7 @@ const Features = () => {
             <div className="features-resolution-content">
               <div className="features-resolution-left">
                 <div className="features-resolution-image-container">
-                  <img src={require('../assets/images/backgrounds/review.png')} alt="Conflict Resolution" className="features-resolution-image" />
+                  <img src={require('../../assets/images/backgrounds/review.png')} alt="Conflict Resolution" className="features-resolution-image" />
                 </div>
               </div>
 
@@ -314,11 +314,11 @@ const Features = () => {
                 </p>
                 <div className="features-resolution-features">
                   <div className="features-resolution-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-resolution-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-resolution-check" />
                     <span>Multi-Tier Resolution</span>
                   </div>
                   <div className="features-resolution-feature">
-                    <img src={require('../assets/images/icons/checkmark.png')} alt="Check" className="features-resolution-check" />
+                    <img src={require('../../assets/images/icons/checkmark.png')} alt="Check" className="features-resolution-check" />
                     <span>Impartial Decisions</span>
                   </div>
                 </div>
@@ -362,7 +362,7 @@ const Features = () => {
               <div className="features-showcase-right">
                 <div className="features-ui-preview">
                   <img 
-                    src={require('../assets/images/backgrounds/interface.png')} 
+                    src={require('../../assets/images/backgrounds/interface.png')} 
                     alt="Trust Score & Analytics Dashboard" 
                     className="features-dashboard-screenshot"
                   />

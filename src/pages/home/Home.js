@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './Home.css';
-import logoWhite from '../assets/images/logo/logo_white.png';
+import logoWhite from '../../assets/images/logo/logo_white.png';
 
 const Home = () => {
   const [activeFaq, setActiveFaq] = useState(0);
@@ -36,7 +36,7 @@ const Home = () => {
           </div>
           <div className="hero-visual">
             <img 
-              src={require('../assets/images/backgrounds/interface.png')} 
+              src={require('../../assets/images/backgrounds/interface.png')} 
               alt="TrustiChain Dashboard Preview" 
               className="dashboard-image"
             />
@@ -81,7 +81,7 @@ const Home = () => {
             
             <div className="features-grid">
               <div className="feature-card">
-                <div className="feature-card-image" style={{backgroundImage: `url(${require('../assets/images/backgrounds/remittance.png')})`}}></div>
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/remittance.png')})`}}></div>
                 <div className="feature-card-content">
                   <h3 className="feature-title">Remittance Services</h3>
                   <p className="feature-description">Enjoy near-zero fees and lightning-fast transfers powered by the XRP Ledger - no intermediaries, no delays.</p>
@@ -89,7 +89,7 @@ const Home = () => {
               </div>
               
               <div className="feature-card">
-                <div className="feature-card-image" style={{backgroundImage: `url(${require('../assets/images/backgrounds/b2b.png')})`}}></div>
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/b2b.png')})`}}></div>
                 <div className="feature-card-content">
                   <h3 className="feature-title">Simplify B2B Payments with Smart Escrow</h3>
                   <p className="feature-description">Automate contract-based transactions and ensure compliance, transparency, and speed across your business network.</p>
@@ -97,7 +97,7 @@ const Home = () => {
               </div>
               
               <div className="feature-card">
-                <div className="feature-card-image" style={{backgroundImage: `url(${require('../assets/images/backgrounds/cryptos.png')})`}}></div>
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/cryptos.png')})`}}></div>
                 <div className="feature-card-content">
                   <h3 className="feature-title">Secure Every Transaction, Peer-to-Peer</h3>
                   <p className="feature-description">Protect your funds and build trust with a decentralized escrow system designed for freelancers, buyers, and individuals.</p>
@@ -105,7 +105,7 @@ const Home = () => {
               </div>
               
               <div className="feature-card">
-                <div className="feature-card-image" style={{backgroundImage: `url(${require('../assets/images/backgrounds/review.png')})`}}></div>
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/review.png')})`}}></div>
                 <div className="feature-card-content">
                   <h3 className="feature-title">Fair. Fast. Transparent Conflict Resolution.</h3>
                   <p className="feature-description">Resolve disputes seamlessly through blockchain-verified arbitration and community-backed trust mechanisms.</p>
@@ -123,19 +123,19 @@ const Home = () => {
               <h2 className="security-heading">Enterprise Security Standards</h2>
               <div className="security-badges">
                 <div className="security-badge">
-                  <img src={require('../assets/images/icons/SOC.png')} alt="SOC 2" className="security-badge-icon" />
+                  <img src={require('../../assets/images/icons/SOC.png')} alt="SOC 2" className="security-badge-icon" />
                   <span>SOC 2 Compliant</span>
                 </div>
                 <div className="security-badge">
-                  <img src={require('../assets/images/icons/Encryption.png')} alt="Encryption" className="security-badge-icon" />
+                  <img src={require('../../assets/images/icons/Encryption.png')} alt="Encryption" className="security-badge-icon" />
                   <span>256-bit Encryption</span>
                 </div>
                 <div className="security-badge">
-                  <img src={require('../assets/images/icons/kyc.png')} alt="KYC/AML" className="security-badge-icon" />
+                  <img src={require('../../assets/images/icons/kyc.png')} alt="KYC/AML" className="security-badge-icon" />
                   <span>KYC/AML Verified</span>
                 </div>
                 <div className="security-badge">
-                  <img src={require('../assets/images/icons/audit.png')} alt="Audit Trail" className="security-badge-icon" />
+                  <img src={require('../../assets/images/icons/audit.png')} alt="Audit Trail" className="security-badge-icon" />
                   <span>Audit Trail</span>
                 </div>
               </div>
@@ -175,7 +175,7 @@ const Home = () => {
               <div className="showcase-right">
                 <div className="ui-preview">
                   <img 
-                    src={require('../assets/images/backgrounds/interface.png')} 
+                    src={require('../../assets/images/backgrounds/interface.png')} 
                     alt="Trust Score & Analytics Dashboard" 
                     className="dashboard-screenshot"
                   />

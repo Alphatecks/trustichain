@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ArrowRight } from 'lucide-react';
 import './Pricing.css';
-import logoWhite from '../assets/images/logo/logo_white.png';
+import logoWhite from '../../assets/images/logo/logo_white.png';
 
 const Pricing = () => {
   const [activeFaq, setActiveFaq] = useState(0);

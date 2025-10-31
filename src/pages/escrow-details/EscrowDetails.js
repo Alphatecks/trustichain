@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle, User, DollarSign, Calendar, FileText, Shield } from 'lucide-react';
-import { useWeb3 } from '../context/Web3Context';
+import { useWeb3 } from '../../context/Web3Context';
 import toast from 'react-hot-toast';
 import './EscrowDetails.css';
 

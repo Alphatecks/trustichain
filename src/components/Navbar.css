@@ -6,6 +6,17 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .navbar {
+  background: rgba(18, 18, 18, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .navbar {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .navbar-container {
@@ -28,6 +39,14 @@
   transition: opacity 0.2s;
 }
 
+[data-theme="dark"] .navbar-brand {
+  color: white;
+}
+
+[data-theme="light"] .navbar-brand {
+  color: #021129;
+}
+
 .navbar-brand:hover {
   opacity: 0.8;
 }
@@ -35,6 +54,14 @@
 .brand-icon {
   width: 2rem;
   height: 2rem;
+}
+
+[data-theme="dark"] .brand-icon {
+  color: white;
+}
+
+[data-theme="light"] .brand-icon {
+  color: #021129;
 }
 
 .navbar-menu {
@@ -50,12 +77,28 @@
   position: relative;
 }
 
+[data-theme="dark"] .navbar-link {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .navbar-link {
+  color: rgba(2, 17, 41, 0.8);
+}
+
 .navbar-link:hover {
   color: white;
 }
 
+[data-theme="light"] .navbar-link:hover {
+  color: #0066ff;
+}
+
 .navbar-link.active {
   color: white;
+}
+
+[data-theme="light"] .navbar-link.active {
+  color: #0066ff;
 }
 
 .navbar-link.active::after {
@@ -69,9 +112,67 @@
   border-radius: 1px;
 }
 
+[data-theme="light"] .navbar-link.active::after {
+  background: #0066ff;
+}
+
 .navbar-actions {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+}
+
+.theme-toggle-btn {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  margin-left: 1rem;
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  justify-content: flex-end;
+}
+
+[data-theme="light"] .theme-toggle-btn {
+  background: rgba(0, 102, 255, 0.2);
+  border: 1px solid rgba(0, 102, 255, 0.3);
+  justify-content: flex-start;
+}
+
+.theme-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s;
+}
+
+[data-theme="dark"] .theme-toggle-btn svg {
+  color: white;
+}
+
+[data-theme="light"] .theme-toggle-btn svg {
+  color: #0066ff;
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.05);
+}
+
+[data-theme="dark"] .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="light"] .theme-toggle-btn:hover {
+  background: rgba(0, 102, 255, 0.3);
 }
 
 .connect-wallet-btn {
@@ -88,9 +189,25 @@
   transition: all 0.2s;
 }
 
+[data-theme="dark"] .connect-wallet-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+[data-theme="light"] .connect-wallet-btn {
+  background: rgba(0, 102, 255, 0.1);
+  border: 1px solid rgba(0, 102, 255, 0.2);
+  color: #0066ff;
+}
+
 .connect-wallet-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
+}
+
+[data-theme="light"] .connect-wallet-btn:hover {
+  background: rgba(0, 102, 255, 0.2);
 }
 
 .wallet-info {
@@ -110,9 +227,35 @@
   font-weight: 500;
 }
 
+[data-theme="dark"] .wallet-address {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+[data-theme="light"] .wallet-address {
+  background: rgba(0, 102, 255, 0.05);
+  color: #021129;
+}
+
 .user-icon {
   width: 1rem;
   height: 1rem;
+}
+
+[data-theme="dark"] .user-icon {
+  color: white;
+}
+
+[data-theme="light"] .user-icon {
+  color: #021129;
+}
+
+[data-theme="dark"] .wallet-icon {
+  color: white;
+}
+
+[data-theme="light"] .wallet-icon {
+  color: #0066ff;
 }
 
 .disconnect-btn {
@@ -125,8 +268,24 @@
   transition: all 0.2s;
 }
 
+[data-theme="dark"] .disconnect-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+[data-theme="light"] .disconnect-btn {
+  background: rgba(0, 102, 255, 0.05);
+  border: 1px solid rgba(0, 102, 255, 0.1);
+  color: #021129;
+}
+
 .disconnect-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .disconnect-btn:hover {
+  background: rgba(0, 102, 255, 0.1);
 }
 
 @media (max-width: 768px) {
@@ -150,5 +309,9 @@
   .brand-icon {
     width: 1.5rem;
     height: 1.5rem;
+  }
+
+  .theme-toggle-btn {
+    display: none;
   }
 }

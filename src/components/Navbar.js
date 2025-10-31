@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Wallet, User, LogOut } from 'lucide-react';
+import { Shield, Wallet, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useWeb3 } from '../context/Web3Context';
+import { useTheme } from '../context/ThemeContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const { account, isConnected, connectWallet, disconnectWallet } = useWeb3();
+  const { toggleTheme, isDark } = useTheme();
   const location = useLocation();
 
   const formatAddress = (address) => {
@@ -65,6 +67,13 @@ const Navbar = () => {
               Connect Wallet
             </button>
           )}
+          <button 
+            onClick={toggleTheme}
+            className="theme-toggle-btn"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
         </div>
       </div>
     </nav>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Clock, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react';
-import { useWeb3 } from '../context/Web3Context';
+import { useWeb3 } from '../../context/Web3Context';
 import './MyEscrows.css';
 
 const MyEscrows = () => {
