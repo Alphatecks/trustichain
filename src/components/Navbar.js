@@ -31,16 +31,10 @@ const Navbar = () => {
             Home
           </Link>
           <Link 
-            to="/create" 
-            className={`navbar-link ${location.pathname === '/create' ? 'active' : ''}`}
+            to="/dashboard" 
+            className={`navbar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}
           >
-            Create Escrow
-          </Link>
-          <Link 
-            to="/my-escrows" 
-            className={`navbar-link ${location.pathname === '/my-escrows' ? 'active' : ''}`}
-          >
-            My Escrows
+            Dashboard
           </Link>
         </div>
 

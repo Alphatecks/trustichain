@@ -1,0 +1,92 @@
+.twofactor-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, 
+    #0066ff 0%, 
+    #0066ff 50%, 
+    #4E91FF 50%, 
+    #4E91FF 100%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.twofactor-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 50%, 
+    rgba(79, 145, 255, 0.3) 0%,
+    rgba(0, 102, 255, 0.5) 25%,
+    rgba(0, 98, 255, 0.4) 50%,
+    rgba(129, 165, 224, 0.3) 75%,
+    transparent 100%
+  );
+  animation: wave-animation 15s ease-in-out infinite;
+  z-index: 1;
+}
+
+.twofactor-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: radial-gradient(ellipse at 20% 70%, 
+    rgba(79, 145, 255, 0.4) 0%,
+    rgba(0, 102, 255, 0.6) 40%,
+    rgba(129, 165, 224, 0.3) 70%,
+    transparent 100%
+  );
+  animation: wave-animation-reverse 20s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes wave-animation { 0%,100%{transform:translate(0,0) rotate(0)} 50%{transform:translate(5%,-5%) rotate(5deg)} }
+@keyframes wave-animation-reverse { 0%,100%{transform:translate(0,0) rotate(0)} 50%{transform:translate(-5%,5%) rotate(-5deg)} }
+
+[data-theme="dark"] .twofactor-page {
+  background: linear-gradient(135deg, #021129 0%, #021129 50%, #0a1929 50%, #0a1929 100%);
+}
+[data-theme="dark"] .twofactor-page::before { background: radial-gradient(circle at 30% 50%, rgba(10,25,41,.5) 0%, rgba(2,17,41,.7) 25%, rgba(26,35,50,.5) 50%, rgba(42,52,66,.4) 75%, transparent 100%); }
+[data-theme="dark"] .twofactor-page::after { background: radial-gradient(ellipse at 20% 70%, rgba(10,25,41,.6) 0%, rgba(2,17,41,.8) 40%, rgba(26,35,50,.5) 70%, transparent 100%); }
+
+.twofactor-logo-container { position:absolute; top:2rem; left:2rem; display:flex; align-items:flex-start; gap:.75rem; z-index:10; }
+.twofactor-logo { width:2rem; height:2rem; object-fit:contain; }
+.twofactor-brand-text{ display:flex; flex-direction:column; gap:.125rem; }
+.twofactor-brand-name,.twofactor-tagline { color:#fff; margin:0; font-family:'Poppins',sans-serif; }
+.twofactor-brand-name{ font-weight:700; font-size:1.125rem; }
+.twofactor-tagline{ font-weight:400; font-size:.75rem; }
+
+.twofactor-card { background:#fff; border-radius:1rem; padding:2.5rem; max-width:520px; width:100%; box-shadow:0 10px 40px rgba(0,0,0,.1); position:relative; z-index:2; }
+[data-theme="dark"] .twofactor-card { background:#1a2332; box-shadow:0 10px 40px rgba(0,0,0,.3); }
+
+.twofactor-header { font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-weight:700; font-size:1.875rem; color:#021129; margin:0 0 1rem 0; }
+[data-theme="dark"] .twofactor-header { color:#fff; }
+.twofactor-description { font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:1rem; color:#666; margin:0 0 1.5rem 0; }
+[data-theme="dark"] .twofactor-description { color:#cbd5e1; }
+
+.twofactor-form{ display:flex; flex-direction:column; gap:1.5rem; }
+.twofactor-inputs{ display:flex; align-items:center; gap:.75rem; }
+.twofactor-input{ width:48px; height:56px; text-align:center; font-size:1.5rem; border:1px solid #d1d5db; border-radius:.5rem; outline:none; transition:border .2s, box-shadow .2s; }
+.twofactor-input.spaced{ margin-left:.75rem; }
+.twofactor-input:focus{ border-color:#0066ff; box-shadow:0 0 0 3px rgba(0,102,255,.1); }
+[data-theme="dark"] .twofactor-input{ background:#2a3442; border-color:#3a4552; color:#fff; }
+
+.twofactor-primary-button{ width:100%; padding:1rem; background:#0066ff; color:#fff; border:1px solid rgba(255,255,255,.2); border-radius:2rem; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-weight:600; cursor:pointer; transition:all .3s; box-shadow: inset 0 2px 4px rgba(255,255,255,.3), inset 0 -2px 4px rgba(0,0,0,.2), 0 4px 15px rgba(0,102,255,.3); }
+.twofactor-primary-button[disabled]{ opacity:.6; cursor:not-allowed; }
+.twofactor-primary-button:hover{ transform:translateY(-2px); box-shadow: inset 0 2px 4px rgba(255,255,255,.3), inset 0 -2px 4px rgba(0,0,0,.2), 0 8px 25px rgba(0,102,255,.4); }
+
+.twofactor-footer{ margin-top:1rem; text-align:center; }
+.twofactor-footer-link{ color:#0066ff; text-decoration:none; font-weight:600; }
+.twofactor-footer-link:hover{ opacity:.8; }
+
+@media (max-width:768px){ .twofactor-page{ padding:1rem;} .twofactor-logo-container{ position:static; margin-bottom:2rem; justify-content:center;} .twofactor-card{ padding:2rem 1.5rem;} .twofactor-header{ font-size:1.5rem;} }

@@ -11,16 +11,16 @@ import Pricing from './pages/pricing/Pricing';
 import Waitlist from './pages/waitlist/Waitlist';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
-import CreateEscrow from './pages/create-escrow/CreateEscrow';
-import MyEscrows from './pages/my-escrows/MyEscrows';
-import EscrowDetails from './pages/escrow-details/EscrowDetails';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import TwoFactor from './pages/auth/TwoFactor';
+import Dashboard from './pages/dashboard/Dashboard';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
   
-  // Hide navbar on login and signup pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  // Hide navbar on auth pages
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/dashboard';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
@@ -36,9 +36,9 @@ function AppContent() {
           <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/create" element={<CreateEscrow />} />
-          <Route path="/my-escrows" element={<MyEscrows />} />
-          <Route path="/escrow/:id" element={<EscrowDetails />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/two-factor" element={<TwoFactor />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </main>
       <Toaster 

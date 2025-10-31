@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Shield, KeyRound } from 'lucide-react';
 import './Login.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
@@ -9,11 +9,14 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle login logic here
     console.log('Login attempt:', { email, password, rememberMe });
+    // Navigate to two-factor screen after entering credentials
+    navigate('/two-factor');
   };
 
   return (
