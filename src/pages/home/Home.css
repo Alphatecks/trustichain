@@ -73,7 +73,7 @@
 }
 
 .cta-button.primary {
-  background: linear-gradient(to bottom, #0062ff 0%, #81a5e0 100%);
+  background: #0066ff;
   color: white;
   box-shadow: 
     inset 0 2px 4px rgba(255, 255, 255, 0.3),
@@ -84,7 +84,10 @@
 
 .cta-button.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 102, 255, 0.4);
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    0 8px 25px rgba(0, 102, 255, 0.4);
 }
 
 .cta-button.secondary {
@@ -1733,21 +1736,20 @@
 }
 
 .cta-button-primary {
-  background: linear-gradient(to bottom, #0062ff 0%, #81a5e0 100%);
+  background: #0066ff;
   color: #ffffff;
   box-shadow: 
-    0 4px 12px rgba(0, 98, 255, 0.3),
     inset 0 2px 4px rgba(255, 255, 255, 0.3),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 98, 255, 0.3);
 }
 
 .cta-button-primary:hover {
-  background: linear-gradient(to bottom, #0052cc 0%, #6b8fd1 100%);
   transform: translateY(-2px);
   box-shadow: 
-    0 6px 16px rgba(0, 98, 255, 0.4),
     inset 0 2px 4px rgba(255, 255, 255, 0.3),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    0 6px 16px rgba(0, 98, 255, 0.4);
 }
 
 .cta-button-secondary {
