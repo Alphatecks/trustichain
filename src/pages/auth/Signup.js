@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Globe, Shield } from 'lucide-react';
 import './Signup.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
@@ -12,11 +12,13 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [country, setCountry] = useState('US');
   const [emailOptIn, setEmailOptIn] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle signup logic here
     console.log('Signup attempt:', { email, fullName, password, confirmPassword, country, emailOptIn });
+    navigate('/otp');
   };
 
   const countries = [

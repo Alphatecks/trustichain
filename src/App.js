@@ -13,6 +13,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import TwoFactor from './pages/auth/TwoFactor';
+import Otp from './pages/auth/Otp';
 import Dashboard from './pages/dashboard/Dashboard';
 import './App.css';
 
@@ -20,7 +21,7 @@ function AppContent() {
   const location = useLocation();
   
   // Hide navbar on auth pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/dashboard';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/dashboard';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
@@ -38,6 +39,7 @@ function AppContent() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/two-factor" element={<TwoFactor />} />
+          <Route path="/otp" element={<Otp />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </main>
