@@ -23,14 +23,10 @@ export const ThemeProvider = ({ children }) => {
     if (getIsMobile()) {
       return 'light';
     }
-    // Check localStorage first
+    // Desktop default should be light; only use saved preference if present
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       return savedTheme;
-    }
-    // Check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
     }
     return 'light';
   });
