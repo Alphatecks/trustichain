@@ -37,6 +37,13 @@
   transform: translateY(-50%);
 }
 
+/* Desktop: Move logo more to the right */
+@media (min-width: 769px) {
+  .landing-navbar-brand {
+    left: 6rem;
+  }
+}
+
 .landing-navbar-brand:hover {
   opacity: 0.8;
 }

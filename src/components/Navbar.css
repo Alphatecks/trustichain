@@ -39,6 +39,13 @@
   transition: opacity 0.2s;
 }
 
+/* Desktop: Move logo more to the right */
+@media (min-width: 769px) {
+  .navbar-brand {
+    margin-left: 5rem;
+  }
+}
+
 [data-theme="dark"] .navbar-brand {
   color: white;
 }
