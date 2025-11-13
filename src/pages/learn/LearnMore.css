@@ -1,0 +1,824 @@
+.learnmore-page {
+  min-height: calc(100vh - 80px);
+  background: linear-gradient(180deg, #f4f8ff 0%, #ffffff 60%, #ffffff 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6rem 0 5rem 0;
+}
+
+.learnmore-hero {
+  width: 100%;
+  max-width: 1150px;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3rem;
+}
+
+.learnmore-hero-content {
+  max-width: 960px;
+}
+
+.learnmore-title {
+  font-size: 3.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-title-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.learnmore-title-highlight {
+  color: #1670ff;
+  display: block;
+}
+
+.learnmore-subtitle {
+  font-size: 1.1rem;
+  color: #4a5568;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 0 auto;
+  max-width: 620px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-hero-image {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.learnmore-image-frame {
+  width: 100%;
+  max-width: 1100px;
+  background: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 30px 80px rgba(79, 114, 205, 0.2);
+  overflow: hidden;
+}
+
+.learnmore-image-frame img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.learnmore-about {
+  width: 100%;
+  max-width: 1150px;
+  padding: 4rem 2rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.learnmore-about-meta {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.learnmore-about-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-about-copy {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: #1f2933;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-about-highlight {
+  color: #0b5fff;
+  font-weight: 600;
+}
+
+.learnmore-about-heading {
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: #0b1220;
+  line-height: 1.25;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  text-align: center;
+}
+
+.learnmore-about-visual {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.learnmore-about-visual img {
+  width: 100%;
+  max-width: 820px;
+  border-radius: 1rem;
+  box-shadow: 0 35px 80px rgba(15, 38, 66, 0.25);
+  display: block;
+}
+
+.learnmore-why {
+  width: 100%;
+  max-width: 1150px;
+  padding: 4.5rem 2rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.learnmore-why-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.learnmore-why-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+}
+
+.learnmore-why-intro {
+  font-size: 1.05rem;
+  color: #4b5563;
+  max-width: 520px;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.learnmore-why-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(15, 38, 66, 0.08);
+  box-shadow: 0 12px 35px rgba(15, 38, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.learnmore-why-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0b5fff 0%, #1f9bff 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.05rem;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-why-card p {
+  margin: 0;
+  font-size: 1.02rem;
+  color: #1f2933;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.55;
+}
+
+.learnmore-why-statement {
+  font-size: 1.15rem;
+  color: #111827;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.learnmore-suite h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-subheading {
+  font-size: 1.05rem;
+  color: #4b5563;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.learnmore-suite-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(15, 38, 66, 0.08);
+  box-shadow: 0 12px 35px rgba(15, 38, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.learnmore-suite-number {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0b5fff 0%, #1f9bff 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.05rem;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-card p {
+  margin: 0;
+  font-size: 1.02rem;
+  color: #1f2933;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.55;
+}
+
+.learnmore-suite-footer {
+  font-size: 1.05rem;
+  color: #0b1220;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-feature {
+  width: 100%;
+  max-width: 1150px;
+  padding: 5rem 2rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  text-align: center;
+}
+
+.learnmore-suite-feature-title {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #0b1220;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-feature-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.learnmore-suite-feature-image {
+  display: flex;
+  justify-content: center;
+}
+
+.learnmore-suite-feature-image img {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 70px rgba(15, 30, 66, 0.18);
+  display: block;
+}
+
+.learnmore-suite-feature-copy {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.learnmore-suite-feature-copy h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-feature-copy p {
+  font-size: 1.05rem;
+  color: #374151;
+  line-height: 1.7;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-suite-feature-highlight {
+  font-weight: 600;
+  color: #0b1220;
+}
+
+.learnmore-actions {
+  width: 100%;
+  max-width: 1150px;
+  padding: 5rem 2rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  text-align: center;
+}
+
+.learnmore-actions-title {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #0b1220;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-actions-image {
+  display: flex;
+  justify-content: center;
+}
+
+.learnmore-actions-image img {
+  width: 100%;
+  max-width: 1020px;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 70px rgba(15, 30, 66, 0.18);
+  display: block;
+}
+
+.learnmore-capabilities {
+  width: 100%;
+  max-width: 1150px;
+  padding: 5rem 2rem 6rem 2rem;
+}
+
+.learnmore-capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3rem 4rem;
+}
+
+.learnmore-capability-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.learnmore-capability-card h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-capability-description {
+  font-size: 1.05rem;
+  color: #4b5563;
+  line-height: 1.7;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-capability-card ul {
+  padding-left: 1.3rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #1f2933;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 1rem;
+}
+
+.learnmore-capability-card li {
+  line-height: 1.6;
+}
+
+.learnmore-capability-footer {
+  font-size: 1.05rem;
+  color: #0b1220;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-who {
+  width: 100%;
+  max-width: 1150px;
+  padding: 5rem 2rem 0 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.learnmore-who-title {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #081a3c;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-who-subtitle {
+  font-size: 1.05rem;
+  color: #4b5563;
+  margin: 0 auto;
+  max-width: 560px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-who-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.learnmore-who-card {
+  border: 1px solid #cbdaff;
+  border-radius: 1rem;
+  padding: 2.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(239, 246, 255, 0.2);
+}
+
+.learnmore-who-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1d4ed8;
+}
+
+.learnmore-who-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0b1220;
+  margin: 0;
+  text-align: center;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-who-card p {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin: 0;
+  text-align: center;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-compare {
+  width: 100%;
+  max-width: 1150px;
+  padding: 5rem 2rem 6rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  text-align: center;
+}
+
+.learnmore-compare-heading {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.learnmore-compare-card {
+  padding: 2.75rem 2.5rem;
+  border-radius: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid transparent;
+  box-shadow: 0 25px 70px rgba(15, 30, 66, 0.18);
+  position: relative;
+}
+
+.learnmore-compare-card h3 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin: 0;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-compare-card ul {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.learnmore-compare-card li {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.learnmore-compare-card li::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.learnmore-compare-card.legacy {
+  background: linear-gradient(180deg, #fbf2e6 0%, #edd9c2 100%);
+  border-color: rgba(214, 180, 140, 0.4);
+  color: #473629;
+}
+
+.learnmore-compare-card.legacy h3 {
+  font-weight: 500;
+  background: linear-gradient(180deg, #1f2933 0%, #6b7280 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.learnmore-compare-card.legacy li {
+  color: rgba(64, 49, 36, 0.7);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.learnmore-compare-card.legacy li::before {
+  background: linear-gradient(#f8fafc, #f8fafc) padding-box, linear-gradient(135deg, rgba(148, 163, 184, 0.8), rgba(100, 116, 139, 0.8)) border-box;
+  border: 4px solid transparent;
+}
+
+.learnmore-compare-card.trustichain {
+  background: linear-gradient(180deg, #3b82f6 0%, #dbeafe 100%);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transform: translateY(-6px);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    inset 2px 0 4px rgba(255, 255, 255, 0.2),
+    inset -2px 0 4px rgba(0, 0, 0, 0.35),
+    0 28px 80px rgba(15, 30, 66, 0.22);
+}
+
+.learnmore-compare-card.trustichain li {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.learnmore-compare-card.trustichain h3 {
+  font-weight: 500;
+}
+
+.learnmore-compare-card.trustichain li {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 300;
+}
+
+.learnmore-compare-card.trustichain li::before {
+  background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #60a5fa, #1e40af) border-box;
+  border: 4px solid transparent;
+}
+@media (max-width: 992px) {
+  .learnmore-title {
+    font-size: 3rem;
+  }
+
+  .learnmore-page {
+    padding: 5rem 0 3rem 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .learnmore-page {
+    padding: 4.5rem 0 2.5rem 0;
+  }
+
+  .learnmore-hero {
+    padding: 0 1.5rem;
+    gap: 2.5rem;
+  }
+
+  .learnmore-title {
+    font-size: 2.4rem;
+  }
+
+  .learnmore-subtitle {
+    font-size: 1rem;
+  }
+
+  .learnmore-image-frame {
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(79, 114, 205, 0.15);
+  }
+
+  .learnmore-about {
+    padding: 3.5rem 1.5rem 0 1.5rem;
+    gap: 2.5rem;
+  }
+
+  .learnmore-about-meta {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .learnmore-about-heading {
+    font-size: 2.2rem;
+  }
+
+  .learnmore-why {
+    padding: 3.5rem 1.5rem 0 1.5rem;
+    gap: 2.5rem;
+  }
+
+  .learnmore-why-header {
+    align-items: flex-start;
+  }
+
+  .learnmore-suite-feature {
+    padding: 4rem 1.5rem 0 1.5rem;
+  }
+
+  .learnmore-suite-feature-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .learnmore-suite-feature-copy {
+    text-align: center;
+    align-items: center;
+  }
+
+  .learnmore-suite-feature-copy h3 {
+    font-size: 1.8rem;
+  }
+
+  .learnmore-suite-feature-title,
+  .learnmore-actions-title {
+    font-size: 2.4rem;
+  }
+
+  .learnmore-actions {
+    padding: 4rem 1.5rem 0 1.5rem;
+  }
+
+  .learnmore-capabilities {
+    padding: 4rem 1.5rem 5rem 1.5rem;
+  }
+
+  .learnmore-capabilities-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .learnmore-who {
+    padding: 4rem 1.5rem 0 1.5rem;
+  }
+
+  .learnmore-who-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .learnmore-compare {
+    padding: 4rem 1.5rem 5rem 1.5rem;
+  }
+
+  .learnmore-compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .learnmore-hero {
+    padding: 0 1rem;
+  }
+
+  .learnmore-title {
+    font-size: 2rem;
+  }
+
+  .learnmore-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .learnmore-about {
+    padding: 3rem 1rem 0 1rem;
+    gap: 2rem;
+  }
+
+  .learnmore-about-heading {
+    font-size: 1.9rem;
+  }
+
+  .learnmore-why {
+    padding: 3rem 1rem 0 1rem;
+    gap: 2rem;
+  }
+
+  .learnmore-why-title {
+    font-size: 2.1rem;
+  }
+
+  .learnmore-suite h3 {
+    font-size: 1.75rem;
+  }
+
+  .learnmore-suite-feature {
+    padding: 3.5rem 1rem 0 1rem;
+    gap: 2rem;
+  }
+
+  .learnmore-suite-feature-title,
+  .learnmore-actions-title {
+    font-size: 2rem;
+  }
+
+  .learnmore-suite-feature-copy h3 {
+    font-size: 1.6rem;
+  }
+
+  .learnmore-actions {
+    padding: 3.5rem 1rem 0 1rem;
+  }
+
+  .learnmore-capabilities {
+    padding: 3.5rem 1rem 4.5rem 1rem;
+  }
+
+  .learnmore-capability-card h3 {
+    font-size: 1.6rem;
+  }
+
+  .learnmore-who {
+    padding: 3.5rem 1rem 0 1rem;
+  }
+
+  .learnmore-who-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .learnmore-compare {
+    padding: 3.5rem 1rem 4.5rem 1rem;
+  }
+
+  .learnmore-compare-heading {
+    font-size: 2.2rem;
+  }
+
+  .learnmore-compare-card h3 {
+    font-size: 1.75rem;
+  }
+}
+

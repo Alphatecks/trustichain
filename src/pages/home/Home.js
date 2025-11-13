@@ -29,9 +29,9 @@ const Home = () => {
                 Join waitlist
                 <ArrowRight className="button-icon" />
               </Link>
-              <button className="cta-button secondary">
+              <Link to="/learn-more" className="cta-button secondary">
                 Learn More
-              </button>
+              </Link>
             </div>
           </div>
           <div className="hero-visual">
@@ -457,7 +457,7 @@ const Home = () => {
                     <ArrowRight size={16} />
                   </div>
                 </Link>
-                <button className="cta-button cta-button-secondary">Learn more</button>
+                <Link to="/learn-more" className="cta-button cta-button-secondary">Learn more</Link>
               </div>
             </div>
           </div>

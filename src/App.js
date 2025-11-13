@@ -9,6 +9,7 @@ import Home from './pages/home/Home';
 import Features from './pages/features/Features';
 import Pricing from './pages/pricing/Pricing';
 import Waitlist from './pages/waitlist/Waitlist';
+import LearnMore from './pages/learn/LearnMore';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -23,7 +24,7 @@ function AppContent() {
   // Hide navbar on auth pages
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/dashboard';
   // Use LandingNavbar for landing pages, Navbar for app pages
-  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist';
+  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
 
   return (
@@ -35,6 +36,7 @@ function AppContent() {
           <Route path="/features" element={<Features />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/waitlist" element={<Waitlist />} />
+          <Route path="/learn-more" element={<LearnMore />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
