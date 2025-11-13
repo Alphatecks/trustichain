@@ -23,9 +23,9 @@ const Features = () => {
                 Get started
                 <ArrowRight className="features-button-icon" />
               </Link>
-              <button className="features-cta-button secondary">
+              <Link to="/learn-more" className="features-cta-button secondary">
                 Learn More
-              </button>
+              </Link>
             </div>
           </div>
         </section>
@@ -385,7 +385,7 @@ const Features = () => {
                   Get started
                   <ArrowRight className="features-cta-button-icon" />
                 </Link>
-                <button className="features-cta-button features-cta-button-secondary">Learn more</button>
+                <Link to="/learn-more" className="features-cta-button features-cta-button-secondary">Learn more</Link>
               </div>
             </div>
           </div>

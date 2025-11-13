@@ -421,7 +421,7 @@ const Pricing = () => {
                     <ArrowRight size={16} />
                   </div>
                 </Link>
-                <button className="cta-button cta-button-secondary">Learn more</button>
+                <Link to="/learn-more" className="cta-button cta-button-secondary">Learn more</Link>
               </div>
             </div>
           </div>
