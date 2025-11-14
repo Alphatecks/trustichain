@@ -1,216 +1,187 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Globe, Shield } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import './Signup.css';
-import logoWhite from '../../assets/images/logo/logo_white.png';
+import logo from '../../assets/images/icons/logo.png';
+import keyVisual from '../../assets/images/backgrounds/key.png';
 import googleLogo from '../../assets/images/icons/google-logo.svg';
+import socIcon from '../../assets/images/icons/SOC.png';
+import encryptionIcon from '../../assets/images/icons/Encryption.png';
+import kycIcon from '../../assets/images/icons/kyc.png';
+import auditIcon from '../../assets/images/icons/audit.png';
 
 const Signup = () => {
-  const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [country, setCountry] = useState('US');
-  const [emailOptIn, setEmailOptIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle signup logic here
-    console.log('Signup attempt:', { email, fullName, password, confirmPassword, country, emailOptIn });
+    if (password !== confirmPassword || !agreeTerms) {
+      return;
+    }
+    console.log('Signup attempt:', { fullName, email });
     navigate('/otp');
   };
 
-  const countries = [
-    { code: 'US', name: 'United States', flag: '🇺🇸' },
-    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
-    { code: 'CA', name: 'Canada', flag: '🇨🇦' },
-    { code: 'AU', name: 'Australia', flag: '🇦🇺' },
-    { code: 'DE', name: 'Germany', flag: '🇩🇪' },
-    { code: 'FR', name: 'France', flag: '🇫🇷' },
-    { code: 'JP', name: 'Japan', flag: '🇯🇵' },
-    { code: 'IN', name: 'India', flag: '🇮🇳' },
-    { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
-    { code: 'CN', name: 'China', flag: '🇨🇳' },
-  ];
-
   return (
     <div className="signup-page">
-      <div className="signup-logo-container">
-        <img src={logoWhite} alt="TrustiChain Logo" className="signup-logo" />
-        <div className="signup-brand-text">
-          <h2 className="signup-brand-name">TrustiChain</h2>
-          <p className="signup-tagline">XRP Ledger Escrow</p>
-        </div>
-      </div>
+      <div className="signup-content">
+        <section className="signup-left">
+          <div className="signup-branding">
+            <img src={logo} alt="TrustiChain logo" className="signup-brand-logo" />
+            <span className="signup-brand-name">TrustiChain</span>
+          </div>
 
-      <div className="signup-container">
-        {/* Left Column - Informational */}
-        <div className="signup-info-column">
-          <div className="signup-info-section">
-            <div className="signup-trail-marker"></div>
-            <h3 className="signup-info-heading">Get started quickly</h3>
-            <p className="signup-info-description">
-              Integrate with developer-friendly APIs or choose low-code or pre-built solutions.
-            </p>
-          </div>
-          
-          <div className="signup-trail-connector"></div>
-          
-          <div className="signup-info-section">
-            <div className="signup-trail-marker"></div>
-            <h3 className="signup-info-heading">Secure blockchain escrow</h3>
-            <p className="signup-info-description">
-              Ecommerce, subscriptions, and more—all secured on the XRP Ledger with instant settlements.
-            </p>
-          </div>
-          
-          <div className="signup-trail-connector"></div>
-          
-          <div className="signup-info-section">
-            <div className="signup-trail-marker"></div>
-            <h3 className="signup-info-heading">Trusted by innovators</h3>
-            <p className="signup-info-description">
-              TrustiChain is trusted by ambitious startups and enterprises of every size.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Column - Form */}
-        <div className="signup-form-column">
           <div className="signup-card">
-            <h1 className="signup-header">Create your TrustiChain account</h1>
+            <div className="signup-tabs">
+              <Link to="/login" className="signup-tab">
+                Sign in
+              </Link>
+              <button className="signup-tab active" type="button">
+                Sign Up
+              </button>
+            </div>
 
-            <form onSubmit={handleSubmit} className="signup-form">
-              <div className="signup-input-group">
-                <label htmlFor="email" className="signup-label">Email</label>
-                <div className="signup-input-wrapper">
-                  <Mail className="signup-input-icon" size={20} />
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="signup-input"
-                    placeholder="Enter your email"
-                    required
-                  />
-                </div>
-              </div>
+            <button type="button" className="signup-social-btn">
+              <img src={googleLogo} alt="Google" />
+              Sign in with Google
+            </button>
 
-              <div className="signup-input-group">
-                <label htmlFor="fullName" className="signup-label">Full name</label>
-                <div className="signup-input-wrapper">
-                  <User className="signup-input-icon" size={20} />
-                  <input
-                    type="text"
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="signup-input"
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
-              </div>
+            <div className="signup-divider">
+              <span>OR</span>
+            </div>
 
-              <div className="signup-input-group">
-                <label htmlFor="password" className="signup-label">Password</label>
-                <div className="signup-input-wrapper">
-                  <Lock className="signup-input-icon" size={20} />
+            <div className="signup-welcome">
+              <h2>Welcome Back!</h2>
+              <p>We are so excited to see you again!</p>
+            </div>
+
+            <form className="signup-form" onSubmit={handleSubmit}>
+              <label className="signup-field">
+                <span>Full Name</span>
+                <input
+                  type="text"
+                  placeholder="Enter full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </label>
+
+              <label className="signup-field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  placeholder="Enter Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+
+              <label className="signup-field">
+                <span>Password</span>
+                <div className="signup-password-wrapper">
                   <input
-                    type="password"
-                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="signup-input"
-                    placeholder="Create a password"
                     required
                   />
+                  <button
+                    type="button"
+                    className="signup-password-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
-              </div>
+              </label>
 
-              <div className="signup-input-group">
-                <label htmlFor="confirmPassword" className="signup-label">Confirm password</label>
-                <div className="signup-input-wrapper">
-                  <Lock className="signup-input-icon" size={20} />
+              <label className="signup-field">
+                <span>Confirm Password</span>
+                <div className="signup-password-wrapper">
                   <input
-                    type="password"
-                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Enter Password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="signup-input"
-                    placeholder="Confirm your password"
                     required
                   />
-                </div>
-              </div>
-
-              <div className="signup-input-group">
-                <label htmlFor="country" className="signup-label">Country</label>
-                <div className="signup-input-wrapper">
-                  <Globe className="signup-input-icon" size={20} />
-                  <select
-                    id="country"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="signup-select"
+                  <button
+                    type="button"
+                    className="signup-password-toggle"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
-                    {countries.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.flag} {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
-              </div>
+              </label>
 
-              <div className="signup-checkbox-group">
-                <label className="signup-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={emailOptIn}
-                    onChange={(e) => setEmailOptIn(e.target.checked)}
-                    className="signup-checkbox"
-                  />
-                  <span className="signup-checkbox-text">
-                    Get emails from TrustiChain about product updates, industry news, and events. You can unsubscribe at any time. 
-                    <Link to="/privacy" className="signup-checkbox-link"> Privacy Policy</Link>
-                  </span>
-                </label>
-              </div>
-
-              <button type="submit" className="signup-primary-button">
-                Create account
+              <button type="submit" className="signup-primary-btn" disabled={!agreeTerms}>
+                Sign In
               </button>
             </form>
 
-            <div className="signup-divider">
-              <div className="signup-divider-line"></div>
-              <span className="signup-divider-text">OR</span>
-              <div className="signup-divider-line"></div>
-            </div>
+            <label className="signup-terms">
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+              />
+              <span>Agree to terms and condition</span>
+            </label>
+          </div>
+        </section>
 
-            <div className="signup-secondary-buttons">
-              <button className="signup-secondary-button">
-                <img src={googleLogo} alt="Google" className="google-logo-icon" />
-                Sign up with Google
-              </button>
+        <aside className="signup-hero">
+          <div className="signup-hero-inner">
+            <p className="signup-hero-eyebrow">Get Instant</p>
+            <h1>Your All-in-One Blockchain Escrow Solution</h1>
+            <div className="signup-hero-image">
+              <img src={keyVisual} alt="Key and shield illustration" />
             </div>
-
-            <div className="signup-footer">
-              <span className="signup-footer-text">Already have an account?</span>
-              <Link to="/login" className="signup-footer-link">Sign in</Link>
+            <div className="signup-hero-badges">
+              <div className="signup-hero-badge">
+                <img src={socIcon} alt="SOC 2" />
+                <div>
+                  <h4>SOC 2 Compliant</h4>
+                  <p>Independently audited for trust and reliability.</p>
+                </div>
+              </div>
+              <div className="signup-hero-badge">
+                <img src={encryptionIcon} alt="Encryption" />
+                <div>
+                  <h4>256-bit Encryption</h4>
+                  <p>Advanced encryption ensuring total transaction privacy.</p>
+                </div>
+              </div>
+              <div className="signup-hero-badge">
+                <img src={kycIcon} alt="KYC/AML" />
+                <div>
+                  <h4>KYC/AML Verified</h4>
+                  <p>Every user is identity-verified to prevent fraud.</p>
+                </div>
+              </div>
+              <div className="signup-hero-badge">
+                <img src={auditIcon} alt="Audit trail" />
+                <div>
+                  <h4>Audit Trail</h4>
+                  <p>Every transaction recorded for full transparency.</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="signup-security-warning">
-        <Shield size={16} className="signup-security-icon" />
-        <p className="signup-security-text">
-          Only install browser extensions from companies you trust. Malicious browser extensions can compromise your security by reading your passwords.
-        </p>
+        </aside>
       </div>
     </div>
   );
