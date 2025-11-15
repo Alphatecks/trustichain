@@ -327,6 +327,10 @@
   align-items: stretch;
 }
 
+.card-content.single-column {
+  grid-template-columns: 1fr;
+}
+
 .card-left {
   display: flex;
   flex-direction: column;
@@ -402,6 +406,20 @@
   transform: scale(1.2);
 }
 
+.step.completed {
+  color: var(--text-dark);
+}
+
+.step.completed .step-node {
+  border-color: var(--blue-600);
+  background: var(--white);
+}
+
+.step.completed .step-node::after {
+  background: var(--blue-600);
+  transform: scale(1.1);
+}
+
 .step-title {
   margin: 0;
   font-size: 0.85rem;
@@ -418,6 +436,10 @@
 
 .step.active .step-connector {
   background: linear-gradient(90deg, var(--blue-600), var(--blue-400));
+}
+
+.step.completed .step-connector {
+  background: var(--blue-600);
 }
 
 .kyc-form {
@@ -501,6 +523,152 @@
   transform-origin: center;
 }
 
+.upload-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 2rem;
+  align-items: center;
+}
+
+.upload-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.upload-card {
+  background: #f8fbff;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(15, 62, 129, 0.08);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.upload-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0d1c3d;
+}
+
+.upload-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.upload-drop {
+  flex: 1;
+  border: 2px dashed #d9e2f4;
+  border-radius: 0.9rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  text-align: center;
+  padding: 1.25rem;
+  cursor: pointer;
+}
+
+.upload-drop input {
+  display: none;
+}
+
+.upload-drop button {
+  border: none;
+  padding: 0.55rem 1.5rem;
+  border-radius: 999px;
+  background: #dbe7ff;
+  color: #1f75ff;
+  font-weight: 600;
+}
+
+.upload-drop span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.selfie-card {
+  grid-column: 1 / -1;
+  background: #f9fbff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selfie-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.selfie-title {
+  font-weight: 600;
+  color: #0b1c2e;
+}
+
+.selfie-subtitle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.selfie-action {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-align: center;
+  align-items: center;
+}
+
+.selfie-action input {
+  display: none;
+}
+
+.selfie-label {
+  font-weight: 600;
+  color: #0b1c2e;
+}
+
+.selfie-action button {
+  align-self: center;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.5rem;
+  background: #1f75ff;
+  color: #fff;
+  font-weight: 600;
+}
+
+.selfie-file {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.upload-illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.upload-illustration img {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+}
+
+.upload-actions {
+  margin-top: 1.5rem;
+}
+
 @media (max-width: 1200px) {
   .dashboard-main {
     padding: 2rem;
@@ -515,6 +683,10 @@
   }
 
   .card-content {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-grid {
     grid-template-columns: 1fr;
   }
 }
