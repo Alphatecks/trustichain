@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 import './Signup.css';
 import logo from '../../assets/images/icons/logo.png';
 import keyVisual from '../../assets/images/backgrounds/key.png';
@@ -9,6 +10,7 @@ import socIcon from '../../assets/images/icons/SOC.png';
 import encryptionIcon from '../../assets/images/icons/Encryption.png';
 import kycIcon from '../../assets/images/icons/kyc.png';
 import auditIcon from '../../assets/images/icons/audit.png';
+import { getApiUrl } from '../../utils/config';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
@@ -18,15 +20,55 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword || !agreeTerms) {
+    
+    // Client-side validation
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
-    console.log('Signup attempt:', { fullName, email });
-    navigate('/otp');
+    
+    if (!agreeTerms) {
+      toast.error('Please agree to the terms and conditions');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(getApiUrl('api/auth/register'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          fullName,
+          password,
+          confirmPassword,
+          agreeToTerms: agreeTerms,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        toast.error(data.message || data.error || 'Registration failed');
+        return;
+      }
+
+      toast.success('An email verification link has been sent to you');
+      navigate('/login');
+    } catch (error) {
+      toast.error(error.message || 'An error occurred during registration');
+      console.error('Signup error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -50,7 +92,7 @@ const Signup = () => {
 
             <button type="button" className="signup-social-btn">
               <img src={googleLogo} alt="Google" />
-              Sign in with Google
+              Sign up with Google
             </button>
 
             <div className="signup-divider">
@@ -127,8 +169,8 @@ const Signup = () => {
                 </div>
               </label>
 
-              <button type="submit" className="signup-primary-btn" disabled={!agreeTerms}>
-                Sign In
+              <button type="submit" className="signup-primary-btn" disabled={!agreeTerms || isLoading}>
+                {isLoading ? 'Signing Up...' : 'Sign Up'}
               </button>
             </form>
 

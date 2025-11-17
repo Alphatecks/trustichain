@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, KeyRound, Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 import './Login.css';
 import logo from '../../assets/images/icons/logo.png';
 import keyVisual from '../../assets/images/backgrounds/key.png';
@@ -9,17 +10,47 @@ import socIcon from '../../assets/images/icons/SOC.png';
 import encryptionIcon from '../../assets/images/icons/Encryption.png';
 import kycIcon from '../../assets/images/icons/kyc.png';
 import auditIcon from '../../assets/images/icons/audit.png';
+import { getApiUrl } from '../../utils/config';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login attempt:', { email, password });
-    navigate('/two-factor');
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(getApiUrl('api/auth/login'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        toast.error(data.message || data.error || 'Login failed');
+        return;
+      }
+
+      toast.success('Login successful!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error(error.message || 'An error occurred during login');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -101,8 +132,8 @@ const Login = () => {
                 </div>
               </label>
 
-              <button type="submit" className="login-primary-btn">
-                Sign In
+              <button type="submit" className="login-primary-btn" disabled={isLoading}>
+                {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
             </form>
 

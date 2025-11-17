@@ -513,13 +513,14 @@
   justify-content: center;
   padding: 1.5rem;
   overflow: visible;
+  margin-top: 3.5rem;
 }
 
 .card-illustration img {
   max-width: 520px;
   width: 100%;
   height: auto;
-  transform: scale(1.45);
+  transform: scale(1.45) translateX(-2rem);
   transform-origin: center;
 }
 
