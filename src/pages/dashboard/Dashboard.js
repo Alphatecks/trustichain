@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../assets/images/icons/logo.png';
+import logoWhite from '../../assets/images/logo/logo_white.png';
 import mockIllustration from '../../assets/images/illustrations/mock.png';
 import uploadIllustration from '../../assets/images/illustrations/upload.png';
 import chainsIllustration from '../../assets/images/illustrations/chain.png';
@@ -403,12 +404,18 @@ const Dashboard = () => {
             <div className="trusticard-card">
               <h3>Trusticard</h3>
               <div className="virtual-card">
-                <div className="card-header-info">
-                  <div className="card-logo">TrustiChain</div>
-                  <div className="card-type">Premium Debit</div>
+              <div className="card-header-info">
+                <div className="card-logo">
+                  <img src={logoWhite} alt="TrustiChain" className="card-logo-img" />
+                  <span>TrustiChain</span>
                 </div>
-                <div className="card-number">7834 •••• •••• 6453</div>
-                <div className="card-holder">Sarah Chen</div>
+                <div className="card-type">Premium Debit</div>
+              </div>
+                <div className="card-number">7834 **** **** 6453</div>
+                <div className="card-holder">
+                  <span className="card-holder-label">Card holder</span>
+                  <span>Sarah Chen</span>
+                </div>
               </div>
             </div>
           </div>

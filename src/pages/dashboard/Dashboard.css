@@ -166,10 +166,6 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  max-width: 1920px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
 }
 
 .dashboard-header {
@@ -322,6 +318,8 @@
   border-radius: 0;
   padding: 2.5rem;
   box-shadow: none;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .card-content {
@@ -329,6 +327,7 @@
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
   gap: 2rem;
   align-items: stretch;
+  max-width: 100%;
 }
 
 .card-content.single-column {
@@ -1526,7 +1525,11 @@
 }
 
 .virtual-card {
-  background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-400) 100%);
+  background: #0671FF;
+  background-image: url('../../assets/images/backgrounds/card.png');
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-size: contain;
   border-radius: 1rem;
   padding: 1.5rem;
   color: var(--white);
@@ -1543,8 +1546,18 @@
 }
 
 .card-logo {
-  font-weight: 700;
+  font-weight: 500 !important;
   font-size: 1.1rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .card-type {
@@ -1555,13 +1568,68 @@
 .card-number {
   font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  margin-top: auto;
+  letter-spacing: 0;
+  margin-top: 0.2rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
 .card-holder {
   font-size: 0.9rem;
   opacity: 0.9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.card-holder-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+@media (max-width: 1600px) and (min-width: 1201px) {
+  .card-content {
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+  }
+  
+  .card-illustration {
+    margin-top: 2rem;
+  }
+  
+  .card-illustration img {
+    transform: scale(1.2) translateX(-0.5rem);
+    max-width: 380px;
+  }
+  
+  .kyc-form input,
+  .kyc-form select {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1400px) {
+  .card-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .card-illustration {
+    margin-top: 2rem;
+    order: -1;
+  }
+  
+  .card-illustration img {
+    transform: scale(1) translateX(0);
+    max-width: 350px;
+  }
+  
+  .card-left {
+    max-width: 100%;
+  }
+  
+  .kyc-form input,
+  .kyc-form select {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -1614,7 +1682,11 @@
 @media (min-width: 1920px) {
   .dashboard-main {
     margin-left: 280px;
-    padding: 2.5rem calc((100% - 1640px) / 2);
+    padding: 2.5rem 3rem;
+    max-width: 1920px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: calc(280px + 3rem);
   }
   
   .dashboard-content {
