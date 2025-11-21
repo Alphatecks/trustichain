@@ -1,0 +1,810 @@
+.my-escrow-page {
+  width: 100%;
+  padding: 2rem;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* Header Section */
+.escrow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.escrow-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.breadcrumb-item {
+  color: var(--text-muted);
+}
+
+.breadcrumb-item.active {
+  color: var(--blue-600);
+  font-weight: 600;
+}
+
+.breadcrumb-divider {
+  color: var(--text-muted);
+}
+
+.escrow-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.escrow-month-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+
+.create-escrow-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.create-escrow-btn:hover {
+  background: var(--blue-700);
+}
+
+/* Metric Cards */
+.escrow-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.escrow-metric-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  flex-shrink: 0;
+}
+
+.metric-icon-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.metric-label-small {
+  font-size: 0.75rem;
+}
+
+.metric-label-blue {
+  color: var(--blue-600);
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  margin-bottom: 0.25rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.metric-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.metric-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.metric-trend.positive {
+  color: #10b981;
+}
+
+/* Filters Section */
+.escrow-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-filters {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.category-filter-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--blue-600);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.category-filter-btn:hover {
+  background: #f0f7ff;
+}
+
+.category-filter-btn.active {
+  background: var(--blue-600);
+  color: var(--white);
+  border-color: var(--blue-600);
+  border-radius: 0.5rem;
+}
+
+.secondary-filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.industry-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+
+.date-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: var(--blue-600);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Table Section */
+.escrow-table-container {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.escrow-data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.escrow-data-table thead {
+  background: #f8f9fa;
+}
+
+.escrow-data-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--border);
+}
+
+.escrow-data-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s ease;
+}
+
+.escrow-data-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.escrow-data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.escrow-data-table td {
+  padding: 1.25rem 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+
+.escrow-id {
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.escrow-parties {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.party-from,
+.party-to {
+  color: var(--blue-600);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.party-arrow {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.escrow-amount {
+  white-space: nowrap;
+}
+
+.amount-single-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.amount-crypto {
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.amount-separator {
+  color: var(--text-muted);
+}
+
+.amount-usd {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.status-btn {
+  display: inline-block;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.status-btn.pending {
+  background: #fbbf24;
+  color: #ffffff;
+}
+
+.status-btn.pending:hover {
+  background: #f59e0b;
+}
+
+.status-btn.completed {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.status-btn.completed:hover {
+  background: #059669;
+}
+
+.status-btn.active {
+  background: var(--blue-600);
+  color: #ffffff;
+}
+
+.status-btn.active:hover {
+  background: var(--blue-700);
+}
+
+.escrow-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 120px;
+}
+
+.progress-bar-wrapper {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--blue-600);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  min-width: 35px;
+  text-align: right;
+}
+
+.escrow-created {
+  color: var(--text-dark);
+}
+
+.escrow-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.release-btn {
+  padding: 0.4rem 0.75rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.release-btn:hover {
+  background: var(--blue-700);
+}
+
+.action-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  transition: background 0.2s ease;
+}
+
+.action-menu-btn:hover {
+  background: var(--border);
+}
+
+/* Responsive Design */
+@media (max-width: 1600px) {
+  .my-escrow-page {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 1400px) {
+  .escrow-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .my-escrow-page {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .my-escrow-page {
+    padding: 1.25rem;
+  }
+  
+  .escrow-metrics {
+    gap: 1rem;
+  }
+  
+  .escrow-metric-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Create Escrow Modal */
+.create-escrow-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.create-escrow-modal {
+  background: var(--white);
+  border-radius: 1.5rem;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.create-escrow-modal-header {
+  padding: 2rem 2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* NO border-bottom separator */
+}
+
+.create-escrow-modal-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Poppins', sans-serif;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--border);
+}
+
+/* Step Indicator with vertical dividers */
+.create-escrow-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 2rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.step-divider {
+  width: 1px;
+  height: 60px;
+  background: #e5e7eb;
+  margin: 0 1rem;
+  flex-shrink: 0;
+}
+
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  color: #6b7280;
+  z-index: 1;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.step-indicator.active .step-icon {
+  background: var(--blue-600);
+  color: var(--white);
+}
+
+.step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.step-number {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.step-indicator.active .step-number {
+  color: var(--blue-600);
+}
+
+.step-title {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #1f2937;
+  /* Step 1 title is BLACK, not bold blue */
+}
+
+.step-indicator.active .step-title {
+  font-weight: 400;
+  color: #1f2937;
+  /* Even when active, keep it black, not blue */
+}
+
+/* Modal Content */
+.create-escrow-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.escrow-form-section {
+  margin-bottom: 2.5rem;
+}
+
+.escrow-form-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--blue-600);
+  margin: 0 0 1.5rem 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Escrow Type Buttons - Horizontal row */
+.escrow-type-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.escrow-type-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--white);
+  color: var(--text-dark);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+  flex: 1;
+  min-width: 150px;
+}
+
+.escrow-type-btn:hover {
+  border-color: var(--blue-600);
+  background: #f0f7ff;
+}
+
+.escrow-type-btn.active {
+  background: var(--blue-600);
+  color: var(--white);
+  border-color: var(--blue-600);
+}
+
+.escrow-type-btn.active svg {
+  color: var(--white);
+}
+
+.escrow-type-btn:not(.active) svg {
+  color: var(--text-dark);
+}
+
+/* Counterparty Form */
+.counterparty-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Poppins', sans-serif;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.form-group input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  background: var(--white);
+  font-family: 'Poppins', sans-serif;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+.form-group input::placeholder {
+  color: #9ca3af;
+}
+
+/* Modal Footer */
+.create-escrow-modal-footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.submit-next-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.submit-next-btn:hover {
+  background: var(--blue-700);
+}
+
+@media (max-width: 768px) {
+  .my-escrow-page {
+    padding: 1rem;
+  }
+
+  .escrow-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .escrow-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .escrow-filters {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .escrow-data-table {
+    font-size: 0.85rem;
+  }
+
+  .escrow-data-table th,
+  .escrow-data-table td {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Modal Responsive */
+  .create-escrow-modal {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .create-escrow-modal-overlay {
+    padding: 0;
+  }
+
+  .create-escrow-steps {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .step-divider {
+    display: none;
+  }
+
+  .counterparty-form-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .escrow-type-buttons {
+    flex-direction: column;
+  }
+}
+

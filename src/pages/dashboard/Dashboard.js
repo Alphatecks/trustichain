@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -17,7 +18,21 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
-  Plus
+  Plus,
+  DollarSign,
+  Building2,
+  Users,
+  FileCheck,
+  Code,
+  Box,
+  Link,
+  HelpCircle,
+  LogOut,
+  X,
+  Filter,
+  AlertTriangle,
+  CheckCircle,
+  Package
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../assets/images/icons/logo.png';
@@ -37,9 +52,25 @@ const sidebarNav = [
   { label: 'P2P trading', icon: Repeat, badge: null }
 ];
 
+const businessSuiteNav = [
+  { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
+  { label: 'Payroll', icon: DollarSign, badge: null },
+  { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Transaction', icon: Repeat, badge: null },
+  { label: 'Teams', icon: Users, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: null }
+];
+
+const developersNav = [
+  { label: 'Api Keys', icon: Code, badge: null },
+  { label: 'Sand box enviroment', icon: Box, badge: null },
+  { label: 'Web hook', icon: Link, badge: null }
+];
+
 const supportNav = [
   { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
+  { label: 'Security', icon: ShieldCheck },
+  { label: 'Help', icon: HelpCircle }
 ];
 
 const steps = [
@@ -49,9 +80,18 @@ const steps = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
-  const [kycComplete, setKycComplete] = useState(false);
+  const [kycComplete, setKycComplete] = useState(() => {
+    // Check localStorage first, default to true if KYC was previously completed
+    const stored = localStorage.getItem('kycComplete');
+    return stored ? JSON.parse(stored) : true;
+  });
   const [showBalance, setShowBalance] = useState(true);
+  const [accountType, setAccountType] = useState('Personal');
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState('All');
   const [kycForm, setKycForm] = useState({
     firstName: '',
     lastName: '',
@@ -90,6 +130,7 @@ const Dashboard = () => {
     event.preventDefault();
     if (currentStep === 2) {
       setKycComplete(true);
+      localStorage.setItem('kycComplete', 'true');
     } else {
       advanceStep();
     }
@@ -170,28 +211,28 @@ const Dashboard = () => {
         {/* Middle Section */}
         <div className="dashboard-middle">
           <div className="dashboard-left-column">
-            {/* Portfolio Chart */}
-            <div className="dashboard-chart-card">
-              <div className="chart-header">
-                <h3>Portfolio</h3>
-                <div className="chart-dropdown">
-                  <span>Monthly</span>
-                  <ChevronDown size={16} />
-                </div>
+          {/* Portfolio Chart */}
+          <div className="dashboard-chart-card">
+            <div className="chart-header">
+              <h3>Portfolio</h3>
+              <div className="chart-dropdown">
+                <span>Monthly</span>
+                <ChevronDown size={16} />
               </div>
-              <div className="chart-container">
-                <div className="chart-y-axis">
-                  {[0, 10, 20, 30, 40, 50].map((val) => (
-                    <span key={val}>{val}k</span>
-                  ))}
-                </div>
-                <div className="bar-chart">
-                  {[41, 21, 29, 12, 25, 33].map((value, index) => (
-                    <div key={index} className="bar-wrapper">
-                      <div className={`bar ${index === 5 ? 'bar-purple' : ''}`} style={{ height: `${(value / 50) * 100}%` }} />
-                      <span className="bar-label">{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][index]}</span>
-                    </div>
-                  ))}
+            </div>
+            <div className="chart-container">
+              <div className="chart-y-axis">
+                {[0, 10, 20, 30, 40, 50].map((val) => (
+                  <span key={val}>{val}k</span>
+                ))}
+              </div>
+              <div className="bar-chart">
+                {[41, 21, 29, 12, 25, 33].map((value, index) => (
+                  <div key={index} className="bar-wrapper">
+                    <div className={`bar ${index === 5 ? 'bar-purple' : ''}`} style={{ height: `${(value / 50) * 100}%` }} />
+                    <span className="bar-label">{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][index]}</span>
+                  </div>
+                ))}
                 </div>
               </div>
             </div>
@@ -354,15 +395,15 @@ const Dashboard = () => {
                   <div className="wallet-icon-group">
                     <div className="wallet-icon">XRP</div>
                     <div className="wallet-icon-info">
-                      <span className="wallet-name">XRP</span>
+                    <span className="wallet-name">XRP</span>
                       <span className="wallet-crypto">{showBalance ? '45,234.56 XRP' : '••••••'}</span>
                     </div>
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">{showBalance ? '$24,567.89' : '••••••'}</span>
-                    <div className="wallet-change positive">
-                      <TrendingUp size={14} />
-                      <span>+2.4%</span>
+                  <div className="wallet-change positive">
+                    <TrendingUp size={14} />
+                    <span>+2.4%</span>
                     </div>
                   </div>
                 </div>
@@ -370,14 +411,14 @@ const Dashboard = () => {
                   <div className="wallet-icon-group">
                     <div className="wallet-icon">USDT</div>
                     <div className="wallet-icon-info">
-                      <span className="wallet-name">USDT</span>
+                    <span className="wallet-name">USDT</span>
                       <span className="wallet-crypto">{showBalance ? '12,500.00 USDT' : '••••••'}</span>
                     </div>
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">{showBalance ? '$12,500.00' : '••••••'}</span>
-                    <div className="wallet-change neutral">
-                      <span>0.0%</span>
+                  <div className="wallet-change neutral">
+                    <span>0.0%</span>
                     </div>
                   </div>
                 </div>
@@ -385,25 +426,25 @@ const Dashboard = () => {
                   <div className="wallet-icon-group">
                     <div className="wallet-icon">USDC</div>
                     <div className="wallet-icon-info">
-                      <span className="wallet-name">USDC</span>
+                    <span className="wallet-name">USDC</span>
                       <span className="wallet-crypto">{showBalance ? '8,750.00 USDC' : '••••••'}</span>
                     </div>
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">{showBalance ? '$8,750.00' : '••••••'}</span>
-                    <div className="wallet-change positive">
-                      <TrendingUp size={14} />
-                      <span>+0.1%</span>
-                    </div>
+                  <div className="wallet-change positive">
+                    <TrendingUp size={14} />
+                    <span>+0.1%</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Trusticard */}
-            <div className="trusticard-card">
-              <h3>Trusticard</h3>
-              <div className="virtual-card">
+          {/* Trusticard */}
+          <div className="trusticard-card">
+            <h3>Trusticard</h3>
+            <div className="virtual-card">
               <div className="card-header-info">
                 <div className="card-logo">
                   <img src={logoWhite} alt="TrustiChain" className="card-logo-img" />
@@ -630,15 +671,25 @@ const Dashboard = () => {
         </div>
 
         <div className="sidebar-section">
-          <p className="sidebar-section-label">General</p>
+          <p className="sidebar-section-label">{accountType === 'Business Suite' ? 'Business Suite' : 'General'}</p>
           <nav className="sidebar-nav">
-            {sidebarNav.map((item) => {
+            {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
+              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                               (item.label === 'My Escrow' && location.pathname === '/my-escrow');
+              const handleNavClick = () => {
+                if (item.label === 'Dashboard') {
+                  navigate('/dashboard');
+                } else if (item.label === 'My Escrow') {
+                  navigate('/my-escrow');
+                }
+              };
               return (
                 <button
                   key={item.label}
                   type="button"
-                  className={`sidebar-nav-item ${item.active ? 'active' : ''}`}
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleNavClick}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -648,6 +699,23 @@ const Dashboard = () => {
             })}
           </nav>
         </div>
+
+        {accountType === 'Business Suite' && (
+          <div className="sidebar-section">
+            <p className="sidebar-section-label">Developers Tool</p>
+            <nav className="sidebar-nav">
+              {developersNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button key={item.label} type="button" className="sidebar-nav-item">
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
 
         <div className="sidebar-section">
           <p className="sidebar-section-label">Support</p>
@@ -664,14 +732,26 @@ const Dashboard = () => {
           </nav>
         </div>
 
+        <div className="sidebar-bottom-section">
         <div className="sidebar-help-card">
-          <div className="help-icon">
-            <Headphones size={18} />
+            <div className="help-icon-large">
+              <HelpCircle size={24} />
           </div>
           <h3>Help Center</h3>
           <p>Having trouble in Trustichain? Please contact us</p>
           <button type="button" className="help-cta">
             Contact us
+            </button>
+          </div>
+
+          <div className="sidebar-trustiscore">
+            <span className="trustiscore-label">Trustiscore</span>
+            <span className="trustiscore-badge">97</span>
+          </div>
+
+          <button type="button" className="sidebar-logout">
+            <LogOut size={18} />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
@@ -694,12 +774,31 @@ const Dashboard = () => {
           </div>
 
           <div className="header-actions">
+            {kycComplete ? (
+              <div className="account-type-buttons">
+                <button 
+                  type="button" 
+                  className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
+                  onClick={() => setAccountType('Personal')}
+                >
+                  Personal
+                </button>
+                <button 
+                  type="button" 
+                  className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
+                  onClick={() => setAccountType('Business Suite')}
+                >
+                  Business Suite
+                </button>
+              </div>
+            ) : (
             <button type="button" className="kyc-status">
               <KeyRound size={16} />
               <span>KYC</span>
               <span>Unverified</span>
             </button>
-            <button type="button" className="header-bell">
+            )}
+            <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
               <Bell size={18} />
             </button>
             <div className="header-user">
@@ -756,6 +855,127 @@ const Dashboard = () => {
           </section>
         )}
       </main>
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Notification</h2>
+              </div>
+              <button type="button" className="notification-close-btn" onClick={() => setShowNotificationModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="notification-filter-bar">
+              <div className="notification-filter-buttons">
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('All')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'Unread' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('Unread')}
+                >
+                  Unread
+                </button>
+              </div>
+              <button type="button" className="notification-filter-icon">
+                <Filter size={18} />
+              </button>
+            </div>
+
+            <div className="notification-list">
+              <div className="notification-item unread">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                  <span className="notification-bell-dot"></span>
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <AlertTriangle size={18} className="notification-status-icon warning" />
+                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+                <div className="notification-unread-dot"></div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <CheckCircle size={18} className="notification-status-icon success" />
+                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
