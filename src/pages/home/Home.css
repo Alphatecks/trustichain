@@ -18,6 +18,93 @@
   gap: 1rem;
   align-items: center;
   min-height: calc(100vh - 120px);
+  position: relative;
+  overflow: visible;
+}
+
+[data-theme="dark"] .hero-container {
+  overflow: visible;
+}
+
+/* Starry background with glowing effect */
+.hero-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(3px 3px at 20% 30%, white, transparent),
+    radial-gradient(3px 3px at 60% 70%, white, transparent),
+    radial-gradient(2px 2px at 50% 50%, white, transparent),
+    radial-gradient(2px 2px at 80% 10%, white, transparent),
+    radial-gradient(3px 3px at 90% 60%, white, transparent),
+    radial-gradient(2px 2px at 33% 80%, white, transparent),
+    radial-gradient(2px 2px at 15% 50%, white, transparent),
+    radial-gradient(3px 3px at 70% 20%, white, transparent),
+    radial-gradient(2px 2px at 40% 90%, white, transparent),
+    radial-gradient(2px 2px at 25% 15%, white, transparent),
+    radial-gradient(3px 3px at 85% 40%, white, transparent),
+    radial-gradient(2px 2px at 55% 25%, white, transparent),
+    radial-gradient(2px 2px at 10% 70%, white, transparent),
+    radial-gradient(3px 3px at 75% 85%, white, transparent),
+    radial-gradient(2px 2px at 45% 60%, white, transparent),
+    radial-gradient(2px 2px at 30% 40%, white, transparent),
+    radial-gradient(2px 2px at 65% 25%, white, transparent),
+    radial-gradient(3px 3px at 50% 70%, white, transparent),
+    radial-gradient(2px 2px at 90% 80%, white, transparent),
+    radial-gradient(2px 2px at 5% 20%, white, transparent),
+    radial-gradient(3px 3px at 95% 50%, white, transparent),
+    radial-gradient(2px 2px at 12% 90%, white, transparent);
+  background-size: 100% 100%;
+  background-position: 0% 0%;
+  filter: blur(1px);
+  opacity: 1;
+  animation: twinkle 3s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(6px 6px at 20% 30%, rgba(147, 197, 253, 0.8), transparent),
+    radial-gradient(6px 6px at 60% 70%, rgba(147, 197, 253, 0.8), transparent),
+    radial-gradient(5px 5px at 50% 50%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(5px 5px at 80% 10%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(6px 6px at 90% 60%, rgba(147, 197, 253, 0.8), transparent),
+    radial-gradient(5px 5px at 33% 80%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(5px 5px at 15% 50%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(6px 6px at 70% 20%, rgba(147, 197, 253, 0.8), transparent),
+    radial-gradient(5px 5px at 40% 90%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(5px 5px at 25% 15%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(6px 6px at 85% 40%, rgba(147, 197, 253, 0.8), transparent),
+    radial-gradient(5px 5px at 55% 25%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(5px 5px at 10% 70%, rgba(147, 197, 253, 0.7), transparent),
+    radial-gradient(6px 6px at 75% 85%, rgba(147, 197, 253, 0.8), transparent),
+    radial-gradient(5px 5px at 45% 60%, rgba(147, 197, 253, 0.7), transparent);
+  background-size: 100% 100%;
+  background-position: 0% 0%;
+  filter: blur(2.5px);
+  opacity: 0.9;
+  animation: twinkle 4s ease-in-out infinite alternate-reverse;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .hero-content {
@@ -27,18 +114,22 @@
   padding-left: 0;
   padding-right: 3rem;
   transform: translateX(-2rem);
+  position: relative;
+  z-index: 1;
 }
 
 .hero-title {
   font-size: 4rem;
-  font-weight: 700;
-  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  font-weight: 500;
+  background-image: linear-gradient(to bottom, #000000 0%, #1e293b 25%, #3b82f6 50%, #4E91FF 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
   line-height: 1.2;
   margin-bottom: 2rem;
   white-space: pre-line;
+  letter-spacing: 0;
 }
 
 .highlight-text {
@@ -119,10 +210,11 @@
 
 .hero-visual {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   background: transparent;
   position: relative;
+  z-index: 1;
 }
 
 .hero-visual::after {
@@ -133,14 +225,14 @@
   right: 0;
   height: 80%;
   background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.3) 20%, rgba(255, 255, 255, 0.7) 50%, rgba(255, 255, 255, 0.95) 80%, #ffffff 100%);
-  border-radius: 0 0 0.75rem 0.75rem;
+  border-radius: 0;
   pointer-events: none;
 }
 
 .dashboard-image {
   width: 100%;
   height: auto;
-  border-radius: 0.75rem;
+  border-radius: 0;
   display: block;
   background: transparent;
 }
@@ -149,6 +241,39 @@
 .stats-section {
   background: transparent;
   padding: 2rem 0 0 0;
+}
+
+/* Arc Image Section */
+.section-arc {
+  display: none;
+  width: 100%;
+  position: relative;
+  z-index: 0;
+  min-height: 400px;
+}
+
+.arc-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.section-arc .features-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8rem 2rem 4rem 2rem;
+  text-align: center;
+}
+
+.section-arc .features-grid {
+  margin-top: 2rem;
 }
 
 .stats-container {
@@ -209,22 +334,7 @@
 }
 
 .decorative-graphic {
-  width: 1200px;
-  height: 600px;
-  margin: -20rem auto 0 auto;
-  position: relative;
-  background: linear-gradient(to bottom, 
-    rgba(173, 216, 230, 0.2) 0%,
-    rgba(135, 206, 250, 0.25) 25%,
-    rgba(173, 216, 230, 0.3) 50%,
-    rgba(135, 206, 250, 0.15) 75%,
-    transparent 100%);
-  clip-path: ellipse(600px 300px at center bottom);
-  filter: blur(2px);
-  box-shadow: 
-    0 -20px 60px rgba(135, 206, 250, 0.5),
-    0 -40px 100px rgba(173, 216, 230, 0.3),
-    inset 0 20px 40px rgba(255, 255, 255, 0.4);
+  display: none;
 }
 
 .decorative-graphic::before {
@@ -268,6 +378,8 @@
     rgba(255, 255, 255, 1) 100%);
   padding: 4rem 0;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .features-container {
@@ -276,9 +388,19 @@
   padding: 0 2rem;
 }
 
+.features-subtitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #0066ff;
+  text-align: center;
+  margin-top: 4rem;
+  margin-bottom: 2.5rem;
+  font-family: 'Inter', sans-serif;
+}
+
 .features-main-title {
   font-size: 3.5rem;
-  font-weight: 700;
+  font-weight: 600;
   background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -2074,12 +2196,61 @@
   background: #0a1929;
 }
 
+/* Curved light blue arc at top center for dark mode - combined with stars */
+[data-theme="dark"] .hero-container::before {
+  top: -6rem;
+  height: 80%;
+  background-image: 
+    radial-gradient(ellipse 40% 30% at center top, rgba(209, 227, 248, 0.3) 0%, rgba(209, 227, 248, 0.2) 30%, rgba(209, 227, 248, 0.1) 50%, transparent 70%),
+    radial-gradient(3px 3px at 20% 30%, white, transparent),
+    radial-gradient(3px 3px at 60% 70%, white, transparent),
+    radial-gradient(2px 2px at 50% 50%, white, transparent),
+    radial-gradient(2px 2px at 80% 10%, white, transparent),
+    radial-gradient(3px 3px at 90% 60%, white, transparent),
+    radial-gradient(2px 2px at 33% 80%, white, transparent),
+    radial-gradient(2px 2px at 15% 50%, white, transparent),
+    radial-gradient(3px 3px at 70% 20%, white, transparent),
+    radial-gradient(2px 2px at 40% 90%, white, transparent),
+    radial-gradient(2px 2px at 25% 15%, white, transparent),
+    radial-gradient(3px 3px at 85% 40%, white, transparent),
+    radial-gradient(2px 2px at 55% 25%, white, transparent),
+    radial-gradient(2px 2px at 10% 70%, white, transparent),
+    radial-gradient(3px 3px at 75% 85%, white, transparent),
+    radial-gradient(2px 2px at 45% 60%, white, transparent),
+    radial-gradient(2px 2px at 30% 40%, white, transparent),
+    radial-gradient(2px 2px at 65% 25%, white, transparent),
+    radial-gradient(3px 3px at 50% 70%, white, transparent),
+    radial-gradient(2px 2px at 90% 80%, white, transparent),
+    radial-gradient(2px 2px at 5% 20%, white, transparent),
+    radial-gradient(3px 3px at 95% 50%, white, transparent),
+    radial-gradient(2px 2px at 12% 90%, white, transparent);
+  background-size: 100% 100%, 100% 100%;
+  clip-path: ellipse(80% 60% at center top);
+}
+
+/* Dark blue gradient overlay on interface image in dark mode */
+[data-theme="dark"] .hero-visual::after {
+  background: linear-gradient(to bottom, transparent 0%, rgba(10, 25, 41, 0.3) 20%, rgba(10, 25, 41, 0.6) 50%, rgba(10, 25, 41, 0.85) 80%, #0a1929 100%);
+}
+
 [data-theme="dark"] .stats-section {
   background: transparent;
 }
 
 [data-theme="dark"] .features-intro {
-  background: #0a1929;
+  display: none;
+}
+
+[data-theme="dark"] .features-subtitle {
+  color: #4E91FF;
+}
+
+[data-theme="dark"] .section-arc {
+  display: block;
+}
+
+[data-theme="dark"] .section-arc .features-container {
+  padding: 6rem 2rem 3rem 2rem;
 }
 
 [data-theme="dark"] .how-it-works-section {
@@ -2108,11 +2279,33 @@
   border-color: rgba(51, 65, 85, 0.3);
 }
 
-[data-theme="dark"] .hero-title,
+[data-theme="dark"] .hero-title {
+  background-image: linear-gradient(to bottom, #ffffff 0%, #e0f2fe 25%, #93c5fd 50%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
 [data-theme="dark"] .features-main-title,
-[data-theme="dark"] .why-main-title,
+[data-theme="dark"] .why-main-title {
+  background: none !important;
+  background-image: linear-gradient(to bottom, #ffffff 0%, #e8f4f8 25%, #93c5fd 50%, #4E91FF 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
 [data-theme="dark"] .how-main-title,
-[data-theme="dark"] .stats-heading,
+[data-theme="dark"] .stats-heading {
+  background: none !important;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #4E91FF;
+  background-clip: unset;
+  color: #4E91FF;
+}
+
 [data-theme="dark"] .cta-heading-line1,
 [data-theme="dark"] .cta-heading-line2,
 [data-theme="dark"] .faq-heading-line1,

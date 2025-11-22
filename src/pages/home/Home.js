@@ -71,10 +71,61 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Arc Image with Features Section Inside (Dark Mode) */}
+        <div className="section-arc">
+          <img 
+            src={require('../../assets/images/illustrations/arc.png')} 
+            alt="Arc decoration" 
+            className="arc-image"
+          />
+          <div className="features-container">
+            <h3 className="features-subtitle">Features</h3>
+            <h2 className="features-main-title">Your All-in-One Blockchain<br />Escrow Solution</h2>
+            <p className="features-description">
+              TrustiChain brings together secure escrow, fast remittance, saving tools, and blockchain finance — empowering both individuals and businesses to transact safely, transparently, and instantly.
+            </p>
+            
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/remittance.png')})`}}></div>
+                <div className="feature-card-content">
+                  <h3 className="feature-title">Remittance Services</h3>
+                  <p className="feature-description">Enjoy near-zero fees and lightning-fast transfers powered by the XRP Ledger - no intermediaries, no delays.</p>
+                </div>
+              </div>
+              
+              <div className="feature-card">
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/b2b.png')})`}}></div>
+                <div className="feature-card-content">
+                  <h3 className="feature-title">Simplify B2B Payments with Smart Escrow</h3>
+                  <p className="feature-description">Automate contract-based transactions and ensure compliance, transparency, and speed across your business network.</p>
+                </div>
+              </div>
+              
+              <div className="feature-card">
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/cryptos.png')})`}}></div>
+                <div className="feature-card-content">
+                  <h3 className="feature-title">Secure Every Transaction, Peer-to-Peer</h3>
+                  <p className="feature-description">Protect your funds and build trust with a decentralized escrow system designed for freelancers, buyers, and individuals.</p>
+                </div>
+              </div>
+              
+              <div className="feature-card">
+                <div className="feature-card-image" style={{backgroundImage: `url(${require('../../assets/images/backgrounds/review.png')})`}}></div>
+                <div className="feature-card-content">
+                  <h3 className="feature-title">Fair. Fast. Transparent Conflict Resolution.</h3>
+                  <p className="feature-description">Resolve disputes seamlessly through blockchain-verified arbitration and community-backed trust mechanisms.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Features Section (Light Mode) */}
         <section className="features-intro">
           <div className="features-container">
-            <h2 className="features-main-title">Your All-in-One Blockchain Escrow Solution</h2>
+            <h3 className="features-subtitle">Features</h3>
+            <h2 className="features-main-title">Your All-in-One Blockchain<br />Escrow Solution</h2>
             <p className="features-description">
               TrustiChain brings together secure escrow, fast remittance, saving tools, and blockchain finance — empowering both individuals and businesses to transact safely, transparently, and instantly.
             </p>

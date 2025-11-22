@@ -376,7 +376,7 @@ const Features = () => {
         <section className="features-cta-section">
           <div className="features-cta-container">
             <div className="features-cta-card">
-              <h3 className="features-cta-subheading">Secure your finances with Trustifund</h3>
+              <h3 className="features-cta-subheading">Secure your finances with Trustichain</h3>
               <h2 className="features-cta-heading-line1">Funds Held in Trust.</h2>
               <h2 className="features-cta-heading-line2">Released with Confidence.</h2>
               

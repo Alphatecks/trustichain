@@ -410,7 +410,7 @@ const Pricing = () => {
         <section className="cta-section">
           <div className="cta-container">
             <div className="cta-card">
-              <h3 className="cta-subheading">Secure your finances with Trustifund</h3>
+              <h3 className="cta-subheading">Secure your finances with Trustichain</h3>
               <h2 className="cta-heading-line1">Funds Held in Trust.</h2>
               <h2 className="cta-heading-line2">Released with Confidence.</h2>
               
