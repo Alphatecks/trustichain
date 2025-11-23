@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './Features.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
+import arcImage from '../../assets/images/illustrations/arc.png';
 
 const Features = () => {
   return (
@@ -10,22 +11,25 @@ const Features = () => {
       <main className="features-content">
         {/* Hero Section */}
         <section className="features-hero-section">
-          <div className="features-hero-container">
-            <h1 className="features-hero-title">
-              Powerful Feature Built for<br />
-              <span className="features-hero-title-blue">Secure Digital payment</span>
-            </h1>
-            <p className="features-hero-description">
-              Explore how TrustiChain combines blockchain security, speed, and compliance to simplify every transaction.
-            </p>
-            <div className="features-hero-actions">
-              <Link to="/create" className="features-cta-button primary">
-                Get started
-                <ArrowRight className="features-button-icon" />
-              </Link>
-              <Link to="/learn-more" className="features-cta-button secondary">
-                Learn More
-              </Link>
+          <div className="features-hero-arc-container">
+            <img src={arcImage} alt="Arc" className="features-hero-arc-image" />
+            <div className="features-hero-container">
+              <h1 className="features-hero-title">
+                Powerful Feature Built for<br />
+                <span className="features-hero-title-blue">Secure Digital payment</span>
+              </h1>
+              <p className="features-hero-description">
+                Explore how TrustiChain combines blockchain security, speed, and compliance to simplify every transaction.
+              </p>
+              <div className="features-hero-actions">
+                <Link to="/create" className="features-cta-button primary">
+                  Get started
+                  <ArrowRight className="features-button-icon" />
+                </Link>
+                <Link to="/learn-more" className="features-cta-button secondary">
+                  Learn More
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -194,7 +198,8 @@ const Features = () => {
           <div className="features-final-cta-container">
             <h3 className="features-final-cta-subtitle">Features</h3>
             <h1 className="features-final-cta-title">
-              Your All-in-One Blockchain Escrow<br />
+              Your All-in-One Blockchain Escrow
+              <br />
               <span className="features-final-cta-title-blue">Solution</span>
             </h1>
             <p className="features-final-cta-description">

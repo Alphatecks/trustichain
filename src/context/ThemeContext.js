@@ -19,11 +19,7 @@ export const ThemeProvider = ({ children }) => {
   const [isMobile, setIsMobile] = useState(getIsMobile());
 
   const [theme, setTheme] = useState(() => {
-    // On mobile, always default to light
-    if (getIsMobile()) {
-      return 'light';
-    }
-    // Desktop default should be light; only use saved preference if present
+    // Use saved preference if present, otherwise default to light
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       return savedTheme;
@@ -41,21 +37,14 @@ export const ThemeProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // If mobile, force light theme
-    if (isMobile && theme !== 'light') {
-      setTheme('light');
-      return;
-    }
-    // Save to localStorage on desktop; on mobile, we still store 'light'
+    // Save to localStorage
     localStorage.setItem('theme', theme);
 
     // Apply theme to document root
     document.documentElement.setAttribute('data-theme', theme);
-  }, [theme, isMobile]);
+  }, [theme]);
 
   const toggleTheme = () => {
-    // Disable toggling on mobile view
-    if (isMobile) return;
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 

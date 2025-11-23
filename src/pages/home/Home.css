@@ -132,6 +132,21 @@
   letter-spacing: 0;
 }
 
+.hero-title-mobile {
+  display: none;
+  font-size: 2rem;
+  font-weight: 700;
+  background-image: linear-gradient(to bottom, #000000 0%, #1e293b 25%, #3b82f6 50%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  line-height: 1.2;
+  margin-bottom: 2rem;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: center;
+}
+
 .highlight-text {
   color: #0066ff;
 }
@@ -767,7 +782,12 @@
   }
 
   .hero-title {
-    font-size: 2.5rem;
+    display: none;
+  }
+
+  .hero-title-mobile {
+    display: block;
+    font-size: 2rem;
     white-space: normal;
     margin-top: 4rem;
   }
@@ -978,7 +998,12 @@
   }
 
   .hero-title {
-    font-size: 2rem;
+    display: none;
+  }
+
+  .hero-title-mobile {
+    display: block;
+    font-size: 1.75rem;
     line-height: 1.15;
   }
 
@@ -2287,16 +2312,16 @@
   color: transparent;
 }
 
-[data-theme="dark"] .features-main-title,
-[data-theme="dark"] .why-main-title {
-  background: none !important;
-  background-image: linear-gradient(to bottom, #ffffff 0%, #e8f4f8 25%, #93c5fd 50%, #4E91FF 100%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  color: transparent !important;
+[data-theme="dark"] .hero-title-mobile {
+  background-image: linear-gradient(to bottom, #ffffff 0%, #e0f2fe 25%, #93c5fd 50%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
+[data-theme="dark"] .features-main-title,
+[data-theme="dark"] .why-main-title,
 [data-theme="dark"] .how-main-title,
 [data-theme="dark"] .stats-heading {
   background: none !important;

@@ -102,6 +102,14 @@ const LandingNavbar = () => {
           <Link to="/login" className="mobile-login-button" onClick={closeMobileMenu}>
             Login
           </Link>
+          <button 
+            onClick={toggleTheme}
+            className="mobile-theme-toggle-btn"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Moon size={20} /> : <Sun size={20} />}
+            <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
+          </button>
         </div>
       </div>
     </nav>
