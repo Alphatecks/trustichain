@@ -21,8 +21,9 @@ const Home = () => {
               <span className="highlight-text">Infrastructure</span>
             </h1>
             <h1 className="hero-title-mobile">
-              Global payment you can<br />
-              actually trust
+              The Future of Global<br />
+              Payments and Financial<br />
+              Infrastructure
             </h1>
             <p className="hero-description">
               Built on the XRP Ledger, TrustiChain delivers fast, secure, and fully compliant 
