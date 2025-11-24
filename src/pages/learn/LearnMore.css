@@ -113,7 +113,11 @@
 .learnmore-about-heading {
   font-size: 2.6rem;
   font-weight: 700;
-  color: #0b1220;
+  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #021129;
   line-height: 1.25;
   font-family: 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
@@ -154,7 +158,11 @@
 .learnmore-why-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #111827;
+  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #021129;
   font-family: 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
 }
@@ -208,7 +216,7 @@
 
 .learnmore-why-statement {
   font-size: 1.15rem;
-  color: #111827;
+  color: #0066ff;
   font-weight: 600;
   margin: 0;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -223,7 +231,11 @@
 .learnmore-suite h3 {
   font-size: 2rem;
   font-weight: 700;
-  color: #111827;
+  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #021129;
   margin: 0;
   font-family: 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -276,7 +288,7 @@
 
 .learnmore-suite-footer {
   font-size: 1.05rem;
-  color: #0b1220;
+  color: #0066ff;
   font-weight: 600;
   margin: 0;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -295,7 +307,11 @@
 .learnmore-suite-feature-title {
   font-size: 2.8rem;
   font-weight: 700;
-  color: #0b1220;
+  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #021129;
   margin: 0;
   font-family: 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -345,7 +361,7 @@
 
 .learnmore-suite-feature-highlight {
   font-weight: 600;
-  color: #0b1220;
+  color: #0066ff !important;
 }
 
 .learnmore-actions {
@@ -361,7 +377,11 @@
 .learnmore-actions-title {
   font-size: 2.8rem;
   font-weight: 700;
-  color: #0b1220;
+  background: linear-gradient(to bottom, #021129 0%, #0066ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #021129;
   margin: 0;
   font-family: 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -430,7 +450,7 @@
 
 .learnmore-capability-footer {
   font-size: 1.05rem;
-  color: #0b1220;
+  color: #0066ff;
   font-weight: 600;
   margin: 0;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -449,7 +469,11 @@
 .learnmore-who-title {
   font-size: 2.8rem;
   font-weight: 700;
-  color: #081a3c;
+  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #021129;
   margin: 0;
   font-family: 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -579,9 +603,9 @@
 }
 
 .learnmore-compare-card.legacy {
-  background: linear-gradient(180deg, #fbf2e6 0%, #edd9c2 100%);
-  border-color: rgba(214, 180, 140, 0.4);
-  color: #473629;
+  background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 100%);
+  border-color: rgba(156, 163, 175, 0.4);
+  color: #1f2937;
 }
 
 .learnmore-compare-card.legacy h3 {
@@ -593,7 +617,7 @@
 }
 
 .learnmore-compare-card.legacy li {
-  color: rgba(64, 49, 36, 0.7);
+  color: #000000;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -604,7 +628,7 @@
 }
 
 .learnmore-compare-card.trustichain {
-  background: linear-gradient(180deg, #3b82f6 0%, #dbeafe 100%);
+  background: linear-gradient(180deg, #3b82f6 0%, #021129 100%);
   border-color: rgba(255, 255, 255, 0.15);
   color: #ffffff;
   transform: translateY(-6px);
@@ -1206,5 +1230,219 @@
   .learnmore-footer-links {
     text-align: center;
   }
+}
+
+/* Dark Mode Styles */
+[data-theme="dark"] .learnmore-page {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .learnmore-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-subtitle {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-image-frame {
+  background: #1e293b;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .learnmore-about-label {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-about-copy {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-about-heading {
+  background: linear-gradient(to bottom, #ffffff 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-why-title {
+  background: linear-gradient(to bottom, #ffffff 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-why-intro {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .learnmore-why-card {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .learnmore-why-card p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-why-statement {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-suite h3 {
+  background: linear-gradient(to bottom, #ffffff 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-suite-subheading {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .learnmore-suite-card {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .learnmore-suite-card p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-suite-footer {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-suite-feature-title {
+  background: linear-gradient(to bottom, #ffffff 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-suite-feature-copy h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-suite-feature-copy p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-suite-feature-highlight {
+  color: #0066ff !important;
+}
+
+[data-theme="dark"] .learnmore-actions-title {
+  background: linear-gradient(to bottom, #ffffff 0%, #0066ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-capability-card h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-capability-description {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .learnmore-capability-card ul {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-capability-footer {
+  color: #0066ff;
+}
+
+[data-theme="dark"] .learnmore-who-title {
+  background: linear-gradient(to bottom, #ffffff 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-who-subtitle {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .learnmore-who-card {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .learnmore-who-card h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-who-card p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .learnmore-compare-heading {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .learnmore-final-cta {
+  background: #0a1929;
+}
+
+[data-theme="dark"] .learnmore-final-cta-subtitle {
+  color: rgba(203, 213, 225, 0.7);
+}
+
+[data-theme="dark"] .learnmore-final-cta-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .learnmore-final-cta-title span {
+  color: #60a5fa;
+}
+
+/* Override Features CTA styles for Learn More page - placed at end to override Features.css */
+.learnmore-page .features-cta-section {
+  background: white !important;
+  padding: 6rem 2rem !important;
+}
+
+.learnmore-page .features-cta-container {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.learnmore-page .features-cta-card {
+  background: radial-gradient(ellipse at top, #4E91FF 0%, #ffffff 70%) !important;
+  border-radius: 2rem !important;
+  padding: 4rem 3rem !important;
+  max-width: 1100px !important;
+  min-width: 1100px !important;
+  width: 100% !important;
+  text-align: center !important;
+  box-shadow: 0 10px 40px rgba(0, 102, 255, 0.15) !important;
+  position: relative !important;
+}
+
+@media (max-width: 992px) {
+  .learnmore-page .features-cta-card {
+    min-width: auto !important;
+  }
+}
+
+[data-theme="dark"] .learnmore-page .features-cta-section {
+  background: #0a1929 !important;
+}
+
+[data-theme="dark"] .learnmore-page .features-cta-card {
+  background: radial-gradient(ellipse at top, #4E91FF 0%, #0a1929 70%) !important;
 }
 

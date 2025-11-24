@@ -25,12 +25,13 @@
   align-items: center;
   justify-content: space-between;
   position: relative;
+  height: 100%;
 }
 
 @media (min-width: 769px) {
   .landing-navbar-container {
     max-width: 100%;
-    padding: 0;
+    padding: 0 1rem 0 2rem;
   }
 }
 
@@ -71,10 +72,8 @@
 
 @media (min-width: 769px) {
   .landing-navbar-menu {
-    position: absolute;
-    right: 200px;
-    top: 50%;
-    transform: translateY(-50%);
+    margin-left: auto;
+    margin-right: 0;
   }
 }
 
@@ -114,10 +113,8 @@
 
 @media (min-width: 769px) {
   .landing-navbar-actions {
-    position: absolute;
-    right: 2rem;
-    top: 50%;
-    transform: translateY(-50%);
+    margin-right: 0;
+    margin-left: 1rem;
   }
 }
 

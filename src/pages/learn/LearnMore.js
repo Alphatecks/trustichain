@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShoppingCart, User, Users, PackageSearch, Target, Store } from 'lucide-react';
 import './LearnMore.css';
+import '../features/Features.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
 
 const LearnMore = () => {
@@ -126,16 +127,16 @@ const LearnMore = () => {
 
   const comparisons = {
     legacy: [
-      'Slow settlement (take days)',
       'High fees',
-      'Banks hold your funds',
       'Chargeback risk',
+      'Banks hold your funds',
+      'Slow settlement (take days)',
     ],
     trustichain: [
-      'Instant, on-chain settlement (takes seconds)',
       'Low payment fees',
       'You hold your funds',
       'Dispute-resistant escrow',
+      'Instant, on-chain settlement (takes seconds)',
     ],
   };
 
@@ -155,7 +156,7 @@ const LearnMore = () => {
         <div className="learnmore-hero-image">
           <div className="learnmore-image-frame">
             <img
-              src={require('../../assets/images/illustrations/explanation.jpg')}
+              src={require('../../assets/images/illustrations/explanation.png')}
               alt="Team collaborating with TrustiChain"
             />
           </div>
@@ -321,22 +322,20 @@ const LearnMore = () => {
         </div>
       </section>
 
-      <section className="learnmore-final-cta">
-        <div className="learnmore-final-cta-card">
-          <p className="learnmore-final-cta-subtitle">Secure your finances with Trustfund</p>
-          <h2 className="learnmore-final-cta-title">
-            Funds Held in Trust.<br />
-            <span>Released with Confidence.</span>
-          </h2>
-
-          <div className="learnmore-final-cta-actions">
-            <Link to="/create" className="learnmore-final-cta-button primary">
-              Get started
-              <ArrowRight size={16} />
-            </Link>
-            <Link to="/features" className="learnmore-final-cta-button secondary">
-              Learn more
-            </Link>
+      <section className="features-cta-section">
+        <div className="features-cta-container">
+          <div className="features-cta-card">
+            <h3 className="features-cta-subheading">Secure your finances with Trustichain</h3>
+            <h2 className="features-cta-heading-line1">Funds Held in Trust.</h2>
+            <h2 className="features-cta-heading-line2">Released with Confidence.</h2>
+            
+            <div className="features-cta-buttons">
+              <Link to="/create" className="features-cta-button features-cta-button-primary">
+                Join Waitlist
+                <ArrowRight className="features-cta-button-icon" />
+              </Link>
+              <Link to="/learn-more" className="features-cta-button features-cta-button-secondary">Learn more</Link>
+            </div>
           </div>
         </div>
       </section>
