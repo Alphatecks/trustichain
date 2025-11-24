@@ -15,7 +15,8 @@ const Features = () => {
             <img src={arcImage} alt="Arc" className="features-hero-arc-image" />
             <div className="features-hero-container">
               <h1 className="features-hero-title">
-                Powerful Feature Built for<br />
+                <span className="features-title-line1">Powerful Feature Built for</span>
+                <br />
                 <span className="features-hero-title-blue">Secure Digital payment</span>
               </h1>
               <p className="features-hero-description">
@@ -23,7 +24,7 @@ const Features = () => {
               </p>
               <div className="features-hero-actions">
                 <Link to="/create" className="features-cta-button primary">
-                  Get started
+                  Join Waitlist
                   <ArrowRight className="features-button-icon" />
                 </Link>
                 <Link to="/learn-more" className="features-cta-button secondary">
@@ -51,8 +52,33 @@ const Features = () => {
                 <div className="features-stat-label">Active Users</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number cyan">4.2s</div>
+                <div className="features-stat-number blue">4.2s</div>
                 <div className="features-stat-label">Avg Settlement Time</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Home Stats Section for Mobile */}
+        <section className="stats-section home-stats-mobile">
+          <div className="stats-container">
+            <h2 className="stats-heading">Trusted by Thousands Worldwide</h2>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-number">$50M+</div>
+                <div className="stat-label">Total Volume</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number purple">25K+</div>
+                <div className="stat-label">Active Users</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number green">99.8%</div>
+                <div className="stat-label">Success Rate</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number blue">4.2s</div>
+                <div className="stat-label">Avg Settlement</div>
               </div>
             </div>
           </div>
@@ -160,7 +186,7 @@ const Features = () => {
                 <div className="features-stat-label">Active Users</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number cyan">4.2s</div>
+                <div className="features-stat-number blue">4.2s</div>
                 <div className="features-stat-label">Avg Settlement Time</div>
               </div>
             </div>
@@ -387,7 +413,7 @@ const Features = () => {
               
               <div className="features-cta-buttons">
                 <Link to="/create" className="features-cta-button features-cta-button-primary">
-                  Get started
+                  Join Waitlist
                   <ArrowRight className="features-cta-button-icon" />
                 </Link>
                 <Link to="/learn-more" className="features-cta-button features-cta-button-secondary">Learn more</Link>

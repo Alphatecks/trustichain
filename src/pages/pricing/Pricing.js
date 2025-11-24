@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Star, ArrowRight } from 'lucide-react';
 import './Pricing.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
+import arcImage from '../../assets/images/illustrations/arc.png';
 
 const Pricing = () => {
   const [activeFaq, setActiveFaq] = useState(0);
@@ -24,8 +25,10 @@ const Pricing = () => {
       <main className="pricing-content">
         {/* Hero Section */}
         <section className="pricing-hero-section">
-          <div className="pricing-hero-container">
-            <div className="pricing-hero-content">
+          <div className="pricing-hero-arc-container">
+            <img src={arcImage} alt="Arc" className="pricing-hero-arc-image" />
+            <div className="pricing-hero-container">
+              <div className="pricing-hero-content">
               <h1 className="pricing-hero-title">
                 Fair, Predictable Pricing for Every<br />
                 <span>Transaction No Surprises, No Hidden Fees</span>
@@ -58,6 +61,7 @@ const Pricing = () => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </section>
 
@@ -75,11 +79,11 @@ const Pricing = () => {
                 <div className="pricing-plans-features">
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon"></span>
-                    <span className="pricing-plans-feature-text">Personal escrow management</span>
+                    <span className="pricing-plans-feature-text">Instant Remittance</span>
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon"></span>
-                    <span className="pricing-plans-feature-text">Dispute resolution support</span>
+                    <span className="pricing-plans-feature-text">Multi-Currency Support</span>
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon"></span>
@@ -87,11 +91,11 @@ const Pricing = () => {
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon"></span>
-                    <span className="pricing-plans-feature-text">Instant Remittance</span>
+                    <span className="pricing-plans-feature-text">Dispute resolution support</span>
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon"></span>
-                    <span className="pricing-plans-feature-text">Multi-Currency Support</span>
+                    <span className="pricing-plans-feature-text">Personal escrow management</span>
                   </div>
                 </div>
                 
@@ -108,11 +112,7 @@ const Pricing = () => {
                 <div className="pricing-plans-features">
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon active"></span>
-                    <span className="pricing-plans-feature-text">Bulk escrow management</span>
-                  </div>
-                  <div className="pricing-plans-feature-item">
-                    <span className="pricing-plans-feature-icon active"></span>
-                    <span className="pricing-plans-feature-text">API integration & automation</span>
+                    <span className="pricing-plans-feature-text">Transaction Analytics Dashboard</span>
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon active"></span>
@@ -120,11 +120,15 @@ const Pricing = () => {
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon active"></span>
+                    <span className="pricing-plans-feature-text">Bulk escrow management</span>
+                  </div>
+                  <div className="pricing-plans-feature-item">
+                    <span className="pricing-plans-feature-icon active"></span>
                     <span className="pricing-plans-feature-text">Team Access & Role Control</span>
                   </div>
                   <div className="pricing-plans-feature-item">
                     <span className="pricing-plans-feature-icon active"></span>
-                    <span className="pricing-plans-feature-text">Transaction Analytics Dashboard</span>
+                    <span className="pricing-plans-feature-text">API integration & automation</span>
                   </div>
                 </div>
                 

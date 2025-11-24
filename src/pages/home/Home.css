@@ -299,7 +299,7 @@
 }
 
 .stats-heading {
-  font-size: 2rem;
+  font-size: 1.5rem !important;
   font-weight: 700;
   color: #0066ff;
   margin-bottom: 3rem;
@@ -323,6 +323,46 @@
   font-weight: 700;
   margin-bottom: 0.5rem;
   font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .stat-number {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.65rem !important;
+  }
+  
+  .stat-card {
+    padding: 0.5rem 0.25rem !important;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-number {
+    font-size: 0.75rem !important;
+    margin-bottom: 0.2rem;
+  }
+  
+  .stat-label {
+    font-size: 0.6rem !important;
+  }
+  
+  .stat-card {
+    padding: 0.4rem 0.2rem !important;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.4rem !important;
+  }
 }
 
 .stat-number.blue {
@@ -425,6 +465,29 @@
   line-height: 1.2;
 }
 
+.features-main-title-mobile {
+  display: none;
+  font-size: 1.5rem;
+  font-weight: 600;
+  background: linear-gradient(to bottom, #021129 0%, #4E91FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.5rem;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.features-title-line1 {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.features-title-line2 {
+  display: inline-block;
+}
+
 .features-description {
   font-size: 1.125rem;
   color: #666;
@@ -513,18 +576,20 @@
 }
 
 .security-heading {
-  font-size: 2rem;
+  font-size: 1.5rem !important;
   font-weight: 700;
   color: #0066ff;
-  margin-bottom: 6rem;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin-bottom: 3rem;
+  font-family: 'Poppins', sans-serif;
 }
 
 .security-badges {
-  display: flex;
-  justify-content: center;
-  gap: 6rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .security-badge {
@@ -544,7 +609,7 @@
 
 /* Why Choose Section */
 .why-section {
-  text-align: center;
+  text-align: left;
   margin-bottom: 4rem;
 }
 
@@ -793,8 +858,9 @@
   }
 
   .hero-description {
-    font-size: 1rem;
+    font-size: 0.9rem;
     margin-bottom: 2rem;
+    text-align: center;
   }
 
   .hero-actions {
@@ -833,17 +899,26 @@
   }
 
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
   }
 
   .stats-heading {
-    font-size: 1.75rem;
+    font-size: 1.25rem !important;
     margin-bottom: 2rem;
   }
 
   .stat-number {
-    font-size: 2.5rem;
+    font-size: 0.9rem !important;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-card {
+    padding: 0.5rem 0.25rem !important;
+  }
+
+  .stat-label {
+    font-size: 0.65rem !important;
   }
 
   .stat-label {
@@ -872,7 +947,12 @@
   }
 
   .features-main-title {
-    font-size: 2.25rem;
+    display: none;
+  }
+
+  .features-main-title-mobile {
+    display: block;
+    font-size: 1.5rem;
   }
 
   .features-description {
@@ -880,13 +960,28 @@
   }
 
   .features-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
     gap: 1.5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 1rem;
+  }
+
+  .features-grid::-webkit-scrollbar {
+    display: none;
   }
 
   .feature-card {
+    flex: 0 0 85%;
+    min-width: 85%;
     height: auto;
     min-height: 320px;
+    scroll-snap-align: start;
   }
 
   .feature-card-image {
@@ -910,12 +1005,14 @@
   }
 
   .security-heading {
-    font-size: 1.75rem;
-    margin-bottom: 3rem;
+    font-size: 1.25rem !important;
+    margin-bottom: 2rem;
   }
 
   .security-badges {
-    gap: 2rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    max-width: 100%;
   }
 
   .security-badge {
@@ -1008,7 +1105,8 @@
   }
 
   .hero-description {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    text-align: center;
   }
 
   .cta-button {
@@ -1021,16 +1119,25 @@
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
   }
 
   .stats-heading {
-    font-size: 1.5rem;
+    font-size: 1.1rem !important;
   }
 
   .stat-number {
-    font-size: 2rem;
+    font-size: 0.75rem !important;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-card {
+    padding: 0.4rem 0.2rem !important;
+  }
+
+  .stat-label {
+    font-size: 0.6rem !important;
   }
 
   .stat-label {
@@ -1048,7 +1155,12 @@
   }
 
   .features-main-title {
-    font-size: 1.75rem;
+    display: none;
+  }
+
+  .features-main-title-mobile {
+    display: block;
+    font-size: 1.5rem;
   }
 
   .features-description {
@@ -1056,6 +1168,8 @@
   }
 
   .feature-card {
+    flex: 0 0 90%;
+    min-width: 90%;
     min-height: 300px;
   }
 
@@ -1080,14 +1194,14 @@
   }
 
   .security-heading {
-    font-size: 1.5rem;
+    font-size: 1.1rem !important;
     margin-bottom: 2rem;
   }
 
   .security-badges {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
+    max-width: 100%;
   }
 
   .security-badge {
@@ -2321,6 +2435,7 @@
 }
 
 [data-theme="dark"] .features-main-title,
+[data-theme="dark"] .features-main-title-mobile,
 [data-theme="dark"] .why-main-title,
 [data-theme="dark"] .how-main-title,
 [data-theme="dark"] .stats-heading {

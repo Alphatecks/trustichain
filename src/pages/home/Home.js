@@ -85,6 +85,11 @@ const Home = () => {
           <div className="features-container">
             <h3 className="features-subtitle">Features</h3>
             <h2 className="features-main-title">Your All-in-One Blockchain<br />Escrow Solution</h2>
+            <h2 className="features-main-title-mobile">
+              <span className="features-title-line1">Your all-in-one Blockchain</span>
+              <br />
+              <span className="features-title-line2">Escrow solution</span>
+            </h2>
             <p className="features-description">
               TrustiChain brings together secure escrow, fast remittance, saving tools, and blockchain finance — empowering both individuals and businesses to transact safely, transparently, and instantly.
             </p>
@@ -130,6 +135,11 @@ const Home = () => {
           <div className="features-container">
             <h3 className="features-subtitle">Features</h3>
             <h2 className="features-main-title">Your All-in-One Blockchain<br />Escrow Solution</h2>
+            <h2 className="features-main-title-mobile">
+              <span className="features-title-line1">Your all-in-one Blockchain</span>
+              <br />
+              <span className="features-title-line2">Escrow solution</span>
+            </h2>
             <p className="features-description">
               TrustiChain brings together secure escrow, fast remittance, saving tools, and blockchain finance — empowering both individuals and businesses to transact safely, transparently, and instantly.
             </p>
@@ -457,7 +467,7 @@ const Home = () => {
                 <div className="pricing-features">
                   <div className="pricing-feature-item">
                     <span className="pricing-feature-icon"></span>
-                    <span className="pricing-feature-text">Personal escrow management</span>
+                    <span className="pricing-feature-text">Mobile-friendly interface</span>
                   </div>
                   <div className="pricing-feature-item">
                     <span className="pricing-feature-icon"></span>
@@ -465,7 +475,7 @@ const Home = () => {
                   </div>
                   <div className="pricing-feature-item">
                     <span className="pricing-feature-icon"></span>
-                    <span className="pricing-feature-text">Mobile-friendly interface</span>
+                    <span className="pricing-feature-text">Personal escrow management</span>
                   </div>
                 </div>
                 
