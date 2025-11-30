@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../utils/config';
+import toast from 'react-hot-toast';
 import './MyEscrow.css';
 
 const MyEscrow = () => {
@@ -60,6 +61,19 @@ const MyEscrow = () => {
   const [completedEscrowCount, setCompletedEscrowCount] = useState(null);
   const [isLoadingEscrowMetrics, setIsLoadingEscrowMetrics] = useState(true);
   const [isLoadingCompletedEscrow, setIsLoadingCompletedEscrow] = useState(true);
+  
+  // Table state
+  const [escrows, setEscrows] = useState([]);
+  const [isLoadingEscrows, setIsLoadingEscrows] = useState(true);
+  const [selectedIndustry, setSelectedIndustry] = useState(null);
+  const [industries, setIndustries] = useState([]);
+  const [isLoadingIndustries, setIsLoadingIndustries] = useState(false);
+  const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEscrowsCount, setTotalEscrowsCount] = useState(0);
+  const limit = 20;
+  const [openActionMenu, setOpenActionMenu] = useState(null); // Track which escrow's menu is open
 
   // Fetch escrow metrics from API
   useEffect(() => {
@@ -237,53 +251,356 @@ const MyEscrow = () => {
     fetchCompletedEscrow();
   }, []);
 
-  const escrowData = [
-    {
-      id: '#ESC-2024-001',
-      parties: { from: 'John Smith', to: 'Sarah Wilson' },
-      amount: { crypto: '5,000 XRP', usd: '≈ $2,715.00' },
-      status: 'Pending',
-      progress: 60,
-      created: '21.03.2021',
-      action: 'Release'
-    },
-    {
-      id: '#ESC-2024-002',
-      parties: { from: 'John Smith', to: 'Sarah Wilson' },
-      amount: { crypto: '5,000 XRP', usd: '≈ $2,715.00' },
-      status: 'Pending',
-      progress: 60,
-      created: '21.03.2021',
-      action: 'Release'
-    },
-    {
-      id: '#ESC-2024-003',
-      parties: { from: 'John Smith', to: 'Sarah Wilson' },
-      amount: { crypto: '5,000 XRP', usd: '≈ $2,715.00' },
-      status: 'Pending',
-      progress: 60,
-      created: '21.03.2021',
-      action: 'Release'
-    },
-    {
-      id: '#ESC-2024-004',
-      parties: { from: 'John Smith', to: 'Sarah Wilson' },
-      amount: { crypto: '5,000 XRP', usd: '≈ $2,715.00' },
-      status: 'Pending',
-      progress: 60,
-      created: '21.03.2021',
-      action: 'Release'
-    },
-    {
-      id: '#ESC-2024-005',
-      parties: { from: 'John Smith', to: 'Sarah Wilson' },
-      amount: { crypto: '5,000 XRP', usd: '≈ $2,715.00' },
-      status: 'Pending',
-      progress: 60,
-      created: '21.03.2021',
-      action: 'Release'
+  // Map category to transactionType
+  const getTransactionType = (category) => {
+    const mapping = {
+      'All': null,
+      'Freelance': 'freelance',
+      'Product purchase': 'product_purchase',
+      'Real estate': 'real_estate',
+      'Custom': 'custom'
+    };
+    return mapping[category] || null;
+  };
+
+  // Fetch industries based on transaction type
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          return;
+        }
+
+        const transactionType = getTransactionType(activeCategory);
+        if (!transactionType) {
+          setIndustries([]);
+          return;
+        }
+
+        setIsLoadingIndustries(true);
+        const apiUrl = getApiUrl(`api/escrow/industries?transactionType=${transactionType}`);
+        console.log('Fetching industries from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Industries API response data:', result);
+
+          if (result?.success && result?.data) {
+            // Handle different response structures
+            if (Array.isArray(result.data)) {
+              setIndustries(result.data);
+            } else if (Array.isArray(result.data.industries)) {
+              setIndustries(result.data.industries);
+            } else {
+              setIndustries([]);
+            }
+          } else {
+            setIndustries([]);
+          }
+        } else {
+          console.error('Industries API error:', response.status);
+          setIndustries([]);
+        }
+      } catch (error) {
+        console.error('Error fetching industries:', error);
+        setIndustries([]);
+      } finally {
+        setIsLoadingIndustries(false);
+      }
+    };
+
+    fetchIndustries();
+    setSelectedIndustry(null); // Reset industry when category changes
+  }, [activeCategory]);
+
+  // Fetch filtered escrow list
+  useEffect(() => {
+    const fetchEscrows = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsLoadingEscrows(false);
+          return;
+        }
+
+        setIsLoadingEscrows(true);
+        const transactionType = getTransactionType(activeCategory);
+        const offset = (currentPage - 1) * limit;
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (transactionType) {
+          params.append('transactionType', transactionType);
+        }
+        if (selectedIndustry) {
+          params.append('industry', selectedIndustry);
+        }
+        params.append('limit', limit.toString());
+        params.append('offset', offset.toString());
+
+        const apiUrl = getApiUrl(`api/escrow/list?${params.toString()}`);
+        console.log('Fetching escrows from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Escrows list API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Escrows list API response data:', result);
+
+          if (result?.success && result?.data) {
+            // Handle different response structures
+            if (Array.isArray(result.data.escrows)) {
+              setEscrows(result.data.escrows);
+              // Calculate total pages from total count
+              const total = result.data.total || result.data.count || result.data.escrows.length;
+              setTotalEscrowsCount(total);
+              setTotalPages(Math.ceil(total / limit));
+            } else if (Array.isArray(result.data)) {
+              setEscrows(result.data);
+              setTotalEscrowsCount(result.data.length);
+              setTotalPages(Math.ceil(result.data.length / limit));
+            } else {
+              setEscrows([]);
+              setTotalEscrowsCount(0);
+              setTotalPages(1);
+            }
+          } else {
+            setEscrows([]);
+            setTotalEscrowsCount(0);
+            setTotalPages(1);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Escrows list API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+          setEscrows([]);
+          setTotalEscrowsCount(0);
+          setTotalPages(1);
+        }
+      } catch (error) {
+        console.error('Error fetching escrows:', error);
+        setEscrows([]);
+        setTotalEscrowsCount(0);
+        setTotalPages(1);
+      } finally {
+        setIsLoadingEscrows(false);
+      }
+    };
+
+    fetchEscrows();
+  }, [activeCategory, selectedIndustry, currentPage, limit]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, selectedIndustry]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showIndustryDropdown && !event.target.closest('.industry-dropdown')) {
+        setShowIndustryDropdown(false);
+      }
+      if (openActionMenu && !event.target.closest('.escrow-action')) {
+        setOpenActionMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showIndustryDropdown, openActionMenu]);
+
+  // Handle release escrow
+  const handleReleaseEscrow = async (escrowId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const apiUrl = getApiUrl(`api/escrow/${escrowId}/release`);
+      console.log('Releasing escrow:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes: '' }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result?.success) {
+          toast.success('Escrow released successfully');
+          // Refresh escrow list
+          const fetchEscrows = async () => {
+            const transactionType = getTransactionType(activeCategory);
+            const offset = (currentPage - 1) * limit;
+            const params = new URLSearchParams();
+            if (transactionType) params.append('transactionType', transactionType);
+            if (selectedIndustry) params.append('industry', selectedIndustry);
+            params.append('limit', limit.toString());
+            params.append('offset', offset.toString());
+            const url = getApiUrl(`api/escrow/list?${params.toString()}`);
+            const res = await fetch(url, {
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.success && data?.data) {
+                if (Array.isArray(data.data.escrows)) {
+                  setEscrows(data.data.escrows);
+                  const total = data.data.total || data.data.count || data.data.escrows.length;
+                  setTotalEscrowsCount(total);
+                  setTotalPages(Math.ceil(total / limit));
+                }
+              }
+            }
+          };
+          fetchEscrows();
+        } else {
+          toast.error(result?.message || 'Failed to release escrow');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast.error(errorData?.message || 'Failed to release escrow');
+      }
+    } catch (error) {
+      console.error('Error releasing escrow:', error);
+      toast.error('An error occurred while releasing escrow');
     }
-  ];
+  };
+
+  // Handle cancel escrow
+  const handleCancelEscrow = async (escrowId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const apiUrl = getApiUrl(`api/escrow/${escrowId}/cancel`);
+      console.log('Cancelling escrow:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: '' }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result?.success) {
+          toast.success('Escrow cancelled successfully');
+          // Refresh escrow list
+          const fetchEscrows = async () => {
+            const transactionType = getTransactionType(activeCategory);
+            const offset = (currentPage - 1) * limit;
+            const params = new URLSearchParams();
+            if (transactionType) params.append('transactionType', transactionType);
+            if (selectedIndustry) params.append('industry', selectedIndustry);
+            params.append('limit', limit.toString());
+            params.append('offset', offset.toString());
+            const url = getApiUrl(`api/escrow/list?${params.toString()}`);
+            const res = await fetch(url, {
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.success && data?.data) {
+                if (Array.isArray(data.data.escrows)) {
+                  setEscrows(data.data.escrows);
+                  const total = data.data.total || data.data.count || data.data.escrows.length;
+                  setTotalEscrowsCount(total);
+                  setTotalPages(Math.ceil(total / limit));
+                }
+              }
+            }
+          };
+          fetchEscrows();
+        } else {
+          toast.error(result?.message || 'Failed to cancel escrow');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast.error(errorData?.message || 'Failed to cancel escrow');
+      }
+    } catch (error) {
+      console.error('Error cancelling escrow:', error);
+      toast.error('An error occurred while cancelling escrow');
+    }
+  };
+
+  // Helper function to refresh escrow list
+  const refreshEscrowList = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const transactionType = getTransactionType(activeCategory);
+      const offset = (currentPage - 1) * limit;
+      const params = new URLSearchParams();
+      if (transactionType) params.append('transactionType', transactionType);
+      if (selectedIndustry) params.append('industry', selectedIndustry);
+      params.append('limit', limit.toString());
+      params.append('offset', offset.toString());
+
+      const apiUrl = getApiUrl(`api/escrow/list?${params.toString()}`);
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result?.success && result?.data) {
+          if (Array.isArray(result.data.escrows)) {
+            setEscrows(result.data.escrows);
+            const total = result.data.total || result.data.count || result.data.escrows.length;
+            setTotalEscrowsCount(total);
+            setTotalPages(Math.ceil(total / limit));
+          } else if (Array.isArray(result.data)) {
+            setEscrows(result.data);
+            setTotalEscrowsCount(result.data.length);
+            setTotalPages(Math.ceil(result.data.length / limit));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing escrow list:', error);
+    }
+  };
 
   return (
     <MyEscrowLayout>
@@ -407,9 +724,71 @@ const MyEscrow = () => {
           ))}
         </div>
         <div className="secondary-filters">
-          <div className="industry-dropdown">
-            <span>All industries</span>
+          <div 
+            className="industry-dropdown" 
+            style={{ position: 'relative', cursor: 'pointer' }}
+            onClick={() => setShowIndustryDropdown(!showIndustryDropdown)}
+          >
+            <span>{selectedIndustry || 'All industries'}</span>
             <ChevronDown size={16} />
+            {showIndustryDropdown && (
+              <div 
+                className="industry-dropdown-menu"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'var(--card-bg, #fff)',
+                  border: '1px solid var(--border-color, #e0e0e0)',
+                  borderRadius: '8px',
+                  marginTop: '4px',
+                  zIndex: 1000,
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid var(--border-color, #e0e0e0)'
+                  }}
+                  onClick={() => {
+                    setSelectedIndustry(null);
+                    setShowIndustryDropdown(false);
+                  }}
+                >
+                  All industries
+                </div>
+                {isLoadingIndustries ? (
+                  <div style={{ padding: '8px 12px', textAlign: 'center' }}>Loading...</div>
+                ) : industries.length > 0 ? (
+                  industries.map((industry, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        borderBottom: idx < industries.length - 1 ? '1px solid var(--border-color, #e0e0e0)' : 'none'
+                      }}
+                      onClick={() => {
+                        setSelectedIndustry(industry);
+                        setShowIndustryDropdown(false);
+                      }}
+                    >
+                      {industry}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-muted, #666)' }}>
+                    No industries available
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="date-filter">
             <span>November</span>
@@ -433,44 +812,213 @@ const MyEscrow = () => {
             </tr>
           </thead>
           <tbody>
-            {escrowData.map((escrow, index) => (
-              <tr key={`escrow-${index}`}>
-                <td className="escrow-id">{escrow.id}</td>
-                <td className="escrow-parties" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                  <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{escrow.parties.from}</span>
-                  <span className="party-arrow" style={{ color: 'var(--text-muted)' }}>›</span>
-                  <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{escrow.parties.to}</span>
-                </td>
-                <td className="escrow-amount">
-                  <span className="amount-single-line">
-                    <span className="amount-crypto">{escrow.amount.crypto}</span>
-                    <span className="amount-separator"> </span>
-                    <span className="amount-usd">{escrow.amount.usd}</span>
-                  </span>
-                </td>
-                <td>
-                  <button type="button" className={`status-btn ${escrow.status.toLowerCase()}`}>
-                    {escrow.status}
-                  </button>
-                </td>
-                <td className="escrow-progress">
-                  <div className="progress-bar-wrapper">
-                    <div className="progress-bar" style={{ width: `${escrow.progress}%` }}></div>
-                  </div>
-                  <span className="progress-text">{escrow.progress}%</span>
-                </td>
-                <td className="escrow-created">{escrow.created}</td>
-                <td className="escrow-action">
-                  <button type="button" className="release-btn">{escrow.action}</button>
-                  <button type="button" className="action-menu-btn">
-                    <MoreVertical size={18} />
-                  </button>
+            {isLoadingEscrows && (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
+                  Loading escrows...
                 </td>
               </tr>
-            ))}
+            )}
+            {!isLoadingEscrows && escrows.length === 0 && (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
+                  No escrows found
+                </td>
+              </tr>
+            )}
+            {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow, index) => {
+              // Format escrow ID
+              const escrowId = escrow.id || escrow.xrplEscrowId || '';
+              const formattedId = escrowId ? `#${escrowId.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
+              
+              // Get parties
+              const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
+              const userFullName = escrow.userName || escrow.user?.name || 'You';
+              
+              // Format amounts
+              const xrpAmount = escrow.amount?.xrp 
+                ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+                : '0.00';
+              const usdAmount = escrow.amount?.usd 
+                ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : '0.00';
+              
+              // Get status
+              const status = escrow.status || 'Unknown';
+              const statusLower = status.toLowerCase();
+              
+              // Calculate progress (from milestones or default)
+              const progress = escrow.progress || escrow.milestoneProgress || 0;
+              
+              // Format created date
+              const createdDate = escrow.createdAt || escrow.created || '';
+              const formattedDate = createdDate 
+                ? new Date(createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                : 'N/A';
+              
+              // Determine action button text and availability
+              const canRelease = statusLower === 'pending' || statusLower === 'active' || statusLower === 'pending release';
+              const actionText = canRelease ? 'Release' : statusLower === 'completed' ? 'Completed' : 'View';
+              
+              return (
+                <tr key={escrow.id || escrow.xrplEscrowId || index}>
+                  <td className="escrow-id">{formattedId}</td>
+                  <td className="escrow-parties" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                    <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
+                    <span className="party-arrow" style={{ color: 'var(--text-muted)' }}>›</span>
+                    <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                  </td>
+                  <td className="escrow-amount">
+                    <span className="amount-single-line">
+                      <span className="amount-crypto">{xrpAmount} XRP</span>
+                      <span className="amount-separator"> </span>
+                      <span className="amount-usd">≈ ${usdAmount}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <button type="button" className={`status-btn ${statusLower}`}>
+                      {status}
+                    </button>
+                  </td>
+                  <td className="escrow-progress">
+                    <div className="progress-bar-wrapper">
+                      <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <span className="progress-text">{progress}%</span>
+                  </td>
+                  <td className="escrow-created">{formattedDate}</td>
+                  <td className="escrow-action" style={{ position: 'relative' }}>
+                    {canRelease && (
+                      <button 
+                        type="button" 
+                        className="release-btn"
+                        onClick={() => handleReleaseEscrow(escrowId)}
+                      >
+                        {actionText}
+                      </button>
+                    )}
+                    <button 
+                      type="button" 
+                      className="action-menu-btn"
+                      onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {openActionMenu === escrowId && (
+                      <div 
+                        className="action-menu-dropdown"
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          backgroundColor: 'var(--card-bg, #fff)',
+                          border: '1px solid var(--border-color, #e0e0e0)',
+                          borderRadius: '8px',
+                          marginTop: '4px',
+                          zIndex: 1000,
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                          minWidth: '120px'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid var(--border-color, #e0e0e0)'
+                          }}
+                          onClick={() => {
+                            handleCancelEscrow(escrowId);
+                            setOpenActionMenu(null);
+                          }}
+                        >
+                          Cancel
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination-controls" style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '8px',
+          marginTop: '20px',
+          padding: '20px 0'
+        }}>
+          <button
+            type="button"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            style={{
+              padding: '8px 16px',
+              border: '1px solid var(--border-color, #e0e0e0)',
+              borderRadius: '6px',
+              backgroundColor: currentPage === 1 ? 'var(--bg-muted, #f5f5f5)' : 'var(--card-bg, #fff)',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              color: currentPage === 1 ? 'var(--text-muted, #999)' : 'var(--text-primary, #333)'
+            }}
+          >
+            Previous
+          </button>
+          
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            
+            return (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => setCurrentPage(pageNum)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid var(--border-color, #e0e0e0)',
+                  borderRadius: '6px',
+                  backgroundColor: currentPage === pageNum ? 'var(--blue-600, #2563eb)' : 'var(--card-bg, #fff)',
+                  color: currentPage === pageNum ? '#fff' : 'var(--text-primary, #333)',
+                  cursor: 'pointer',
+                  minWidth: '40px'
+                }}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          
+          <button
+            type="button"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            style={{
+              padding: '8px 16px',
+              border: '1px solid var(--border-color, #e0e0e0)',
+              borderRadius: '6px',
+              backgroundColor: currentPage === totalPages ? 'var(--bg-muted, #f5f5f5)' : 'var(--card-bg, #fff)',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              color: currentPage === totalPages ? 'var(--text-muted, #999)' : 'var(--text-primary, #333)'
+            }}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {/* Create Escrow Modal */}
       {showCreateEscrowModal && (
