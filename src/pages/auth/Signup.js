@@ -21,6 +21,7 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -71,6 +72,32 @@ const Signup = () => {
     }
   };
 
+  const handleGoogleSignIn = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Prevent multiple clicks
+    if (isGoogleLoading) {
+      return;
+    }
+    
+    setIsGoogleLoading(true);
+    
+    try {
+      // Include redirect_uri so backend knows where to send user after OAuth
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const googleAuthUrl = `${getApiUrl('api/auth/google')}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+      console.log('Google sign in clicked, redirecting to:', googleAuthUrl);
+      window.location.href = googleAuthUrl;
+    } catch (error) {
+      console.error('Error initiating Google sign in:', error);
+      toast.error('Failed to initiate Google sign in');
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="signup-page">
       <div className="signup-content">
@@ -90,9 +117,14 @@ const Signup = () => {
               </button>
             </div>
 
-            <button type="button" className="signup-social-btn">
+            <button 
+              type="button" 
+              className="signup-social-btn" 
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+            >
               <img src={googleLogo} alt="Google" />
-              Sign up with Google
+              {isGoogleLoading ? 'Redirecting...' : 'Sign up with Google'}
             </button>
 
             <div className="signup-divider">

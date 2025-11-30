@@ -17,6 +17,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -37,10 +38,70 @@ const Login = () => {
       });
 
       const data = await response.json();
+      console.log('Login response:', data);
+      console.log('Login response keys:', Object.keys(data));
+      console.log('Login response JSON:', JSON.stringify(data, null, 2));
 
       if (!response.ok || !data.success) {
         toast.error(data.message || data.error || 'Login failed');
         return;
+      }
+
+      // Store token if provided (check multiple possible field names and nested paths)
+      let tokenFound = false;
+      
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        console.log('Token stored from data.token');
+        tokenFound = true;
+      } else if (data.accessToken) {
+        localStorage.setItem('token', data.accessToken);
+        console.log('Token stored from data.accessToken');
+        tokenFound = true;
+      } else if (data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        console.log('Token stored from data.access_token');
+        tokenFound = true;
+      } else if (data.data?.token) {
+        localStorage.setItem('token', data.data.token);
+        console.log('Token stored from data.data.token');
+        tokenFound = true;
+      } else if (data.user?.token) {
+        localStorage.setItem('token', data.user.token);
+        console.log('Token stored from data.user.token');
+        tokenFound = true;
+      } else if (data.auth?.token) {
+        localStorage.setItem('token', data.auth.token);
+        console.log('Token stored from data.auth.token');
+        tokenFound = true;
+      } else if (data.result?.token) {
+        localStorage.setItem('token', data.result.token);
+        console.log('Token stored from data.result.token');
+        tokenFound = true;
+      } else if (data.user?.accessToken) {
+        localStorage.setItem('token', data.user.accessToken);
+        console.log('Token stored from data.user.accessToken');
+        tokenFound = true;
+      } else if (data.user?.access_token) {
+        localStorage.setItem('token', data.user.access_token);
+        console.log('Token stored from data.user.access_token');
+        tokenFound = true;
+      } else if (data.data?.accessToken) {
+        localStorage.setItem('token', data.data.accessToken);
+        console.log('Token stored from data.data.accessToken');
+        tokenFound = true;
+      }
+      
+      if (!tokenFound) {
+        console.warn('No token found in login response. Full response structure:');
+        console.warn('Response keys:', Object.keys(data));
+        if (data.data) {
+          console.warn('data.data keys:', Object.keys(data.data));
+        }
+        if (data.user) {
+          console.warn('data.user keys:', Object.keys(data.user));
+        }
+        console.warn('Full response object:', JSON.stringify(data, null, 2));
       }
 
       toast.success('Login successful!');
@@ -50,6 +111,31 @@ const Login = () => {
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Prevent multiple clicks
+    if (isGoogleLoading) {
+      return;
+    }
+    
+    setIsGoogleLoading(true);
+    
+    try {
+      // Include redirect_uri so backend knows where to send user after OAuth
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const googleAuthUrl = `${getApiUrl('api/auth/google')}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+      window.location.href = googleAuthUrl;
+    } catch (error) {
+      console.error('Error initiating Google sign in:', error);
+      toast.error('Failed to initiate Google sign in');
+      setIsGoogleLoading(false);
     }
   };
 
@@ -73,9 +159,14 @@ const Login = () => {
             </div>
 
             <div className="login-social-buttons">
-              <button type="button" className="login-social-btn">
+              <button 
+                type="button" 
+                className="login-social-btn" 
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+              >
                 <img src={googleLogo} alt="Google" />
-                Sign in with Google
+                {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
               </button>
               <button type="button" className="login-social-btn">
                 <KeyRound size={18} />

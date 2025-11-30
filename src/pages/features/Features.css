@@ -120,6 +120,17 @@
   pointer-events: none;
 }
 
+/* Hide arc image in light mode on desktop */
+@media (min-width: 769px) {
+  .features-hero-arc-image {
+    display: none;
+  }
+
+  [data-theme="dark"] .features-hero-arc-image {
+    display: block;
+  }
+}
+
 .features-hero-container {
   position: relative;
   z-index: 2;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import logo from '../../assets/images/icons/logo.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
+import { getApiUrl } from '../../utils/config';
 import './Dashboard.css';
 
 const sidebarNav = [
@@ -60,6 +61,109 @@ const MyEscrowLayout = ({ children }) => {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [accountType, setAccountType] = useState('Personal');
   const [kycComplete] = useState(true);
+  const [userFullName, setUserFullName] = useState('Sarah Chen');
+  const [userInitials, setUserInitials] = useState('SC');
+  const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [formattedToday, setFormattedToday] = useState('');
+
+  // Real-time date formatting - updates every minute
+  useEffect(() => {
+    const updateDate = () => {
+      const now = new Date();
+      const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
+      const day = now.getDate();
+      const month = now.toLocaleDateString(undefined, { month: 'long' });
+      const formatted = `${weekday}, ${day}${day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} ${month}`;
+      setFormattedToday(formatted);
+    };
+
+    // Update immediately
+    updateDate();
+
+    // Update every minute to keep it real-time
+    const interval = setInterval(updateDate, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch user profile from API
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for user profile');
+          setIsLoadingUserProfile(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/user/profile');
+        console.log('Fetching user profile from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('User profile API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('User profile API response data:', result);
+
+          if (result?.success && result?.data) {
+            const data = result.data;
+            const fullName =
+              data.fullName ||
+              [data.firstName, data.lastName].filter(Boolean).join(' ') ||
+              data.name ||
+              userFullName;
+
+            if (fullName && typeof fullName === 'string') {
+              setUserFullName(fullName);
+            }
+
+            // Extract initials from firstName and lastName
+            const firstName = data.firstName || '';
+            const lastName = data.lastName || '';
+            let initials = 'SC'; // default fallback
+            
+            if (firstName && lastName) {
+              initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+            } else if (fullName && typeof fullName === 'string') {
+              // Fallback: extract from fullName if firstName/lastName not available
+              const nameParts = fullName.trim().split(/\s+/);
+              if (nameParts.length >= 2) {
+                initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
+              } else if (nameParts.length === 1) {
+                initials = nameParts[0].charAt(0).toUpperCase();
+              }
+            }
+            
+            setUserInitials(initials);
+          } else {
+            console.warn('Unexpected user profile response shape. Expected success and data.', result);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('User profile API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setIsLoadingUserProfile(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   return (
     <div className="dashboard">
@@ -161,7 +265,7 @@ const MyEscrowLayout = ({ children }) => {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <div className="header-info">
-            <p className="header-date">Thursday, 7th November</p>
+            <p className="header-date">{formattedToday}</p>
             <h1>Welcome Back !</h1>
           </div>
 
@@ -204,10 +308,10 @@ const MyEscrowLayout = ({ children }) => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">SC</div>
+              <div className="user-avatar">{userInitials}</div>
               <div className="user-info">
                 <span className="user-name">
-                  Sarah Chen
+                  {isLoadingUserProfile ? 'Loading...' : userFullName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>Freelancer</small>

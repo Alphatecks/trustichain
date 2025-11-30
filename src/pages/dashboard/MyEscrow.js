@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DollarSign,
   Layers,
@@ -19,6 +19,7 @@ import {
   Coins
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
+import { getApiUrl } from '../../utils/config';
 import './MyEscrow.css';
 
 const MyEscrow = () => {
@@ -51,6 +52,190 @@ const MyEscrow = () => {
   });
 
   const categories = ['All', 'Freelance', 'Product purchase', 'Real estate', 'Custom'];
+  
+  const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(null);
+  const [lockedAmount, setLockedAmount] = useState(null);
+  const [activeEscrowCount, setActiveEscrowCount] = useState(null);
+  const [totalEscrowCount, setTotalEscrowCount] = useState(null);
+  const [completedEscrowCount, setCompletedEscrowCount] = useState(null);
+  const [isLoadingEscrowMetrics, setIsLoadingEscrowMetrics] = useState(true);
+  const [isLoadingCompletedEscrow, setIsLoadingCompletedEscrow] = useState(true);
+
+  // Fetch escrow metrics from API
+  useEffect(() => {
+    const fetchEscrowMetrics = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for escrow metrics');
+          setIsLoadingEscrowMetrics(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/escrow/list?limit=1000&offset=0');
+        console.log('Fetching escrows for metrics from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Escrows metrics API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Escrows metrics API response data:', result);
+
+          if (result?.success && result?.data) {
+            // Check for totalEscrowed in API response
+            if (result.data.totalEscrowed !== undefined && result.data.totalEscrowed !== null) {
+              setTotalEscrowedAmount(result.data.totalEscrowed);
+            } else if (result.data.totalEscrowedAmount !== undefined && result.data.totalEscrowedAmount !== null) {
+              setTotalEscrowedAmount(result.data.totalEscrowedAmount);
+            } else if (Array.isArray(result.data.escrows) && result.data.escrows.length > 0) {
+              // Calculate total from escrows array
+              const total = result.data.escrows.reduce((sum, escrow) => {
+                const amount = escrow.amount?.usd || 
+                              escrow.amount?.USD || 
+                              escrow.amount?.xrp || 
+                              escrow.amount?.XRP ||
+                              escrow.totalAmount || 
+                              escrow.usdAmount || 
+                              (typeof escrow.amount === 'number' ? escrow.amount : null) ||
+                              0;
+                return sum + (typeof amount === 'number' ? amount : parseFloat(amount) || 0);
+              }, 0);
+              setTotalEscrowedAmount(total);
+            } else {
+              setTotalEscrowedAmount(0);
+            }
+
+            // Calculate active escrow count and locked amount (escrows with status 'pending' or 'active')
+            if (Array.isArray(result.data.escrows) && result.data.escrows.length > 0) {
+              // Count total escrows
+              setTotalEscrowCount(result.data.escrows.length);
+              
+              // Filter and count active escrows (pending, active, pending release)
+              const activeEscrows = result.data.escrows.filter(escrow => {
+                const status = (escrow.status || '').toLowerCase();
+                return status === 'pending' || status === 'active' || status === 'pending release';
+              });
+              
+              setActiveEscrowCount(activeEscrows.length);
+              
+              // Calculate locked amount from active escrows
+              const locked = activeEscrows.reduce((sum, escrow) => {
+                const amount = escrow.amount?.usd || 
+                              escrow.amount?.USD || 
+                              escrow.amount?.xrp || 
+                              escrow.amount?.XRP ||
+                              escrow.totalAmount || 
+                              escrow.usdAmount || 
+                              (typeof escrow.amount === 'number' ? escrow.amount : null) ||
+                              0;
+                return sum + (typeof amount === 'number' ? amount : parseFloat(amount) || 0);
+              }, 0);
+              setLockedAmount(locked);
+            } else {
+              setActiveEscrowCount(0);
+              setTotalEscrowCount(0);
+              setLockedAmount(0);
+            }
+          } else {
+            console.warn('Unexpected escrows response shape. Expected success and data.', result);
+            setTotalEscrowedAmount(0);
+            setLockedAmount(0);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Escrows metrics API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+          setTotalEscrowedAmount(0);
+          setLockedAmount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching escrow metrics:', error);
+        setTotalEscrowedAmount(0);
+        setLockedAmount(0);
+      } finally {
+        setIsLoadingEscrowMetrics(false);
+      }
+    };
+
+    fetchEscrowMetrics();
+  }, []);
+
+  // Fetch completed escrow count from API
+  useEffect(() => {
+    const fetchCompletedEscrow = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for completed escrow');
+          setIsLoadingCompletedEscrow(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/escrow/completed/month');
+        console.log('Fetching completed escrow from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Completed escrow API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Completed escrow API response data:', result);
+
+          if (result?.success && result?.data) {
+            // Check if the response has a count field or an array of completed escrows
+            if (result.data.count !== undefined && result.data.count !== null) {
+              setCompletedEscrowCount(result.data.count);
+            } else if (Array.isArray(result.data)) {
+              setCompletedEscrowCount(result.data.length);
+            } else if (Array.isArray(result.data.completedEscrows)) {
+              setCompletedEscrowCount(result.data.completedEscrows.length);
+            } else if (Array.isArray(result.data.escrows)) {
+              setCompletedEscrowCount(result.data.escrows.length);
+            } else {
+              console.warn('Unexpected completed escrow response structure:', result);
+              setCompletedEscrowCount(0);
+            }
+          } else {
+            console.warn('Unexpected completed escrow response shape. Expected success and data.', result);
+            setCompletedEscrowCount(0);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Completed escrow API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+          setCompletedEscrowCount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching completed escrow:', error);
+        setCompletedEscrowCount(0);
+      } finally {
+        setIsLoadingCompletedEscrow(false);
+      }
+    };
+
+    fetchCompletedEscrow();
+  }, []);
 
   const escrowData = [
     {
@@ -132,8 +317,18 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Total Escrowed Amount</h3>
           </div>
           <div className="metric-content">
-            <div className="metric-value">$45,280</div>
-            <div className="metric-subtitle">$16,789 locked</div>
+            <div className="metric-value">
+              {isLoadingEscrowMetrics 
+                ? 'Loading...' 
+                : `$${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : '0.00'}`}
+            </div>
+            <div className="metric-subtitle">
+              ${lockedAmount !== null && lockedAmount !== undefined
+                ? lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : '0.00'} locked
+            </div>
           </div>
           <div className="metric-trend positive">
             <TrendingUp size={14} />
@@ -149,7 +344,11 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Total Escrow</h3>
           </div>
           <div className="metric-content">
-            <div className="metric-value">45</div>
+            <div className="metric-value">
+              {isLoadingEscrowMetrics 
+                ? 'Loading...' 
+                : (totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0)}
+            </div>
             <div className="metric-subtitle">This month</div>
           </div>
           <div className="metric-trend positive">
@@ -166,7 +365,11 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Active Escrow</h3>
           </div>
           <div className="metric-content">
-            <div className="metric-value">23</div>
+            <div className="metric-value">
+              {isLoadingEscrowMetrics 
+                ? 'Loading...' 
+                : (activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0)}
+            </div>
             <div className="metric-subtitle">This month</div>
           </div>
         </div>
@@ -179,7 +382,11 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Completed Escrow</h3>
           </div>
           <div className="metric-content">
-            <div className="metric-value">7</div>
+            <div className="metric-value">
+              {isLoadingCompletedEscrow 
+                ? 'Loading...' 
+                : (completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0)}
+            </div>
             <div className="metric-subtitle">This month</div>
           </div>
         </div>

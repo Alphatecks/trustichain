@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -42,6 +43,7 @@ import uploadIllustration from '../../assets/images/illustrations/upload.png';
 import chainsIllustration from '../../assets/images/illustrations/chain.png';
 import cardIllustration from '../../assets/images/illustrations/card.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
+import { getApiUrl } from '../../utils/config';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -107,12 +109,1511 @@ const Dashboard = () => {
   });
 
   const [walletAddress, setWalletAddress] = useState('');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+  const [exchangeRates, setExchangeRates] = useState([]);
+  const [isLoadingRates, setIsLoadingRates] = useState(true);
+  const [portfolioPoints, setPortfolioPoints] = useState(null);
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
+  const [walletBalances, setWalletBalances] = useState(null);
+  const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
+  const [escrows, setEscrows] = useState([]);
+  const [isLoadingEscrows, setIsLoadingEscrows] = useState(true);
+  const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(null);
+  const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(true);
+  const [userFullName, setUserFullName] = useState('Sarah Chen');
+  const [userInitials, setUserInitials] = useState('SC');
+  const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [showFundWalletModal, setShowFundWalletModal] = useState(false);
+  const [fundWalletForm, setFundWalletForm] = useState({
+    amount: '',
+    currency: 'XRP'
+  });
+  const [isFundingWallet, setIsFundingWallet] = useState(false);
+  const [fundingStep, setFundingStep] = useState('idle'); // 'idle', 'preparing', 'signing', 'completing'
+  const [transactionData, setTransactionData] = useState(null); // { transactionId, transactionBlob }
+  const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
+  const [withdrawWalletForm, setWithdrawWalletForm] = useState({
+    amount: '',
+    currency: 'USD',
+    destinationAddress: ''
+  });
+  const [isWithdrawingWallet, setIsWithdrawingWallet] = useState(false);
+
+  const fetchDashboardSummary = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Dashboard useEffect - Token exists:', !!token);
+      console.log('Dashboard useEffect - kycComplete:', kycComplete);
+      
+      if (!token) {
+        console.warn('No token found in localStorage');
+        setIsLoadingDashboard(false);
+        return;
+      }
+
+      const apiUrl = getApiUrl('api/dashboard/summary');
+      console.log('Fetching dashboard summary from:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Dashboard API response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Dashboard API response data:', result);
+        
+        if (result.success && result.data) {
+          console.log('Setting dashboard data:', result.data);
+          console.log('Balance data:', result.data.balance);
+          setDashboardData(result.data);
+          console.log('Dashboard data state updated');
+        } else {
+          console.warn('API response missing success or data. Full response:', result);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Dashboard API error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: errorData
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard summary:', error);
+    } finally {
+      setIsLoadingDashboard(false);
+    }
+  };
+
+  useEffect(() => {
+    // Always fetch when component mounts, not just when kycComplete is true
+    fetchDashboardSummary();
+  }, [kycComplete]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for user profile');
+          setIsLoadingUserProfile(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/user/profile');
+        console.log('Fetching user profile from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('User profile API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('User profile API response data:', result);
+
+          if (result?.success && result?.data) {
+            const data = result.data;
+            const fullName =
+              data.fullName ||
+              [data.firstName, data.lastName].filter(Boolean).join(' ') ||
+              data.name ||
+              userFullName;
+
+            if (fullName && typeof fullName === 'string') {
+              setUserFullName(fullName);
+            }
+
+            // Extract initials from firstName and lastName
+            const firstName = data.firstName || '';
+            const lastName = data.lastName || '';
+            let initials = 'SC'; // default fallback
+            
+            if (firstName && lastName) {
+              initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+            } else if (fullName && typeof fullName === 'string') {
+              // Fallback: extract from fullName if firstName/lastName not available
+              const nameParts = fullName.trim().split(/\s+/);
+              if (nameParts.length >= 2) {
+                initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
+              } else if (nameParts.length === 1) {
+                initials = nameParts[0].charAt(0).toUpperCase();
+              }
+            }
+            
+            setUserInitials(initials);
+          } else {
+            console.warn('Unexpected user profile response shape. Expected success and data.', result);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('User profile API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setIsLoadingUserProfile(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  useEffect(() => {
+    const fetchExchangeRates = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for exchange rates');
+          setIsLoadingRates(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/exchange/rates');
+        console.log('Fetching exchange rates from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Exchange rates API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Exchange rates API response data:', result);
+
+          // Expected shape:
+          // { success: true, data: { rates: [ { currency, rate, change, changePercent }, ... ], lastUpdated } }
+          console.log('Full API result:', JSON.stringify(result, null, 2));
+          console.log('result.success:', result?.success);
+          console.log('result.data:', result?.data);
+          console.log('result.data.rates:', result?.data?.rates);
+          console.log('Is array?', Array.isArray(result?.data?.rates));
+          
+          if (result?.success && Array.isArray(result?.data?.rates) && result.data.rates.length > 0) {
+            console.log('Setting exchange rates:', result.data.rates);
+            setExchangeRates(result.data.rates);
+          } else {
+            console.warn('Unexpected exchange rates response shape. Expected data.rates as an array.', result);
+            console.warn('Setting exchange rates to empty array');
+            setExchangeRates([]);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Exchange rates API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+          setExchangeRates([]);
+        }
+      } catch (error) {
+        console.error('Error fetching exchange rates:', error);
+        setExchangeRates([]);
+      } finally {
+        setIsLoadingRates(false);
+      }
+    };
+
+    fetchExchangeRates();
+  }, []);
+
+  useEffect(() => {
+    const fetchPortfolioPerformance = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for portfolio performance');
+          setIsLoadingPortfolio(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/portfolio/performance?timeframe=daily');
+        console.log('Fetching portfolio performance from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Portfolio performance API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Portfolio performance API response data:', result);
+
+          // Expected shape:
+          // { success: true, data: { points: [ { label, value }, ... ], ... } }
+          if (result?.success && Array.isArray(result?.data?.points)) {
+            setPortfolioPoints(result.data.points);
+          } else {
+            console.warn('Unexpected portfolio performance response shape. Expected data.points as array.', result);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Portfolio performance API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching portfolio performance:', error);
+      } finally {
+        setIsLoadingPortfolio(false);
+      }
+    };
+
+    fetchPortfolioPerformance();
+  }, []);
+
+  useEffect(() => {
+    const fetchWalletBalances = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for wallet balances');
+          setIsLoadingWalletBalances(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/wallet/balance');
+        console.log('Fetching wallet balances from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Wallet balances API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Wallet balances API response data:', result);
+
+          // Expected shape:
+          // { success: true, data: { balance: { xrp, usdt, usdc }, xrplAddress } }
+          if (result?.success && result?.data?.balance) {
+            setWalletBalances(result.data.balance);
+          } else {
+            console.warn('Unexpected wallet balances response shape. Expected data.balance object.', result);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Wallet balances API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching wallet balances:', error);
+      } finally {
+        setIsLoadingWalletBalances(false);
+      }
+    };
+
+    fetchWalletBalances();
+  }, []);
+
+  useEffect(() => {
+    const fetchEscrows = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No token found for escrows');
+          setIsLoadingEscrows(false);
+          setIsLoadingTotalEscrowed(false);
+          return;
+        }
+
+        // Fetch escrows to calculate total escrowed amount
+        // Try to get all escrows or use a summary endpoint if available
+        const apiUrl = getApiUrl('api/escrow/list?limit=1000&offset=0');
+        console.log('Fetching escrows for total calculation from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Escrows API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Escrows API response data:', result);
+          console.log('Escrows API response structure:', {
+            hasSuccess: !!result?.success,
+            hasData: !!result?.data,
+            escrowsArray: Array.isArray(result?.data?.escrows),
+            escrowsLength: result?.data?.escrows?.length,
+            totalEscrowed: result?.data?.totalEscrowed,
+            totalEscrowedAmount: result?.data?.totalEscrowedAmount
+          });
+
+          // Expected shape:
+          // { success: true, data: { escrows: [ ... ], totalEscrowed, total } }
+          if (result?.success && result?.data) {
+            // Set escrows list
+            if (Array.isArray(result.data.escrows)) {
+              setEscrows(result.data.escrows);
+              console.log('Set escrows array, length:', result.data.escrows.length);
+            }
+
+            // Extract total escrowed amount from API response
+            // Check for totalEscrowed, totalEscrowedAmount, or calculate from escrows
+            let calculatedTotal = null;
+            
+            if (result.data.totalEscrowed !== undefined && result.data.totalEscrowed !== null) {
+              calculatedTotal = result.data.totalEscrowed;
+              console.log('Using totalEscrowed from API:', calculatedTotal);
+            } else if (result.data.totalEscrowedAmount !== undefined && result.data.totalEscrowedAmount !== null) {
+              calculatedTotal = result.data.totalEscrowedAmount;
+              console.log('Using totalEscrowedAmount from API:', calculatedTotal);
+            } else if (Array.isArray(result.data.escrows) && result.data.escrows.length > 0) {
+              // Calculate total from escrows array if totalEscrowed is not provided
+              // Escrow amount structure: escrow.amount.usd or escrow.amount.xrp
+              console.log('Calculating total from escrows array, count:', result.data.escrows.length);
+              calculatedTotal = result.data.escrows.reduce((sum, escrow, index) => {
+                // Try to get USD amount first, then XRP, then other possible fields
+                const amount = escrow.amount?.usd || 
+                              escrow.amount?.USD || 
+                              escrow.amount?.xrp || 
+                              escrow.amount?.XRP ||
+                              escrow.totalAmount || 
+                              escrow.usdAmount || 
+                              (typeof escrow.amount === 'number' ? escrow.amount : null) ||
+                              0;
+                const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+                if (index < 3) {
+                  console.log(`Escrow ${index}:`, {
+                    escrow,
+                    amount,
+                    numAmount,
+                    runningSum: sum + numAmount
+                  });
+                }
+                return sum + numAmount;
+              }, 0);
+              console.log('Calculated total escrowed amount:', calculatedTotal);
+            } else {
+              console.log('No escrows found, setting total to 0');
+              calculatedTotal = 0;
+            }
+            
+            if (calculatedTotal !== null) {
+              setTotalEscrowedAmount(calculatedTotal);
+              console.log('Set totalEscrowedAmount state to:', calculatedTotal);
+            }
+          } else {
+            console.warn('Unexpected escrows response shape. Expected success and data.', result);
+            setTotalEscrowedAmount(0);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Escrows API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData
+          });
+          setTotalEscrowedAmount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching escrows:', error);
+        setTotalEscrowedAmount(0);
+      } finally {
+        setIsLoadingEscrows(false);
+        setIsLoadingTotalEscrowed(false);
+      }
+    };
+
+    fetchEscrows();
+  }, []);
+
+  const handleFundWallet = async (e) => {
+    e.preventDefault();
+    console.log('handleFundWallet submitted with form:', fundWalletForm);
+    console.log('Selected wallet type from dropdown:', fundWalletForm.currency);
+    console.log('Amount:', fundWalletForm.amount);
+    
+    if (!fundWalletForm.amount || parseFloat(fundWalletForm.amount) <= 0) {
+      console.warn('Invalid fund amount:', fundWalletForm.amount);
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No auth token found while funding wallet');
+      toast.error('Please login to fund your wallet');
+      return;
+    }
+
+    // Get the selected currency/wallet type
+    const selectedCurrency = fundWalletForm.currency || 'XRP';
+    console.log('Using currency/wallet type for API call:', selectedCurrency);
+
+    setIsFundingWallet(true);
+    setFundingStep('preparing');
+    
+    try {
+      // Step 1: Prepare transaction - Call /api/wallet/fund
+      const apiUrl = getApiUrl('api/wallet/fund');
+      const requestBody = {
+        amount: parseFloat(fundWalletForm.amount),
+        currency: selectedCurrency
+      };
+      
+      console.log('Step 1: Calling fund wallet API to prepare transaction:', apiUrl);
+      console.log('Request body being sent:', requestBody);
+      console.log('Currency value in request:', requestBody.currency);
+
+      toast.loading('Preparing transaction...', { id: 'fund-wallet' });
+
+      const prepareResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Fund wallet API response status:', prepareResponse.status);
+
+      const prepareResult = await prepareResponse.json().catch(() => ({}));
+      console.log('Fund wallet API response body:', prepareResult);
+      console.log('Fund wallet API response data:', prepareResult.data);
+      console.log('Transaction ID:', prepareResult.data?.transactionId);
+      console.log('Transaction Blob:', prepareResult.data?.transactionBlob);
+
+      if (!prepareResponse.ok || !prepareResult.success) {
+        toast.error(prepareResult.message || 'Failed to prepare transaction. Please try again.', { id: 'fund-wallet' });
+        setIsFundingWallet(false);
+        setFundingStep('idle');
+        return;
+      }
+
+      // Store transaction data
+      const transactionId = prepareResult.data?.transactionId;
+      const xummUrl = prepareResult.data?.xummUrl;
+      // Check for transaction object/blob for browser wallet flow
+      const transactionObject = prepareResult.data?.transaction 
+        || prepareResult.data?.transactionBlob 
+        || prepareResult.data?.txBlob 
+        || prepareResult.data?.blob;
+
+      // Check if transaction was already processed (has xrplTxHash)
+      if (prepareResult.data?.xrplTxHash) {
+        console.log('Transaction already processed by backend, skipping wallet signing step');
+        toast.success('Wallet funded successfully!', { id: 'fund-wallet' });
+        setShowFundWalletModal(false);
+        setFundWalletForm({ amount: '', currency: 'XRP' });
+        setTransactionData(null);
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+        await fetchDashboardSummary();
+        return;
+      }
+
+      if (!transactionId) {
+        console.error('Missing transactionId in response:', prepareResult);
+        toast.error('Backend response missing transaction ID.', { id: 'fund-wallet' });
+        setIsFundingWallet(false);
+        setFundingStep('idle');
+        return;
+      }
+
+      setTransactionData({ transactionId, transactionObject, xummUrl });
+      setFundingStep('signing');
+
+      // Step 2: Determine which flow to use based on xummUrl presence
+      if (xummUrl) {
+        // Xaman flow (mobile app)
+        console.log('Using Xaman flow - xummUrl provided:', xummUrl);
+        toast.loading('Please sign the transaction in your Xaman wallet...', { id: 'fund-wallet' });
+        
+        // Open XUMM URL for user to sign
+        window.open(xummUrl, '_blank');
+
+        // Poll backend for transaction status
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusUrl = getApiUrl(`api/wallet/fund/status?transactionId=${transactionId}`);
+            const statusResponse = await fetch(statusUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (statusResponse.ok) {
+              const statusResult = await statusResponse.json();
+              console.log('Transaction status check:', statusResult);
+              
+              if (statusResult.data?.signed) {
+                // Backend automatically submits to XRPL when signed
+                // No need to call /api/wallet/fund/complete
+                clearInterval(pollInterval);
+                
+                console.log('Transaction signed and automatically submitted by backend');
+                
+                // Show success and refresh
+                toast.success('Wallet funded successfully!', { id: 'fund-wallet' });
+                setShowFundWalletModal(false);
+                setFundWalletForm({ amount: '', currency: 'XRP' });
+                setTransactionData(null);
+                setFundingStep('idle');
+                setIsFundingWallet(false);
+                // Refresh dashboard data
+                await fetchDashboardSummary();
+              } else if (statusResult.data?.cancelled || statusResult.data?.expired) {
+                clearInterval(pollInterval);
+                toast.error('Transaction was cancelled or expired.', { id: 'fund-wallet' });
+                setIsFundingWallet(false);
+                setFundingStep('idle');
+                setTransactionData(null);
+              }
+            }
+          } catch (pollError) {
+            console.error('Error polling transaction status:', pollError);
+          }
+        }, 2000); // Poll every 2 seconds
+        
+        // Store interval to clear it if user cancels
+        setTransactionData({ transactionId, transactionObject, xummUrl, pollInterval });
+        
+        // Cleanup interval after 5 minutes (timeout)
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          if (fundingStep === 'signing') {
+            toast.error('Transaction signing timed out.', { id: 'fund-wallet' });
+            setIsFundingWallet(false);
+            setFundingStep('idle');
+            setTransactionData(null);
+          }
+        }, 5 * 60 * 1000); // 5 minutes timeout
+        
+      } else {
+        // Browser wallet flow (Crossmark/MetaMask)
+        console.log('Using browser wallet flow - no xummUrl, signing with browser wallet');
+        
+        if (!transactionObject) {
+          console.error('Missing transaction object for browser wallet flow:', prepareResult);
+          toast.error('Backend response missing transaction data for browser wallet signing.', { id: 'fund-wallet' });
+          setIsFundingWallet(false);
+          setFundingStep('idle');
+          setTransactionData(null);
+          return;
+        }
+        
+        toast.loading('Please sign the transaction in your browser wallet...', { id: 'fund-wallet' });
+        
+        try {
+          // Parse transaction object if it's a JSON string
+          let txToSign = transactionObject;
+          if (typeof transactionObject === 'string') {
+            try {
+              txToSign = JSON.parse(transactionObject);
+            } catch (e) {
+              console.warn('Could not parse transaction object as JSON:', e);
+            }
+          }
+          
+          console.log('Transaction to sign:', txToSign);
+          console.log('Transaction to sign (stringified):', JSON.stringify(txToSign, null, 2));
+          
+          // Validate transaction object structure
+          if (!txToSign || (typeof txToSign !== 'object' && typeof txToSign !== 'string')) {
+            console.error('Invalid transaction object:', txToSign);
+            throw new Error('Invalid transaction object received from backend. Please try again.');
+          }
+          
+          // Check for Crossmark (XRPL browser wallet)
+          if (window.crossmark) {
+            console.log('Crossmark wallet detected');
+            console.log('Crossmark API structure:', window.crossmark);
+            console.log('Crossmark api object:', window.crossmark.api);
+            console.log('Crossmark methods:', window.crossmark.methods);
+            console.log('Crossmark session:', window.crossmark.session);
+            console.log('Transaction to sign:', txToSign);
+            console.log('Transaction type:', typeof txToSign);
+            console.log('Transaction keys:', txToSign && typeof txToSign === 'object' ? Object.keys(txToSign) : 'N/A');
+            
+            // Validate XRPL transaction structure if it's an object
+            if (typeof txToSign === 'object' && txToSign !== null) {
+              const requiredFields = ['TransactionType'];
+              const missingFields = requiredFields.filter(field => !(field in txToSign));
+              if (missingFields.length > 0) {
+                console.warn('Transaction may be missing required fields:', missingFields);
+                console.warn('Transaction object:', txToSign);
+              }
+            }
+            
+            // Check if Crossmark is connected
+            let isConnected = window.crossmark?.session?.address || window.crossmark?.api?.connected || false;
+            console.log('Crossmark connected:', isConnected);
+            console.log('Crossmark session address:', window.crossmark?.session?.address);
+            console.log('Crossmark api connected:', window.crossmark?.api?.connected);
+            
+            // If not connected, we need to connect first - this will trigger the popup
+            if (!isConnected) {
+              console.log('Crossmark wallet is not connected. Attempting to connect...');
+              
+              // Try different connection methods
+              try {
+                if (window.crossmark?.session?.signIn && typeof window.crossmark.session.signIn === 'function') {
+                  console.log('Using session.signIn to connect...');
+                  await window.crossmark.session.signIn();
+                  console.log('Crossmark sign-in completed');
+                  
+                  // Wait a moment for connection to establish
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Check connection again
+                  isConnected = window.crossmark?.session?.address || window.crossmark?.api?.connected || false;
+                  console.log('Crossmark connected after signIn:', isConnected);
+                } else if (window.crossmark?.async?.signInAndWait && typeof window.crossmark.async.signInAndWait === 'function') {
+                  console.log('Using async.signInAndWait to connect...');
+                  await window.crossmark.async.signInAndWait();
+                  console.log('Crossmark signInAndWait completed');
+                  
+                  // Wait a moment for connection to establish
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Check connection again with retry
+                  let retryCount = 0;
+                  const maxRetries = 5;
+                  while (retryCount < maxRetries && !isConnected) {
+                    isConnected = window.crossmark?.session?.address || window.crossmark?.api?.connected || false;
+                    if (!isConnected) {
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                      retryCount++;
+                    }
+                  }
+                  console.log('Crossmark connected after signInAndWait:', isConnected, `(retries: ${retryCount})`);
+                } else if (window.crossmark?.methods?.signIn && typeof window.crossmark.methods.signIn === 'function') {
+                  console.log('Using methods.signIn to connect...');
+                  await window.crossmark.methods.signIn();
+                  console.log('Crossmark methods.signIn completed');
+                  
+                  // Wait a moment for connection to establish
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Check connection again with retry
+                  let retryCount = 0;
+                  const maxRetries = 5;
+                  while (retryCount < maxRetries && !isConnected) {
+                    isConnected = window.crossmark?.session?.address || window.crossmark?.api?.connected || false;
+                    if (!isConnected) {
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                      retryCount++;
+                    }
+                  }
+                  console.log('Crossmark connected after methods.signIn:', isConnected, `(retries: ${retryCount})`);
+                }
+              } catch (connectError) {
+                console.error('Error connecting Crossmark:', connectError);
+                throw new Error('Failed to connect Crossmark wallet. Please make sure the extension is installed and unlocked, then try again.');
+              }
+              
+              // If still not connected after attempting to connect, throw an error
+              if (!isConnected) {
+                console.error('Crossmark wallet is still not connected after connection attempt');
+                console.error('Session state:', {
+                  address: window.crossmark?.session?.address,
+                  apiConnected: window.crossmark?.api?.connected,
+                  session: window.crossmark?.session
+                });
+                throw new Error('Crossmark wallet is not connected. Please connect your wallet in the Crossmark extension and try again.');
+              }
+            }
+            
+            console.log('Crossmark is connected, proceeding with transaction signing...');
+            toast.loading('Requesting transaction signature from Crossmark...', { id: 'fund-wallet' });
+            
+            try {
+              let signedTx;
+              
+              // Crossmark's recommended approach: use api.request with method 'sign'
+              // This is the standard way to trigger the popup
+              if (window.crossmark.api && typeof window.crossmark.api.request === 'function') {
+                console.log('Using Crossmark api.request method...');
+                toast.loading('Waiting for you to approve the transaction in Crossmark...', { id: 'fund-wallet' });
+                // Request-based API - this should trigger the popup
+                signedTx = await window.crossmark.api.request({
+                  method: 'sign',
+                  params: {
+                    transaction: txToSign
+                  }
+                });
+                console.log('Crossmark request completed, response:', signedTx);
+              } else if (window.crossmark.api && typeof window.crossmark.api.sign === 'function') {
+                console.log('Using Crossmark api.sign method...');
+                // Direct sign method
+                signedTx = await window.crossmark.api.sign(txToSign);
+                console.log('Crossmark sign completed, response:', signedTx);
+              } else if (window.crossmark.api && typeof window.crossmark.api.signTransaction === 'function') {
+                console.log('Using Crossmark api.signTransaction method...');
+                // signTransaction method
+                signedTx = await window.crossmark.api.signTransaction(txToSign);
+                console.log('Crossmark signTransaction completed, response:', signedTx);
+              } else if (window.crossmark.methods && typeof window.crossmark.methods.sign === 'function') {
+                console.log('Using Crossmark methods.sign...');
+                // Methods-based API
+                signedTx = await window.crossmark.methods.sign(txToSign);
+                console.log('Crossmark methods.sign completed, response:', signedTx);
+              } else if (window.crossmark.async && typeof window.crossmark.async.sign === 'function') {
+                console.log('Using Crossmark async.sign...');
+                // Async API
+                signedTx = await window.crossmark.async.sign(txToSign);
+                console.log('Crossmark async.sign completed, response:', signedTx);
+              } else {
+                // Try to find any sign-related method
+                const api = window.crossmark.api || window.crossmark;
+                const availableMethods = Object.keys(api || {}).filter(key => 
+                  typeof api[key] === 'function' && key.toLowerCase().includes('sign')
+                );
+                
+                if (availableMethods.length > 0) {
+                  console.log('Found sign methods:', availableMethods);
+                  console.log('Using method:', availableMethods[0]);
+                  signedTx = await api[availableMethods[0]](txToSign);
+                  console.log('Method call completed, response:', signedTx);
+                } else {
+                  console.error('Available API methods:', Object.keys(api || {}));
+                  throw new Error('No sign method found. Available API methods: ' + Object.keys(api || {}).join(', '));
+                }
+              }
+              
+              console.log('Transaction signed with Crossmark:', signedTx);
+              console.log('Full Crossmark response:', JSON.stringify(signedTx, null, 2));
+              console.log('Crossmark response type:', typeof signedTx);
+              console.log('Crossmark response keys:', signedTx ? Object.keys(signedTx) : 'null/undefined');
+              
+              // Check if the response is a UUID (request ID) - Crossmark sometimes returns request IDs that need to be awaited
+              const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+              let actualResponse = signedTx;
+              
+              // If the response is a UUID string, it's a request ID - we need to await the actual response
+              if (typeof signedTx === 'string' && uuidPattern.test(signedTx)) {
+                console.log('Received UUID request ID from Crossmark, awaiting actual response...');
+                console.log('Request ID:', signedTx);
+                
+                const requestId = signedTx;
+                const REQUEST_TIMEOUT = 120000; // 2 minutes timeout
+                let responseReceived = false;
+                
+                toast.loading('Transaction approved, processing response...', { id: 'fund-wallet' });
+                
+                // Strategy 1: Try awaitRequest with timeout
+                if (window.crossmark?.api?.awaitRequest && typeof window.crossmark.api.awaitRequest === 'function') {
+                  console.log('Strategy 1: Using awaitRequest with timeout...');
+                  try {
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('Request timeout: No response received within 2 minutes')), REQUEST_TIMEOUT)
+                    );
+                    
+                    actualResponse = await Promise.race([
+                      window.crossmark.api.awaitRequest(requestId),
+                      timeoutPromise
+                    ]);
+                    
+                    console.log('Received response from awaitRequest:', actualResponse);
+                    console.log('Response type:', typeof actualResponse);
+                    console.log('Response keys:', actualResponse ? Object.keys(actualResponse) : null);
+                    responseReceived = true;
+                  } catch (awaitError) {
+                    console.warn('awaitRequest failed or timed out:', awaitError);
+                    // Continue to fallback strategies
+                  }
+                }
+                
+                // Strategy 2: Use event listeners if awaitRequest didn't work
+                if (!responseReceived && window.crossmark?.api) {
+                  console.log('Strategy 2: Trying event listener approach...');
+                  try {
+                    const eventPromise = new Promise((resolve, reject) => {
+                      let handler;
+                      const timeout = setTimeout(() => {
+                        if (handler && window.crossmark?.api?.off) {
+                          window.crossmark.api.off('response', handler);
+                        }
+                        reject(new Error('Event listener timeout: No response event received within 2 minutes'));
+                      }, REQUEST_TIMEOUT);
+                      
+                      handler = (event) => {
+                        console.log('Received response event:', event);
+                        // Check if this event is for our request
+                        if (event.uuid === requestId || event.requestId === requestId || event.id === requestId) {
+                          clearTimeout(timeout);
+                          if (window.crossmark?.api?.off) {
+                            window.crossmark.api.off('response', handler);
+                          }
+                          resolve(event);
+                        }
+                      };
+                      
+                      // Try different event names
+                      if (window.crossmark.api.on) {
+                        window.crossmark.api.on('response', handler);
+                      } else if (window.crossmark.api.addEventListener) {
+                        window.crossmark.api.addEventListener('response', handler);
+                      } else if (window.crossmark.on) {
+                        window.crossmark.on('response', handler);
+                      }
+                    });
+                    
+                    actualResponse = await eventPromise;
+                    console.log('Received response from event listener:', actualResponse);
+                    responseReceived = true;
+                  } catch (eventError) {
+                    console.warn('Event listener approach failed:', eventError);
+                    // Continue to next strategy
+                  }
+                }
+                
+                // Strategy 3: Poll the active Map for response
+                if (!responseReceived && window.crossmark?.api?.active && window.crossmark.api.active instanceof Map) {
+                  console.log('Strategy 3: Polling active Map for response...');
+                  try {
+                    const pollPromise = new Promise((resolve, reject) => {
+                      let pollCount = 0;
+                      const maxPolls = REQUEST_TIMEOUT / 1000; // Poll every second for 2 minutes
+                      
+                      const pollInterval = setInterval(() => {
+                        pollCount++;
+                        const activeRequest = window.crossmark.api.active.get(requestId);
+                        
+                        console.log(`Polling attempt ${pollCount}/${maxPolls}, active request:`, activeRequest);
+                        
+                        if (activeRequest) {
+                          // Check if response is available
+                          if (activeRequest.response) {
+                            clearInterval(pollInterval);
+                            console.log('Found response in active request:', activeRequest.response);
+                            resolve(activeRequest.response);
+                            return;
+                          }
+                          
+                          // Check if there's a promise we can await
+                          if (activeRequest.promise && typeof activeRequest.promise.then === 'function') {
+                            clearInterval(pollInterval);
+                            console.log('Found promise in active request, awaiting...');
+                            activeRequest.promise
+                              .then(resolve)
+                              .catch(reject);
+                            return;
+                          }
+                          
+                          // Check for other response properties
+                          if (activeRequest.result) {
+                            clearInterval(pollInterval);
+                            console.log('Found result in active request:', activeRequest.result);
+                            resolve(activeRequest.result);
+                            return;
+                          }
+                        }
+                        
+                        // Timeout after max polls
+                        if (pollCount >= maxPolls) {
+                          clearInterval(pollInterval);
+                          reject(new Error('Polling timeout: No response found in active Map after 2 minutes'));
+                        }
+                      }, 1000); // Poll every second
+                    });
+                    
+                    actualResponse = await pollPromise;
+                    console.log('Received response from polling:', actualResponse);
+                    responseReceived = true;
+                  } catch (pollError) {
+                    console.warn('Polling approach failed:', pollError);
+                    // All strategies failed
+                  }
+                }
+                
+                // If all strategies failed, throw error
+                if (!responseReceived || (typeof actualResponse === 'string' && uuidPattern.test(actualResponse))) {
+                  console.error('All strategies failed to get response. Request ID:', requestId);
+                  console.error('Active Map contents:', window.crossmark?.api?.active ? Array.from(window.crossmark.api.active.entries()) : 'N/A');
+                  toast.error('Transaction request timed out. Please check if you approved the transaction in Crossmark and try again.', { id: 'fund-wallet' });
+                  throw new Error('Failed to receive transaction response from Crossmark. The transaction may have been cancelled or the request timed out. Please try again.');
+                }
+                
+                // Success - update toast message
+                toast.loading('Transaction signed successfully, submitting to network...', { id: 'fund-wallet' });
+              }
+              
+              // Extract signed transaction blob from response
+              // Crossmark typically returns the blob in various formats
+              let signedTxBlob = null;
+              
+              // Helper function to recursively search for blob-like strings in an object
+              const findBlobInObject = (obj, depth = 0, maxDepth = 5) => {
+                if (depth > maxDepth || !obj || typeof obj !== 'object') return null;
+                
+                // Check if current object has blob-like properties
+                const blobKeys = ['signedTransaction', 'txBlob', 'blob', 'tx', 'transaction', 'hex', 'txHex', 'signedTx'];
+                for (const key of blobKeys) {
+                  if (obj[key] && typeof obj[key] === 'string' && obj[key].length > 0) {
+                    return obj[key];
+                  }
+                }
+                
+                // Recursively search nested objects
+                for (const key in obj) {
+                  if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') {
+                    const found = findBlobInObject(obj[key], depth + 1, maxDepth);
+                    if (found) return found;
+                  }
+                }
+                
+                return null;
+              };
+              
+              // If it's already a string (hex blob), use it directly (but not if it's a UUID)
+              if (typeof actualResponse === 'string' && actualResponse.length > 0 && !uuidPattern.test(actualResponse)) {
+                signedTxBlob = actualResponse;
+                console.log('Found blob as direct string response');
+              } 
+              // Check for common response structures - expanded list
+              else if (actualResponse?.signedTransaction) {
+                signedTxBlob = actualResponse.signedTransaction;
+                console.log('Found blob in actualResponse.signedTransaction');
+              } else if (actualResponse?.txBlob) {
+                signedTxBlob = actualResponse.txBlob;
+                console.log('Found blob in actualResponse.txBlob');
+              } else if (actualResponse?.blob) {
+                signedTxBlob = actualResponse.blob;
+                console.log('Found blob in actualResponse.blob');
+              } else if (actualResponse?.tx) {
+                signedTxBlob = actualResponse.tx;
+                console.log('Found blob in actualResponse.tx');
+              } else if (actualResponse?.transaction) {
+                signedTxBlob = actualResponse.transaction;
+                console.log('Found blob in actualResponse.transaction');
+              } else if (actualResponse?.hex) {
+                signedTxBlob = actualResponse.hex;
+                console.log('Found blob in actualResponse.hex');
+              } else if (actualResponse?.txHex) {
+                signedTxBlob = actualResponse.txHex;
+                console.log('Found blob in actualResponse.txHex');
+              } else if (actualResponse?.result) {
+                // If result is a string, use it; if it's an object, check its properties
+                if (typeof actualResponse.result === 'string' && !uuidPattern.test(actualResponse.result)) {
+                  signedTxBlob = actualResponse.result;
+                  console.log('Found blob in actualResponse.result (string)');
+                } else if (actualResponse.result?.signedTransaction) {
+                  signedTxBlob = actualResponse.result.signedTransaction;
+                  console.log('Found blob in actualResponse.result.signedTransaction');
+                } else if (actualResponse.result?.txBlob) {
+                  signedTxBlob = actualResponse.result.txBlob;
+                  console.log('Found blob in actualResponse.result.txBlob');
+                } else if (actualResponse.result?.blob) {
+                  signedTxBlob = actualResponse.result.blob;
+                  console.log('Found blob in actualResponse.result.blob');
+                } else if (actualResponse.result?.tx) {
+                  signedTxBlob = actualResponse.result.tx;
+                  console.log('Found blob in actualResponse.result.tx');
+                } else if (actualResponse.result?.hex) {
+                  signedTxBlob = actualResponse.result.hex;
+                  console.log('Found blob in actualResponse.result.hex');
+                }
+              } else if (actualResponse?.response) {
+                // Check nested response structures
+                if (actualResponse.response?.signedTransaction) {
+                  signedTxBlob = actualResponse.response.signedTransaction;
+                  console.log('Found blob in actualResponse.response.signedTransaction');
+                } else if (actualResponse.response?.txBlob) {
+                  signedTxBlob = actualResponse.response.txBlob;
+                  console.log('Found blob in actualResponse.response.txBlob');
+                } else if (actualResponse.response?.blob) {
+                  signedTxBlob = actualResponse.response.blob;
+                  console.log('Found blob in actualResponse.response.blob');
+                } else if (actualResponse.response?.data) {
+                  if (actualResponse.response.data?.signedTransaction) {
+                    signedTxBlob = actualResponse.response.data.signedTransaction;
+                    console.log('Found blob in actualResponse.response.data.signedTransaction');
+                  } else if (actualResponse.response.data?.txBlob) {
+                    signedTxBlob = actualResponse.response.data.txBlob;
+                    console.log('Found blob in actualResponse.response.data.txBlob');
+                  } else if (actualResponse.response.data?.blob) {
+                    signedTxBlob = actualResponse.response.data.blob;
+                    console.log('Found blob in actualResponse.response.data.blob');
+                  } else if (actualResponse.response.data?.hex) {
+                    signedTxBlob = actualResponse.response.data.hex;
+                    console.log('Found blob in actualResponse.response.data.hex');
+                  }
+                } else if (actualResponse.response?.payload) {
+                  if (typeof actualResponse.response.payload === 'string' && !uuidPattern.test(actualResponse.response.payload)) {
+                    signedTxBlob = actualResponse.response.payload;
+                    console.log('Found blob in actualResponse.response.payload (string)');
+                  } else if (actualResponse.response.payload?.signedTransaction) {
+                    signedTxBlob = actualResponse.response.payload.signedTransaction;
+                    console.log('Found blob in actualResponse.response.payload.signedTransaction');
+                  } else if (actualResponse.response.payload?.txBlob) {
+                    signedTxBlob = actualResponse.response.payload.txBlob;
+                    console.log('Found blob in actualResponse.response.payload.txBlob');
+                  }
+                } else if (actualResponse.response?.result) {
+                  if (actualResponse.response.result?.signedTransaction) {
+                    signedTxBlob = actualResponse.response.result.signedTransaction;
+                    console.log('Found blob in actualResponse.response.result.signedTransaction');
+                  } else if (actualResponse.response.result?.txBlob) {
+                    signedTxBlob = actualResponse.response.result.txBlob;
+                    console.log('Found blob in actualResponse.response.result.txBlob');
+                  } else if (typeof actualResponse.response.result === 'string' && !uuidPattern.test(actualResponse.response.result)) {
+                    signedTxBlob = actualResponse.response.result;
+                    console.log('Found blob in actualResponse.response.result (string)');
+                  }
+                }
+              } else if (actualResponse?.data) {
+                if (actualResponse.data?.signedTransaction) {
+                  signedTxBlob = actualResponse.data.signedTransaction;
+                  console.log('Found blob in actualResponse.data.signedTransaction');
+                } else if (actualResponse.data?.txBlob) {
+                  signedTxBlob = actualResponse.data.txBlob;
+                  console.log('Found blob in actualResponse.data.txBlob');
+                } else if (actualResponse.data?.blob) {
+                  signedTxBlob = actualResponse.data.blob;
+                  console.log('Found blob in actualResponse.data.blob');
+                } else if (actualResponse.data?.hex) {
+                  signedTxBlob = actualResponse.data.hex;
+                  console.log('Found blob in actualResponse.data.hex');
+                }
+              } else if (actualResponse?.payload) {
+                if (typeof actualResponse.payload === 'string' && !uuidPattern.test(actualResponse.payload)) {
+                  signedTxBlob = actualResponse.payload;
+                  console.log('Found blob in actualResponse.payload (string)');
+                } else if (actualResponse.payload?.signedTransaction) {
+                  signedTxBlob = actualResponse.payload.signedTransaction;
+                  console.log('Found blob in actualResponse.payload.signedTransaction');
+                } else if (actualResponse.payload?.txBlob) {
+                  signedTxBlob = actualResponse.payload.txBlob;
+                  console.log('Found blob in actualResponse.payload.txBlob');
+                }
+              }
+              
+              // If still not found, try recursive search
+              if (!signedTxBlob && actualResponse && typeof actualResponse === 'object') {
+                console.log('Attempting recursive search for blob in response object...');
+                signedTxBlob = findBlobInObject(actualResponse);
+                if (signedTxBlob) {
+                  console.log('Found blob via recursive search');
+                }
+              }
+              
+              // Validate that we have a proper transaction blob (hex string, not a UUID)
+              if (!signedTxBlob || typeof signedTxBlob !== 'string') {
+                console.error('Invalid signed transaction blob extracted:', signedTxBlob);
+                console.error('Full response structure for debugging:', {
+                  originalResponse: signedTx,
+                  actualResponse: actualResponse,
+                  type: typeof actualResponse,
+                  keys: actualResponse ? Object.keys(actualResponse) : null,
+                  stringified: JSON.stringify(actualResponse, null, 2)
+                });
+                throw new Error('Failed to extract signed transaction blob from wallet response. Please check the console for the full response structure and try again.');
+              }
+              
+              // Ensure it's not a UUID (UUIDs have a specific format with dashes)
+              if (uuidPattern.test(signedTxBlob)) {
+                console.error('Extracted value appears to be a UUID, not a transaction blob:', signedTxBlob);
+                console.error('Full response structure for debugging:', {
+                  originalResponse: signedTx,
+                  actualResponse: actualResponse,
+                  type: typeof actualResponse,
+                  keys: actualResponse ? Object.keys(actualResponse) : null,
+                  stringified: JSON.stringify(actualResponse, null, 2)
+                });
+                throw new Error(`Invalid transaction blob format: received UUID "${signedTxBlob}" instead of transaction blob. The response structure may be different for this transaction type. Please check the console for the full response and try again.`);
+              }
+              
+              // Validate blob format: should be a hex string (alphanumeric, typically 100+ characters)
+              // XRPL transaction blobs are typically hex-encoded and much longer than UUIDs
+              const hexPattern = /^[0-9a-f]+$/i;
+              if (!hexPattern.test(signedTxBlob)) {
+                console.warn('Transaction blob does not match hex pattern. Blob preview:', signedTxBlob.substring(0, 100));
+              }
+              
+              // Check minimum length (XRPL blobs are typically 100+ characters)
+              if (signedTxBlob.length < 50) {
+                console.warn('Transaction blob seems unusually short:', signedTxBlob.length, 'characters');
+              }
+              
+              console.log('Extracted signed transaction blob (length:', signedTxBlob.length, '):', signedTxBlob.substring(0, 50) + '...');
+              
+              // Submit signed transaction to backend
+              await submitSignedTransaction(transactionId, signedTxBlob, token);
+            } catch (crossmarkError) {
+              console.error('Crossmark signing error:', crossmarkError);
+              console.error('Crossmark error details:', {
+                name: crossmarkError?.name,
+                message: crossmarkError?.message,
+                code: crossmarkError?.code,
+                stack: crossmarkError?.stack
+              });
+              console.error('Crossmark object:', window.crossmark);
+              console.error('Crossmark api:', window.crossmark.api);
+              console.error('Transaction that failed:', txToSign);
+              
+              // Provide more specific error messages
+              let errorMessage = crossmarkError.message || 'Unknown error';
+              
+              if (crossmarkError.message?.includes('rejected') || crossmarkError.message?.includes('denied') || crossmarkError.message?.includes('cancel')) {
+                errorMessage = 'Transaction signing was cancelled or rejected. Please try again.';
+              } else if (crossmarkError.message?.includes('popup') || crossmarkError.message?.includes('blocked')) {
+                errorMessage = 'Popup was blocked. Please allow popups for this site and try again.';
+              } else if (crossmarkError.message?.includes('not connected') || crossmarkError.message?.includes('connect')) {
+                errorMessage = 'Crossmark wallet is not connected. Please connect your wallet and try again.';
+              } else if (crossmarkError.message?.includes('invalid') || crossmarkError.message?.includes('format')) {
+                errorMessage = 'Invalid transaction format. Please check the transaction data and try again.';
+              }
+              
+              toast.error(`Failed to sign with Crossmark wallet: ${errorMessage}`, { id: 'fund-wallet' });
+              setIsFundingWallet(false);
+              setFundingStep('idle');
+              setTransactionData(null);
+            }
+          } 
+          // Check for MetaMask or other Web3 wallets (for XRPL if supported)
+          else if (window.ethereum) {
+            console.log('MetaMask/Web3 wallet detected, attempting XRPL signing');
+            try {
+              // MetaMask uses xrpl_signTransaction method for XRPL transactions
+              const signedTx = await window.ethereum.request({
+                method: 'xrpl_signTransaction',
+                params: [txToSign]
+              });
+              
+              console.log('Transaction signed with MetaMask:', signedTx);
+              console.log('Full MetaMask response:', JSON.stringify(signedTx, null, 2));
+              
+              // Extract signed transaction blob from response
+              // MetaMask XRPL signing typically returns the blob in various formats
+              let signedTxBlob = null;
+              
+              // If it's already a string (hex blob), use it directly
+              if (typeof signedTx === 'string' && signedTx.length > 0) {
+                signedTxBlob = signedTx;
+              } 
+              // Check for common response structures
+              else if (signedTx?.signedTransaction) {
+                signedTxBlob = signedTx.signedTransaction;
+              } else if (signedTx?.txBlob) {
+                signedTxBlob = signedTx.txBlob;
+              } else if (signedTx?.result) {
+                // If result is a string, use it; if it's an object, check its properties
+                if (typeof signedTx.result === 'string') {
+                  signedTxBlob = signedTx.result;
+                } else if (signedTx.result?.signedTransaction) {
+                  signedTxBlob = signedTx.result.signedTransaction;
+                } else if (signedTx.result?.txBlob) {
+                  signedTxBlob = signedTx.result.txBlob;
+                }
+              } else if (signedTx?.blob) {
+                signedTxBlob = signedTx.blob;
+              } else if (signedTx?.response?.signedTransaction) {
+                signedTxBlob = signedTx.response.signedTransaction;
+              } else if (signedTx?.data?.signedTransaction) {
+                signedTxBlob = signedTx.data.signedTransaction;
+              }
+              
+              // Validate that we have a proper transaction blob (hex string, not a UUID)
+              if (!signedTxBlob || typeof signedTxBlob !== 'string') {
+                console.error('Invalid signed transaction blob extracted:', signedTxBlob);
+                throw new Error('Failed to extract signed transaction blob from wallet response. Please try again.');
+              }
+              
+              // Ensure it's not a UUID (UUIDs have a specific format with dashes)
+              if (signedTxBlob.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                console.error('Extracted value appears to be a UUID, not a transaction blob:', signedTxBlob);
+                throw new Error('Invalid transaction blob format. Please try signing again.');
+              }
+              
+              console.log('Extracted signed transaction blob (length:', signedTxBlob.length, '):', signedTxBlob.substring(0, 50) + '...');
+              
+              // Submit signed transaction to backend
+              await submitSignedTransaction(transactionId, signedTxBlob, token);
+            } catch (metamaskError) {
+              console.error('MetaMask signing error:', metamaskError);
+              // If MetaMask doesn't support XRPL, suggest Crossmark
+              if (metamaskError.code === -32601 || metamaskError.message?.includes('not supported')) {
+                toast.error('MetaMask does not support XRPL transactions. Please install Crossmark wallet extension.', { id: 'fund-wallet' });
+              } else {
+                toast.error(`Failed to sign with MetaMask: ${metamaskError.message || 'Unknown error'}. Please try again.`, { id: 'fund-wallet' });
+              }
+              setIsFundingWallet(false);
+              setFundingStep('idle');
+              setTransactionData(null);
+            }
+          } else {
+            toast.error('No XRPL wallet detected. Please install Crossmark wallet extension or use MetaMask with XRPL support.', { id: 'fund-wallet' });
+            setIsFundingWallet(false);
+            setFundingStep('idle');
+            setTransactionData(null);
+          }
+        } catch (browserWalletError) {
+          console.error('Error with browser wallet flow:', browserWalletError);
+          toast.error('Failed to sign transaction with browser wallet. Please try again.', { id: 'fund-wallet' });
+          setIsFundingWallet(false);
+          setFundingStep('idle');
+          setTransactionData(null);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error funding wallet:', error);
+      toast.error('An error occurred while funding your wallet. Please try again.', { id: 'fund-wallet' });
+      setIsFundingWallet(false);
+      setFundingStep('idle');
+      setTransactionData(null);
+    }
+  };
+
+  // Helper function to submit signed transaction for browser wallet flow
+  const submitSignedTransaction = async (transactionId, signedTxBlob, token) => {
+    try {
+      setFundingStep('completing');
+      toast.loading('Submitting signed transaction...', { id: 'fund-wallet' });
+      
+      // Validate inputs
+      if (!transactionId || typeof transactionId !== 'string') {
+        console.error('Invalid transaction ID:', transactionId, 'Type:', typeof transactionId);
+        throw new Error('Invalid transaction ID. Please try the transaction again.');
+      }
+      
+      if (!signedTxBlob || typeof signedTxBlob !== 'string') {
+        console.error('Invalid signedTxBlob:', signedTxBlob, 'Type:', typeof signedTxBlob);
+        throw new Error('Invalid signed transaction blob. The wallet response may be in an unexpected format. Please try signing again.');
+      }
+      
+      // Ensure we're not accidentally sending the transaction ID as the blob
+      if (signedTxBlob === transactionId) {
+        console.error('ERROR: signedTxBlob is the same as transactionId! This should not happen.');
+        console.error('Transaction ID:', transactionId);
+        console.error('Signed TX Blob:', signedTxBlob);
+        throw new Error('Invalid transaction blob: received transaction ID instead of signed blob. Please try signing again.');
+      }
+      
+      // Validate blob format (should be a hex string, not a UUID)
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidPattern.test(signedTxBlob)) {
+        console.error('ERROR: signedTxBlob appears to be a UUID:', signedTxBlob);
+        console.error('This suggests the wallet response structure may be different than expected.');
+        throw new Error(`Invalid transaction blob format: received UUID "${signedTxBlob}" instead of transaction blob. The wallet may have returned a request ID instead of the signed transaction. Please check the console for details and try signing again.`);
+      }
+      
+      // Validate blob format: should be a hex string (alphanumeric)
+      // XRPL transaction blobs are typically hex-encoded and much longer than UUIDs
+      const hexPattern = /^[0-9a-f]+$/i;
+      if (!hexPattern.test(signedTxBlob)) {
+        console.warn('Warning: Transaction blob does not match expected hex pattern.');
+        console.warn('Blob preview (first 100 chars):', signedTxBlob.substring(0, 100));
+        console.warn('Blob length:', signedTxBlob.length);
+        // Don't throw here - some blobs might have different encoding, let backend validate
+      }
+      
+      // Transaction blobs are typically hex strings (even length, alphanumeric)
+      // They should be longer than a UUID (typically 100+ characters)
+      if (signedTxBlob.length < 50) {
+        console.warn('Warning: signedTxBlob seems unusually short:', signedTxBlob.length, 'characters');
+        console.warn('Expected length for XRPL transaction blobs is typically 100+ characters');
+        // Don't throw here - let backend validate, but log the warning
+      }
+      
+      // Additional validation: check if blob looks reasonable (not empty, not just whitespace)
+      const trimmedBlob = signedTxBlob.trim();
+      if (trimmedBlob.length === 0) {
+        console.error('ERROR: Transaction blob is empty or only whitespace');
+        throw new Error('Invalid transaction blob: received empty blob. Please try signing again.');
+      }
+      
+      const submitUrl = getApiUrl('api/wallet/fund/submit');
+      const requestBody = {
+        transactionId: transactionId,
+        signedTxBlob: signedTxBlob
+      };
+      
+      console.log('Submitting signed transaction to:', submitUrl);
+      console.log('Transaction ID:', transactionId);
+      console.log('Signed TX Blob (first 100 chars):', signedTxBlob.substring(0, 100));
+      console.log('Signed TX Blob length:', signedTxBlob.length);
+      console.log('Request body (without blob):', { transactionId, signedTxBlobLength: signedTxBlob.length });
+      
+      const submitResponse = await fetch(submitUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('Submit transaction response status:', submitResponse.status);
+      
+      const submitResult = await submitResponse.json().catch(() => ({}));
+      console.log('Submit transaction response body:', submitResult);
+      
+      if (submitResponse.ok && submitResult.success) {
+        toast.success('Wallet funded successfully!', { id: 'fund-wallet' });
+        setShowFundWalletModal(false);
+        setFundWalletForm({ amount: '', currency: 'XRP' });
+        setTransactionData(null);
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+        await fetchDashboardSummary();
+      } else {
+        const errorMessage = submitResult.message || submitResult.error || 'Failed to submit transaction';
+        console.error('Transaction submission failed:', {
+          status: submitResponse.status,
+          statusText: submitResponse.statusText,
+          response: submitResult
+        });
+        toast.error(`${errorMessage}. Please try again.`, { id: 'fund-wallet' });
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+      }
+    } catch (submitError) {
+      console.error('Error submitting signed transaction:', submitError);
+      console.error('Error details:', {
+        name: submitError?.name,
+        message: submitError?.message,
+        stack: submitError?.stack
+      });
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = 'An error occurred while submitting the transaction.';
+      if (submitError?.message) {
+        errorMessage = submitError.message;
+      } else if (submitError?.name === 'TypeError' && submitError?.message?.includes('fetch')) {
+        errorMessage = 'Network error: Could not connect to the server. Please check your internet connection and try again.';
+      } else if (submitError?.name === 'SyntaxError') {
+        errorMessage = 'Invalid response from server. Please try again.';
+      }
+      
+      toast.error(`${errorMessage} Please try again.`, { id: 'fund-wallet' });
+      setFundingStep('idle');
+      setIsFundingWallet(false);
+    }
+  };
+
+  const handleWithdrawWallet = async (e) => {
+    e.preventDefault();
+    console.log('handleWithdrawWallet submitted with form:', withdrawWalletForm);
+
+    if (!withdrawWalletForm.amount || parseFloat(withdrawWalletForm.amount) <= 0) {
+      console.warn('Invalid withdraw amount:', withdrawWalletForm.amount);
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!withdrawWalletForm.destinationAddress || withdrawWalletForm.destinationAddress.trim().length < 10) {
+      console.warn('Invalid destination address:', withdrawWalletForm.destinationAddress);
+      toast.error('Please enter a valid destination address');
+      return;
+    }
+
+    setIsWithdrawingWallet(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('No auth token found while withdrawing wallet');
+        toast.error('Please login to withdraw from your wallet');
+        setIsWithdrawingWallet(false);
+        return;
+      }
+
+      const apiUrl = getApiUrl('api/wallet/withdraw');
+      console.log('Calling withdraw wallet API:', apiUrl, {
+        amount: withdrawWalletForm.amount,
+        currency: withdrawWalletForm.currency,
+        destinationAddress: withdrawWalletForm.destinationAddress,
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(withdrawWalletForm.amount),
+          currency: withdrawWalletForm.currency,
+          destinationAddress: withdrawWalletForm.destinationAddress.trim(),
+        }),
+      });
+
+      console.log('Withdraw wallet API response status:', response.status);
+
+      const result = await response.json().catch(() => ({}));
+      console.log('Withdraw wallet API response body:', result);
+
+      if (response.ok && result.success) {
+        toast.success('Withdrawal request submitted successfully!');
+        setShowWithdrawWalletModal(false);
+        setWithdrawWalletForm({
+          amount: '',
+          currency: 'USD',
+          destinationAddress: ''
+        });
+        // Refresh dashboard data
+        await fetchDashboardSummary();
+      } else {
+        toast.error(result.message || 'Failed to withdraw from wallet. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error withdrawing from wallet:', error);
+      toast.error('An error occurred while processing your withdrawal. Please try again.');
+    } finally {
+      setIsWithdrawingWallet(false);
+    }
+  };
 
   const activeIllustration = useMemo(() => {
     if (currentStep === 1) return uploadIllustration;
     if (currentStep === 2) return chainsIllustration;
     return mockIllustration;
   }, [currentStep]);
+
+  const formattedToday = useMemo(() => {
+    const now = new Date();
+    const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
+    const day = now.getDate();
+    const month = now.toLocaleDateString(undefined, { month: 'long' });
+    return `${weekday}, ${day}${day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} ${month}`;
+  }, []);
 
   const handleInputChange = (field, value) => {
     setKycForm((prev) => ({ ...prev, [field]: value }));
@@ -143,6 +1644,9 @@ const Dashboard = () => {
   };
 
   const renderDashboardView = () => {
+    console.log('renderDashboardView - dashboardData:', dashboardData);
+    console.log('renderDashboardView - isLoadingDashboard:', isLoadingDashboard);
+    
     return (
       <div className="dashboard-content">
         {/* Breadcrumb */}
@@ -162,13 +1666,33 @@ const Dashboard = () => {
             </div>
             <div className="summary-card-value-row">
               <div className="summary-card-value">
-                {showBalance ? '$24,567.89' : '••••••'}
+                {showBalance 
+                  ? (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null 
+                      ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                      : (isLoadingDashboard ? 'Loading...' : '$0.00'))
+                  : '••••••'}
               </div>
-              <div className="summary-card-subvalue">≈ 45,234 XRP</div>
+              <div className="summary-card-subvalue">
+                ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
+                    ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) 
+                    : (isLoadingDashboard ? 'Loading...' : '0.000000')} XRP
+              </div>
             </div>
             <div className="summary-card-actions">
-              <button type="button" className="summary-card-btn primary">+ Fund Wallet</button>
-              <button type="button" className="summary-card-btn secondary">+ Withdraw</button>
+              <button 
+                type="button" 
+                className="summary-card-btn primary"
+                onClick={() => setShowFundWalletModal(true)}
+              >
+                + Fund Wallet
+              </button>
+              <button 
+                type="button" 
+                className="summary-card-btn secondary"
+                onClick={() => setShowWithdrawWalletModal(true)}
+              >
+                + Withdraw
+              </button>
             </div>
           </div>
 
@@ -178,8 +1702,16 @@ const Dashboard = () => {
               <h3>Active Escrow</h3>
             </div>
             <div className="summary-card-value-row">
-              <div className="summary-card-value">23</div>
-              <div className="summary-card-subvalue">$156,789 locked</div>
+              <div className="summary-card-value">
+                {dashboardData?.activeEscrows?.count !== undefined 
+                  ? dashboardData.activeEscrows.count 
+                  : (isLoadingDashboard ? 'Loading...' : 23)}
+              </div>
+              <div className="summary-card-subvalue">
+                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
+                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                    : (isLoadingDashboard ? 'Loading...' : '156,789')} locked
+              </div>
             </div>
             <button type="button" className="summary-card-btn primary">+ Create Escrow</button>
           </div>
@@ -190,8 +1722,17 @@ const Dashboard = () => {
               <h3>Trustiscore</h3>
             </div>
             <div className="summary-card-value-row">
-              <div className="summary-card-value">70<span className="summary-card-value-suffix">/100</span></div>
-              <div className="summary-card-subvalue">Platinum</div>
+              <div className="summary-card-value">
+                {dashboardData?.trustiscore?.score !== undefined 
+                  ? dashboardData.trustiscore.score 
+                  : (isLoadingDashboard ? 'Loading...' : 70)}
+                <span className="summary-card-value-suffix">/100</span>
+              </div>
+              <div className="summary-card-subvalue">
+                {dashboardData?.trustiscore?.level !== undefined 
+                  ? dashboardData.trustiscore.level 
+                  : (isLoadingDashboard ? 'Loading...' : 'Platinum')}
+              </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Level</button>
           </div>
@@ -202,7 +1743,11 @@ const Dashboard = () => {
               <h3>Total Escrowed</h3>
             </div>
             <div className="summary-card-value-row">
-              <div className="summary-card-value">$45,280</div>
+              <div className="summary-card-value">
+                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                    : (isLoadingTotalEscrowed ? 'Loading...' : '0.00')}
+              </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Escrow</button>
           </div>
@@ -227,15 +1772,40 @@ const Dashboard = () => {
                 ))}
               </div>
               <div className="bar-chart">
-                {[41, 21, 29, 12, 25, 33].map((value, index) => (
-                  <div key={index} className="bar-wrapper">
-                    <div className={`bar ${index === 5 ? 'bar-purple' : ''}`} style={{ height: `${(value / 50) * 100}%` }} />
-                    <span className="bar-label">{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][index]}</span>
-                  </div>
-                ))}
-                </div>
+                {isLoadingPortfolio && (
+                  <span className="rate-currency">Loading portfolio...</span>
+                )}
+
+                {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
+                  const maxValue =
+                    portfolioPoints.reduce(
+                      (max, p) => Math.max(max, Number(p.value ?? 0)),
+                      0
+                    ) || 1;
+
+                  return portfolioPoints.map((point, index) => {
+                    const value = Number(point.value ?? 0);
+                    const height = Math.max(5, (value / maxValue) * 100);
+                    const label = point.label ?? '';
+
+                    return (
+                      <div key={`${label}-${index}`} className="bar-wrapper">
+                        <div
+                          className={`bar ${index === portfolioPoints.length - 1 ? 'bar-purple' : ''}`}
+                          style={{ height: `${height}%` }}
+                        />
+                        <span className="bar-label">{label}</span>
+                      </div>
+                    );
+                  });
+                })()}
+
+                {!isLoadingPortfolio && (!portfolioPoints || portfolioPoints.length === 0) && (
+                  <span className="rate-currency">No portfolio data</span>
+                )}
               </div>
             </div>
+          </div>
 
             {/* Live Escrow Table */}
             <div className="escrow-table-card">
@@ -254,66 +1824,90 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                  <tr>
-                    <td>#ESC-2024-001</td>
-                    <td>
-                      <div className="party-info">
-                        <div className="party-main">
-                          <div className="party-avatar">JD</div>
-                          <span>John Depp</span>
-                        </div>
-                        <div className="party-subtitle">
-                          <ArrowRight size={14} />
-                          <span>Sarah Wilson</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div>5,000 XRP</div>
-                      <div className="amount-usd">≈ $2,715.00</div>
-                    </td>
-                    <td><span className="status-badge pending">Pending release</span></td>
-                  </tr>
-                  <tr>
-                    <td>#ESC-2024-001</td>
-                    <td>
-                      <div className="party-info">
-                        <div className="party-main">
-                          <div className="party-avatar">KA</div>
-                          <span>Kelly Amanda</span>
-                        </div>
-                        <div className="party-subtitle">
-                          <ArrowRight size={14} />
-                          <span>Sarah Wilson</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div>5,000 XRP</div>
-                      <div className="amount-usd">≈ $2,715.00</div>
-                    </td>
-                    <td><span className="status-badge review">Under Review</span></td>
-                  </tr>
-                  <tr>
-                    <td>#ESC-2024-001</td>
-                    <td>
-                      <div className="party-info">
-                        <div className="party-main">
-                          <div className="party-avatar">PJ</div>
-                          <span>Peter Jury</span>
-                        </div>
-                        <div className="party-subtitle">
-                          <ArrowRight size={14} />
-                          <span>Sarah Wilson</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div>5,000 XRP</div>
-                      <div className="amount-usd">≈ $2,715.00</div>
-                    </td>
-                    <td><span className="status-badge completed">Completed</span></td>
-                  </tr>
+                    {isLoadingEscrows && (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
+                          Loading escrows...
+                        </td>
+                      </tr>
+                    )}
+                    {!isLoadingEscrows && escrows.length === 0 && (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
+                          No escrows found
+                        </td>
+                      </tr>
+                    )}
+                    {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow) => {
+                      // Format escrow ID (use short version or format)
+                      const escrowId = escrow.id ? `#${escrow.id.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
+                      
+                      // Get counterparty name
+                      const counterpartyName = escrow.counterpartyName || 'Unknown';
+                      
+                      // Generate initials for avatar
+                      const getInitials = (name) => {
+                        if (!name) return '??';
+                        const parts = name.trim().split(/\s+/);
+                        if (parts.length >= 2) {
+                          return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+                        }
+                        return name.substring(0, 2).toUpperCase();
+                      };
+                      
+                      // Format amounts
+                      const xrpAmount = escrow.amount?.xrp 
+                        ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+                        : '0.00';
+                      const usdAmount = escrow.amount?.usd 
+                        ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : '0.00';
+                      
+                      // Map status to badge class and label
+                      const getStatusBadge = (status) => {
+                        const statusLower = (status || '').toLowerCase();
+                        if (statusLower === 'active') {
+                          return { class: 'pending', label: 'Active' };
+                        } else if (statusLower === 'pending' || statusLower === 'pending release') {
+                          return { class: 'pending', label: 'Pending release' };
+                        } else if (statusLower === 'review' || statusLower === 'under review') {
+                          return { class: 'review', label: 'Under Review' };
+                        } else if (statusLower === 'completed' || statusLower === 'complete') {
+                          return { class: 'completed', label: 'Completed' };
+                        } else {
+                          return { class: 'pending', label: status || 'Unknown' };
+                        }
+                      };
+                      
+                      const statusBadge = getStatusBadge(escrow.status);
+                      
+                      return (
+                        <tr key={escrow.id || escrow.xrplEscrowId}>
+                          <td>{escrowId}</td>
+                          <td>
+                            <div className="party-info">
+                              <div className="party-main">
+                                <div className="party-avatar">{getInitials(counterpartyName)}</div>
+                                <span>{counterpartyName}</span>
+                              </div>
+                              <div className="party-subtitle">
+                                <ArrowRight size={14} />
+                                <span>{userFullName || 'You'}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div>{xrpAmount} XRP</div>
+                            <div className="amount-usd">≈ ${usdAmount}</div>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${statusBadge.class}`}>
+                              {statusBadge.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -325,66 +1919,68 @@ const Dashboard = () => {
             <div className="exchange-rate-card">
               <h3>Live Exchange Rate</h3>
               <div className="rate-list">
-                <div className="rate-item">
-                  <div className="rate-flag">
-                    <img src="https://flagcdn.com/w40/us.png" alt="USD" />
-                  </div>
-                  <div className="rate-info">
-                    <span className="rate-currency">USD</span>
-                  </div>
-                  <div className="rate-value-change">
-                    <span className="rate-value">$0.5430</span>
-                    <div className="rate-change positive">
-                      <TrendingUp size={14} />
-                      <span>+2.4%</span>
+                {isLoadingRates && (
+                  <div className="rate-item">
+                    <div className="rate-info">
+                      <span className="rate-currency">Loading rates...</span>
                     </div>
                   </div>
-                </div>
-                <div className="rate-item">
-                  <div className="rate-flag">
-                    <img src="https://flagcdn.com/w40/eu.png" alt="EUR" />
-                  </div>
-                  <div className="rate-info">
-                    <span className="rate-currency">EUR</span>
-                  </div>
-                  <div className="rate-value-change">
-                    <span className="rate-value">€0.4920</span>
-                    <div className="rate-change positive">
-                      <TrendingUp size={14} />
-                      <span>+2.4%</span>
+                )}
+
+                {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
+                  const code = (rate.currency || rate.code || '').toUpperCase();
+                  const change = Number(rate.changePercent ?? rate.change ?? 0);
+                  const isPositive = change > 0;
+                  const isNegative = change < 0;
+                  const flagCode =
+                    code === 'USD' ? 'us' :
+                    code === 'EUR' ? 'eu' :
+                    code === 'GBP' ? 'gb' :
+                    code === 'JPY' ? 'jp' :
+                    code === 'NGN' ? 'ng' :
+                    code === 'CAD' ? 'ca' :
+                    code === 'AUD' ? 'au' :
+                    code === 'CNY' ? 'cn' :
+                    'us';
+
+                  const symbol =
+                    code === 'USD' ? '$' :
+                    code === 'EUR' ? '€' :
+                    code === 'GBP' ? '£' :
+                    code === 'JPY' ? '¥' :
+                    '';
+
+                  return (
+                    <div className="rate-item" key={`${code}-${index}`}>
+                      <div className="rate-flag">
+                        <img src={`https://flagcdn.com/w40/${flagCode}.png`} alt={code} />
+                      </div>
+                      <div className="rate-info">
+                        <span className="rate-currency">{code}</span>
+                      </div>
+                      <div className="rate-value-change">
+                        <span className="rate-value">
+                          {symbol}{Number(rate.rate ?? rate.value ?? 0).toFixed(4)}
+                        </span>
+                        <div className={`rate-change ${isPositive ? 'positive' : isNegative ? 'negative' : 'neutral'}`}>
+                          {isPositive && <TrendingUp size={14} />}
+                          {isNegative && <TrendingDown size={14} />}
+                          <span>
+                            {change === 0 ? '0.0%' : `${change > 0 ? '+' : ''}${change.toFixed(1)}%`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {!isLoadingRates && (!Array.isArray(exchangeRates) || exchangeRates.length === 0) && (
+                  <div className="rate-item">
+                    <div className="rate-info">
+                      <span className="rate-currency">No exchange rates available</span>
                     </div>
                   </div>
-                </div>
-                <div className="rate-item">
-                  <div className="rate-flag">
-                    <img src="https://flagcdn.com/w40/gb.png" alt="GBP" />
-                  </div>
-                  <div className="rate-info">
-                    <span className="rate-currency">GBP</span>
-                  </div>
-                  <div className="rate-value-change">
-                    <span className="rate-value">£0.4310</span>
-                    <div className="rate-change negative">
-                      <TrendingDown size={14} />
-                      <span>-0.5%</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="rate-item">
-                  <div className="rate-flag">
-                    <img src="https://flagcdn.com/w40/jp.png" alt="JPY" />
-                  </div>
-                  <div className="rate-info">
-                    <span className="rate-currency">JPY</span>
-                  </div>
-                  <div className="rate-value-change">
-                    <span className="rate-value">¥81.20</span>
-                    <div className="rate-change positive">
-                      <TrendingUp size={14} />
-                      <span>+3.1%</span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -396,11 +1992,35 @@ const Dashboard = () => {
                     <div className="wallet-icon">XRP</div>
                     <div className="wallet-icon-info">
                     <span className="wallet-name">XRP</span>
-                      <span className="wallet-crypto">{showBalance ? '45,234.56 XRP' : '••••••'}</span>
+                      <span className="wallet-crypto">
+                        {showBalance 
+                          ? (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
+                              ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP`
+                              : (isLoadingWalletBalances ? 'Loading...' : '0.00 XRP'))
+                          : '••••••'}
+                      </span>
                     </div>
                   </div>
                   <div className="wallet-value-change">
-                    <span className="wallet-amount">{showBalance ? '$24,567.89' : '••••••'}</span>
+                    <span className="wallet-amount">
+                      {showBalance 
+                        ? (() => {
+                            // Calculate USD value for XRP using exchange rate if available
+                            if (walletBalances?.xrp && exchangeRates) {
+                              const xrpRate = exchangeRates.find(r => (r.currency || r.code || '').toUpperCase() === 'USD');
+                              if (xrpRate && xrpRate.rate) {
+                                const usdValue = Number(walletBalances.xrp) * Number(xrpRate.rate);
+                                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              }
+                            }
+                            // Fallback to dashboard total USD if available
+                            if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
+                              return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            }
+                            return isLoadingWalletBalances ? 'Loading...' : '$0.00';
+                          })()
+                        : '••••••'}
+                    </span>
                   <div className="wallet-change positive">
                     <TrendingUp size={14} />
                     <span>+2.4%</span>
@@ -412,11 +2032,23 @@ const Dashboard = () => {
                     <div className="wallet-icon">USDT</div>
                     <div className="wallet-icon-info">
                     <span className="wallet-name">USDT</span>
-                      <span className="wallet-crypto">{showBalance ? '12,500.00 USDT' : '••••••'}</span>
+                      <span className="wallet-crypto">
+                        {showBalance 
+                          ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
+                              ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+                              : (isLoadingWalletBalances ? 'Loading...' : '0.00 USDT'))
+                          : '••••••'}
+                      </span>
                     </div>
                   </div>
                   <div className="wallet-value-change">
-                    <span className="wallet-amount">{showBalance ? '$12,500.00' : '••••••'}</span>
+                    <span className="wallet-amount">
+                      {showBalance 
+                        ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
+                            ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : (isLoadingWalletBalances ? 'Loading...' : '$0.00'))
+                        : '••••••'}
+                    </span>
                   <div className="wallet-change neutral">
                     <span>0.0%</span>
                     </div>
@@ -427,11 +2059,23 @@ const Dashboard = () => {
                     <div className="wallet-icon">USDC</div>
                     <div className="wallet-icon-info">
                     <span className="wallet-name">USDC</span>
-                      <span className="wallet-crypto">{showBalance ? '8,750.00 USDC' : '••••••'}</span>
+                      <span className="wallet-crypto">
+                        {showBalance 
+                          ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
+                              ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
+                              : (isLoadingWalletBalances ? 'Loading...' : '0.00 USDC'))
+                          : '••••••'}
+                      </span>
                     </div>
                   </div>
                   <div className="wallet-value-change">
-                    <span className="wallet-amount">{showBalance ? '$8,750.00' : '••••••'}</span>
+                    <span className="wallet-amount">
+                      {showBalance 
+                        ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
+                            ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : (isLoadingWalletBalances ? 'Loading...' : '$0.00'))
+                        : '••••••'}
+                    </span>
                   <div className="wallet-change positive">
                     <TrendingUp size={14} />
                     <span>+0.1%</span>
@@ -759,7 +2403,7 @@ const Dashboard = () => {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <div className="header-info">
-            <p className="header-date">Thursday, 7th November</p>
+            <p className="header-date">{formattedToday}</p>
             <h1>Welcome Back !</h1>
           </div>
 
@@ -802,10 +2446,10 @@ const Dashboard = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">SC</div>
+              <div className="user-avatar">{userInitials}</div>
               <div className="user-info">
                 <span className="user-name">
-                  Sarah Chen
+                  {isLoadingUserProfile ? 'Loading...' : userFullName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>Freelancer</small>
@@ -973,6 +2617,237 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fund Wallet Modal */}
+      {showFundWalletModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowFundWalletModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Fund Wallet</h2>
+              </div>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => {
+                  setShowFundWalletModal(false);
+                  setFundWalletForm({ amount: '', currency: 'XRP' });
+                  setTransactionData(null);
+                  setFundingStep('idle');
+                  setIsFundingWallet(false);
+                }}
+                disabled={isFundingWallet && fundingStep !== 'idle'}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Progress Indicator */}
+            {isFundingWallet && fundingStep !== 'idle' && (
+              <div className="fund-wallet-progress" style={{ padding: '15px 20px', borderBottom: '1px solid #e0e0e0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: fundingStep === 'preparing' ? '#4f46e5' : fundingStep === 'signing' ? '#4f46e5' : fundingStep === 'completing' ? '#4f46e5' : '#e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {fundingStep === 'preparing' ? '1' : fundingStep === 'signing' ? '2' : fundingStep === 'completing' ? '3' : ''}
+                  </div>
+                  <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                    {fundingStep === 'preparing' && 'Preparing transaction...'}
+                    {fundingStep === 'signing' && (
+                      transactionData?.xummUrl 
+                        ? 'Please sign in your Xaman wallet...' 
+                        : 'Please sign in your browser wallet (Crossmark)...'
+                    )}
+                    {fundingStep === 'completing' && 'Completing transaction...'}
+                  </span>
+                </div>
+                {fundingStep === 'signing' && (
+                  <div style={{ fontSize: '12px', color: '#666', marginLeft: '30px' }}>
+                    {transactionData?.xummUrl 
+                      ? 'A window should open to your Xaman wallet. Please sign the transaction there.'
+                      : 'Please approve the transaction in your Crossmark wallet extension popup.'
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleFundWallet} className="fund-wallet-form">
+              <div className="form-group">
+                <label htmlFor="fund-amount">Amount</label>
+                <input
+                  id="fund-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Enter amount"
+                  value={fundWalletForm.amount}
+                  onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
+                  required
+                  disabled={isFundingWallet}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="fund-currency">Wallets</label>
+                <select
+                  id="fund-currency"
+                  value={fundWalletForm.currency}
+                  onChange={(e) => {
+                    const selectedValue = e.target.value;
+                    console.log('Dropdown changed - selected wallet type:', selectedValue);
+                    setFundWalletForm(prev => {
+                      console.log('Previous form state:', prev);
+                      const updated = { ...prev, currency: selectedValue };
+                      console.log('Updated form state:', updated);
+                      return updated;
+                    });
+                  }}
+                  disabled={isFundingWallet}
+                >
+                  <option value="XRP">XRP</option>
+                  <option value="USDT">USDT</option>
+                  <option value="USDC">USDC</option>
+                </select>
+              </div>
+
+              <div className="fund-wallet-actions">
+                <button
+                  type="button"
+                  className="fund-wallet-btn cancel"
+                  onClick={() => {
+                    setShowFundWalletModal(false);
+                    setFundWalletForm({ amount: '', currency: 'XRP' });
+                    setTransactionData(null);
+                    setFundingStep('idle');
+                    setIsFundingWallet(false);
+                  }}
+                  disabled={isFundingWallet && fundingStep !== 'idle'}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="fund-wallet-btn primary"
+                  disabled={isFundingWallet}
+                >
+                  {fundingStep === 'preparing' && 'Preparing...'}
+                  {fundingStep === 'signing' && 'Waiting for signature...'}
+                  {fundingStep === 'completing' && 'Completing...'}
+                  {!isFundingWallet && 'Fund Wallet'}
+                  {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Wallet Modal */}
+      {showWithdrawWalletModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowWithdrawWalletModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Withdraw</h2>
+              </div>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => {
+                  setShowWithdrawWalletModal(false);
+                  setWithdrawWalletForm({
+                    amount: '',
+                    currency: 'USD',
+                    destinationAddress: ''
+                  });
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleWithdrawWallet} className="fund-wallet-form">
+              <div className="form-group">
+                <label htmlFor="withdraw-amount">Amount</label>
+                <input
+                  id="withdraw-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Enter amount"
+                  value={withdrawWalletForm.amount}
+                  onChange={(e) => setWithdrawWalletForm(prev => ({ ...prev, amount: e.target.value }))}
+                  required
+                  disabled={isWithdrawingWallet}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="withdraw-currency">Currency</label>
+                <select
+                  id="withdraw-currency"
+                  value={withdrawWalletForm.currency}
+                  onChange={(e) => setWithdrawWalletForm(prev => ({ ...prev, currency: e.target.value }))}
+                  disabled={isWithdrawingWallet}
+                >
+                  <option value="USD">USD</option>
+                  <option value="XRP">XRP</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="withdraw-destination">Destination Address</label>
+                <input
+                  id="withdraw-destination"
+                  type="text"
+                  placeholder="Enter destination wallet address"
+                  value={withdrawWalletForm.destinationAddress}
+                  onChange={(e) => setWithdrawWalletForm(prev => ({ ...prev, destinationAddress: e.target.value }))}
+                  required
+                  disabled={isWithdrawingWallet}
+                />
+              </div>
+
+              <div className="fund-wallet-actions">
+                <button
+                  type="button"
+                  className="fund-wallet-btn cancel"
+                  onClick={() => {
+                    setShowWithdrawWalletModal(false);
+                    setWithdrawWalletForm({
+                      amount: '',
+                      currency: 'USD',
+                      destinationAddress: ''
+                    });
+                  }}
+                  disabled={isWithdrawingWallet}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="fund-wallet-btn primary"
+                  disabled={isWithdrawingWallet}
+                >
+                  {isWithdrawingWallet ? 'Processing...' : 'Withdraw'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
