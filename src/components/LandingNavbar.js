@@ -28,6 +28,16 @@ const LandingNavbar = () => {
     setIsMobileMenuOpen(false);
   };
 
+  // Hide navbar on dashboard pages (dashboard, my-escrow, transactions)
+  const isDashboardPage = location.pathname === '/dashboard' || 
+                          location.pathname === '/my-escrow' || 
+                          location.pathname === '/transactions' ||
+                          location.pathname.startsWith('/escrow/');
+
+  if (isDashboardPage) {
+    return null;
+  }
+
   return (
     <nav className={`landing-navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="landing-navbar-container">

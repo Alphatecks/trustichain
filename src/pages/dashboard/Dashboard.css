@@ -1398,6 +1398,11 @@
   padding: 0.5rem 1rem;
   font-size: 0.85rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .total-balance-card .summary-card-btn.primary {

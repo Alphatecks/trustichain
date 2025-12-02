@@ -44,6 +44,7 @@ import chainsIllustration from '../../assets/images/illustrations/chain.png';
 import cardIllustration from '../../assets/images/illustrations/card.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../utils/config';
+import { useSession } from '../../context/SessionContext';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -84,6 +85,7 @@ const steps = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isSessionExpired } = useSession();
   const [currentStep, setCurrentStep] = useState(0);
   const [kycComplete, setKycComplete] = useState(() => {
     // Check localStorage first, default to true if KYC was previously completed
@@ -142,6 +144,18 @@ const Dashboard = () => {
 
   const fetchDashboardSummary = async () => {
     try {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback dashboard data');
+        setDashboardData({
+          balance: { usd: 125000.00, xrp: 250000.00 },
+          activeEscrows: { count: 12, lockedAmount: 45000.00 },
+          trustiscore: { score: 850, level: 'Gold' }
+        });
+        setIsLoadingDashboard(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       console.log('Dashboard useEffect - Token exists:', !!token);
       console.log('Dashboard useEffect - kycComplete:', kycComplete);
@@ -195,10 +209,19 @@ const Dashboard = () => {
   useEffect(() => {
     // Always fetch when component mounts, not just when kycComplete is true
     fetchDashboardSummary();
-  }, [kycComplete]);
+  }, [kycComplete, isSessionExpired]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback user profile');
+        setUserFullName('Sarah Chen');
+        setUserInitials('SC');
+        setIsLoadingUserProfile(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -273,7 +296,7 @@ const Dashboard = () => {
     };
 
     fetchUserProfile();
-  }, []);
+  }, [isSessionExpired]);
 
   useEffect(() => {
     const fetchExchangeRates = async () => {
@@ -557,7 +580,7 @@ const Dashboard = () => {
     };
 
     fetchEscrows();
-  }, []);
+  }, [isSessionExpired]);
 
   const handleFundWallet = async (e) => {
     e.preventDefault();
@@ -2320,12 +2343,15 @@ const Dashboard = () => {
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'My Escrow' && location.pathname === '/my-escrow');
+                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                               (item.label === 'Transactions' && location.pathname === '/transactions');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
                 } else if (item.label === 'My Escrow') {
                   navigate('/my-escrow');
+                } else if (item.label === 'Transactions') {
+                  navigate('/transactions');
                 }
               };
               return (

@@ -1027,8 +1027,7 @@
   color: var(--white);
 }
 
-<<<<<<< Current (Your changes)
-=======
+
 /* Confirmation Step Styles */
 .confirmation-step {
   padding: 0;
@@ -1206,7 +1205,7 @@
   color: var(--white);
 }
 
->>>>>>> Incoming (Background Agent changes)
+
 @media (max-width: 768px) {
   .my-escrow-page {
     padding: 1rem;
@@ -1266,5 +1265,207 @@
   .escrow-type-buttons {
     flex-direction: column;
   }
+
+
+/* Payment Success Modal */
+.payment-success-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 1rem;
 }
 
+.payment-success-modal {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 500px;
+  padding: 2.5rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.payment-success-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.payment-success-close-btn:hover {
+  color: #333;
+}
+
+.payment-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #0066FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+}
+
+.payment-success-heading {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+
+.payment-success-subtext {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+  font-weight: 400;
+}
+
+.payment-success-amount {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 1.5rem 0;
+  font-weight: 400;
+}
+
+.payment-status-section {
+  background: #F5F5F5;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.payment-status-divider {
+  width: 2px;
+  background: #D0D0D0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.payment-status-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payment-status-column:last-child {
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.payment-status-label {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 12px;
+  color: #666;
+  font-weight: 400;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+
+.payment-status-column:last-child .payment-status-label {
+  text-align: right;
+}
+
+.payment-status-value {
+  font-family: 'Satoshi', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0066FF;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+
+.payment-status-value svg {
+  flex-shrink: 0;
+}
+
+.payment-transaction-id {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 14px;
+  color: #333;
+  font-weight: 400;
+  text-align: right;
+  word-break: break-all;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.payment-success-buttons {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.payment-details-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #E0E0E0;
+  border-radius: 20px;
+  background: #F9F9F9;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.payment-details-btn:hover {
+  background: #F0F0F0;
+  border-color: #D0D0D0;
+}
+
+.payment-done-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 20px;
+  background: #0066FF;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.payment-done-btn:hover {
+  background: #0052CC;
+}
+
+}

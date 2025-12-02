@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
 import { ThemeProvider } from './context/ThemeContext';
+import { SessionProvider } from './context/SessionContext';
 import LandingNavbar from './components/LandingNavbar';
 import Navbar from './components/Navbar';
 import Home from './pages/home/Home';
@@ -18,13 +19,18 @@ import Otp from './pages/auth/Otp';
 import OAuthCallback from './pages/auth/OAuthCallback';
 import Dashboard from './pages/dashboard/Dashboard';
 import MyEscrow from './pages/dashboard/MyEscrow';
+import Transactions from './pages/dashboard/Transactions';
+import useAutoLogout from './hooks/useAutoLogout';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
   
+  // Enable auto-logout after 3600 seconds (1 hour) of inactivity
+  useAutoLogout(3600000);
+  
   // Hide navbar on auth pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
@@ -47,6 +53,7 @@ function AppContent() {
           <Route path="/auth/google/callback" element={<OAuthCallback />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/my-escrow" element={<MyEscrow />} />
+          <Route path="/transactions" element={<Transactions />} />
         </Routes>
       </main>
       <Toaster 
@@ -67,9 +74,11 @@ function App() {
   return (
     <ThemeProvider>
       <Web3Provider>
-        <Router>
-          <AppContent />
-        </Router>
+        <SessionProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </SessionProvider>
       </Web3Provider>
     </ThemeProvider>
   );

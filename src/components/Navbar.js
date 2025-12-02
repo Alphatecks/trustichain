@@ -15,6 +15,16 @@ const Navbar = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  // Hide navbar on dashboard pages (dashboard, my-escrow, transactions)
+  const isDashboardPage = location.pathname === '/dashboard' || 
+                          location.pathname === '/my-escrow' || 
+                          location.pathname === '/transactions' ||
+                          location.pathname.startsWith('/escrow/');
+
+  if (isDashboardPage) {
+    return null;
+  }
+
   return (
     <nav className="navbar">
       <div className="navbar-container">

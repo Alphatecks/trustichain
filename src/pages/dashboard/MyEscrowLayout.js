@@ -23,6 +23,7 @@ import {
 import logo from '../../assets/images/icons/logo.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../utils/config';
+import { useSession } from '../../context/SessionContext';
 import './Dashboard.css';
 
 const sidebarNav = [
@@ -58,6 +59,7 @@ const supportNav = [
 const MyEscrowLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isSessionExpired } = useSession();
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [accountType, setAccountType] = useState('Personal');
   const [kycComplete] = useState(true);
@@ -89,6 +91,15 @@ const MyEscrowLayout = ({ children }) => {
   // Fetch user profile from API
   useEffect(() => {
     const fetchUserProfile = async () => {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback user profile');
+        setUserFullName('Sarah Chen');
+        setUserInitials('SC');
+        setIsLoadingUserProfile(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -163,7 +174,7 @@ const MyEscrowLayout = ({ children }) => {
     };
 
     fetchUserProfile();
-  }, []);
+  }, [isSessionExpired]);
 
   return (
     <div className="dashboard">

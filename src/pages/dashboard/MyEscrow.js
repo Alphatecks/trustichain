@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DollarSign,
   Layers,
@@ -20,10 +21,13 @@ import {
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../utils/config';
+import { useSession } from '../../context/SessionContext';
 import toast from 'react-hot-toast';
 import './MyEscrow.css';
 
 const MyEscrow = () => {
+  const navigate = useNavigate();
+  const { isSessionExpired } = useSession();
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedMonth] = useState('This month');
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
@@ -46,6 +50,7 @@ const MyEscrow = () => {
     expectedReleaseDate: '',
     disputeResolutionPeriod: '',
     totalAmount: '',
+    escrowFee: '',
     releaseConditions: '',
     milestoneDetails: '',
     milestoneAmount: '',
@@ -75,9 +80,26 @@ const MyEscrow = () => {
   const limit = 20;
   const [openActionMenu, setOpenActionMenu] = useState(null); // Track which escrow's menu is open
 
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdEscrowData, setCreatedEscrowData] = useState(null);
+  const [exchangeRate, setExchangeRate] = useState(null); // XRP to USD rate
+  const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
+
   // Fetch escrow metrics from API
   useEffect(() => {
     const fetchEscrowMetrics = async () => {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback escrow metrics');
+        setTotalEscrowedAmount(125000.00);
+        setLockedAmount(45000.00);
+        setActiveEscrowCount(12);
+        setTotalEscrowCount(25);
+        setIsLoadingEscrowMetrics(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -183,11 +205,19 @@ const MyEscrow = () => {
     };
 
     fetchEscrowMetrics();
-  }, []);
+  }, [isSessionExpired]);
 
   // Fetch completed escrow count from API
   useEffect(() => {
     const fetchCompletedEscrow = async () => {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback completed escrow count');
+        setCompletedEscrowCount(8);
+        setIsLoadingCompletedEscrow(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -249,7 +279,7 @@ const MyEscrow = () => {
     };
 
     fetchCompletedEscrow();
-  }, []);
+  }, [isSessionExpired]);
 
   // Map category to transactionType
   const getTransactionType = (category) => {
@@ -263,9 +293,61 @@ const MyEscrow = () => {
     return mapping[category] || null;
   };
 
+  // Fetch exchange rate for XRP to USD conversion
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/exchange/rates');
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result?.success && result?.data?.rates) {
+            // Find XRP to USD rate
+            const xrpRate = result.data.rates.find(rate => 
+              (rate.from === 'XRP' && rate.to === 'USD') || 
+              (rate.fromCurrency === 'XRP' && rate.toCurrency === 'USD')
+            );
+            if (xrpRate) {
+              setExchangeRate(xrpRate.rate || xrpRate.exchangeRate || 1);
+            } else {
+              // Fallback to 1 if not found
+              setExchangeRate(1);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching exchange rate:', error);
+        // Fallback to 1 if error
+        setExchangeRate(1);
+      }
+    };
+
+    fetchExchangeRate();
+  }, []);
+
   // Fetch industries based on transaction type
   useEffect(() => {
     const fetchIndustries = async () => {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback industries');
+        setIndustries([]);
+        setIsLoadingIndustries(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -325,6 +407,16 @@ const MyEscrow = () => {
   // Fetch filtered escrow list
   useEffect(() => {
     const fetchEscrows = async () => {
+      // If session is expired, use fallback data
+      if (isSessionExpired) {
+        console.log('Session expired, using fallback escrows list');
+        setEscrows([]);
+        setTotalEscrowsCount(0);
+        setTotalPages(1);
+        setIsLoadingEscrows(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -408,7 +500,7 @@ const MyEscrow = () => {
     };
 
     fetchEscrows();
-  }, [activeCategory, selectedIndustry, currentPage, limit]);
+  }, [activeCategory, selectedIndustry, currentPage, limit, isSessionExpired]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -493,6 +585,226 @@ const MyEscrow = () => {
     } catch (error) {
       console.error('Error releasing escrow:', error);
       toast.error('An error occurred while releasing escrow');
+    }
+  };
+
+  // Map escrow type to industry for API
+  const getEscrowTypeMapping = (escrowType) => {
+    const mapping = {
+      'Freelancing': 'Technology',
+      'Real Estate': 'Real Estate',
+      'Real estate': 'Real Estate',
+      'Product purchase': 'Retail',
+      'Custom': 'Other'
+    };
+    return mapping[escrowType] || 'Other';
+  };
+
+  // Helper function to format date to ISO format
+  const formatDateToISO = (dateString) => {
+    if (!dateString || dateString.trim() === '') return null;
+    
+    try {
+      // Try to parse the date string
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      // Return ISO format
+      return date.toISOString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return null;
+    }
+  };
+
+  // Helper function to format dispute resolution period
+  const formatDisputePeriod = (value) => {
+    if (!value || value.trim() === '') return null;
+    return `${value} days`;
+  };
+
+  // Map escrow type to transaction type for API
+  const mapEscrowTypeToTransactionType = (escrowType) => {
+    const mapping = {
+      'Freelancing': 'freelance',
+      'Real Estate': 'real_estate',
+      'Real estate': 'real_estate',
+      'Product purchase': 'product_purchase',
+      'Custom': 'custom'
+    };
+    return mapping[escrowType] || 'custom';
+  };
+
+  // Handle create escrow
+  const handleCreateEscrow = async () => {
+    try {
+      setIsCreatingEscrow(true);
+      
+      // Validate required fields
+      if (!formData.payerWallet || !formData.counterpartyWallet) {
+        toast.error('Please fill in all required fields');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      if (!termsData.totalAmount) {
+        toast.error('Please enter the total amount');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      // Validate milestones if release type is Milestones
+      if (termsData.releaseType === 'Milestones' && (!termsData.milestones || termsData.milestones.length === 0)) {
+        toast.error('Please add at least one milestone');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication required');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      // Map escrow type to transaction type and industry
+      const transactionType = mapEscrowTypeToTransactionType(selectedEscrowType);
+      const industry = getEscrowTypeMapping(selectedEscrowType);
+
+      // Format dates
+      const expectedCompletionDateISO = formatDateToISO(termsData.expectedCompletionDate);
+      const expectedReleaseDateISO = formatDateToISO(termsData.expectedReleaseDate);
+
+      // Format dispute resolution period
+      const disputeResolutionPeriodFormatted = formatDisputePeriod(termsData.disputeResolutionPeriod);
+
+      // Determine description - use milestoneDetails, releaseConditions, or fallback
+      const description = termsData.milestoneDetails || 
+                         termsData.releaseConditions || 
+                         `Escrow for ${selectedEscrowType}`;
+
+      // Build base payload with common fields
+      const payload = {
+        payerXrpWalletAddress: formData.payerWallet,
+        counterpartyXrpWalletAddress: formData.counterpartyWallet,
+        amount: parseFloat(termsData.totalAmount),
+        currency: 'XRP',
+        transactionType: transactionType,
+        industry: industry,
+        description: description,
+        payerEmail: formData.payerEmail || '',
+        payerName: formData.payerName || '',
+        counterpartyEmail: formData.counterpartyEmail || '',
+        counterpartyName: formData.counterpartyName || '',
+        releaseType: termsData.releaseType,
+        totalAmount: parseFloat(termsData.totalAmount)
+      };
+
+      // Add date fields if provided
+      if (expectedCompletionDateISO) {
+        payload.expectedCompletionDate = expectedCompletionDateISO;
+      }
+
+      if (disputeResolutionPeriodFormatted) {
+        payload.disputeResolutionPeriod = disputeResolutionPeriodFormatted;
+      }
+
+      // Add release type specific fields
+      if (termsData.releaseType === 'Time based') {
+        if (expectedReleaseDateISO) {
+          payload.expectedReleaseDate = expectedReleaseDateISO;
+        }
+        if (termsData.releaseConditions) {
+          payload.releaseConditions = termsData.releaseConditions;
+        }
+      } else if (termsData.releaseType === 'Manual Release') {
+        if (termsData.releaseConditions) {
+          payload.releaseConditions = termsData.releaseConditions;
+        }
+      } else if (termsData.releaseType === 'Milestones') {
+        // Format milestones array
+        if (termsData.milestones && termsData.milestones.length > 0) {
+          payload.milestones = termsData.milestones.map(milestone => ({
+            milestoneDetails: milestone.details,
+            milestoneAmount: parseFloat(milestone.amount)
+          }));
+        }
+      }
+
+      // Make API call
+      const apiUrl = getApiUrl('api/escrow/create');
+      console.log('Creating escrow:', apiUrl);
+      console.log('Payload:', JSON.stringify(payload, null, 2));
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('API Response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('API Response data:', result);
+        
+        if (result?.success) {
+          // Store the created escrow data with amount info
+          setCreatedEscrowData({
+            ...result.data,
+            amount: termsData.totalAmount,
+            amountUsd: exchangeRate ? (parseFloat(termsData.totalAmount) * exchangeRate).toFixed(2) : (parseFloat(termsData.totalAmount) * 1).toFixed(2)
+          });
+          
+          // Show success modal
+          setShowSuccessModal(true);
+          // Close the create escrow modal
+          setShowCreateEscrowModal(false);
+          // Reset form
+          setCurrentStep(1);
+          setFormData({
+            payerWallet: '',
+            payerEmail: '',
+            payerName: '',
+            payerPhone: '',
+            counterpartyWallet: '',
+            counterpartyEmail: '',
+            counterpartyName: '',
+            counterpartyPhone: ''
+          });
+          setTermsData({
+            releaseType: 'Manual Release',
+            expectedCompletionDate: '',
+            expectedReleaseDate: '',
+            disputeResolutionPeriod: '',
+            totalAmount: '',
+            escrowFee: '',
+            releaseConditions: '',
+            milestoneDetails: '',
+            milestoneAmount: '',
+            milestones: []
+          });
+          
+          toast.success('Escrow created successfully!');
+        } else {
+          toast.error(result?.message || 'Failed to create escrow');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('API Error response:', errorData);
+        console.error('Response status:', response.status);
+        toast.error(errorData?.message || errorData?.error || 'Failed to create escrow');
+      }
+    } catch (error) {
+      console.error('Error creating escrow:', error);
+      toast.error('An error occurred while creating escrow');
+    } finally {
+      setIsCreatingEscrow(false);
     }
   };
 
@@ -1377,15 +1689,12 @@ const MyEscrow = () => {
 
                         <div className="form-group">
                           <label>Milestone details</label>
-                          <div className="date-input-wrapper">
-                            <input
-                              type="text"
-                              placeholder="Add Date"
-                              value={termsData.milestoneDetails}
-                              onChange={(e) => setTermsData({ ...termsData, milestoneDetails: e.target.value })}
-                            />
-                            <Calendar size={18} className="input-icon" />
-                          </div>
+                          <input
+                            type="text"
+                            placeholder="Enter milestone details"
+                            value={termsData.milestoneDetails}
+                            onChange={(e) => setTermsData({ ...termsData, milestoneDetails: e.target.value })}
+                          />
                         </div>
 
                         <div className="form-group">
@@ -1448,91 +1757,110 @@ const MyEscrow = () => {
 
               {currentStep === 3 && (
                 <>
-                  {/* Confirmation Step */}
-                  <div className="confirmation-step">
-                    {/* Escrow Type & Terms Summary */}
-                    <div className="confirmation-summary-section">
-                      <div className="confirmation-type-section">
-                        <h3 className="confirmation-section-title">Escrow Type</h3>
-                        <button className="confirmation-type-btn active" type="button">
+                  {/* Escrow Type and Terms Section - Side by Side */}
+                  <div className="escrow-form-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    {/* Escrow Type Section */}
+                    <div>
+                      <h3 className="section-title">Escrow Type</h3>
+                      <div className="escrow-type-buttons">
+                        <button
+                          type="button"
+                          className="escrow-type-btn active"
+                          disabled
+                        >
+                          <CheckCircle size={18} />
                           {selectedEscrowType}
                         </button>
                       </div>
-
-                      <div className="confirmation-type-section">
-                        <h3 className="confirmation-section-title">Escrow Terms</h3>
-                        <button className="confirmation-type-btn active" type="button">
-                          {termsData.releaseType === 'Time based' && <Clock size={18} />}
-                          {termsData.releaseType === 'Milestones' && <Coins size={18} />}
-                          {termsData.releaseType === 'Manual Release' && <Download size={18} />}
-                          <span>{termsData.releaseType}</span>
-                        </button>
-                      </div>
                     </div>
 
-                    {/* Escrow Counterparty Section */}
-                    <div className="confirmation-details-section">
-                      <h3 className="confirmation-section-title">Escrow Counterparty</h3>
-                      <div className="confirmation-field-group">
-                        <label className="confirmation-label">
-                          Counterparty XRP Wallet Address <span className="required">*</span>
-                        </label>
-                        <div className="confirmation-masked-input">
-                          {formData.counterpartyXRPWallet ? formData.counterpartyXRPWallet.replace(/./g, '•') : '••••••••••••••'}
+                    {/* Escrow Terms Section */}
+                    <div>
+                      <h3 className="section-title">Escrow Terms</h3>
+                      <div className="release-type-buttons">
+                        <button
+                          type="button"
+                          className="release-type-btn active"
+                          disabled
+                        >
+                        {termsData.releaseType === 'Time based' && <Clock size={18} />}
+                        {termsData.releaseType === 'Milestones' && <Coins size={18} />}
+                        {termsData.releaseType === 'Manual Release' && <Download size={18} />}
+                        {termsData.releaseType}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                  {/* Escrow Counterparty Section */}
+                  <div className="escrow-form-section" style={{ marginTop: 0 }}>
+                    <h3 className="section-title">Escrow Counterparty</h3>
+                    <div className="counterparty-form-grid">
+                      {/* Left Column - Counterparty Information */}
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Counterparty XRP Wallet Address <span className="required">*</span></label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {formData.counterpartyWallet || '—'}
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Email</label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {formData.counterpartyEmail || '—'}
+                          </div>
                         </div>
                       </div>
-                      <div className="confirmation-info-grid">
-                        <div className="confirmation-info-item">
-                          <span className="confirmation-info-label">Name</span>
-                          <span className="confirmation-info-value">{formData.counterpartyName}</span>
+
+                      {/* Right Column - Names and Phone Numbers */}
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Name</label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {formData.counterpartyName || '—'}
+                          </div>
                         </div>
-                        <div className="confirmation-info-item">
-                          <span className="confirmation-info-label">Email</span>
-                          <span className="confirmation-info-value">{formData.counterpartyEmail}</span>
-                        </div>
-                        <div className="confirmation-info-item">
-                          <span className="confirmation-info-label">Phone Number</span>
-                          <span className="confirmation-info-value">{formData.counterpartyPhone}</span>
+                        <div className="form-group">
+                          <label>Phone Number</label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {formData.counterpartyPhone || '—'}
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Escrow Details Section */}
-                    <div className="confirmation-details-section">
-                      <h3 className="confirmation-section-title">Escrow Details</h3>
-                      <div className="confirmation-details-list">
-                        <div className="confirmation-detail-item">
-                          <span className="confirmation-detail-label">Expected Completion Date</span>
-                          <span className="confirmation-detail-value">
-                            {termsData.expectedCompletionDate}
-                            {termsData.expectedCompletionDate && <Calendar size={16} />}
-                          </span>
+                  {/* Escrow Details Section */}
+                  <div className="escrow-form-section">
+                    <h3 className="section-title">Escrow Details</h3>
+                    <div className="terms-form-grid">
+                      <div className="form-group">
+                        <label>Expected Completion Date</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {termsData.expectedCompletionDate || '—'}
                         </div>
-                        <div className="confirmation-detail-item">
-                          <span className="confirmation-detail-label">Dispute Resolution Period</span>
-                          <span className="confirmation-detail-value">
-                            {termsData.disputeResolutionPeriod ? `${termsData.disputeResolutionPeriod} days` : ''}
-                          </span>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Dispute Resolution Period</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {termsData.disputeResolutionPeriod ? `${termsData.disputeResolutionPeriod} days` : '—'}
                         </div>
-                        <div className="confirmation-details-row">
-                          <div className="confirmation-detail-item">
-                            <span className="confirmation-detail-label">Amount</span>
-                            <span className="confirmation-detail-value">
-                              {termsData.totalAmount ? `${termsData.totalAmount} XRP ($0.25 USD)` : ''}
-                            </span>
-                          </div>
-                          <div className="confirmation-detail-item">
-                            <span className="confirmation-detail-label">Escrow Fee</span>
-                            <span className="confirmation-detail-value">
-                              {termsData.totalAmount ? `0.5 XRP ($0.25 USD)` : ''}
-                            </span>
-                          </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontWeight: 'bold', color: '#0066FF' }}>Escrow Fee</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {termsData.totalAmount 
+                            ? `${(parseFloat(termsData.totalAmount) * 0.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
+                            : '—'}
                         </div>
-                        <div className="confirmation-detail-item">
-                          <span className="confirmation-detail-label">Total Payment</span>
-                          <span className="confirmation-detail-value">
-                            {termsData.totalAmount ? `0.5 XRP ($0.25 USD)` : ''}
-                          </span>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Total Payment</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {termsData.totalAmount ? `${termsData.totalAmount} XRP` : '—'}
                         </div>
                       </div>
                     </div>
@@ -1586,17 +1914,112 @@ const MyEscrow = () => {
               <div className="create-escrow-modal-footer">
                 <button
                   type="button"
-                  className="confirm-btn"
-                  onClick={() => {
-                    alert('Escrow Created!');
-                    setShowCreateEscrowModal(false);
-                  }}
+                  className="previous-btn"
+                  onClick={() => setCurrentStep(2)}
                 >
-                  <CheckCircle size={18} />
-                  <span>Confirm</span>
+                  <div className="previous-btn-icon-circle">
+                    <ArrowLeft size={16} />
+                  </div>
+                  <span>Previous</span>
+                </button>
+                <button
+                  type="button"
+                  className="submit-next-btn"
+                  onClick={handleCreateEscrow}
+                  disabled={isCreatingEscrow}
+                >
+                  <div className="submit-btn-icon-circle">
+                    {isCreatingEscrow ? (
+                      <div className="loading-spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }}></div>
+                    ) : (
+                      <CheckCircle size={16} />
+                    )}
+                  </div>
+                  <span>{isCreatingEscrow ? 'Creating...' : 'Confirm'}</span>
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Payment Success Modal */}
+      {showSuccessModal && (
+        <div className="payment-success-modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="payment-success-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Close Button */}
+            <button
+              type="button"
+              className="payment-success-close-btn"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Success Icon */}
+            <div className="payment-success-icon">
+              <CheckCircle size={48} />
+            </div>
+
+            {/* Heading */}
+            <h2 className="payment-success-heading">Payment Successful</h2>
+
+            {/* Sub-text */}
+            <p className="payment-success-subtext">
+              You have successfully locked
+            </p>
+            <p className="payment-success-amount">
+              {createdEscrowData?.amount || '0'}XRP
+              ({createdEscrowData?.amountUsd || (exchangeRate && createdEscrowData?.amount 
+                ? (parseFloat(createdEscrowData.amount) * exchangeRate).toFixed(2)
+                : '0')}USD)
+            </p>
+
+            {/* Status and Transaction ID Section */}
+            <div className="payment-status-section">
+              <div className="payment-status-column">
+                <div className="payment-status-label">Status</div>
+                <div className="payment-status-value">
+                  <CheckCircle size={16} />
+                  <span>Completed</span>
+                </div>
+              </div>
+              <div className="payment-status-divider"></div>
+              <div className="payment-status-column">
+                <div className="payment-status-label">Transaction ID</div>
+                <div className="payment-transaction-id">
+                  #{createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId || 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="payment-success-buttons">
+              <button
+                type="button"
+                className="payment-details-btn"
+                onClick={() => {
+                  const escrowId = createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId;
+                  if (escrowId) {
+                    navigate(`/escrow/${escrowId}`);
+                  }
+                  setShowSuccessModal(false);
+                }}
+              >
+                View Receipt
+              </button>
+              <button
+                type="button"
+                className="payment-done-btn"
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // Refresh escrow list
+                  window.location.reload();
+                }}
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
