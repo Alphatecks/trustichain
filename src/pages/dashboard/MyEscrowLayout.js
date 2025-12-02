@@ -193,12 +193,15 @@ const MyEscrowLayout = ({ children }) => {
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'My Escrow' && location.pathname === '/my-escrow');
+                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                               (item.label === 'Transactions' && location.pathname === '/transactions');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
                 } else if (item.label === 'My Escrow') {
                   navigate('/my-escrow');
+                } else if (item.label === 'Transactions') {
+                  navigate('/transactions');
                 }
               };
               return (
