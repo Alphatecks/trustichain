@@ -125,6 +125,17 @@ const Transactions = () => {
     toAmount: ''
   });
   const [isSwapping, setIsSwapping] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendForm, setSendForm] = useState({
+    fromWallet: 'XRP',
+    fromAmount: '24,567.89',
+    toCurrency: 'EUR',
+    toAmount: '24,567.89',
+    fullName: '',
+    phoneNumber: '',
+    walletAddress: '',
+    reason: ''
+  });
 
   const formattedToday = useMemo(() => {
     const now = new Date();
@@ -1562,7 +1573,7 @@ const Transactions = () => {
                         <div key={index} className="beneficiary-placeholder"></div>
                       ))}
                     </div>
-                    <button type="button" className="send-beneficiary-btn">
+                    <button type="button" className="send-beneficiary-btn" onClick={() => setShowSendModal(true)}>
                       <ExternalLink size={18} />
                       Send
                     </button>
@@ -2204,6 +2215,123 @@ const Transactions = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send Modal */}
+      {showSendModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowSendModal(false)}>
+          <div className="notification-modal send-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="send-modal-header">
+              <h2>Send</h2>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => setShowSendModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="send-modal-content">
+              {/* Transfer Details Section */}
+              <div className="send-transfer-section">
+                <div className="send-from-section">
+                  <label className="send-section-label">From</label>
+                  <div className="send-wallet-selector">
+                    <div className="send-currency-badge">XRP</div>
+                    <span className="send-wallet-text">XRP wallet</span>
+                    <ChevronDown size={16} />
+                  </div>
+                  <div className="send-amount-display">$24,567.89</div>
+                  <div className="send-balance-text">Balance: 24,567.89 USDT</div>
+                </div>
+
+                <div className="send-transfer-arrow">
+                  <button type="button" className="send-arrow-btn">
+                    <ArrowRight size={20} />
+                  </button>
+                </div>
+
+                <div className="send-to-section">
+                  <label className="send-section-label">To</label>
+                  <div className="send-wallet-selector">
+                    <div className="send-currency-flag">
+                      <img src="https://flagcdn.com/w40/gb.png" alt="EUR" />
+                    </div>
+                    <span className="send-wallet-text">EUR</span>
+                    <ChevronDown size={16} />
+                  </div>
+                  <div className="send-amount-display">$24,567.89</div>
+                  <div className="send-exchange-rate">1 XRP = $0.5430 USD</div>
+                </div>
+              </div>
+
+              {/* Recipient Information Section */}
+              <div className="send-recipient-section">
+                <h3 className="send-recipient-title">Recipient Information</h3>
+                
+                <div className="send-form-row">
+                  <div className="send-form-group">
+                    <label htmlFor="send-full-name">Full Name</label>
+                    <input
+                      id="send-full-name"
+                      type="text"
+                      placeholder="Enter your name"
+                      value={sendForm.fullName}
+                      onChange={(e) => setSendForm(prev => ({ ...prev, fullName: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="send-form-group">
+                    <label htmlFor="send-phone">Phone Number</label>
+                    <input
+                      id="send-phone"
+                      type="tel"
+                      placeholder="(+44)"
+                      value={sendForm.phoneNumber}
+                      onChange={(e) => setSendForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="send-form-group">
+                  <label htmlFor="send-wallet-address">Wallet Address or Bank Account</label>
+                  <input
+                    id="send-wallet-address"
+                    type="text"
+                    placeholder="Enter Wallet Address or Bank Account"
+                    value={sendForm.walletAddress}
+                    onChange={(e) => setSendForm(prev => ({ ...prev, walletAddress: e.target.value }))}
+                  />
+                </div>
+
+                <div className="send-form-group">
+                  <label htmlFor="send-reason">Reason for transfer (optional)</label>
+                  <input
+                    id="send-reason"
+                    type="text"
+                    placeholder="Enter discription"
+                    value={sendForm.reason}
+                    onChange={(e) => setSendForm(prev => ({ ...prev, reason: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Bottom Section */}
+              <div className="send-bottom-section">
+                <div className="send-info-message">
+                  <div className="send-info-icon">
+                    <Info size={16} />
+                  </div>
+                  <span>You'll receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
+                </div>
+                <button type="button" className="send-preview-btn">
+                  Preview Transfer
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -918,4 +918,300 @@ body.transactions-page-active .landing-navbar {
   }
 }
 
+/* Send Modal Styles */
+.send-modal {
+  max-width: 800px;
+  width: 90%;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--white);
+}
+
+.send-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-modal-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Transfer Details Section */
+.send-transfer-section {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.send-from-section,
+.send-to-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.send-section-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-wallet-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-wallet-selector:hover {
+  border-color: var(--blue-600);
+}
+
+.send-currency-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2F74FF;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-currency-flag {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+}
+
+.send-currency-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.send-wallet-text {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-align: left;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-amount-display {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: #000000;
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-balance-text,
+.send-exchange-rate {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-transfer-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.send-arrow-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #2F74FF;
+  color: var(--white);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.send-arrow-btn:hover {
+  background: #2563eb;
+}
+
+/* Recipient Information Section */
+.send-recipient-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.send-recipient-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2F74FF;
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.send-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.send-form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-form-group input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  background: var(--white);
+  transition: border-color 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-form-group input:focus {
+  outline: none;
+  border-color: #2F74FF;
+}
+
+.send-form-group input::placeholder {
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Bottom Section */
+.send-bottom-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.send-info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.send-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: #2F74FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.send-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-preview-btn {
+  padding: 0.875rem 2rem;
+  background: #2F74FF;
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.send-preview-btn:hover {
+  background: #2563eb;
+}
+
+/* Responsive adjustments for send modal */
+@media (max-width: 768px) {
+  .send-transfer-section {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .send-transfer-arrow {
+    margin-top: 0;
+  }
+
+  .send-arrow-btn {
+    transform: rotate(90deg);
+  }
+
+  .send-bottom-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .send-preview-btn {
+    width: 100%;
+  }
+
+  .send-modal {
+    width: 95%;
+    max-width: 100%;
+  }
+}
+
 
