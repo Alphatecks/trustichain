@@ -173,55 +173,76 @@ body.transactions-page-active .landing-navbar {
 }
 
 /* Beneficiaries Section */
+.beneficiaries-card {
+  padding: 1.5rem;
+  gap: 0;
+}
+
+.beneficiaries-card .section-content {
+  gap: 1rem;
+}
+
+.beneficiaries-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.beneficiaries-indicator {
+  width: 8px;
+  height: 22px;
+  background: #2F74FF;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.beneficiaries-card .section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000000;
+}
+
 .beneficiaries-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
 }
 
 .beneficiaries-avatars {
   display: flex;
-  gap: -0.5rem;
+  gap: 0.75rem;
   align-items: center;
 }
 
-.beneficiary-avatar {
-  width: 40px;
-  height: 40px;
+.beneficiary-placeholder {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: linear-gradient(150deg, var(--blue-600), #4eafff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--white);
-  font-weight: 600;
-  font-size: 0.85rem;
-  border: 2px solid var(--white);
-  margin-left: -8px;
-}
-
-.beneficiary-avatar:first-child {
-  margin-left: 0;
+  background: #D9D9D9;
+  border: 2px solid #2F74FF;
+  flex-shrink: 0;
 }
 
 .send-beneficiary-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--blue-600);
-  color: var(--white);
+  padding: 0.625rem 1.25rem;
+  background: #2F74FF;
+  color: #FFFFFF;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 500;
   font-size: 0.9rem;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 .send-beneficiary-btn:hover {
-  background: #0052CC;
+  background: #2563eb;
 }
 
 /* Wallet Summary Cards */

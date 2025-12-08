@@ -34,7 +34,8 @@ import {
   DollarSign,
   X,
   Info,
-  ArrowUpDown
+  ArrowUpDown,
+  ExternalLink
 } from 'lucide-react';
 import './Dashboard.css';
 import './Transactions.css';
@@ -1549,20 +1550,20 @@ const Transactions = () => {
               </div>
 
               {/* Beneficiaries Section */}
-              <div className="transactions-section-card">
-                <div className="section-indicator"></div>
+              <div className="transactions-section-card beneficiaries-card">
                 <div className="section-content">
-                  <h3 className="section-title">Beneficiaries</h3>
+                  <div className="beneficiaries-title-wrapper">
+                    <div className="beneficiaries-indicator"></div>
+                    <h3 className="section-title">Beneficiaries</h3>
+                  </div>
                   <div className="beneficiaries-container">
                     <div className="beneficiaries-avatars">
-                      {beneficiaries.slice(0, 4).map((beneficiary) => (
-                        <div key={beneficiary.id} className="beneficiary-avatar">
-                          {beneficiary.initials || beneficiary.name?.substring(0, 2).toUpperCase() || '??'}
-                        </div>
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="beneficiary-placeholder"></div>
                       ))}
                     </div>
                     <button type="button" className="send-beneficiary-btn">
-                      <ArrowRight size={18} />
+                      <ExternalLink size={18} />
                       Send
                     </button>
                   </div>
