@@ -126,6 +126,7 @@ const Transactions = () => {
   });
   const [isSwapping, setIsSwapping] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showTransactionSummaryModal, setShowTransactionSummaryModal] = useState(false);
   const [sendForm, setSendForm] = useState({
     fromWallet: 'XRP',
     fromAmount: '24,567.89',
@@ -2327,9 +2328,88 @@ const Transactions = () => {
                   </div>
                   <span>You'll receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
                 </div>
-                <button type="button" className="send-preview-btn">
+                <button 
+                  type="button" 
+                  className="send-preview-btn"
+                  onClick={() => {
+                    setShowSendModal(false);
+                    setShowTransactionSummaryModal(true);
+                  }}
+                >
                   Preview Transfer
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Summary Modal */}
+      {showTransactionSummaryModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowTransactionSummaryModal(false)}>
+          <div className="notification-modal transaction-summary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="transaction-summary-header">
+              <h2>Transaction Summary</h2>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => setShowTransactionSummaryModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="transaction-summary-content">
+              <div className="transaction-details-list">
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Send Amount:</span>
+                  <span className="transaction-detail-value">1,000 XRP</span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Exchange Rate:</span>
+                  <span className="transaction-detail-value">1 XRP = $0.5430</span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Network Fee:</span>
+                  <span className="transaction-detail-value">0.00001 XRP</span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Service Fee:</span>
+                  <span className="transaction-detail-value">$2.50 (0.46%)</span>
+                </div>
+              </div>
+
+              <div className="transaction-divider"></div>
+
+              <div className="transaction-recipient-details">
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label recipient-label">Recipient Gets:</span>
+                  <span className="transaction-detail-value">$540.50 USD</span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Estimated Arrival:</span>
+                  <span className="transaction-detail-value">3-5 seconds</span>
+                </div>
+              </div>
+
+              <div className="transaction-summary-actions">
+                <button 
+                  type="button" 
+                  className="transaction-transfer-btn"
+                  onClick={() => {
+                    // Handle transfer logic here
+                    setShowTransactionSummaryModal(false);
+                  }}
+                >
+                  Transfer
+                </button>
+              </div>
+
+              <div className="transaction-summary-disclaimer">
+                <div className="transaction-info-icon">
+                  <Info size={16} />
+                </div>
+                <span>Recipient will receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
               </div>
             </div>
           </div>
