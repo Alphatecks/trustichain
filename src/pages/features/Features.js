@@ -24,7 +24,7 @@ const Features = () => {
               </p>
               <div className="features-hero-actions">
                 <Link to="/create" className="features-cta-button primary">
-                  Join Waitlist
+                  Signup
                   <ArrowRight className="features-button-icon" />
                 </Link>
                 <Link to="/learn-more" className="features-cta-button secondary">
@@ -413,7 +413,7 @@ const Features = () => {
               
               <div className="features-cta-buttons">
                 <Link to="/create" className="features-cta-button features-cta-button-primary">
-                  Join Waitlist
+                  Signup
                   <ArrowRight className="features-cta-button-icon" />
                 </Link>
                 <Link to="/learn-more" className="features-cta-button features-cta-button-secondary">Learn more</Link>

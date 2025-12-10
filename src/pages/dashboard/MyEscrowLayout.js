@@ -194,7 +194,9 @@ const MyEscrowLayout = ({ children }) => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions');
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
@@ -202,6 +204,10 @@ const MyEscrowLayout = ({ children }) => {
                   navigate('/my-escrow');
                 } else if (item.label === 'Transactions') {
                   navigate('/transactions');
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
+                } else if (item.label === 'Trusticard') {
+                  navigate('/trusticard');
                 }
               };
               return (

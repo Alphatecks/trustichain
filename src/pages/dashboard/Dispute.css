@@ -1,0 +1,421 @@
+/* Dispute Page Styles */
+
+.dispute-content {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Summary Cards */
+.dispute-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.dispute-summary-card {
+  background: var(--white);
+  border: none;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.dispute-card-indicator {
+  width: 4px;
+  background: var(--blue-600);
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  height: 1.2em;
+  margin-top: 0.1em;
+}
+
+.dispute-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.dispute-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.dispute-card-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.dispute-card-change-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.dispute-card-change-badge.positive {
+  background: #E8F5E9;
+  color: #4CAF50;
+}
+
+.dispute-card-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+}
+
+.dispute-card-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: var(--white);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s;
+  width: fit-content;
+}
+
+.dispute-card-dropdown:hover {
+  border-color: var(--blue-600);
+}
+
+/* Filter Section */
+.dispute-filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dispute-filter-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.dispute-filter-dropdown:hover {
+  border-color: var(--blue-600);
+}
+
+.dispute-month-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--blue-600);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Dispute Table */
+.dispute-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dispute-table-header,
+.dispute-table-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.2fr 1fr 1.8fr 1.2fr;
+  gap: 0;
+  width: 100%;
+}
+
+.dispute-table-cell {
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  color: #333333;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  background: var(--white);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+
+.dispute-table-header .dispute-table-cell {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.dispute-table-header .dispute-table-cell:first-child {
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+  border-right: none;
+}
+
+.dispute-table-header .dispute-table-cell:not(:first-child):not(:last-child) {
+  border-left: none;
+  border-right: none;
+}
+
+.dispute-table-header .dispute-table-cell:last-child {
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  border-left: none;
+}
+
+.dispute-table-row .dispute-table-cell:first-child {
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+  border-right: none;
+}
+
+.dispute-table-row .dispute-table-cell:not(:first-child):not(:last-child) {
+  border-left: none;
+  border-right: none;
+}
+
+.dispute-table-row .dispute-table-cell:last-child {
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  border-left: none;
+}
+
+.dispute-case-id {
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-weight: 400;
+  color: #333333;
+}
+
+.dispute-parties {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.party-link {
+  color: var(--blue-600);
+  cursor: pointer;
+  font-weight: 400;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.party-link:hover {
+  text-decoration: underline;
+}
+
+.party-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.dispute-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.amount-primary {
+  font-weight: 400;
+  color: #333333;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.amount-secondary {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.dispute-status {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border: 1px solid;
+}
+
+.dispute-status.pending {
+  background: #FFF8E1;
+  color: #FFA000;
+  border-color: #FFECB3;
+}
+
+.dispute-reason {
+  color: #333333;
+  font-weight: 400;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.dispute-duration {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-start;
+}
+
+.dispute-duration span {
+  color: #333333;
+  font-weight: 400;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.dispute-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+  margin-left: auto;
+}
+
+.dispute-action-btn:hover {
+  background: var(--blue-500);
+}
+
+.dispute-action-btn svg {
+  color: var(--white);
+}
+
+/* Pagination */
+.dispute-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.pagination-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.pagination-nav-btn:hover:not(:disabled) {
+  background: var(--blue-100);
+  border-color: var(--blue-600);
+  color: var(--blue-600);
+}
+
+.pagination-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-page-btn:hover {
+  background: var(--blue-100);
+  border-color: var(--blue-600);
+  color: var(--blue-600);
+}
+
+.pagination-page-btn.active {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+  color: var(--white);
+}
+
+.pagination-ellipsis {
+  padding: 0 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .dispute-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dispute-content {
+    padding: 1rem;
+  }
+
+  .dispute-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .dispute-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .dispute-table {
+    min-width: 800px;
+  }
+
+  .dispute-pagination {
+    flex-wrap: wrap;
+  }
+}

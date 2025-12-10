@@ -331,7 +331,7 @@ const LearnMore = () => {
             
             <div className="features-cta-buttons">
               <Link to="/create" className="features-cta-button features-cta-button-primary">
-                Join Waitlist
+                Signup
                 <ArrowRight className="features-cta-button-icon" />
               </Link>
               <Link to="/learn-more" className="features-cta-button features-cta-button-secondary">Learn more</Link>

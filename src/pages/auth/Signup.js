@@ -62,8 +62,10 @@ const Signup = () => {
         return;
       }
 
-      toast.success('An email verification link has been sent to you');
-      navigate('/login');
+      toast.success('Registration successful! Please complete KYC verification.');
+      // Set KYC as incomplete for new users
+      localStorage.setItem('kycComplete', 'false');
+      navigate('/dashboard');
     } catch (error) {
       toast.error(error.message || 'An error occurred during registration');
       console.error('Signup error:', error);
@@ -117,23 +119,9 @@ const Signup = () => {
               </button>
             </div>
 
-            <button 
-              type="button" 
-              className="signup-social-btn" 
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-            >
-              <img src={googleLogo} alt="Google" />
-              {isGoogleLoading ? 'Redirecting...' : 'Sign up with Google'}
-            </button>
-
-            <div className="signup-divider">
-              <span>OR</span>
-            </div>
-
             <div className="signup-welcome">
-              <h2>Welcome Back!</h2>
-              <p>We are so excited to see you again!</p>
+              <h2>Create an Account</h2>
+              <p>Welcome to Tustichain</p>
             </div>
 
             <form className="signup-form" onSubmit={handleSubmit}>
@@ -202,9 +190,23 @@ const Signup = () => {
               </label>
 
               <button type="submit" className="signup-primary-btn" disabled={!agreeTerms || isLoading}>
-                {isLoading ? 'Signing Up...' : 'Sign Up'}
+                {isLoading ? 'Signing Up...' : 'Sign In'}
               </button>
             </form>
+
+            <div className="signup-divider">
+              <span>OR</span>
+            </div>
+
+            <button 
+              type="button" 
+              className="signup-social-btn" 
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+            >
+              <img src={googleLogo} alt="Google" />
+              {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
+            </button>
 
             <label className="signup-terms">
               <input

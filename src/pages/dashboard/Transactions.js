@@ -35,7 +35,9 @@ import {
   X,
   Info,
   ArrowUpDown,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  QrCode
 } from 'lucide-react';
 import './Dashboard.css';
 import './Transactions.css';
@@ -127,6 +129,8 @@ const Transactions = () => {
   const [isSwapping, setIsSwapping] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showTransactionSummaryModal, setShowTransactionSummaryModal] = useState(false);
+  const [showFundWalletTransferModal, setShowFundWalletTransferModal] = useState(false);
+  const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [sendForm, setSendForm] = useState({
     fromWallet: 'XRP',
     fromAmount: '24,567.89',
@@ -1239,7 +1243,9 @@ const Transactions = () => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions');
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
@@ -1247,6 +1253,12 @@ const Transactions = () => {
                   navigate('/my-escrow');
                 } else if (item.label === 'Transactions') {
                   navigate('/transactions');
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
+                } else if (item.label === 'Trusticard') {
+                  navigate('/trusticard');
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
                 }
               };
               return (
@@ -2397,8 +2409,8 @@ const Transactions = () => {
                   type="button" 
                   className="transaction-transfer-btn"
                   onClick={() => {
-                    // Handle transfer logic here
                     setShowTransactionSummaryModal(false);
+                    setShowFundWalletTransferModal(true);
                   }}
                 >
                   Transfer
@@ -2410,6 +2422,159 @@ const Transactions = () => {
                   <Info size={16} />
                 </div>
                 <span>Recipient will receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fund Wallet Transfer Modal */}
+      {showFundWalletTransferModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowFundWalletTransferModal(false)}>
+          <div className="notification-modal fund-wallet-transfer-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fund-wallet-transfer-modal-header">
+              <h2>Fund wallet</h2>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => setShowFundWalletTransferModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="fund-wallet-transfer-modal-content">
+              {/* Currency Section */}
+              <div className="fund-wallet-transfer-form-group">
+                <label className="fund-wallet-transfer-label">Currency</label>
+                <div className="fund-wallet-transfer-selector">
+                  <div className="fund-wallet-transfer-currency-badge">XRP</div>
+                  <span className="fund-wallet-transfer-selector-text">XPR wallet</span>
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+
+              {/* Network Input Section */}
+              <div className="fund-wallet-transfer-form-group">
+                <label className="fund-wallet-transfer-label">Network</label>
+                <input
+                  type="text"
+                  className="fund-wallet-transfer-input"
+                  placeholder="Enter your name"
+                />
+              </div>
+
+              {/* Network QR Code & Address Section */}
+              <div className="fund-wallet-transfer-form-group">
+                <label className="fund-wallet-transfer-label">Network</label>
+                <div className="fund-wallet-transfer-address-section">
+                  <div className="fund-wallet-transfer-qr-code">
+                    <QrCode size={120} />
+                  </div>
+                  <div className="fund-wallet-transfer-address-content">
+                    <div className="fund-wallet-transfer-address-text">
+                      <span>rEb8TK3gBgk5auZkwc6sHnw</span>
+                      <span>rGVJH8DuaLh</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="fund-wallet-transfer-copy-btn"
+                      onClick={() => {
+                        navigator.clipboard.writeText('rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh');
+                        toast.success('Address copied to clipboard');
+                      }}
+                    >
+                      <Copy size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview Transfer Button */}
+              <div className="fund-wallet-transfer-actions">
+                <button 
+                  type="button" 
+                  className="fund-wallet-transfer-preview-btn"
+                  onClick={() => {
+                    setShowFundWalletTransferModal(false);
+                    setShowSavingsModal(true);
+                  }}
+                >
+                  Preview Transfer
+                </button>
+              </div>
+
+              {/* Information Text */}
+              <div className="fund-wallet-transfer-info-message">
+                <div className="fund-wallet-transfer-info-icon">
+                  <Info size={16} />
+                </div>
+                <span>Recipient gets the funds immediately—or a full refund applies.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Savings Modal */}
+      {showSavingsModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowSavingsModal(false)}>
+          <div className="notification-modal savings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="savings-modal-header">
+              <h2>Savings</h2>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => setShowSavingsModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="savings-modal-content">
+              {/* Amount Section */}
+              <div className="savings-amount-section">
+                <div className="savings-amount-header">
+                  <label className="savings-section-label">Amount</label>
+                  <div className="savings-wallet-selector">
+                    <div className="savings-currency-badge">XRP</div>
+                    <span className="savings-wallet-text">XPR wallet</span>
+                    <ChevronDown size={16} />
+                  </div>
+                </div>
+                <div className="savings-amount-display">$24,567.89</div>
+                <div className="savings-balance-text">Balance: 24,567.89 USDT</div>
+              </div>
+
+              {/* Saving Accounts Section */}
+              <div className="savings-form-group">
+                <label className="savings-section-label">Saving accounts</label>
+                <div className="savings-account-selector">
+                  <span className="savings-account-text">My Goals</span>
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+
+              {/* Transfer Button */}
+              <div className="savings-actions">
+                <button 
+                  type="button" 
+                  className="savings-transfer-btn"
+                  onClick={() => {
+                    // Handle transfer logic
+                    setShowSavingsModal(false);
+                  }}
+                >
+                  Transfer
+                </button>
+              </div>
+
+              {/* Information Message */}
+              <div className="savings-info-message">
+                <div className="savings-info-icon">
+                  <Info size={16} />
+                </div>
+                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
               </div>
             </div>
           </div>

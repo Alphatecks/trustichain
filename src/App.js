@@ -20,6 +20,9 @@ import OAuthCallback from './pages/auth/OAuthCallback';
 import Dashboard from './pages/dashboard/Dashboard';
 import MyEscrow from './pages/dashboard/MyEscrow';
 import Transactions from './pages/dashboard/Transactions';
+import Dispute from './pages/dashboard/Dispute';
+import DisputeDetail from './pages/dashboard/DisputeDetail';
+import TrustiCard from './pages/dashboard/TrustiCard';
 import useAutoLogout from './hooks/useAutoLogout';
 import './App.css';
 
@@ -30,7 +33,7 @@ function AppContent() {
   useAutoLogout(3600000);
   
   // Hide navbar on auth pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
@@ -54,6 +57,9 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/my-escrow" element={<MyEscrow />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/dispute" element={<Dispute />} />
+          <Route path="/dispute/:id" element={<DisputeDetail />} />
+          <Route path="/trusticard" element={<TrustiCard />} />
         </Routes>
       </main>
       <Toaster 

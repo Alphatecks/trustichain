@@ -158,30 +158,6 @@ const Login = () => {
               </Link>
             </div>
 
-            <div className="login-social-buttons">
-              <button 
-                type="button" 
-                className="login-social-btn" 
-                onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading}
-              >
-                <img src={googleLogo} alt="Google" />
-                {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
-              </button>
-              <button type="button" className="login-social-btn">
-                <KeyRound size={18} />
-                Sign in with passkey
-              </button>
-              <button type="button" className="login-social-btn">
-                <Shield size={18} />
-                Sign in with SSO
-              </button>
-            </div>
-
-            <div className="login-divider">
-              <span>OR</span>
-            </div>
-
             <div className="login-welcome">
               <h2>Welcome Back!</h2>
               <p>We are so excited to see you again!</p>
@@ -227,6 +203,30 @@ const Login = () => {
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
             </form>
+
+            <div className="login-divider">
+              <span>OR</span>
+            </div>
+
+            <div className="login-social-buttons">
+              <button 
+                type="button" 
+                className="login-social-btn" 
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+              >
+                <img src={googleLogo} alt="Google" />
+                {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
+              </button>
+              <button type="button" className="login-social-btn">
+                <KeyRound size={18} />
+                Sign in with passkey
+              </button>
+              <button type="button" className="login-social-btn">
+                <Shield size={18} />
+                Sign in with SSO
+              </button>
+            </div>
 
             <label className="login-security-note">
               <input type="checkbox" defaultChecked readOnly />

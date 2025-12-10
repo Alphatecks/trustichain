@@ -31,7 +31,7 @@ const Home = () => {
             </p>
             <div className="hero-actions">
               <Link to="/waitlist" className="cta-button primary">
-                Join waitlist
+                Signup
                 <ArrowRight className="button-icon" />
               </Link>
               <Link to="/learn-more" className="cta-button secondary">
@@ -518,7 +518,7 @@ const Home = () => {
               
               <div className="cta-buttons">
                 <Link to="/waitlist" className="cta-button cta-button-primary">
-                  Join waitlist
+                  Signup
                   <div className="cta-button-icon">
                     <ArrowRight size={16} />
                   </div>

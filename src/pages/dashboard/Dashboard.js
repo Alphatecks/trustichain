@@ -24,6 +24,7 @@ import {
   Building2,
   Users,
   FileCheck,
+  FileText,
   Code,
   Box,
   Link,
@@ -33,7 +34,8 @@ import {
   Filter,
   AlertTriangle,
   CheckCircle,
-  Package
+  Package,
+  Menu
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../assets/images/icons/logo.png';
@@ -1671,7 +1673,357 @@ const Dashboard = () => {
     console.log('renderDashboardView - isLoadingDashboard:', isLoadingDashboard);
     
     return (
-      <div className="dashboard-content">
+      <>
+        {/* Mobile Dashboard */}
+        <div className="mobile-dashboard">
+          {/* Mobile Header */}
+          <div className="mobile-dashboard-header">
+            <div className="mobile-header-left">
+              <div className="mobile-user-avatar">{userInitials}</div>
+              <div className="mobile-user-info">
+                <span className="mobile-user-name">
+                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+                </span>
+                <span className="mobile-user-role">Freelancer</span>
+              </div>
+            </div>
+            <div className="mobile-header-right">
+              <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
+                <Bell size={20} />
+              </button>
+              <button type="button" className="mobile-header-menu">
+                <Menu size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Total Balance Card */}
+          <div className="mobile-total-balance-card">
+            <div className="mobile-balance-header">
+              <div className="mobile-balance-title">
+                <FileText size={18} />
+                <span>Total Balance</span>
+              </div>
+              <button type="button" onClick={() => setShowBalance(!showBalance)} className="mobile-eye-toggle">
+                {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
+            <div className="mobile-balance-amount">
+              {showBalance 
+                ? (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null 
+                    ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                    : (isLoadingDashboard ? 'Loading...' : '$24,567.89'))
+                : '••••••'}
+            </div>
+            <div className="mobile-balance-xrp">
+              ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
+                  ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                  : (isLoadingDashboard ? 'Loading...' : '45,234')} XRP
+            </div>
+            <div className="mobile-balance-actions">
+              <button 
+                type="button" 
+                className="mobile-fund-btn"
+                onClick={() => setShowFundWalletModal(true)}
+              >
+                <Plus size={16} />
+                Fund Wallet
+              </button>
+              <button 
+                type="button" 
+                className="mobile-withdraw-btn"
+                onClick={() => setShowWithdrawWalletModal(true)}
+              >
+                <Plus size={16} />
+                Withdraw
+              </button>
+            </div>
+          </div>
+
+          {/* Key Metrics Cards */}
+          <div className="mobile-metrics-cards">
+            <div className="mobile-metric-card">
+              <div className="mobile-metric-header">
+                <FileCheck size={16} />
+                <span>Active Escrow</span>
+              </div>
+              <div className="mobile-metric-value">
+                {dashboardData?.activeEscrows?.count !== undefined 
+                  ? dashboardData.activeEscrows.count 
+                  : (isLoadingDashboard ? 'Loading...' : 23)}
+              </div>
+              <div className="mobile-metric-subvalue">
+                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
+                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                    : (isLoadingDashboard ? 'Loading...' : '156,789')} locked
+              </div>
+              <button type="button" className="mobile-metric-btn">
+                <Plus size={14} />
+                Create Escrow
+              </button>
+            </div>
+            <div className="mobile-metric-card">
+              <div className="mobile-metric-header">
+                <ShieldCheck size={16} />
+                <span>Trustiscore</span>
+              </div>
+              <div className="mobile-metric-value">
+                {dashboardData?.trustiscore?.score !== undefined 
+                  ? dashboardData.trustiscore.score 
+                  : (isLoadingDashboard ? 'Loading...' : 70)}
+                <span className="mobile-metric-suffix">/100</span>
+              </div>
+              <div className="mobile-metric-subvalue">
+                {dashboardData?.trustiscore?.level !== undefined 
+                  ? dashboardData.trustiscore.level 
+                  : (isLoadingDashboard ? 'Loading...' : 'Platinum')}
+              </div>
+              <button type="button" className="mobile-metric-btn">
+                View Level
+              </button>
+            </div>
+          </div>
+
+          {/* Portfolio Section */}
+          <div className="mobile-portfolio-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h3 className="mobile-section-title">Portfolio</h3>
+              <div className="mobile-section-dropdown">
+                <span>Monthly</span>
+                <ChevronDown size={14} />
+              </div>
+            </div>
+            <div className="mobile-chart-container">
+              <div className="mobile-chart-y-axis">
+                {[0, 10, 20, 30, 40, 50].map((val) => (
+                  <span key={val}>{val}k</span>
+                ))}
+              </div>
+              <div className="mobile-bar-chart">
+                {isLoadingPortfolio && (
+                  <span className="mobile-rate-currency">Loading portfolio...</span>
+                )}
+
+                {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
+                  const maxValue =
+                    portfolioPoints.reduce(
+                      (max, p) => Math.max(max, Number(p.value ?? 0)),
+                      0
+                    ) || 1;
+
+                  return portfolioPoints.map((point, index) => {
+                    const value = Number(point.value ?? 0);
+                    const height = Math.max(5, (value / maxValue) * 100);
+                    const label = point.label ?? '';
+                    const isLastBar = index === portfolioPoints.length - 1;
+
+                    return (
+                      <div key={`${label}-${index}`} className="mobile-bar-wrapper">
+                        <div
+                          className={`mobile-bar ${isLastBar ? 'mobile-bar-last' : ''}`}
+                          style={{ height: `${height}%` }}
+                        />
+                        <span className="mobile-bar-label">{label}</span>
+                      </div>
+                    );
+                  });
+                })()}
+
+                {!isLoadingPortfolio && (!portfolioPoints || portfolioPoints.length === 0) && (
+                  <span className="mobile-rate-currency">No portfolio data</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Live Exchange Rate Section */}
+          <div className="mobile-exchange-rate-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h3 className="mobile-section-title">Live Exchange Rate</h3>
+            </div>
+            <div className="mobile-rate-list">
+              {isLoadingRates && (
+                <div className="mobile-rate-item">
+                  <div className="mobile-rate-info">
+                    <span className="mobile-rate-currency">Loading rates...</span>
+                  </div>
+                </div>
+              )}
+
+              {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
+                const code = (rate.currency || rate.code || '').toUpperCase();
+                const change = Number(rate.changePercent ?? rate.change ?? 0);
+                const isPositive = change > 0;
+                const isNegative = change < 0;
+                const flagCode =
+                  code === 'USD' ? 'us' :
+                  code === 'EUR' ? 'eu' :
+                  code === 'GBP' ? 'gb' :
+                  code === 'JPY' ? 'jp' :
+                  code === 'NGN' ? 'ng' :
+                  code === 'CAD' ? 'ca' :
+                  code === 'AUD' ? 'au' :
+                  code === 'CNY' ? 'cn' :
+                  'us';
+
+                const symbol =
+                  code === 'USD' ? '$' :
+                  code === 'EUR' ? '€' :
+                  code === 'GBP' ? '£' :
+                  code === 'JPY' ? '¥' :
+                  '';
+
+                return (
+                  <div className="mobile-rate-item" key={`${code}-${index}`}>
+                    <div className="mobile-rate-flag">
+                      <img src={`https://flagcdn.com/w40/${flagCode}.png`} alt={code} />
+                    </div>
+                    <div className="mobile-rate-info">
+                      <span className="mobile-rate-currency">{code}</span>
+                    </div>
+                    <div className="mobile-rate-value-change">
+                      <span className="mobile-rate-value">
+                        {symbol}{Number(rate.rate ?? rate.value ?? 0).toFixed(4)}
+                      </span>
+                      <div className={`mobile-rate-change ${isPositive ? 'positive' : isNegative ? 'negative' : 'neutral'}`}>
+                        {isPositive && <TrendingUp size={14} />}
+                        {isNegative && <TrendingDown size={14} />}
+                        <span>
+                          {change === 0 ? '0.0%' : `${change > 0 ? '+' : ''}${change.toFixed(1)}%`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!isLoadingRates && (!Array.isArray(exchangeRates) || exchangeRates.length === 0) && (
+                <div className="mobile-rate-item">
+                  <div className="mobile-rate-info">
+                    <span className="mobile-rate-currency">No exchange rates available</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Wallet Balance Section */}
+          <div className="mobile-wallet-balance-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h3 className="mobile-section-title">Wallet Balance</h3>
+            </div>
+            <div className="mobile-wallet-list">
+              <div className="mobile-wallet-item">
+                <div className="mobile-wallet-icon-group">
+                  <div className="mobile-wallet-icon">XRP</div>
+                  <div className="mobile-wallet-icon-info">
+                    <span className="mobile-wallet-name">XRP</span>
+                    <span className="mobile-wallet-crypto">
+                      {showBalance 
+                        ? (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
+                            ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
+                            : (isLoadingWalletBalances ? 'Loading...' : '45,234.56 XRP'))
+                        : '••••••'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mobile-wallet-value-change">
+                  <span className="mobile-wallet-amount">
+                    {showBalance 
+                      ? (() => {
+                          if (walletBalances?.xrp && exchangeRates) {
+                            const xrpRate = exchangeRates.find(r => (r.currency || r.code || '').toUpperCase() === 'USD');
+                            if (xrpRate && xrpRate.rate) {
+                              const usdValue = Number(walletBalances.xrp) * Number(xrpRate.rate);
+                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            }
+                          }
+                          if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
+                            return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          }
+                          return isLoadingWalletBalances ? 'Loading...' : '$24,567.89';
+                        })()
+                      : '••••••'}
+                  </span>
+                  <div className="mobile-wallet-change positive">
+                    <TrendingUp size={14} />
+                    <span>+2.4%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mobile-wallet-item">
+                <div className="mobile-wallet-icon-group">
+                  <div className="mobile-wallet-icon">USDT</div>
+                  <div className="mobile-wallet-icon-info">
+                    <span className="mobile-wallet-name">Tether USD</span>
+                    <span className="mobile-wallet-crypto">
+                      {showBalance 
+                        ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
+                            ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+                            : (isLoadingWalletBalances ? 'Loading...' : '12,500.00 USDT'))
+                        : '••••••'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mobile-wallet-value-change">
+                  <span className="mobile-wallet-amount">
+                    {showBalance 
+                      ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
+                          ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : (isLoadingWalletBalances ? 'Loading...' : '$12,500.00'))
+                      : '••••••'}
+                  </span>
+                  <div className="mobile-wallet-change neutral">
+                    <span>0.0%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mobile-wallet-item">
+                <div className="mobile-wallet-icon-group">
+                  <div className="mobile-wallet-icon">USDC</div>
+                  <div className="mobile-wallet-icon-info">
+                    <span className="mobile-wallet-name">USD Coin</span>
+                    <span className="mobile-wallet-crypto">
+                      {showBalance 
+                        ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
+                            ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
+                            : (isLoadingWalletBalances ? 'Loading...' : '8,750.00 USDC'))
+                        : '••••••'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mobile-wallet-value-change">
+                  <span className="mobile-wallet-amount">
+                    {showBalance 
+                      ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
+                          ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : (isLoadingWalletBalances ? 'Loading...' : '$8,750.00'))
+                      : '••••••'}
+                  </span>
+                  <div className="mobile-wallet-change positive">
+                    <TrendingUp size={14} />
+                    <span>+0.1%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Escrow Section */}
+          <div className="mobile-escrow-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h3 className="mobile-section-title">Live Escrow</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Dashboard */}
+        <div className="dashboard-content">
         {/* Breadcrumb */}
         <div className="card-breadcrumb">
           <span className="breadcrumb-root">General</span>
@@ -2133,6 +2485,7 @@ const Dashboard = () => {
         <div className="dashboard-bottom">
         </div>
       </div>
+      </>
     );
   };
 
@@ -2188,9 +2541,6 @@ const Dashboard = () => {
                   </span>
                 </label>
               </div>
-            </div>
-            <div className="upload-illustration">
-              <img src={uploadIllustration} alt="Document upload illustration" />
             </div>
           </div>
           <div className="upload-actions">
@@ -2318,7 +2668,7 @@ const Dashboard = () => {
               <span className="btn-arrow">
                 <ArrowRight size={16} />
               </span>
-              <span>Submit and Next</span>
+              <span className="btn-text">Submit and Next</span>
             </button>
           </div>
         </form>
@@ -2344,7 +2694,9 @@ const Dashboard = () => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions');
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
@@ -2352,6 +2704,10 @@ const Dashboard = () => {
                   navigate('/my-escrow');
                 } else if (item.label === 'Transactions') {
                   navigate('/transactions');
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
+                } else if (item.label === 'Trusticard') {
+                  navigate('/trusticard');
                 }
               };
               return (
@@ -2488,7 +2844,11 @@ const Dashboard = () => {
           renderDashboardView()
         ) : (
           <section className="dashboard-card">
-            <div className="card-header">
+            <div className="kyc-mobile-header-only">
+              <div className="kyc-mobile-indicator"></div>
+              <h1 className="kyc-mobile-title-only">KYC Verification</h1>
+            </div>
+            <div className="card-header kyc-header-desktop">
               <div className="card-breadcrumb">
                 <span className="breadcrumb-root">KYC verification Form</span>
                 <span className="breadcrumb-divider">›</span>
@@ -2501,13 +2861,16 @@ const Dashboard = () => {
                 <div key={step.label} className={`step ${stepStatus(index)}`}>
                   <div className="step-node" aria-hidden="true" />
                   <p className="step-title">{step.detail}</p>
-                  {index < steps.length - 1 && <div className="step-connector" />}
+                  {index < steps.length - 1 && (
+                    <div className={`step-connector ${stepStatus(index + 1)}`} />
+                  )}
                 </div>
               ))}
             </div>
 
             <div className={`card-content ${currentStep === 1 ? 'single-column' : ''}`}>
               <div className="card-left">
+                {currentStep === 0 && <h2 className="kyc-section-title-mobile">Proof of identity</h2>}
                 {renderStepContent()}
               </div>
 

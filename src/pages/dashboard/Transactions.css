@@ -1365,4 +1365,442 @@ body.transactions-page-active .landing-navbar {
   }
 }
 
+/* Fund Wallet Transfer Modal Styles */
+.fund-wallet-transfer-modal {
+  max-width: 450px;
+  width: 90%;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--white);
+}
+
+.fund-wallet-transfer-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-modal-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fund-wallet-transfer-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-selector:hover {
+  border-color: var(--blue-600);
+}
+
+.fund-wallet-transfer-currency-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2F74FF;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-selector-text {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-align: left;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  background: var(--white);
+  transition: border-color 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-input:focus {
+  outline: none;
+  border-color: #2F74FF;
+}
+
+.fund-wallet-transfer-input::placeholder {
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-wallet-transfer-address-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.fund-wallet-transfer-qr-code {
+  width: 140px;
+  height: 140px;
+  border: 2px solid #2F74FF;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--white);
+  padding: 0.5rem;
+}
+
+.fund-wallet-transfer-address-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fund-wallet-transfer-address-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  word-break: break-all;
+}
+
+.fund-wallet-transfer-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.fund-wallet-transfer-copy-btn:hover {
+  border-color: #2F74FF;
+  background: var(--blue-100);
+  color: #2F74FF;
+}
+
+.fund-wallet-transfer-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.fund-wallet-transfer-preview-btn {
+  padding: 0.875rem 3rem;
+  background: #2F74FF;
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  width: 100%;
+  max-width: 400px;
+}
+
+.fund-wallet-transfer-preview-btn:hover {
+  background: #2563eb;
+}
+
+.fund-wallet-transfer-info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.fund-wallet-transfer-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: #2F74FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fund-wallet-transfer-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Responsive adjustments for fund wallet transfer modal */
+@media (max-width: 768px) {
+  .fund-wallet-transfer-address-section {
+    flex-direction: column;
+  }
+
+  .fund-wallet-transfer-qr-code {
+    align-self: center;
+  }
+
+  .fund-wallet-transfer-preview-btn {
+    width: 100%;
+  }
+
+  .fund-wallet-transfer-modal {
+    width: 95%;
+    max-width: 100%;
+  }
+}
+
+/* Savings Modal Styles */
+.savings-modal {
+  max-width: 450px;
+  width: 90%;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--white);
+}
+
+.savings-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-modal-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-amount-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.savings-amount-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.savings-section-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-wallet-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-wallet-selector:hover {
+  border-color: var(--blue-600);
+}
+
+.savings-currency-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2F74FF;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-wallet-text {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-align: left;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-amount-display {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: #000000;
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-balance-text {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.savings-account-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-account-selector:hover {
+  border-color: var(--blue-600);
+}
+
+.savings-account-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.savings-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.savings-transfer-btn {
+  padding: 0.875rem 3rem;
+  background: #2F74FF;
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  width: 100%;
+  max-width: 400px;
+}
+
+.savings-transfer-btn:hover {
+  background: #2563eb;
+}
+
+.savings-info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.savings-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: #2F74FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.savings-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Responsive adjustments for savings modal */
+@media (max-width: 768px) {
+  .savings-amount-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .savings-transfer-btn {
+    width: 100%;
+  }
+
+  .savings-modal {
+    width: 95%;
+    max-width: 100%;
+  }
+}
+
 

@@ -87,7 +87,7 @@ const Waitlist = () => {
                         className="waitlist-submit-button"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? 'Joining...' : 'Join Waitlist'}
+                        {isSubmitting ? 'Signing up...' : 'Signup'}
                       </button>
                     </div>
                   </form>
