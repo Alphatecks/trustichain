@@ -35,7 +35,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Package,
-  Menu
+  Menu,
+  Wallet
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../assets/images/icons/logo.png';
@@ -127,6 +128,8 @@ const Dashboard = () => {
   const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
+  const [userRole, setUserRole] = useState('Freelancer');
+  const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [fundWalletForm, setFundWalletForm] = useState({
@@ -143,6 +146,59 @@ const Dashboard = () => {
     destinationAddress: ''
   });
   const [isWithdrawingWallet, setIsWithdrawingWallet] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Helper function to extract balance from different API response structures
+  const getBalanceValue = (data, currency = 'usd') => {
+    if (!data) {
+      console.log('getBalanceValue: No data provided');
+      return null;
+    }
+    
+    const currencyKey = currency.toLowerCase();
+    const currencyUpper = currency.toUpperCase();
+    
+    // Try different possible structures
+    let value = null;
+    
+    // Structure 1: data.balance.usd or data.balance.xrp
+    if (data.balance && typeof data.balance === 'object') {
+      value = data.balance[currencyKey] || data.balance[currencyUpper] || null;
+      if (value !== null) {
+        console.log(`getBalanceValue: Found in data.balance.${currencyKey}:`, value);
+        return Number(value);
+      }
+    }
+    
+    // Structure 2: data.totalBalance or data.balanceData
+    const balanceObj = data.totalBalance || data.balanceData || data.balances || {};
+    if (balanceObj && typeof balanceObj === 'object') {
+      value = balanceObj[currencyKey] || balanceObj[currencyUpper] || 
+              balanceObj[`total${currencyUpper}`] || 
+              balanceObj[`${currencyKey}Balance`] ||
+              balanceObj[`${currencyKey}Amount`] ||
+              null;
+      if (value !== null) {
+        console.log(`getBalanceValue: Found in balance object:`, value);
+        return Number(value);
+      }
+    }
+    
+    // Structure 3: Direct properties like data.totalUSD, data.balanceUSD
+    value = data[`total${currencyUpper}`] || 
+            data[`balance${currencyUpper}`] ||
+            data[`${currencyKey}Balance`] ||
+            data[`${currencyKey}Amount`] ||
+            null;
+    
+    if (value !== null) {
+      console.log(`getBalanceValue: Found as direct property:`, value);
+      return Number(value);
+    }
+    
+    console.log(`getBalanceValue: Could not find ${currencyKey} balance in data:`, data);
+    return null;
+  };
 
   const fetchDashboardSummary = async () => {
     try {
@@ -188,8 +244,36 @@ const Dashboard = () => {
         if (result.success && result.data) {
           console.log('Setting dashboard data:', result.data);
           console.log('Balance data:', result.data.balance);
-          setDashboardData(result.data);
-          console.log('Dashboard data state updated');
+          
+          // Normalize balance data structure
+          const normalizedData = { ...result.data };
+          
+          // Ensure balance structure exists and is properly formatted
+          if (!normalizedData.balance) {
+            normalizedData.balance = {};
+          }
+          
+          // Extract balance values using helper function (handles multiple structures)
+          const usdValue = getBalanceValue(result.data, 'usd');
+          const xrpValue = getBalanceValue(result.data, 'xrp');
+          
+          // Set balance values if found
+          if (usdValue !== null) {
+            normalizedData.balance.usd = usdValue;
+            console.log('USD Balance extracted:', usdValue);
+          } else {
+            console.warn('USD Balance not found in API response');
+          }
+          
+          if (xrpValue !== null) {
+            normalizedData.balance.xrp = xrpValue;
+            console.log('XRP Balance extracted:', xrpValue);
+          } else {
+            console.warn('XRP Balance not found in API response');
+          }
+          
+          setDashboardData(normalizedData);
+          console.log('Dashboard data state updated with normalized balance:', normalizedData.balance);
         } else {
           console.warn('API response missing success or data. Full response:', result);
         }
@@ -220,6 +304,8 @@ const Dashboard = () => {
         console.log('Session expired, using fallback user profile');
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
+        setUserRole('Freelancer');
+        setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
       }
@@ -279,6 +365,14 @@ const Dashboard = () => {
             }
             
             setUserInitials(initials);
+
+            // Extract user role from profile data
+            const role = data.role || data.userType || data.accountType || 'Freelancer';
+            setUserRole(role);
+
+            // Extract user avatar/image from profile data
+            const avatar = data.avatar || data.profilePicture || data.image || data.photo || null;
+            setUserAvatar(avatar);
           } else {
             console.warn('Unexpected user profile response shape. Expected success and data.', result);
           }
@@ -299,6 +393,18 @@ const Dashboard = () => {
 
     fetchUserProfile();
   }, [isSessionExpired]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     const fetchExchangeRates = async () => {
@@ -418,6 +524,13 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchWalletBalances = async () => {
       try {
+        // If session is expired, don't fetch
+        if (isSessionExpired) {
+          console.log('Session expired, skipping wallet balances fetch');
+          setIsLoadingWalletBalances(false);
+          return;
+        }
+
         const token = localStorage.getItem('token');
         if (!token) {
           console.warn('No token found for wallet balances');
@@ -442,12 +555,56 @@ const Dashboard = () => {
           const result = await response.json();
           console.log('Wallet balances API response data:', result);
 
-          // Expected shape:
-          // { success: true, data: { balance: { xrp, usdt, usdc }, xrplAddress } }
+          // Handle different possible response structures
+          let balances = null;
+          
+          // Structure 1: { success: true, data: { balance: { xrp, usdt, usdc } } }
           if (result?.success && result?.data?.balance) {
-            setWalletBalances(result.data.balance);
+            balances = result.data.balance;
+            console.log('Found balances in result.data.balance:', balances);
+          }
+          // Structure 2: { success: true, data: { xrp, usdt, usdc } }
+          else if (result?.success && result?.data) {
+            const data = result.data;
+            if (data.xrp !== undefined || data.usdt !== undefined || data.usdc !== undefined) {
+              balances = {
+                xrp: data.xrp || data.XRP || 0,
+                usdt: data.usdt || data.USDT || 0,
+                usdc: data.usdc || data.USDC || 0
+              };
+              console.log('Found balances in result.data:', balances);
+            }
+          }
+          // Structure 3: { success: true, data: { wallets: [...] } }
+          else if (result?.success && Array.isArray(result?.data?.wallets)) {
+            balances = {};
+            result.data.wallets.forEach(wallet => {
+              const currency = (wallet.currency || wallet.code || '').toLowerCase();
+              const balance = wallet.balance || wallet.amount || 0;
+              if (currency === 'xrp') balances.xrp = Number(balance);
+              if (currency === 'usdt') balances.usdt = Number(balance);
+              if (currency === 'usdc') balances.usdc = Number(balance);
+            });
+            console.log('Found balances from wallets array:', balances);
+          }
+          // Structure 4: Direct balance object
+          else if (result?.balance) {
+            balances = result.balance;
+            console.log('Found balances in result.balance:', balances);
+          }
+
+          if (balances) {
+            // Normalize the balance values
+            const normalizedBalances = {
+              xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
+              usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
+              usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0
+            };
+            console.log('Setting normalized wallet balances:', normalizedBalances);
+            setWalletBalances(normalizedBalances);
           } else {
-            console.warn('Unexpected wallet balances response shape. Expected data.balance object.', result);
+            console.warn('Could not extract wallet balances from API response:', result);
+            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -456,16 +613,18 @@ const Dashboard = () => {
             statusText: response.statusText,
             data: errorData
           });
+          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
         }
       } catch (error) {
         console.error('Error fetching wallet balances:', error);
+        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
       } finally {
         setIsLoadingWalletBalances(false);
       }
     };
 
     fetchWalletBalances();
-  }, []);
+  }, [isSessionExpired]);
 
   useEffect(() => {
     const fetchEscrows = async () => {
@@ -1679,22 +1838,182 @@ const Dashboard = () => {
           {/* Mobile Header */}
           <div className="mobile-dashboard-header">
             <div className="mobile-header-left">
-              <div className="mobile-user-avatar">{userInitials}</div>
+              <div className="mobile-user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="mobile-user-info">
                 <span className="mobile-user-name">
                   {isLoadingUserProfile ? 'Loading...' : userFullName}
                   <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
                 </span>
-                <span className="mobile-user-role">Freelancer</span>
+                <span className="mobile-user-role">
+                  {isLoadingUserProfile ? 'Loading...' : userRole}
+                </span>
               </div>
             </div>
             <div className="mobile-header-right">
               <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
                 <Bell size={20} />
               </button>
-              <button type="button" className="mobile-header-menu">
+              <button 
+                type="button" 
+                className="mobile-header-menu"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
                 <Menu size={20} />
               </button>
+            </div>
+          </div>
+
+          {/* Mobile Sidebar Overlay */}
+          {isMobileMenuOpen && (
+            <div 
+              className="mobile-sidebar-overlay"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+          )}
+
+          {/* Mobile Sidebar Drawer */}
+          <div className={`mobile-sidebar-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+            <div className="mobile-sidebar-header">
+              <div className="mobile-sidebar-branding">
+                <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+                <div className="mobile-sidebar-branding-text">
+                  <span className="mobile-sidebar-title">TrustiChain</span>
+                  <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="mobile-sidebar-close"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mobile-sidebar-content">
+              <div className="mobile-sidebar-section">
+                <p className="mobile-sidebar-section-label">
+                  {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
+                </p>
+                <nav className="mobile-sidebar-nav">
+                  {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                                     (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                                     (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                                     (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                     (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                    const handleNavClick = () => {
+                      setIsMobileMenuOpen(false);
+                      if (item.label === 'Dashboard') {
+                        navigate('/dashboard');
+                      } else if (item.label === 'My Escrow') {
+                        navigate('/my-escrow');
+                      } else if (item.label === 'Transactions') {
+                        navigate('/transactions');
+                      } else if (item.label === 'Dispute') {
+                        navigate('/dispute');
+                      } else if (item.label === 'Trusticard') {
+                        navigate('/trusticard');
+                      }
+                    };
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                      >
+                        <Icon size={18} />
+                        <span>{item.label}</span>
+                        {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {accountType === 'Business Suite' && (
+                <div className="mobile-sidebar-section">
+                  <p className="mobile-sidebar-section-label">Developers Tool</p>
+                  <nav className="mobile-sidebar-nav">
+                    {developersNav.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button 
+                          key={item.label} 
+                          type="button" 
+                          className="mobile-sidebar-nav-item"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Icon size={18} />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+              )}
+
+              <div className="mobile-sidebar-section">
+                <p className="mobile-sidebar-section-label">Support</p>
+                <nav className="mobile-sidebar-nav">
+                  {supportNav.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button 
+                        key={item.label} 
+                        type="button" 
+                        className="mobile-sidebar-nav-item"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Icon size={18} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              <div className="mobile-sidebar-bottom">
+                <div className="mobile-sidebar-help-card">
+                  <div className="mobile-sidebar-help-icon">
+                    <HelpCircle size={24} />
+                  </div>
+                  <h3>Help Center</h3>
+                  <p>Having trouble in Trustichain? Please contact us</p>
+                  <button type="button" className="mobile-sidebar-help-cta">
+                    Contact us
+                  </button>
+                </div>
+
+                <div className="mobile-sidebar-trustiscore">
+                  <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+                  <span className="mobile-sidebar-trustiscore-badge">
+                    {dashboardData?.trustiscore?.score !== undefined 
+                      ? dashboardData.trustiscore.score 
+                      : (isLoadingDashboard ? '...' : '97')}
+                  </span>
+                </div>
+
+                <button 
+                  type="button" 
+                  className="mobile-sidebar-logout"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    // Add logout logic here
+                  }}
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1702,7 +2021,7 @@ const Dashboard = () => {
           <div className="mobile-total-balance-card">
             <div className="mobile-balance-header">
               <div className="mobile-balance-title">
-                <FileText size={18} />
+                <Wallet size={18} />
                 <span>Total Balance</span>
               </div>
               <button type="button" onClick={() => setShowBalance(!showBalance)} className="mobile-eye-toggle">
@@ -1711,15 +2030,29 @@ const Dashboard = () => {
             </div>
             <div className="mobile-balance-amount">
               {showBalance 
-                ? (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null 
-                    ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                    : (isLoadingDashboard ? 'Loading...' : '$24,567.89'))
+                ? (() => {
+                    const usdBalance = getBalanceValue(dashboardData, 'usd');
+                    if (isLoadingDashboard) {
+                      return 'Loading...';
+                    }
+                    if (usdBalance !== null && usdBalance !== undefined) {
+                      return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    }
+                    return '$0.00';
+                  })()
                 : '••••••'}
             </div>
             <div className="mobile-balance-xrp">
-              ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
-                  ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                  : (isLoadingDashboard ? 'Loading...' : '45,234')} XRP
+              ≈ {(() => {
+                  const xrpBalance = getBalanceValue(dashboardData, 'xrp');
+                  if (isLoadingDashboard) {
+                    return 'Loading...';
+                  }
+                  if (xrpBalance !== null && xrpBalance !== undefined) {
+                    return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  }
+                  return '0.00';
+                })()} XRP
             </div>
             <div className="mobile-balance-actions">
               <button 
@@ -1924,9 +2257,11 @@ const Dashboard = () => {
                     <span className="mobile-wallet-name">XRP</span>
                     <span className="mobile-wallet-crypto">
                       {showBalance 
-                        ? (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
-                            ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
-                            : (isLoadingWalletBalances ? 'Loading...' : '45,234.56 XRP'))
+                        ? (isLoadingWalletBalances 
+                            ? 'Loading...' 
+                            : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null && walletBalances.xrp > 0
+                                ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
+                                : '0.00 XRP'))
                         : '••••••'}
                     </span>
                   </div>
@@ -1945,7 +2280,7 @@ const Dashboard = () => {
                           if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
                             return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                           }
-                          return isLoadingWalletBalances ? 'Loading...' : '$24,567.89';
+                          return isLoadingWalletBalances ? 'Loading...' : '$0.00';
                         })()
                       : '••••••'}
                   </span>
@@ -1962,21 +2297,25 @@ const Dashboard = () => {
                     <span className="mobile-wallet-name">Tether USD</span>
                     <span className="mobile-wallet-crypto">
                       {showBalance 
-                        ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
-                            ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
-                            : (isLoadingWalletBalances ? 'Loading...' : '12,500.00 USDT'))
+                        ? (isLoadingWalletBalances 
+                            ? 'Loading...' 
+                            : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null && walletBalances.usdt > 0
+                                ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+                                : '0.00 USDT'))
                         : '••••••'}
                     </span>
                   </div>
                 </div>
                 <div className="mobile-wallet-value-change">
-                  <span className="mobile-wallet-amount">
-                    {showBalance 
-                      ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
-                          ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : (isLoadingWalletBalances ? 'Loading...' : '$12,500.00'))
-                      : '••••••'}
-                  </span>
+                    <span className="mobile-wallet-amount">
+                      {showBalance 
+                        ? (isLoadingWalletBalances 
+                            ? 'Loading...' 
+                            : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null && walletBalances.usdt > 0
+                                ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : '$0.00'))
+                        : '••••••'}
+                    </span>
                   <div className="mobile-wallet-change neutral">
                     <span>0.0%</span>
                   </div>
@@ -1989,9 +2328,11 @@ const Dashboard = () => {
                     <span className="mobile-wallet-name">USD Coin</span>
                     <span className="mobile-wallet-crypto">
                       {showBalance 
-                        ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
-                            ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
-                            : (isLoadingWalletBalances ? 'Loading...' : '8,750.00 USDC'))
+                        ? (isLoadingWalletBalances 
+                            ? 'Loading...' 
+                            : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null && walletBalances.usdc > 0
+                                ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
+                                : '0.00 USDC'))
                         : '••••••'}
                     </span>
                   </div>
@@ -2018,6 +2359,108 @@ const Dashboard = () => {
             <div className="mobile-section-header">
               <div className="mobile-section-indicator"></div>
               <h3 className="mobile-section-title">Live Escrow</h3>
+            </div>
+            <div className="mobile-escrow-list">
+              {isLoadingEscrows ? (
+                <div className="mobile-escrow-item">
+                  <div className="mobile-escrow-loading">Loading escrows...</div>
+                </div>
+              ) : escrows && escrows.length > 0 ? (
+                escrows.slice(0, 3).map((escrow, index) => {
+                  const escrowId = escrow.id || escrow.escrowId || escrow._id || `#ESC-2024-${String(index + 1).padStart(3, '0')}`;
+                  const payerName = escrow.payerName || escrow.payer?.name || escrow.senderName || 'John Depp';
+                  const payerAvatar = escrow.payerAvatar || escrow.payer?.avatar || null;
+                  const payerInitials = payerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Sarah Wilson';
+                  const counterpartyAvatar = escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
+                  const counterpartyInitials = counterpartyName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  
+                  // Get amount - try XRP first, then USD
+                  const xrpAmount = escrow.amount?.xrp || escrow.amount?.XRP || escrow.xrpAmount || null;
+                  const usdAmount = escrow.amount?.usd || escrow.amount?.USD || escrow.usdAmount || escrow.totalAmount || null;
+                  
+                  // Calculate USD equivalent if we have XRP amount and exchange rate
+                  let displayXrp = xrpAmount;
+                  let displayUsd = usdAmount;
+                  if (xrpAmount && exchangeRates && exchangeRates.length > 0) {
+                    const xrpRate = exchangeRates.find(r => (r.currency || r.code || '').toUpperCase() === 'XRP');
+                    if (xrpRate && xrpRate.rate && !displayUsd) {
+                      displayUsd = Number(xrpAmount) * Number(xrpRate.rate);
+                    }
+                  }
+                  
+                  const status = escrow.status || escrow.escrowStatus || 'pending';
+                  const statusText = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+                  // Normalize status for CSS class (handle spaces, underscores, etc.)
+                  const statusClass = status.toLowerCase().replace(/[\s_]/g, '_');
+                  
+                  return (
+                    <div key={escrowId || index} className="mobile-escrow-item">
+                      <div className="mobile-escrow-id">{escrowId}</div>
+                      <div className="mobile-escrow-parties">
+                        <div className="mobile-escrow-party">
+                          {payerAvatar ? (
+                            <img src={payerAvatar} alt={payerName} className="mobile-escrow-avatar" />
+                          ) : (
+                            <div className="mobile-escrow-avatar-initials">{payerInitials}</div>
+                          )}
+                          <span className="mobile-escrow-party-name">{payerName}</span>
+                        </div>
+                        <ArrowRight size={16} className="mobile-escrow-arrow" />
+                        <div className="mobile-escrow-party">
+                          {counterpartyAvatar ? (
+                            <img src={counterpartyAvatar} alt={counterpartyName} className="mobile-escrow-avatar" />
+                          ) : (
+                            <div className="mobile-escrow-avatar-initials">{counterpartyInitials}</div>
+                          )}
+                          <span className="mobile-escrow-party-name">{counterpartyName}</span>
+                        </div>
+                      </div>
+                      <div className="mobile-escrow-amounts">
+                        <div className="mobile-escrow-xrp">
+                          {displayXrp ? `${Number(displayXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP` : '0.00 XRP'}
+                        </div>
+                        {displayUsd && (
+                          <div className="mobile-escrow-usd">
+                            ≈ ${Number(displayUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        )}
+                      </div>
+                      <button className={`mobile-escrow-status ${statusClass}`}>
+                        {statusText}
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="mobile-escrow-item">
+                  <div className="mobile-escrow-empty">No active escrows</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Trusticard Section */}
+          <div className="mobile-trusticard-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h3 className="mobile-section-title">Trusticard</h3>
+            </div>
+            <div className="mobile-trusticard">
+              <div className="mobile-card-header-info">
+                <div className="mobile-card-logo">
+                  <img src={logoWhite} alt="TrustiChain" className="mobile-card-logo-img" />
+                  <span>TrustiChain</span>
+                </div>
+                <div className="mobile-card-type">Premium Debit</div>
+              </div>
+              <div className="mobile-card-number">7834 **** **** 6453</div>
+              <div className="mobile-card-holder">
+                <span className="mobile-card-holder-label">Card holder</span>
+                <span className="mobile-card-holder-name">
+                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -2772,7 +3215,11 @@ const Dashboard = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">
+              {dashboardData?.trustiscore?.score !== undefined 
+                ? dashboardData.trustiscore.score 
+                : (isLoadingDashboard ? '...' : '97')}
+            </span>
           </div>
 
           <button type="button" className="sidebar-logout">
