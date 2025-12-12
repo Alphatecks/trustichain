@@ -1632,15 +1632,53 @@ const MyEscrow = () => {
       {showCreateEscrowModal && (
         <div className="create-escrow-modal-overlay" onClick={() => setShowCreateEscrowModal(false)}>
           <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header - NO border-bottom */}
+            {/* Modal Header - Mobile with back icon */}
             <div className="create-escrow-modal-header">
+              <div className="modal-header-back-icon"></div>
               <h2>Create Escrow</h2>
               <button type="button" className="modal-close-btn" onClick={() => setShowCreateEscrowModal(false)}>
                 <X size={24} />
               </button>
             </div>
 
-            {/* Step Indicator with vertical divider */}
+            {/* Step Indicator - Mobile Card Style */}
+            <div className="create-escrow-steps-mobile">
+              {currentStep === 1 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <CreditCard size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 1/3</span>
+                    <span className="step-title-mobile">Type/ Counterparty</span>
+                  </div>
+                </div>
+              )}
+              {currentStep === 2 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <FileText size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 2/3</span>
+                    <span className="step-title-mobile">Terms</span>
+                  </div>
+                </div>
+              )}
+              {currentStep === 3 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 3/3</span>
+                    <span className="step-title-mobile">Confirmation</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step Indicator - Desktop with vertical divider */}
             <div className="create-escrow-steps">
               <div className={`step-indicator ${currentStep === 1 ? 'active' : currentStep > 1 ? 'completed' : ''}`}>
                 <div className="step-icon">
@@ -1679,7 +1717,7 @@ const MyEscrow = () => {
                 <>
                   {/* Escrow Type Section - Horizontal buttons */}
                   <div className="escrow-form-section">
-                    <h3 className="section-title">Escrow Type</h3>
+                    <h3 className="section-title">Escrow Terms</h3>
                     <div className="escrow-type-buttons">
                       <button
                         type="button"
@@ -2748,15 +2786,53 @@ const MyEscrow = () => {
       {showCreateEscrowModal && (
         <div className="create-escrow-modal-overlay" onClick={() => setShowCreateEscrowModal(false)}>
           <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header - NO border-bottom */}
+            {/* Modal Header - Mobile with back icon */}
             <div className="create-escrow-modal-header">
+              <div className="modal-header-back-icon"></div>
               <h2>Create Escrow</h2>
               <button type="button" className="modal-close-btn" onClick={() => setShowCreateEscrowModal(false)}>
                 <X size={24} />
               </button>
             </div>
 
-            {/* Step Indicator with vertical divider */}
+            {/* Step Indicator - Mobile Card Style */}
+            <div className="create-escrow-steps-mobile">
+              {currentStep === 1 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <CreditCard size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 1/3</span>
+                    <span className="step-title-mobile">Type/ Counterparty</span>
+                  </div>
+                </div>
+              )}
+              {currentStep === 2 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <FileText size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 2/3</span>
+                    <span className="step-title-mobile">Terms</span>
+                  </div>
+                </div>
+              )}
+              {currentStep === 3 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 3/3</span>
+                    <span className="step-title-mobile">Confirmation</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step Indicator - Desktop with vertical divider */}
             <div className="create-escrow-steps">
               <div className={`step-indicator ${currentStep === 1 ? 'active' : currentStep > 1 ? 'completed' : ''}`}>
                 <div className="step-icon">
@@ -2795,7 +2871,7 @@ const MyEscrow = () => {
                 <>
                   {/* Escrow Type Section - Horizontal buttons */}
                   <div className="escrow-form-section">
-                    <h3 className="section-title">Escrow Type</h3>
+                    <h3 className="section-title">Escrow Terms</h3>
                     <div className="escrow-type-buttons">
                       <button
                         type="button"

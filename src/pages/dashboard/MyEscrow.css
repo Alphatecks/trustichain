@@ -501,6 +501,10 @@
   /* NO border-bottom separator */
 }
 
+.modal-header-back-icon {
+  display: none;
+}
+
 .create-escrow-modal-header h2 {
   margin: 0;
   font-size: 1.75rem;
@@ -691,10 +695,10 @@
 }
 
 .section-title {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--blue-600);
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 2rem 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
@@ -1849,10 +1853,84 @@
     padding: 0;
   }
 
+  /* Hide desktop steps on mobile */
   .create-escrow-steps {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+    display: none !important;
+  }
+
+  /* Show mobile steps card */
+  .create-escrow-steps-mobile {
+    display: block !important;
+    margin: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .step-indicator-mobile {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    background: #f8faff !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+  }
+
+  .step-icon-mobile {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    border-radius: 50% !important;
+    background: var(--blue-600) !important;
+    color: var(--white) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .step-content-mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+  }
+
+  .step-number-mobile {
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    font-weight: 400 !important;
+  }
+
+  .step-title-mobile {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    color: var(--text-dark) !important;
+  }
+
+  /* Mobile header with back icon */
+  .create-escrow-modal-header {
+    padding: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+  }
+
+  .modal-header-back-icon {
+    display: block !important;
+    width: 4px !important;
+    height: 24px !important;
+    background: var(--blue-600) !important;
+    border-radius: 2px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .create-escrow-modal-header h2 {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    flex: 1 !important;
+    margin: 0 !important;
+  }
+
+  .modal-close-btn {
+    color: var(--blue-600) !important;
   }
 
   .step-divider {
@@ -1864,8 +1942,105 @@
     gap: 1.5rem;
   }
 
+  /* Escrow type buttons in 2x2 grid on mobile */
   .escrow-type-buttons {
-    flex-direction: column;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .escrow-type-btn {
+    padding: 0.875rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  /* Modal content padding */
+  .create-escrow-modal-content {
+    padding: 1rem !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  /* Form sections spacing */
+  .escrow-form-section {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .section-title {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: var(--blue-600) !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Form inputs */
+  .form-group {
+    margin-bottom: 1rem !important;
+  }
+
+  .form-group label {
+    font-size: 0.875rem !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+    color: var(--text-dark) !important;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    padding: 0.75rem !important;
+    font-size: 0.875rem !important;
+    border-radius: 0.5rem !important;
+    width: 100% !important;
+    border: 1px solid var(--border) !important;
+    background: #f8f9fa !important;
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: var(--text-muted) !important;
+  }
+
+  /* Required asterisk */
+  .required {
+    color: var(--red-500, #ef4444) !important;
+  }
+
+  /* Submit button */
+  .create-escrow-modal-footer {
+    padding: 1rem !important;
+    border-top: 1px solid var(--border) !important;
+    background: var(--white) !important;
+  }
+
+  .submit-next-btn {
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 0.875rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    background: var(--blue-600) !important;
+    color: var(--white) !important;
+    border: none !important;
+    border-radius: 0.5rem !important;
+    font-weight: 500 !important;
+  }
+
+  .submit-btn-icon-circle {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .submit-btn-icon-circle svg {
+    color: var(--white) !important;
   }
 }
 
@@ -1901,6 +2076,28 @@
   /* Show desktop table on desktop */
   .escrow-table-container {
     display: block !important;
+  }
+
+  /* Hide mobile steps on desktop */
+  .create-escrow-steps-mobile {
+    display: none !important;
+  }
+
+  /* Show desktop steps on desktop */
+  .create-escrow-steps {
+    display: flex !important;
+  }
+
+  /* Hide mobile back icon on desktop */
+  .modal-header-back-icon {
+    display: none !important;
+  }
+
+  /* Section title on desktop */
+  .section-title {
+    font-size: 0.875rem !important;
+    margin-bottom: 2rem !important;
+    color: var(--blue-600) !important;
   }
 }
 
