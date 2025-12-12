@@ -1169,15 +1169,17 @@ const MyEscrow = () => {
                     ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '0.00'}`}
             </div>
-            <div className="metric-subtitle">
-              ${lockedAmount !== null && lockedAmount !== undefined
-                ? lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                : '0.00'} locked
+            <div className="metric-subtitle-row">
+              <div className="metric-subtitle">
+                ${lockedAmount !== null && lockedAmount !== undefined
+                  ? lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : '0.00'} locked
+              </div>
+              <div className="metric-trend positive">
+                <TrendingUp size={14} />
+                <span>+3.1%</span>
+              </div>
             </div>
-          </div>
-          <div className="metric-trend positive">
-            <TrendingUp size={14} />
-            <span>+3.1%</span>
           </div>
         </div>
 
@@ -1194,11 +1196,13 @@ const MyEscrow = () => {
                 ? 'Loading...' 
                 : (totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0)}
             </div>
-            <div className="metric-subtitle">This month</div>
-          </div>
-          <div className="metric-trend positive">
-            <TrendingUp size={14} />
-            <span>+3.1%</span>
+            <div className="metric-subtitle-row">
+              <div className="metric-subtitle">This month</div>
+              <div className="metric-trend positive">
+                <TrendingUp size={14} />
+                <span>+3.1%</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1215,7 +1219,9 @@ const MyEscrow = () => {
                 ? 'Loading...' 
                 : (activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0)}
             </div>
-            <div className="metric-subtitle">This month</div>
+            <div className="metric-subtitle-row">
+              <div className="metric-subtitle">This month</div>
+            </div>
           </div>
         </div>
 
@@ -1232,7 +1238,9 @@ const MyEscrow = () => {
                 ? 'Loading...' 
                 : (completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0)}
             </div>
-            <div className="metric-subtitle">This month</div>
+            <div className="metric-subtitle-row">
+              <div className="metric-subtitle">This month</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1325,7 +1333,79 @@ const MyEscrow = () => {
         </div>
       </div>
 
-      {/* Escrow Table */}
+      {/* Escrow History Header - Mobile */}
+      <div className="escrow-history-header">
+        <div className="escrow-history-title-wrapper">
+          <div className="escrow-history-accent"></div>
+          <h3 className="escrow-history-title">Escrow History</h3>
+        </div>
+        <div className="escrow-history-controls">
+          <button type="button" className="escrow-history-control-btn">
+            <ChevronDown size={18} />
+          </button>
+          <button type="button" className="escrow-history-control-btn">
+            <Calendar size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Escrow History Card List - Mobile */}
+      <div className="escrow-history-list">
+        {isLoadingEscrows && (
+          <div className="escrow-history-card" style={{ textAlign: 'center', padding: '2rem' }}>
+            Loading escrows...
+          </div>
+        )}
+        {!isLoadingEscrows && escrows.length === 0 && (
+          <div className="escrow-history-card" style={{ textAlign: 'center', padding: '2rem' }}>
+            No escrows found
+          </div>
+        )}
+        {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow, index) => {
+          // Format escrow ID
+          const escrowId = escrow.id || escrow.xrplEscrowId || '';
+          const formattedId = escrowId ? `#${escrowId.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
+          
+          // Get parties
+          const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
+          const userFullName = escrow.userName || escrow.user?.name || 'You';
+          
+          // Format amounts
+          const xrpAmount = escrow.amount?.xrp 
+            ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+            : '0.00';
+          const usdAmount = escrow.amount?.usd 
+            ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '0.00';
+          
+          // Get status
+          const status = escrow.status || 'Unknown';
+          const statusLower = status.toLowerCase();
+          
+          return (
+            <div key={escrow.id || escrow.xrplEscrowId || index} className="escrow-history-card">
+              <div className="escrow-card-top">
+                <div className="escrow-card-id">{formattedId}</div>
+                <div className="escrow-card-value">
+                  {xrpAmount} XRP ≈ ${usdAmount}
+                </div>
+              </div>
+              <div className="escrow-card-bottom">
+                <div className="escrow-card-parties">
+                  <span className="escrow-card-party-from">{counterpartyName}</span>
+                  <span className="escrow-card-party-arrow">→</span>
+                  <span className="escrow-card-party-to">{userFullName}</span>
+                </div>
+                <button type="button" className={`escrow-card-status ${statusLower}`}>
+                  {status}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Escrow Table - Desktop */}
       <div className="escrow-table-container">
         <table className="escrow-data-table">
           <thead>
