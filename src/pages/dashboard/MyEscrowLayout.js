@@ -18,7 +18,12 @@ import {
   FileCheck,
   Code,
   Box,
-  Link
+  Link,
+  X,
+  Filter,
+  AlertTriangle,
+  CheckCircle,
+  Package
 } from 'lucide-react';
 import logo from '../../assets/images/icons/logo.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
@@ -61,6 +66,7 @@ const MyEscrowLayout = ({ children }) => {
   const location = useLocation();
   const { isSessionExpired } = useSession();
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState('All');
   const [accountType, setAccountType] = useState('Personal');
   const [kycComplete] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
@@ -341,6 +347,127 @@ const MyEscrowLayout = ({ children }) => {
         </header>
         {children}
       </main>
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Notification</h2>
+              </div>
+              <button type="button" className="notification-close-btn" onClick={() => setShowNotificationModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="notification-filter-bar">
+              <div className="notification-filter-buttons">
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('All')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'Unread' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('Unread')}
+                >
+                  Unread
+                </button>
+              </div>
+              <button type="button" className="notification-filter-icon">
+                <Filter size={18} />
+              </button>
+            </div>
+
+            <div className="notification-list">
+              <div className="notification-item unread">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                  <span className="notification-bell-dot"></span>
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <AlertTriangle size={18} className="notification-status-icon warning" />
+                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+                <div className="notification-unread-dot"></div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <CheckCircle size={18} className="notification-status-icon success" />
+                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
