@@ -1207,6 +1207,10 @@
 
 
 @media (max-width: 768px) {
+  /* Hide "General›My Escrow" breadcrumb on mobile */
+  .escrow-breadcrumb {
+    display: none !important;
+  }
   /* Constrain dashboard-main width on mobile */
   .dashboard-main {
     width: 100% !important;
