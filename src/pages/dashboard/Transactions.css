@@ -311,6 +311,16 @@ body.transactions-page-active .landing-navbar {
   flex: 0 0 360px !important;
 }
 
+.dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 1.5rem !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
 /* Increase total balance card width for desktop view only - match My Details section width */
 @media (min-width: 769px) {
   .dashboard.transactions-page .transactions-content .dashboard-summary-cards > :first-child.summary-card.total-balance-card {
@@ -321,9 +331,19 @@ body.transactions-page-active .landing-navbar {
     margin-left: 0.5rem !important;
     flex: 0 0 580px !important;
   }
+
+  .dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.5rem !important;
+    width: auto !important;
+    max-width: none !important;
+  }
 }
 
-.dashboard.transactions-page .transactions-content .dashboard-summary-cards > :not(:first-child) {
+.dashboard.transactions-page .transactions-content .dashboard-summary-cards > :not(:first-child):not(.wallet-cards-grid) {
   flex: 0 0 auto !important;
 }
 
@@ -1980,18 +2000,1405 @@ body.transactions-page-active .landing-navbar {
 
 /* Responsive adjustments for savings modal */
 @media (max-width: 768px) {
-  .savings-amount-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .savings-modal {
+    width: 95% !important;
+    max-width: 100% !important;
+  }
+
+  .savings-modal-header {
+    padding: 1rem !important;
+  }
+
+  .savings-modal-title-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .savings-modal-indicator {
+    width: 4px !important;
+    height: 1rem !important;
+    background: var(--blue-600) !important;
+    border-radius: 2px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .savings-modal-header h2 {
+    font-size: 1.25rem !important;
+    margin: 0 !important;
+    display: inline !important;
+  }
+
+  .savings-modal-content {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  /* Hide desktop layout on mobile */
+  .savings-amount-section,
+  .savings-form-group {
+    display: none !important;
+  }
+
+  /* Mobile Card-Based Layout */
+  .mobile-savings-cards {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .mobile-savings-amount-card,
+  .mobile-savings-account-card {
+    background: #f3f4f6 !important;
+    border-radius: 0.75rem !important;
+    padding: 1rem !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    font-family: 'Satoshi', 'Inter', sans-serif !important;
+  }
+
+  .mobile-savings-card-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-savings-card-icon {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    background: #dbeafe !important;
+    color: var(--blue-600) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-savings-card-type {
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    color: var(--text-dark) !important;
+    font-family: 'Satoshi', 'Inter', sans-serif !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-savings-card-center {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .mobile-savings-card-details {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .mobile-savings-wallet-selector,
+  .mobile-savings-account-selector {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    cursor: default !important;
+  }
+
+  .mobile-savings-wallet-selector {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .mobile-savings-account-selector {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  .mobile-savings-amount {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: var(--blue-600) !important;
+    margin: 0.25rem 0 !important;
+  }
+
+  .savings-balance-text {
+    font-size: 0.85rem !important;
+    color: var(--text-dark) !important;
+    margin: 0 !important;
+  }
+
+  .mobile-savings-card-right {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 0.25rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-savings-card-status {
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    color: #10b981 !important;
+    font-family: 'Satoshi', 'Inter', sans-serif !important;
   }
 
   .savings-transfer-btn {
-    width: 100%;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
   }
 
-  .savings-modal {
-    width: 95%;
-    max-width: 100%;
+  .savings-info-message {
+    margin-top: 0.5rem !important;
+    padding-top: 0.5rem !important;
+  }
+}
+
+/* Mobile Savings Full Page */
+.mobile-savings-full-page {
+  min-height: 100vh;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-savings-page-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.mobile-savings-page-title-wrapper .mobile-section-indicator {
+  width: 4px;
+  height: 1rem;
+  background: var(--blue-600);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mobile-savings-page-title-wrapper h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--blue-600);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+  width: 40px;
+  height: 40px;
+}
+
+.mobile-savings-close-btn:hover {
+  background: var(--blue-100);
+}
+
+.mobile-savings-page-content {
+  padding: 1.5rem 1rem;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Amount Section */
+.mobile-savings-amount-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mobile-savings-amount-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mobile-savings-section-label {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-wallet-selector-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  width: fit-content;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.mobile-savings-wallet-selector-pill:hover {
+  border-color: var(--blue-600);
+}
+
+.mobile-savings-wallet-pill-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+.mobile-savings-wallet-pill-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.mobile-savings-wallet-pill-text {
+  color: var(--blue-600);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-wallet-selector-pill svg {
+  color: var(--text-dark);
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+}
+
+.mobile-savings-amount-input-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-savings-amount-input {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border: none;
+  background: transparent;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+.mobile-savings-amount-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.mobile-savings-amount-input::-webkit-outer-spin-button,
+.mobile-savings-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.mobile-savings-amount-suffix {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+
+.mobile-savings-amount-display {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  margin-top: 0.25rem;
+}
+
+.mobile-savings-balance-text {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Saving Accounts Section */
+.mobile-savings-accounts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mobile-savings-account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  width: fit-content;
+  transition: opacity 0.2s;
+}
+
+.mobile-savings-account-link:hover {
+  opacity: 0.8;
+}
+
+.mobile-savings-account-link-text {
+  color: var(--blue-600);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-account-link svg {
+  color: var(--blue-600);
+}
+
+/* Transfer Button */
+.mobile-savings-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.mobile-savings-transfer-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-transfer-btn:hover {
+  background: var(--blue-500);
+}
+
+.mobile-savings-transfer-btn:active {
+  background: var(--blue-700);
+}
+
+/* Information Message */
+.mobile-savings-info-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.mobile-savings-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-savings-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Mobile Fund Wallet Full Page */
+.mobile-fund-wallet-full-page {
+  min-height: 100vh;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-fund-wallet-page-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.mobile-fund-wallet-page-title-wrapper .mobile-section-indicator {
+  width: 4px;
+  height: 1rem;
+  background: var(--blue-600);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mobile-fund-wallet-page-title-wrapper h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--blue-600);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+}
+
+.mobile-fund-wallet-close-btn:hover {
+  background: var(--blue-100);
+}
+
+.mobile-fund-wallet-page-content {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mobile-fund-wallet-section-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Currency Selection */
+.mobile-fund-wallet-currency-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-fund-wallet-currency-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.mobile-fund-wallet-currency-selector:hover {
+  border-color: var(--blue-600);
+}
+
+.mobile-fund-wallet-currency-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+.mobile-fund-wallet-currency-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.mobile-fund-wallet-currency-text {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--blue-600);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-currency-selector svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Amount Input */
+.mobile-fund-wallet-amount-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-fund-wallet-amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--white);
+  padding: 0.875rem 1rem;
+  transition: border-color 0.2s;
+}
+
+.mobile-fund-wallet-amount-input-wrapper:focus-within {
+  border-color: var(--blue-600);
+}
+
+.mobile-fund-wallet-amount-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  background: transparent;
+  color: var(--text-dark);
+}
+
+.mobile-fund-wallet-amount-input::placeholder {
+  color: var(--text-muted);
+}
+
+.mobile-fund-wallet-amount-suffix {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  margin-left: 0.5rem;
+}
+
+/* Network Input */
+.mobile-fund-wallet-network-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-fund-wallet-network-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  background: var(--white);
+  color: var(--text-dark);
+  transition: border-color 0.2s;
+}
+
+.mobile-fund-wallet-network-input:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+.mobile-fund-wallet-network-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Recipient Wallet Details */
+.mobile-fund-wallet-recipient-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-fund-wallet-address-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.mobile-fund-wallet-qr-code {
+  width: 180px;
+  height: 180px;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--white);
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-fund-wallet-qr-code svg {
+  color: var(--text-dark);
+  width: 100%;
+  height: 100%;
+}
+
+.mobile-fund-wallet-address-content {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.mobile-fund-wallet-address-text {
+  flex: 1;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  word-break: break-all;
+  line-height: 1.5;
+  min-width: 0;
+}
+
+.mobile-fund-wallet-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.mobile-fund-wallet-copy-btn:hover {
+  border-color: var(--blue-600);
+  background: var(--blue-100);
+  color: var(--blue-600);
+}
+
+/* Preview Transfer Button */
+.mobile-fund-wallet-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.mobile-fund-wallet-preview-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-preview-btn:hover {
+  background: var(--blue-500);
+}
+
+.mobile-fund-wallet-preview-btn:active {
+  background: var(--blue-700);
+}
+
+/* Information Message */
+.mobile-fund-wallet-info-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-fund-wallet-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-fund-wallet-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+  .mobile-fund-wallet-full-page {
+    display: none !important;
+  }
+}
+
+/* Mobile Fund Wallet Summary Page */
+.mobile-fund-wallet-summary-page {
+  min-height: 100vh;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-fund-wallet-summary-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.mobile-fund-wallet-summary-title-wrapper .mobile-section-indicator {
+  width: 4px;
+  height: 1rem;
+  background: var(--blue-600);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mobile-fund-wallet-summary-title-wrapper h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-summary-content {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mobile-fund-wallet-summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.75rem;
+}
+
+.mobile-fund-wallet-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mobile-fund-wallet-summary-item.mobile-fund-wallet-summary-divider {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.mobile-fund-wallet-summary-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-summary-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-align: right;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-summary-bold {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.mobile-fund-wallet-summary-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.mobile-fund-wallet-summary-transfer-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-fund-wallet-summary-transfer-btn:hover {
+  background: var(--blue-500);
+}
+
+.mobile-fund-wallet-summary-transfer-btn:active {
+  background: var(--blue-700);
+}
+
+.mobile-fund-wallet-summary-info-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-fund-wallet-summary-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-fund-wallet-summary-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+@media (min-width: 769px) {
+  .mobile-fund-wallet-summary-page {
+    display: none !important;
+  }
+}
+
+/* Mobile Send Full Page */
+.mobile-send-full-page {
+  min-height: 100vh;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-send-page-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.mobile-send-page-title-wrapper .mobile-section-indicator {
+  width: 4px;
+  height: 1rem;
+  background: var(--blue-600);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mobile-send-page-title-wrapper h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--blue-600);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+}
+
+.mobile-send-close-btn:hover {
+  background: var(--blue-100);
+}
+
+.mobile-send-page-content {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mobile-send-section-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* From Section */
+.mobile-send-from-section,
+.mobile-send-to-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-send-wallet-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.mobile-send-wallet-selector:hover {
+  border-color: var(--blue-600);
+}
+
+.mobile-send-currency-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+.mobile-send-currency-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.mobile-send-currency-flag {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.mobile-send-wallet-text {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-wallet-selector svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.mobile-send-amount-display {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-balance-text {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Swap Icon */
+.mobile-send-swap-icon-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: -0.5rem 0;
+}
+
+.mobile-send-swap-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.mobile-send-swap-btn:hover {
+  background: var(--blue-500);
+  transform: scale(1.05);
+}
+
+.mobile-send-swap-btn:active {
+  background: var(--blue-700);
+  transform: scale(0.95);
+}
+
+/* Recipient Section */
+.mobile-send-recipient-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-send-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-send-form-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-form-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  background: var(--white);
+  color: var(--text-dark);
+  transition: border-color 0.2s;
+}
+
+.mobile-send-form-input:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+.mobile-send-form-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Confirm Swap Button */
+.mobile-send-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.mobile-send-confirm-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-confirm-btn:hover {
+  background: var(--blue-500);
+}
+
+.mobile-send-confirm-btn:active {
+  background: var(--blue-700);
+}
+
+/* Information Message */
+.mobile-send-info-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-send-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-send-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+  .mobile-send-full-page {
+    display: none !important;
+  }
+}
+
+/* Mobile Savings Summary Page */
+.mobile-savings-summary-page {
+  min-height: 100vh;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-savings-summary-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.mobile-savings-summary-title-wrapper .mobile-section-indicator {
+  width: 4px;
+  height: 1rem;
+  background: var(--blue-600);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mobile-savings-summary-title-wrapper h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-summary-content {
+  padding: 1.5rem 1rem;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.mobile-savings-summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mobile-savings-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mobile-savings-summary-item.mobile-savings-summary-divider {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.mobile-savings-summary-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-savings-summary-label {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-summary-value {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  text-align: right;
+}
+
+.mobile-savings-summary-bold {
+  font-weight: 600;
+}
+
+.mobile-savings-summary-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.mobile-savings-summary-transfer-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-savings-summary-transfer-btn:hover {
+  background: var(--blue-500);
+}
+
+.mobile-savings-summary-transfer-btn:active {
+  background: var(--blue-700);
+}
+
+.mobile-savings-summary-info-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.mobile-savings-summary-info-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-savings-summary-info-message span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+@media (min-width: 769px) {
+  .mobile-savings-full-page,
+  .mobile-savings-summary-page {
+    display: none !important;
   }
 }
 
@@ -2293,6 +3700,17 @@ body.transactions-page-active .landing-navbar {
     flex-shrink: 0;
     width: 16px;
     height: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+  }
+
+  .mobile-savings-arrow:hover {
+    color: var(--blue-500);
+    transform: translateX(2px);
+  }
+
+  .mobile-savings-arrow:active {
+    transform: translateX(4px);
   }
 
   .mobile-savings-content {
@@ -2343,6 +3761,10 @@ body.transactions-page-active .landing-navbar {
 
 /* Hide mobile cards on desktop */
 @media (min-width: 769px) {
+  .mobile-goals-savings-container {
+    display: none !important;
+  }
+
   .mobile-goals-card,
   .mobile-savings-card {
     display: none !important;
@@ -2512,12 +3934,21 @@ body.transactions-page-active .landing-navbar {
     display: none !important;
   }
 
+  /* Hide mobile goals and savings on desktop */
+  .mobile-goals-savings-container {
+    display: none !important;
+  }
+
   /* Desktop: Wallet Cards Grid - 3 columns horizontal layout */
   .dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid {
+    flex: 1 !important;
+    min-width: 0 !important;
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     grid-template-rows: 1fr !important;
     gap: 1.5rem !important;
+    width: auto !important;
+    max-width: none !important;
   }
 
   .dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid .wallet-overview-card:nth-of-type(1) {
@@ -2533,6 +3964,159 @@ body.transactions-page-active .landing-navbar {
   .dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid .wallet-overview-card:nth-of-type(3) {
     grid-column: 3 !important;
     grid-row: 1 !important;
+  }
+
+  /* Hide mobile goals and savings on desktop */
+  .mobile-goals-savings-container {
+    display: none !important;
+  }
+
+  /* Desktop Goals and Savings Container */
+  .desktop-goals-savings-container {
+    display: flex !important;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  /* Desktop My Goals Card */
+  .desktop-goals-card {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-goals-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .desktop-section-indicator {
+    width: 4px;
+    height: 1rem;
+    background: var(--blue-600);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .desktop-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-goals-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .desktop-goals-progress {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #f59e0b;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-goals-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--blue-600);
+    line-height: 1.2;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-goals-target {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Desktop My Savings Card */
+  .desktop-savings-card {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-savings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .desktop-savings-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .desktop-savings-arrow {
+    color: var(--blue-600);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+  }
+
+  .desktop-savings-arrow:hover {
+    color: var(--blue-500);
+    transform: translateX(2px);
+  }
+
+  .desktop-savings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .desktop-savings-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background: #d1fae5;
+    color: #10b981;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    width: fit-content;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-savings-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--blue-600);
+    line-height: 1.2;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .desktop-savings-wallets {
+    padding: 0.75rem 1rem;
+    background: #f3f4f6;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    width: fit-content;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-goals-savings-container {
+    display: none !important;
   }
 }
 

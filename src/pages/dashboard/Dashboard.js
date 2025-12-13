@@ -2252,7 +2252,13 @@ const Dashboard = () => {
             <div className="mobile-wallet-list">
               <div className="mobile-wallet-item">
                 <div className="mobile-wallet-icon-group">
-                  <div className="mobile-wallet-icon">XRP</div>
+                  <div className="mobile-wallet-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                      alt="XRP" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
                   <div className="mobile-wallet-icon-info">
                     <span className="mobile-wallet-name">XRP</span>
                     <span className="mobile-wallet-crypto">
@@ -2807,7 +2813,13 @@ const Dashboard = () => {
               <div className="wallet-list">
                 <div className="wallet-item">
                   <div className="wallet-icon-group">
-                    <div className="wallet-icon">XRP</div>
+                    <div className="wallet-icon">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                        alt="XRP" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
                     <div className="wallet-icon-info">
                     <span className="wallet-name">XRP</span>
                       <span className="wallet-crypto">

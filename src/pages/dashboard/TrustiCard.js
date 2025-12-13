@@ -635,7 +635,13 @@ const TrustiCard = () => {
                 <div className="fund-amount-header">
                   <label className="fund-amount-label">Amount</label>
                   <div className="fund-wallet-selector">
-                    <div className="wallet-icon">XRP</div>
+                    <div className="wallet-icon">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                        alt="XRP" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
                     <span>{selectedWallet}</span>
                     <ChevronDown size={16} />
                   </div>

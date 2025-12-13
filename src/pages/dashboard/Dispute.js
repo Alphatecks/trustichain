@@ -38,7 +38,8 @@ import {
   ExternalLink,
   Copy,
   QrCode,
-  Calendar
+  Calendar,
+  Menu
 } from 'lucide-react';
 import './Dashboard.css';
 import './Dispute.css';
@@ -71,7 +72,10 @@ const Dispute = () => {
   const [kycComplete] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
+  const [userAvatar, setUserAvatar] = useState(null);
+  const [userRole, setUserRole] = useState('Personal Account');
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(12);
   const [itemsPerPage] = useState(10);
   const [selectedFilter, setSelectedFilter] = useState('All');
@@ -138,6 +142,8 @@ const Dispute = () => {
             setUserFullName(data.user.fullName || 'Sarah Chen');
             const names = (data.user.fullName || 'Sarah Chen').split(' ');
             setUserInitials((names[0]?.[0] || '') + (names[1]?.[0] || ''));
+            setUserAvatar(data.user.avatar || null);
+            setUserRole(data.user.role || 'Personal Account');
           }
         }
       } catch (error) {
@@ -151,6 +157,164 @@ const Dispute = () => {
   }, [isSessionExpired]);
 
   return (
+    <>
+      {/* Mobile Header */}
+      <div className="mobile-dashboard-header transactions-mobile-header">
+        <div className="mobile-header-left">
+          <div className="mobile-user-avatar">
+            {userAvatar ? (
+              <img src={userAvatar} alt={userFullName} />
+            ) : (
+              userInitials
+            )}
+          </div>
+          <div className="mobile-user-info">
+            <span className="mobile-user-name">
+              {isLoadingUserProfile ? 'Loading...' : userFullName}
+              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+            </span>
+            <span className="mobile-user-role">
+              {isLoadingUserProfile ? 'Loading...' : userRole}
+            </span>
+          </div>
+        </div>
+        <div className="mobile-header-right">
+          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
+            <Bell size={20} />
+          </button>
+          <button 
+            type="button" 
+            className="mobile-header-menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Drawer */}
+      <div className={`mobile-sidebar-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-sidebar-header">
+          <div className="mobile-sidebar-branding">
+            <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+            <div className="mobile-sidebar-branding-text">
+              <span className="mobile-sidebar-title">TrustiChain</span>
+              <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-sidebar-close"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-sidebar-content">
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">
+              {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
+            </p>
+            <nav className="mobile-sidebar-nav">
+              {sidebarNav.map((item) => {
+                const Icon = item.icon;
+                const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                                 (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                                 (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                                 (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                 (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                const handleNavClick = () => {
+                  setIsMobileMenuOpen(false);
+                  if (item.label === 'Dashboard') {
+                    navigate('/dashboard');
+                  } else if (item.label === 'My Escrow') {
+                    navigate('/my-escrow');
+                  } else if (item.label === 'Transactions') {
+                    navigate('/transactions');
+                  } else if (item.label === 'Dispute') {
+                    navigate('/dispute');
+                  } else if (item.label === 'Trusticard') {
+                    navigate('/trusticard');
+                  }
+                };
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={handleNavClick}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">Support</p>
+            <nav className="mobile-sidebar-nav">
+              {supportNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button 
+                    key={item.label} 
+                    type="button" 
+                    className="mobile-sidebar-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="mobile-sidebar-bottom">
+            <div className="mobile-sidebar-help-card">
+              <div className="mobile-sidebar-help-icon">
+                <HelpCircle size={24} />
+              </div>
+              <h3>Help Center</h3>
+              <p>Having trouble in Trustichain? Please contact us</p>
+              <button type="button" className="mobile-sidebar-help-cta">
+                Contact us
+              </button>
+            </div>
+
+            <div className="mobile-sidebar-trustiscore">
+              <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+              <span className="mobile-sidebar-trustiscore-badge">850</span>
+            </div>
+
+            <button 
+              type="button"
+              className="mobile-sidebar-logout"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                localStorage.removeItem('token');
+                navigate('/');
+              }}
+            >
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
     <div className="dashboard">
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
@@ -388,7 +552,53 @@ const Dispute = () => {
             </div>
           </div>
 
-          {/* Dispute Table */}
+          {/* Dispute History Section - Mobile */}
+          <div className="mobile-dispute-history-section">
+            <div className="mobile-dispute-history-header">
+              <div className="mobile-dispute-history-title-wrapper">
+                <div className="mobile-section-indicator"></div>
+                <h3 className="mobile-dispute-history-title">Dispute History</h3>
+              </div>
+              <div className="mobile-dispute-history-actions">
+                <button type="button" className="mobile-dispute-history-icon-btn">
+                  <ChevronDown size={18} />
+                </button>
+                <button type="button" className="mobile-dispute-history-icon-btn">
+                  <Calendar size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mobile-dispute-history-cards">
+              {disputeData.map((dispute, index) => (
+                <div 
+                  key={index} 
+                  className="mobile-dispute-history-card"
+                  onClick={() => navigate(`/dispute/${dispute.id.replace('DSP-2024-', '')}`)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="mobile-dispute-history-row">
+                    <div className="mobile-dispute-history-parties">
+                      <span className="mobile-dispute-party-from">{dispute.parties.from}</span>
+                      <ArrowRight size={14} className="mobile-dispute-party-arrow" />
+                      <span className="mobile-dispute-party-to">{dispute.parties.to}</span>
+                    </div>
+                    <div className="mobile-dispute-history-amount">
+                      {dispute.amount.xrp} XRP ≈ {dispute.amount.usd}
+                    </div>
+                  </div>
+                  <div className="mobile-dispute-history-row">
+                    <div className="mobile-dispute-history-reason">{dispute.reason}</div>
+                    <span className={`mobile-dispute-status mobile-dispute-status-${dispute.status.toLowerCase()}`}>
+                      {dispute.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Dispute Table - Desktop */}
           <div className="dispute-table-wrapper">
             {/* Header Row */}
             <div className="dispute-table-header">
@@ -482,6 +692,7 @@ const Dispute = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 

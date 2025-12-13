@@ -136,9 +136,17 @@ const Transactions = () => {
   });
   const [isSwapping, setIsSwapping] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showSendPage, setShowSendPage] = useState(false);
   const [showTransactionSummaryModal, setShowTransactionSummaryModal] = useState(false);
   const [showFundWalletTransferModal, setShowFundWalletTransferModal] = useState(false);
   const [showSavingsModal, setShowSavingsModal] = useState(false);
+  const [showSavingsPage, setShowSavingsPage] = useState(false);
+  const [showSavingsSummary, setShowSavingsSummary] = useState(false);
+  const [savingsAmount, setSavingsAmount] = useState('');
+  const [showFundWalletPage, setShowFundWalletPage] = useState(false);
+  const [showFundWalletSummary, setShowFundWalletSummary] = useState(false);
+  const [fundWalletNetwork, setFundWalletNetwork] = useState('');
+  const [fundWalletAmount, setFundWalletAmount] = useState('');
   const [sendForm, setSendForm] = useState({
     fromWallet: 'XRP',
     fromAmount: '24,567.89',
@@ -1238,6 +1246,560 @@ const Transactions = () => {
     };
   }, [transactionData]);
 
+  // Render mobile savings summary page
+  if (showSavingsSummary) {
+    const xrpAmount = parseFloat(savingsAmount) || 0;
+    let exchangeRate = 0.5430;
+    let usdValue = xrpAmount * exchangeRate;
+    
+    if (exchangeRates && exchangeRates.length > 0) {
+      const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+      if (xrpToUsdRate) {
+        exchangeRate = Number(xrpToUsdRate);
+        usdValue = xrpAmount * exchangeRate;
+      }
+    }
+
+    const networkFee = 0.00001;
+    const serviceFeePercent = 0.46;
+    const serviceFeeUsd = usdValue * (serviceFeePercent / 100);
+    const recipientGets = usdValue - serviceFeeUsd;
+
+    return (
+      <div className="mobile-savings-summary-page">
+        <div className="mobile-savings-summary-header">
+          <div className="mobile-savings-summary-title-wrapper">
+            <div className="mobile-section-indicator"></div>
+            <h2>Transaction Summary</h2>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-savings-close-btn"
+            onClick={() => setShowSavingsSummary(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-savings-summary-content">
+          {/* Transaction Details */}
+          <div className="mobile-savings-summary-section">
+            <div className="mobile-savings-summary-item">
+              <span className="mobile-savings-summary-label">Send Amount</span>
+              <span className="mobile-savings-summary-value">{xrpAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP</span>
+            </div>
+            <div className="mobile-savings-summary-item">
+              <span className="mobile-savings-summary-label">Exchange Rate</span>
+              <span className="mobile-savings-summary-value">1 XRP = ${exchangeRate.toFixed(4)}</span>
+            </div>
+            <div className="mobile-savings-summary-item">
+              <span className="mobile-savings-summary-label">Network Fee</span>
+              <span className="mobile-savings-summary-value">{networkFee} XRP</span>
+            </div>
+            <div className="mobile-savings-summary-item mobile-savings-summary-divider">
+              <span className="mobile-savings-summary-label">Service Fee</span>
+              <span className="mobile-savings-summary-value">${serviceFeeUsd.toFixed(2)} ({serviceFeePercent}%)</span>
+            </div>
+          </div>
+
+          {/* Recipient Details */}
+          <div className="mobile-savings-summary-section">
+            <div className="mobile-savings-summary-item">
+              <span className="mobile-savings-summary-label">
+                <span className="mobile-savings-summary-bold">Recipient Gets</span>
+              </span>
+              <span className="mobile-savings-summary-value mobile-savings-summary-bold">${recipientGets.toFixed(2)} USD</span>
+            </div>
+            <div className="mobile-savings-summary-item">
+              <span className="mobile-savings-summary-label">Estimated Arrival</span>
+              <span className="mobile-savings-summary-value">3-5 seconds</span>
+            </div>
+          </div>
+
+          {/* Transfer Button */}
+          <div className="mobile-savings-summary-actions">
+            <button 
+              type="button" 
+              className="mobile-savings-summary-transfer-btn"
+              onClick={() => {
+                // Handle final transfer logic
+                setShowSavingsSummary(false);
+                setShowSavingsPage(false);
+                toast.success('Transfer completed successfully');
+              }}
+            >
+              Transfer
+            </button>
+          </div>
+
+          {/* Information Message */}
+          <div className="mobile-savings-summary-info-message">
+            <div className="mobile-savings-summary-info-icon">
+              <Info size={16} />
+            </div>
+            <span>Recipient will receive at least {recipientGets.toFixed(0)} USDT (${recipientGets.toFixed(0)}) or the transaction will be refunded</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render mobile fund wallet summary page
+  if (showFundWalletSummary) {
+    // Calculate transaction details
+    const xrpAmount = parseFloat(fundWalletAmount) || 0;
+    let exchangeRate = 0.5430;
+    let usdValue = xrpAmount * exchangeRate;
+    
+    if (exchangeRates && exchangeRates.length > 0) {
+      const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+      if (xrpToUsdRate) {
+        exchangeRate = Number(xrpToUsdRate);
+        usdValue = xrpAmount * exchangeRate;
+      }
+    }
+    
+    const networkFee = 0.00001;
+    const serviceFeePercent = 0.46;
+    const serviceFeeUsd = usdValue * (serviceFeePercent / 100);
+    const recipientGets = usdValue - serviceFeeUsd;
+
+    return (
+      <div className="mobile-fund-wallet-summary-page">
+        <div className="mobile-fund-wallet-summary-header">
+          <div className="mobile-fund-wallet-summary-title-wrapper">
+            <div className="mobile-section-indicator"></div>
+            <h2>Transaction Summary</h2>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-fund-wallet-close-btn"
+            onClick={() => setShowFundWalletSummary(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-fund-wallet-summary-content">
+          {/* Transaction Details */}
+          <div className="mobile-fund-wallet-summary-section">
+            <div className="mobile-fund-wallet-summary-item">
+              <span className="mobile-fund-wallet-summary-label">Send Amount</span>
+              <span className="mobile-fund-wallet-summary-value">{xrpAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP</span>
+            </div>
+            <div className="mobile-fund-wallet-summary-item">
+              <span className="mobile-fund-wallet-summary-label">Exchange Rate</span>
+              <span className="mobile-fund-wallet-summary-value">1 XRP = ${exchangeRate.toFixed(4)}</span>
+            </div>
+            <div className="mobile-fund-wallet-summary-item">
+              <span className="mobile-fund-wallet-summary-label">Network Fee</span>
+              <span className="mobile-fund-wallet-summary-value">{networkFee} XRP</span>
+            </div>
+            <div className="mobile-fund-wallet-summary-item mobile-fund-wallet-summary-divider">
+              <span className="mobile-fund-wallet-summary-label">Service Fee</span>
+              <span className="mobile-fund-wallet-summary-value">${serviceFeeUsd.toFixed(2)} ({serviceFeePercent}%)</span>
+            </div>
+          </div>
+
+          {/* Recipient Details */}
+          <div className="mobile-fund-wallet-summary-section">
+            <div className="mobile-fund-wallet-summary-item">
+              <span className="mobile-fund-wallet-summary-label">
+                <span className="mobile-fund-wallet-summary-bold">Recipient Gets</span>
+              </span>
+              <span className="mobile-fund-wallet-summary-value mobile-fund-wallet-summary-bold">${recipientGets.toFixed(2)} USD</span>
+            </div>
+            <div className="mobile-fund-wallet-summary-item">
+              <span className="mobile-fund-wallet-summary-label">Estimated Arrival</span>
+              <span className="mobile-fund-wallet-summary-value">3-5 seconds</span>
+            </div>
+          </div>
+
+          {/* Transfer Button */}
+          <div className="mobile-fund-wallet-summary-actions">
+            <button 
+              type="button" 
+              className="mobile-fund-wallet-summary-transfer-btn"
+              onClick={() => {
+                // Handle final transfer logic
+                setShowFundWalletSummary(false);
+                setShowFundWalletPage(false);
+                toast.success('Transfer completed successfully');
+              }}
+            >
+              Transfer
+            </button>
+          </div>
+
+          {/* Information Message */}
+          <div className="mobile-fund-wallet-summary-info-message">
+            <div className="mobile-fund-wallet-summary-info-icon">
+              <Info size={16} />
+            </div>
+            <span>Recipient will receive at least {recipientGets.toFixed(0)} USDT (${recipientGets.toFixed(0)}) or the transaction will be refunded</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render mobile send full page
+  if (showSendPage) {
+    return (
+      <div className="mobile-send-full-page">
+        <div className="mobile-send-page-header">
+          <div className="mobile-send-page-title-wrapper">
+            <div className="mobile-section-indicator"></div>
+            <h2>Send</h2>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-send-close-btn"
+            onClick={() => setShowSendPage(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-send-page-content">
+          {/* From Section */}
+          <div className="mobile-send-from-section">
+            <label className="mobile-send-section-label">From</label>
+            <div className="mobile-send-wallet-selector">
+              <div className="mobile-send-currency-badge">
+                <img 
+                  src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                  alt="XRP" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                />
+              </div>
+              <span className="mobile-send-wallet-text">XRP wallet</span>
+              <ChevronDown size={16} />
+            </div>
+            <div className="mobile-send-amount-display">$24,567.89</div>
+            <div className="mobile-send-balance-text">Balance: 24,567.89 USDT</div>
+          </div>
+
+          {/* Swap Icon */}
+          <div className="mobile-send-swap-icon-wrapper">
+            <button type="button" className="mobile-send-swap-btn">
+              <ArrowUpDown size={20} />
+            </button>
+          </div>
+
+          {/* To Section */}
+          <div className="mobile-send-to-section">
+            <label className="mobile-send-section-label">To</label>
+            <div className="mobile-send-wallet-selector">
+              <div className="mobile-send-currency-flag">
+                <span>🇪🇺</span>
+              </div>
+              <span className="mobile-send-wallet-text">EUR</span>
+              <ChevronDown size={16} />
+            </div>
+            <div className="mobile-send-amount-display">$24,567.89</div>
+            <div className="mobile-send-balance-text">Balance: 24,567.89 USDT</div>
+          </div>
+
+          {/* Recipient Details */}
+          <div className="mobile-send-recipient-section">
+            <div className="mobile-send-form-group">
+              <label className="mobile-send-form-label">Full Name</label>
+              <input
+                type="text"
+                className="mobile-send-form-input"
+                placeholder="Enter your name"
+                value={sendForm.fullName}
+                onChange={(e) => setSendForm(prev => ({ ...prev, fullName: e.target.value }))}
+              />
+            </div>
+
+            <div className="mobile-send-form-group">
+              <label className="mobile-send-form-label">Phone Number</label>
+              <input
+                type="text"
+                className="mobile-send-form-input"
+                placeholder="(+44)"
+                value={sendForm.phoneNumber}
+                onChange={(e) => setSendForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+              />
+            </div>
+
+            <div className="mobile-send-form-group">
+              <label className="mobile-send-form-label">Wallet Address or Bank Account</label>
+              <input
+                type="text"
+                className="mobile-send-form-input"
+                placeholder="Enter Wallet Address or Bank Account"
+                value={sendForm.walletAddress}
+                onChange={(e) => setSendForm(prev => ({ ...prev, walletAddress: e.target.value }))}
+              />
+            </div>
+
+            <div className="mobile-send-form-group">
+              <label className="mobile-send-form-label">Reason for transfer (optional)</label>
+              <input
+                type="text"
+                className="mobile-send-form-input"
+                placeholder="Enter description"
+                value={sendForm.reason}
+                onChange={(e) => setSendForm(prev => ({ ...prev, reason: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Confirm Swap Button */}
+          <div className="mobile-send-actions">
+            <button 
+              type="button" 
+              className="mobile-send-confirm-btn"
+              onClick={() => {
+                // Handle confirm swap logic
+                setShowSendPage(false);
+                toast.success('Swap confirmed successfully');
+              }}
+            >
+              Confirm Swap
+            </button>
+          </div>
+
+          {/* Information Message */}
+          <div className="mobile-send-info-message">
+            <div className="mobile-send-info-icon">
+              <Info size={16} />
+            </div>
+            <span>You'll receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render mobile fund wallet full page
+  if (showFundWalletPage) {
+    return (
+      <div className="mobile-fund-wallet-full-page">
+        <div className="mobile-fund-wallet-page-header">
+          <div className="mobile-fund-wallet-page-title-wrapper">
+            <div className="mobile-section-indicator"></div>
+            <h2>Fund Wallet</h2>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-fund-wallet-close-btn"
+            onClick={() => setShowFundWalletPage(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-fund-wallet-page-content">
+          {/* Currency Selection */}
+          <div className="mobile-fund-wallet-currency-section">
+            <label className="mobile-fund-wallet-section-label">Currency</label>
+            <div className="mobile-fund-wallet-currency-selector">
+              <div className="mobile-fund-wallet-currency-icon">
+                <img 
+                  src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                  alt="XRP" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                />
+              </div>
+              <span className="mobile-fund-wallet-currency-text">XRP wallet</span>
+              <ChevronDown size={16} />
+            </div>
+          </div>
+
+          {/* Amount Input */}
+          <div className="mobile-fund-wallet-amount-section">
+            <label className="mobile-fund-wallet-section-label">Amount</label>
+            <div className="mobile-fund-wallet-amount-input-wrapper">
+              <input
+                type="text"
+                className="mobile-fund-wallet-amount-input"
+                placeholder="0"
+                value={fundWalletAmount}
+                onChange={(e) => {
+                  // Only allow numbers and decimal point
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  setFundWalletAmount(value);
+                }}
+              />
+              <span className="mobile-fund-wallet-amount-suffix">XRP</span>
+            </div>
+          </div>
+
+          {/* Network Input */}
+          <div className="mobile-fund-wallet-network-section">
+            <label className="mobile-fund-wallet-section-label">Network</label>
+            <input
+              type="text"
+              className="mobile-fund-wallet-network-input"
+              placeholder="Enter your name"
+              value={fundWalletNetwork}
+              onChange={(e) => setFundWalletNetwork(e.target.value)}
+            />
+          </div>
+
+          {/* Recipient Wallet Details */}
+          <div className="mobile-fund-wallet-recipient-section">
+            <label className="mobile-fund-wallet-section-label">Network</label>
+            <div className="mobile-fund-wallet-address-wrapper">
+              <div className="mobile-fund-wallet-qr-code">
+                <QrCode size={80} />
+              </div>
+              <div className="mobile-fund-wallet-address-content">
+                <div className="mobile-fund-wallet-address-text">
+                  rEb8TK3gBgk5auZkwc6sHnw<br />
+                  rGVJH8DuaLh
+                </div>
+                <button 
+                  type="button"
+                  className="mobile-fund-wallet-copy-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText('rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh');
+                    toast.success('Address copied to clipboard');
+                  }}
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview Transfer Button */}
+          <div className="mobile-fund-wallet-actions">
+            <button 
+              type="button" 
+              className="mobile-fund-wallet-preview-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Preview Transfer clicked, setting showFundWalletSummary to true');
+                setShowFundWalletSummary(true);
+              }}
+            >
+              Preview Transfer
+            </button>
+          </div>
+
+          {/* Information Message */}
+          <div className="mobile-fund-wallet-info-message">
+            <div className="mobile-fund-wallet-info-icon">
+              <Info size={16} />
+            </div>
+            <span>Recipient gets the funds immediately—or a full refund applies.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render mobile savings full page
+  if (showSavingsPage) {
+    return (
+      <div className="mobile-savings-full-page">
+        <div className="mobile-savings-page-header">
+          <div className="mobile-savings-page-title-wrapper">
+            <div className="mobile-section-indicator"></div>
+            <h2>Fund Savings</h2>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-savings-close-btn"
+            onClick={() => setShowSavingsPage(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-savings-page-content">
+          {/* Amount Section */}
+          <div className="mobile-savings-amount-section">
+            <div className="mobile-savings-amount-header">
+              <label className="mobile-savings-section-label">Amount</label>
+              <div className="mobile-savings-wallet-selector-pill">
+                <div className="mobile-savings-wallet-pill-badge">
+                  <img 
+                    src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                    alt="XRP" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                  />
+                </div>
+                <span className="mobile-savings-wallet-pill-text">XRP wallet</span>
+                <ChevronDown size={16} />
+              </div>
+            </div>
+            <div className="mobile-savings-amount-input-wrapper">
+              <input
+                type="text"
+                className="mobile-savings-amount-input"
+                placeholder="0"
+                value={savingsAmount}
+                onChange={(e) => {
+                  // Only allow numbers and decimal point
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  setSavingsAmount(value);
+                }}
+              />
+              <span className="mobile-savings-amount-suffix">XRP</span>
+            </div>
+            <div className="mobile-savings-amount-display">
+              {(() => {
+                if (!savingsAmount || savingsAmount === '0' || savingsAmount === '') {
+                  return '$0.00';
+                }
+                // Calculate USD value from XRP using exchange rate
+                const xrpAmount = parseFloat(savingsAmount) || 0;
+                if (exchangeRates && exchangeRates.length > 0) {
+                  const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+                  if (xrpToUsdRate) {
+                    const usdValue = xrpAmount * Number(xrpToUsdRate);
+                    return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  }
+                }
+                // Fallback calculation (approximate rate)
+                const usdValue = xrpAmount * 0.5430;
+                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              })()}
+            </div>
+            <div className="mobile-savings-balance-text">Balance: 24,567.89 XRP</div>
+          </div>
+
+          {/* Saving Accounts Section */}
+          <div className="mobile-savings-accounts-section">
+            <label className="mobile-savings-section-label">Saving accounts</label>
+            <div className="mobile-savings-account-link">
+              <span className="mobile-savings-account-link-text">My Goals</span>
+              <ChevronDown size={16} />
+            </div>
+          </div>
+
+          {/* Transfer Button */}
+          <div className="mobile-savings-actions">
+            <button 
+              type="button" 
+              className="mobile-savings-transfer-btn"
+              onClick={() => {
+                setShowSavingsSummary(true);
+              }}
+            >
+              Transfer
+            </button>
+          </div>
+
+          {/* Information Message */}
+          <div className="mobile-savings-info-message">
+            <div className="mobile-savings-info-icon">
+              <Info size={16} />
+            </div>
+            <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Mobile Header - Only visible on mobile */}
@@ -1630,7 +2192,14 @@ const Transactions = () => {
                 <button 
                   type="button" 
                   className="summary-card-btn primary"
-                  onClick={() => setShowFundWalletModal(true)}
+                  onClick={() => {
+                    // On mobile, show full page; on desktop, show modal
+                    if (window.innerWidth <= 768) {
+                      setShowFundWalletPage(true);
+                    } else {
+                      setShowFundWalletModal(true);
+                    }
+                  }}
                 >
                   + Fund Wallet
                 </button>
@@ -1831,7 +2400,18 @@ const Transactions = () => {
                         <div key={index} className="beneficiary-placeholder"></div>
                       ))}
                     </div>
-                    <button type="button" className="send-beneficiary-btn" onClick={() => setShowSendModal(true)}>
+                    <button 
+                      type="button" 
+                      className="send-beneficiary-btn" 
+                      onClick={() => {
+                        // On mobile, show full page; on desktop, show modal
+                        if (window.innerWidth <= 768) {
+                          setShowSendPage(true);
+                        } else {
+                          setShowSendModal(true);
+                        }
+                      }}
+                    >
                       <ExternalLink size={18} />
                       Send
                     </button>
@@ -1933,7 +2513,12 @@ const Transactions = () => {
                       <div className="mobile-section-indicator"></div>
                       <h3 className="mobile-section-title">My Savings</h3>
                     </div>
-                    <ArrowRight size={16} className="mobile-savings-arrow" />
+                    <ArrowRight 
+                      size={16} 
+                      className="mobile-savings-arrow" 
+                      onClick={() => setShowSavingsPage(true)}
+                      style={{ cursor: 'pointer' }}
+                    />
                   </div>
                   <div className="mobile-savings-content">
                     <div className="mobile-savings-badge">
@@ -1942,6 +2527,41 @@ const Transactions = () => {
                     </div>
                     <div className="mobile-savings-amount">$12,500.00</div>
                     <div className="mobile-savings-wallets">4 savings wallets</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* My Goals and My Savings - Desktop Only */}
+              <div className="desktop-goals-savings-container">
+                {/* My Goals Section */}
+                <div className="desktop-goals-card">
+                  <div className="desktop-goals-header">
+                    <div className="desktop-section-indicator"></div>
+                    <h3 className="desktop-section-title">My Goals</h3>
+                  </div>
+                  <div className="desktop-goals-content">
+                    <div className="desktop-goals-progress">50% Complete</div>
+                    <div className="desktop-goals-amount">$75,000</div>
+                    <div className="desktop-goals-target">$150,000</div>
+                  </div>
+                </div>
+
+                {/* My Savings Section */}
+                <div className="desktop-savings-card">
+                  <div className="desktop-savings-header">
+                    <div className="desktop-savings-title-wrapper">
+                      <div className="desktop-section-indicator"></div>
+                      <h3 className="desktop-section-title">My Savings</h3>
+                    </div>
+                    <ArrowRight size={20} className="desktop-savings-arrow" />
+                  </div>
+                  <div className="desktop-savings-content">
+                    <div className="desktop-savings-badge">
+                      <TrendingUp size={14} />
+                      <span>+2.4%</span>
+                    </div>
+                    <div className="desktop-savings-amount">$12,500.00</div>
+                    <div className="desktop-savings-wallets">4 savings wallets</div>
                   </div>
                 </div>
               </div>
@@ -3025,12 +3645,15 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Savings Modal */}
-      {showSavingsModal && (
+      {/* Savings Modal - Hidden on mobile when full page is shown */}
+      {showSavingsModal && !showSavingsPage && (
         <div className="notification-modal-overlay" onClick={() => setShowSavingsModal(false)}>
           <div className="notification-modal savings-modal" onClick={(e) => e.stopPropagation()}>
             <div className="savings-modal-header">
-              <h2>Savings</h2>
+              <div className="savings-modal-title-wrapper">
+                <div className="savings-modal-indicator"></div>
+                <h2>Savings</h2>
+              </div>
               <button 
                 type="button" 
                 className="notification-close-btn" 
@@ -3041,32 +3664,56 @@ const Transactions = () => {
             </div>
 
             <div className="savings-modal-content">
-              {/* Amount Section */}
-              <div className="savings-amount-section">
-                <div className="savings-amount-header">
-                  <label className="savings-section-label">Amount</label>
-                  <div className="savings-wallet-selector">
-                    <div className="savings-currency-badge">
-                      <img 
-                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                        alt="XRP" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                      />
+              {/* Mobile Card-Based Layout */}
+              <div className="mobile-savings-cards">
+                {/* Amount Card */}
+                <div className="mobile-savings-amount-card">
+                  <div className="mobile-savings-card-left">
+                    <div className="mobile-savings-card-icon">
+                      <Wallet size={16} />
                     </div>
-                    <span className="savings-wallet-text">XRP wallet</span>
-                    <ChevronDown size={16} />
+                    <div className="mobile-savings-card-type">Amount</div>
+                  </div>
+                  <div className="mobile-savings-card-center">
+                    <div className="mobile-savings-card-details">
+                      <div className="savings-wallet-selector mobile-savings-wallet-selector">
+                        <div className="savings-currency-badge">
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                            alt="XRP" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        </div>
+                        <span className="savings-wallet-text">XRP wallet</span>
+                      </div>
+                      <div className="savings-amount-display mobile-savings-amount">$24,567.89</div>
+                      <div className="savings-balance-text">Balance: 24,567.89 XRP</div>
+                    </div>
+                  </div>
+                  <div className="mobile-savings-card-right">
+                    <div className="mobile-savings-card-status">Active</div>
                   </div>
                 </div>
-                <div className="savings-amount-display">$24,567.89</div>
-                <div className="savings-balance-text">Balance: 24,567.89 USDT</div>
-              </div>
 
-              {/* Saving Accounts Section */}
-              <div className="savings-form-group">
-                <label className="savings-section-label">Saving accounts</label>
-                <div className="savings-account-selector">
-                  <span className="savings-account-text">My Goals</span>
-                  <ChevronDown size={16} />
+                {/* Savings Account Card */}
+                <div className="mobile-savings-account-card">
+                  <div className="mobile-savings-card-left">
+                    <div className="mobile-savings-card-icon">
+                      <Package size={16} />
+                    </div>
+                    <div className="mobile-savings-card-type">Account</div>
+                  </div>
+                  <div className="mobile-savings-card-center">
+                    <div className="mobile-savings-card-details">
+                      <div className="savings-account-selector mobile-savings-account-selector">
+                        <span className="savings-account-text">My Goals</span>
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mobile-savings-card-right">
+                    <div className="mobile-savings-card-status">Selected</div>
+                  </div>
                 </div>
               </div>
 

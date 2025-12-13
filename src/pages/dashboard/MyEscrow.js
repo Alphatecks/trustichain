@@ -26,7 +26,15 @@ import {
   Briefcase,
   Filter,
   AlertTriangle,
-  Package
+  Package,
+  Settings,
+  HelpCircle,
+  Code,
+  Box,
+  Link,
+  LogOut,
+  Building2,
+  FileCheck
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../utils/config';
@@ -44,6 +52,27 @@ const sidebarNav = [
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'P2P trading', icon: Repeat, badge: null }
+];
+
+const businessSuiteNav = [
+  { label: 'Dashboard', icon: LayoutDashboard, badge: null },
+  { label: 'Payroll', icon: DollarSign, badge: null },
+  { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Transaction', icon: Repeat, badge: null },
+  { label: 'Teams', icon: Users, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: null }
+];
+
+const developersNav = [
+  { label: 'Api Keys', icon: Code, badge: null },
+  { label: 'Sand box enviroment', icon: Box, badge: null },
+  { label: 'Web hook', icon: Link, badge: null }
+];
+
+const supportNav = [
+  { label: 'Settings', icon: Settings },
+  { label: 'Security', icon: ShieldCheck },
+  { label: 'Help', icon: HelpCircle }
 ];
 
 const MyEscrow = () => {
@@ -1092,7 +1121,7 @@ const MyEscrow = () => {
                   {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
                 </p>
                 <nav className="mobile-sidebar-nav">
-                  {sidebarNav.map((item) => {
+                  {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
                     const Icon = item.icon;
                     const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                    (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
@@ -1127,6 +1156,79 @@ const MyEscrow = () => {
                     );
                   })}
                 </nav>
+              </div>
+
+              {accountType === 'Business Suite' && (
+                <div className="mobile-sidebar-section">
+                  <p className="mobile-sidebar-section-label">Developers Tool</p>
+                  <nav className="mobile-sidebar-nav">
+                    {developersNav.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button 
+                          key={item.label} 
+                          type="button" 
+                          className="mobile-sidebar-nav-item"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Icon size={18} />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+              )}
+
+              <div className="mobile-sidebar-section">
+                <p className="mobile-sidebar-section-label">Support</p>
+                <nav className="mobile-sidebar-nav">
+                  {supportNav.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button 
+                        key={item.label} 
+                        type="button" 
+                        className="mobile-sidebar-nav-item"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Icon size={18} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              <div className="mobile-sidebar-bottom">
+                <div className="mobile-sidebar-help-card">
+                  <div className="mobile-sidebar-help-icon">
+                    <HelpCircle size={24} />
+                  </div>
+                  <h3>Help Center</h3>
+                  <p>Having trouble in Trustichain? Please contact us</p>
+                  <button type="button" className="mobile-sidebar-help-cta">
+                    Contact us
+                  </button>
+                </div>
+
+                <div className="mobile-sidebar-trustiscore">
+                  <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+                  <span className="mobile-sidebar-trustiscore-badge">850</span>
+                </div>
+
+                <button 
+                  type="button" 
+                  className="mobile-sidebar-logout"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    localStorage.removeItem('token');
+                    navigate('/');
+                  }}
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </button>
               </div>
             </div>
           </div>
