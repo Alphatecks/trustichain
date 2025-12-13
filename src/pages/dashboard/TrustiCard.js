@@ -105,6 +105,19 @@ const TrustiCard = () => {
   const [message, setMessage] = useState('');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [notificationFilter, setNotificationFilter] = useState('All');
+  const [showCardDetails, setShowCardDetails] = useState(false);
+  const [showMobileAddressPage, setShowMobileAddressPage] = useState(false);
+  const [showMobileWithdrawPage, setShowMobileWithdrawPage] = useState(false);
+  const [showMobileFundPage, setShowMobileFundPage] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [formattedToday, setFormattedToday] = useState('');
 
@@ -145,43 +158,66 @@ const TrustiCard = () => {
     { month: 'Jun', received: 74, spent: 49 },
   ];
 
+  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
-      try {
-        if (isSessionExpired) {
-          setIsLoadingUserProfile(false);
-          return;
-        }
+      if (isSessionExpired) {
+        setUserFullName('Sarah Chen');
+        setUserInitials('SC');
+        setUserRole('User');
+        setIsLoadingUserProfile(false);
+        return;
+      }
 
+      try {
         const token = localStorage.getItem('token');
         if (!token) {
           setIsLoadingUserProfile(false);
           return;
         }
 
-        const response = await fetch(`${getApiUrl()}/api/user/profile`, {
+        const apiUrl = getApiUrl('api/user/profile');
+        const response = await fetch(apiUrl, {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.user) {
-            setUserFullName(data.user.fullName || 'Sarah Chen');
-            setUserInitials(data.user.fullName ? data.user.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'SC');
-            setUserAvatar(data.user.avatar || null);
-            setUserRole(data.user.role || 'User');
+          const result = await response.json();
+          if (result?.success && result?.data) {
+            const data = result.data;
+            const fullName = data.fullName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.name || 'Sarah Chen';
+            setUserFullName(fullName);
+
+            const firstName = data.firstName || '';
+            const lastName = data.lastName || '';
+            let initials = 'SC';
+            if (firstName && lastName) {
+              initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+            } else if (fullName && typeof fullName === 'string') {
+              const nameParts = fullName.trim().split(/\s+/);
+              if (nameParts.length >= 2) {
+                initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
+              } else if (nameParts.length === 1) {
+                initials = nameParts[0].charAt(0).toUpperCase();
+              }
+            }
+            setUserInitials(initials);
+            
+            // Set user role if available
+            const role = data.role || data.userRole || 'User';
+            setUserRole(role);
+            
+            // Set avatar if available
+            setUserAvatar(data.avatar || null);
           }
-        } else {
-          setUserFullName('Sarah Chen');
-          setUserInitials('SC');
         }
-        setIsLoadingUserProfile(false);
       } catch (error) {
         console.error('Error fetching user profile:', error);
-        setUserFullName('Sarah Chen');
-        setUserInitials('SC');
+      } finally {
         setIsLoadingUserProfile(false);
       }
     };
@@ -519,6 +555,7 @@ const TrustiCard = () => {
 
         <div className="trusticard-content">
           {/* Mobile My Cards Section */}
+          {!showCardDetails && (
           <div className="mobile-my-cards-section">
             <div className="mobile-my-cards-header">
               <div className="mobile-my-cards-title-wrapper">
@@ -532,7 +569,11 @@ const TrustiCard = () => {
             </div>
             <div className="mobile-card-display">
               {currentCardIndex === 0 ? (
-                <div className="mobile-card-blue">
+                <div 
+                  className="mobile-card-blue" 
+                  onClick={() => setShowCardDetails(true)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="mobile-card-top">
                     <span className="mobile-card-type-label">Platinum Card</span>
                     <div className="mobile-card-debit-action">
@@ -559,7 +600,11 @@ const TrustiCard = () => {
                   </div>
                 </div>
               ) : (
-                <div className="mobile-card-white">
+                <div 
+                  className="mobile-card-white" 
+                  onClick={() => setShowCardDetails(true)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="mobile-card-top">
                     <span className="mobile-card-type-label">Platinum Card</span>
                     <div className="mobile-card-debit-action">
@@ -602,8 +647,10 @@ const TrustiCard = () => {
               ></div>
             </div>
           </div>
+          )}
 
           {/* Mobile Cashflow Section */}
+          {!showCardDetails && (
           <div className="mobile-cashflow-section">
             <div className="mobile-section-header">
               <div className="mobile-section-indicator"></div>
@@ -666,8 +713,10 @@ const TrustiCard = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Mobile Transaction History Section */}
+          {!showCardDetails && (
           <div className="mobile-transaction-history-section">
             <div className="mobile-section-header">
               <div className="mobile-section-indicator"></div>
@@ -702,6 +751,401 @@ const TrustiCard = () => {
               })}
             </div>
           </div>
+          )}
+
+          {/* Mobile Card Details Page */}
+          {showCardDetails && isMobile && (
+            <div className="mobile-card-details-page">
+              <div className="mobile-card-details-header">
+                <div className="mobile-card-details-title-wrapper">
+                  <div className="mobile-section-indicator"></div>
+                  <h2 className="mobile-card-details-title">Card Details</h2>
+                </div>
+                <button 
+                  type="button" 
+                  className="mobile-card-details-close"
+                  onClick={() => setShowCardDetails(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="mobile-card-details-content">
+                {/* Platinum Card Section */}
+                <div className="mobile-card-details-card-section">
+                  <div className="mobile-card-details-section-header">
+                    <div className="mobile-section-indicator"></div>
+                    <h3 className="mobile-card-details-section-title">Platinum Card</h3>
+                  </div>
+                  <div className="mobile-card-details-card-display">
+                    <div className="mobile-card-blue">
+                      <div className="mobile-card-top">
+                        <span className="mobile-card-type-label">Platinum Card</span>
+                        <div className="mobile-card-debit-action">
+                          <span className="mobile-card-debit-text">Debit</span>
+                          <div className="mobile-card-debit-arrow">
+                            <ArrowRight size={16} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mobile-card-balance">$24,567.89</div>
+                      <div className="mobile-card-bottom">
+                        <div className="mobile-card-bottom-item">
+                          <span className="mobile-card-bottom-label">Exp Date</span>
+                          <span className="mobile-card-bottom-value">4532 **** **** 5434</span>
+                        </div>
+                        <div className="mobile-card-bottom-item">
+                          <span className="mobile-card-bottom-label">Exp Date</span>
+                          <span className="mobile-card-bottom-value">19/29</span>
+                        </div>
+                        <div className="mobile-card-bottom-item">
+                          <span className="mobile-card-bottom-label">CVV</span>
+                          <span className="mobile-card-bottom-value">345/29</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mobile-card-details-actions">
+                  <button 
+                    type="button" 
+                    className="mobile-card-action-btn"
+                    onClick={() => {
+                      setShowCardDetails(false);
+                      setShowMobileFundPage(true);
+                    }}
+                  >
+                    <Plus size={16} />
+                    <span>Top Up</span>
+                  </button>
+                  <div className="mobile-card-action-divider"></div>
+                  <button 
+                    type="button" 
+                    className="mobile-card-action-btn"
+                    onClick={() => {
+                      setShowCardDetails(false);
+                      setShowMobileWithdrawPage(true);
+                    }}
+                  >
+                    <ArrowUp size={16} />
+                    <span>Withdraw</span>
+                  </button>
+                  <div className="mobile-card-action-divider"></div>
+                  <button 
+                    type="button" 
+                    className="mobile-card-action-btn"
+                    onClick={() => {
+                      setShowCardDetails(false);
+                      setShowMobileAddressPage(true);
+                    }}
+                  >
+                    <CreditCardIcon size={16} />
+                    <span>Address</span>
+                  </button>
+                </div>
+
+                {/* Card Numbers Section */}
+                <div className="mobile-card-details-info-section">
+                  <div className="mobile-card-info-item full-width">
+                    <span className="mobile-card-info-label">Card Numbers</span>
+                    <div className="mobile-card-info-value">
+                      <span>4532 5434 9875 5434</span>
+                      <Eye size={14} className="mobile-card-eye-icon" />
+                    </div>
+                  </div>
+                  <div className="mobile-card-info-row">
+                    <div className="mobile-card-info-item">
+                      <span className="mobile-card-info-label">Exp Date</span>
+                      <span className="mobile-card-info-value">19/29</span>
+                    </div>
+                    <div className="mobile-card-info-item">
+                      <span className="mobile-card-info-label">CVV</span>
+                      <span className="mobile-card-info-value">345</span>
+                    </div>
+                    <div className="mobile-card-info-item">
+                      <span className="mobile-card-info-label">Status</span>
+                      <button type="button" className="mobile-card-status-badge active">Active</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Spending Limits */}
+                <div className="mobile-card-details-spending-limits">
+                  <div className="mobile-card-details-section-header">
+                    <div className="mobile-section-indicator"></div>
+                    <h3 className="mobile-card-details-section-title">Spending limits</h3>
+                  </div>
+                  <div className="mobile-spending-limits-bar">
+                    <div className="mobile-spending-limits-progress" style={{ width: '60%' }}></div>
+                  </div>
+                  <div className="mobile-spending-limits-text">$6,000 of $10,000</div>
+                </div>
+
+                {/* Freeze Card */}
+                <div className="mobile-card-details-freeze">
+                  <span className="mobile-freeze-card-label">Freeze Card</span>
+                  <button 
+                    type="button" 
+                    className={`mobile-freeze-toggle ${freezeCard ? 'active' : ''}`}
+                    onClick={() => setFreezeCard(!freezeCard)}
+                  >
+                    <div className={`mobile-freeze-toggle-slider ${freezeCard ? 'active' : ''}`}></div>
+                  </button>
+                </div>
+
+                {/* Transaction History */}
+                <div className="mobile-card-details-transaction-history">
+                  <div className="mobile-card-details-section-header">
+                    <div className="mobile-section-indicator"></div>
+                    <h3 className="mobile-card-details-section-title">Transaction History</h3>
+                    <button type="button" className="mobile-transaction-history-arrow">
+                      <ArrowRight size={20} />
+                    </button>
+                  </div>
+                  <div className="mobile-card-details-transaction-list">
+                    {transactions.map((tx, index) => {
+                      const xrpAmount = tx.amount.replace('+', '').replace('-', '');
+                      return (
+                        <div key={index} className="mobile-card-details-transaction-item">
+                          <div className={`mobile-transaction-icon ${tx.type.toLowerCase()}`}>
+                            {tx.type === 'Received' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+                          </div>
+                          <div className="mobile-transaction-content">
+                            <div className="mobile-transaction-type">{tx.type}</div>
+                            <div className="mobile-transaction-description">
+                              You received {xrpAmount}, worth {tx.usd}.
+                            </div>
+                            <div className="mobile-transaction-footer">
+                              <span className={`mobile-transaction-status ${tx.status.toLowerCase()}`}>
+                                {tx.status}
+                              </span>
+                              <span className="mobile-transaction-date">{tx.date}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Card Address Page */}
+          {showMobileAddressPage && isMobile && (
+            <div className="mobile-card-address-page">
+              <div className="mobile-card-address-header">
+                <div className="mobile-card-address-title-wrapper">
+                  <div className="mobile-section-indicator"></div>
+                  <h2 className="mobile-card-address-title">Card Address</h2>
+                </div>
+                <button 
+                  type="button" 
+                  className="mobile-card-address-close"
+                  onClick={() => setShowMobileAddressPage(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="mobile-card-address-content">
+                <div className="mobile-address-form">
+                  <div className="mobile-address-field">
+                    <label className="mobile-address-label">Street Address</label>
+                    <input 
+                      type="text" 
+                      className="mobile-address-input"
+                      placeholder="Enter your name"
+                      value={addressForm.streetAddress}
+                      onChange={(e) => setAddressForm({ ...addressForm, streetAddress: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="mobile-address-field">
+                    <label className="mobile-address-label">City</label>
+                    <input 
+                      type="text" 
+                      className="mobile-address-input"
+                      placeholder="Enter your name"
+                      value={addressForm.city}
+                      onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="mobile-address-field">
+                    <label className="mobile-address-label">State</label>
+                    <input 
+                      type="text" 
+                      className="mobile-address-input"
+                      placeholder="Enter your name"
+                      value={addressForm.state}
+                      onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="mobile-address-field">
+                    <label className="mobile-address-label">Country</label>
+                    <input 
+                      type="text" 
+                      className="mobile-address-input"
+                      placeholder="Enter your name"
+                      value={addressForm.country}
+                      onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="mobile-address-field">
+                    <label className="mobile-address-label">Postal code</label>
+                    <input 
+                      type="text" 
+                      className="mobile-address-input"
+                      placeholder="Enter your name"
+                      value={addressForm.postalCode}
+                      onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Withdraw Funds Page */}
+          {showMobileWithdrawPage && isMobile && (
+            <div className="mobile-withdraw-funds-page">
+              <div className="mobile-withdraw-header">
+                <div className="mobile-withdraw-title-wrapper">
+                  <div className="mobile-section-indicator"></div>
+                  <h2 className="mobile-withdraw-title">Withdraw Funds</h2>
+                </div>
+                <button 
+                  type="button" 
+                  className="mobile-withdraw-close"
+                  onClick={() => setShowMobileWithdrawPage(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="mobile-withdraw-content">
+                {/* Amount Section */}
+                <div className="mobile-withdraw-amount-section">
+                  <label className="mobile-withdraw-amount-label">Amount</label>
+                  <div className="mobile-withdraw-amount-value">$24,567.89</div>
+                  <div className="mobile-withdraw-balance">Balance: 24,567.89</div>
+                </div>
+
+                {/* Wallet Selection Section */}
+                <div className="mobile-withdraw-wallet-section">
+                  <label className="mobile-withdraw-wallet-label">Wallet name</label>
+                  <div className="mobile-withdraw-wallet-selector">
+                    <span className="mobile-withdraw-wallet-value">{selectedWithdrawWallet}</span>
+                    <ChevronDown size={16} />
+                  </div>
+                </div>
+
+                {/* Withdraw Button */}
+                <button 
+                  type="button" 
+                  className="mobile-withdraw-btn"
+                  onClick={() => {
+                    // Handle withdraw action
+                    setShowMobileWithdrawPage(false);
+                  }}
+                >
+                  Withdraw
+                </button>
+
+                {/* Information Message */}
+                <div className="mobile-withdraw-info-message">
+                  <div className="mobile-withdraw-info-icon">
+                    <Info size={18} />
+                  </div>
+                  <span className="mobile-withdraw-info-text">
+                    Your funds will be added to your account within seconds or refunded if there's an issue.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Fund Trusticard Page */}
+          {showMobileFundPage && isMobile && (
+            <div className="mobile-fund-trusticard-page">
+              <div className="mobile-fund-header">
+                <div className="mobile-fund-title-wrapper">
+                  <div className="mobile-section-indicator"></div>
+                  <h2 className="mobile-fund-title">Fund Trusticard</h2>
+                </div>
+                <button 
+                  type="button" 
+                  className="mobile-fund-close"
+                  onClick={() => setShowMobileFundPage(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="mobile-fund-content">
+                <div className="mobile-fund-amount-card">
+                  {/* Amount Section */}
+                  <div className="mobile-fund-amount-section">
+                    <div className="mobile-fund-amount-header">
+                      <label className="mobile-fund-amount-label">Amount</label>
+                      <div className="mobile-fund-wallet-pill">
+                        <div className="mobile-fund-wallet-pill-badge">
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                            alt="XRP" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        </div>
+                        <span className="mobile-fund-wallet-pill-text">{selectedWallet}</span>
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+                    <input 
+                      type="text" 
+                      className="mobile-fund-amount-input"
+                      value={fundAmount}
+                      onChange={(e) => setFundAmount(e.target.value)}
+                      placeholder="24,000 XPR"
+                    />
+                    <div className="mobile-fund-balance">Balance: 24,567.89 XPR</div>
+                  </div>
+
+                  {/* Amount in USD Section */}
+                  <div className="mobile-fund-usd-section">
+                    <label className="mobile-fund-usd-label">Amount in USD</label>
+                    <div className="mobile-fund-usd-value">$24,567.89</div>
+                  </div>
+                </div>
+
+                {/* Fund Card Button */}
+                <button 
+                  type="button" 
+                  className="mobile-fund-card-btn"
+                  onClick={() => {
+                    // Handle fund card action
+                    setShowMobileFundPage(false);
+                  }}
+                >
+                  Fund Card
+                </button>
+
+                {/* Information Message */}
+                <div className="mobile-fund-info-message">
+                  <div className="mobile-fund-info-icon">
+                    <Info size={18} />
+                  </div>
+                  <span className="mobile-fund-info-text">
+                    Your funds will be added to your account within seconds or refunded if there's an issue.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="trusticard-layout">
             {/* Left Column - My Cards */}
@@ -769,7 +1213,17 @@ const TrustiCard = () => {
                 {/* Card Details Section */}
                 <div className="card-details-section">
                 <div className="card-actions">
-                  <button type="button" className="card-action-btn" onClick={() => setShowFundModal(true)}>
+                  <button 
+                    type="button" 
+                    className="card-action-btn" 
+                    onClick={() => {
+                      if (isMobile) {
+                        setShowMobileFundPage(true);
+                      } else {
+                        setShowFundModal(true);
+                      }
+                    }}
+                  >
                     <Plus size={14} />
                     Top Up
                   </button>
@@ -1027,7 +1481,8 @@ const TrustiCard = () => {
       </main>
 
       {/* Fund Trusticard Modal */}
-      {showFundModal && (
+      {/* Fund Modal - Desktop Only */}
+      {showFundModal && !isMobile && (
         <div className="modal-overlay" onClick={() => setShowFundModal(false)}>
           <div className="fund-modal" onClick={(e) => e.stopPropagation()}>
             <div className="fund-modal-header">

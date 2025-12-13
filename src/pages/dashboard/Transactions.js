@@ -41,7 +41,10 @@ import {
   Menu,
   AlertTriangle,
   CheckCircle,
-  Package
+  Package,
+  Trophy,
+  ShoppingBag,
+  Home
 } from 'lucide-react';
 import './Dashboard.css';
 import './Transactions.css';
@@ -142,6 +145,7 @@ const Transactions = () => {
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [showSavingsPage, setShowSavingsPage] = useState(false);
   const [showSavingsSummary, setShowSavingsSummary] = useState(false);
+  const [showDesktopSavingsDashboard, setShowDesktopSavingsDashboard] = useState(false);
   const [savingsAmount, setSavingsAmount] = useState('');
   const [showFundWalletPage, setShowFundWalletPage] = useState(false);
   const [showFundWalletSummary, setShowFundWalletSummary] = useState(false);
@@ -1695,6 +1699,370 @@ const Transactions = () => {
     );
   }
 
+  // Render desktop savings dashboard
+  if (showDesktopSavingsDashboard) {
+    // Get current date
+    const currentDate = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = days[currentDate.getDay()];
+    const day = currentDate.getDate();
+    const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthName = months[currentDate.getMonth()];
+    const formattedDate = `${dayName}, ${day}${suffix} ${monthName}`;
+
+    // Mock data for savings dashboard
+    const savingsAllocation = [
+      { name: 'My Goals', amount: 16000, percentage: 65, color: '#2F74FF' },
+      { name: 'House Rent', amount: 16000, percentage: 65, color: '#10b981' },
+      { name: 'Expenses', amount: 16000, percentage: 65, color: '#9333ea' },
+      { name: 'Set up', amount: 16000, percentage: 65, color: '#f59e0b' }
+    ];
+
+    const savingsWallets = [
+      { name: 'My goals', percentage: '65%', saved: '$16,000', icon: Trophy, color: '#2F74FF' },
+      { name: 'Utility', percentage: '15%', saved: '$4,000', icon: Home, color: '#10b981' },
+      { name: 'Expenses', percentage: '15%', saved: '$4,000', icon: ShoppingBag, color: '#9333ea' },
+      { name: 'Others', percentage: '15%', saved: '$4,000', icon: Package, color: '#f59e0b' }
+    ];
+
+    const cashflowData = [
+      { month: 'Jan', saved: 40, withdrawn: 15 },
+      { month: 'Feb', saved: 50, withdrawn: 20 },
+      { month: 'Mar', saved: 80, withdrawn: 25 },
+      { month: 'Apr', saved: 45, withdrawn: 18 },
+      { month: 'May', saved: 55, withdrawn: 22 },
+      { month: 'Jun', saved: 60, withdrawn: 20 }
+    ];
+
+    const savingHistory = [
+      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
+      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
+      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
+      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
+      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' }
+    ];
+
+    return (
+      <div className="desktop-savings-dashboard">
+        {/* Header */}
+        <div className="desktop-savings-header">
+          <div className="desktop-savings-header-left">
+            <span className="desktop-savings-date">{formattedDate}</span>
+          </div>
+          <div className="desktop-savings-header-center">
+            <div className="desktop-savings-search">
+              <Search size={18} />
+              <input type="text" placeholder="Search" />
+            </div>
+          </div>
+          <div className="desktop-savings-header-right">
+            <div className="desktop-savings-nav-tabs">
+              <button 
+                type="button" 
+                className={`desktop-savings-nav-tab ${accountType === 'Personal' ? 'active' : ''}`}
+                onClick={() => setAccountType('Personal')}
+              >
+                Personal
+              </button>
+              <button 
+                type="button" 
+                className={`desktop-savings-nav-tab ${accountType === 'Business Suite' ? 'active' : ''}`}
+                onClick={() => setAccountType('Business Suite')}
+              >
+                Business suite
+              </button>
+            </div>
+            <button 
+              type="button" 
+              className="desktop-savings-notification-btn"
+              onClick={() => setShowNotificationModal(true)}
+            >
+              <Bell size={20} />
+            </button>
+            <div className="desktop-savings-user-profile">
+              <div className="desktop-savings-user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} />
+                ) : (
+                  userInitials
+                )}
+              </div>
+              <div className="desktop-savings-user-info">
+                <span className="desktop-savings-user-name">
+                  {userFullName}
+                  <img src={verifyBadge} alt="Verified" className="desktop-savings-verified-icon" />
+                </span>
+                <span className="desktop-savings-user-role">{userRole}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Breadcrumb */}
+        <div className="desktop-savings-breadcrumb">
+          <button 
+            type="button"
+            className="desktop-savings-back-btn"
+            onClick={() => setShowDesktopSavingsDashboard(false)}
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <span>General</span>
+          <span className="desktop-savings-breadcrumb-separator">/</span>
+          <span>Dashboard</span>
+        </div>
+
+        {/* Main Content */}
+        <div className="desktop-savings-content">
+          {/* Left Panel */}
+          <div className="desktop-savings-left-panel">
+            {/* Savings Allocation */}
+            <div className="desktop-savings-section-card">
+              <div className="desktop-savings-section-indicator"></div>
+              <div className="desktop-savings-section-content">
+                <h3 className="desktop-savings-section-title">Savings Allocation</h3>
+                <p className="desktop-savings-section-subtitle">Total amount you have in your savings.</p>
+                <div className="desktop-savings-total-amount">$24,567.89</div>
+                <div className="desktop-savings-growth">
+                  <TrendingUp size={14} />
+                  <span>+3.1% This Month</span>
+                </div>
+                <div className="desktop-savings-allocation-bar">
+                  {savingsAllocation.map((item, index) => (
+                    <div 
+                      key={index}
+                      className="desktop-savings-allocation-segment"
+                      style={{ 
+                        width: `${item.percentage}%`, 
+                        backgroundColor: item.color 
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="desktop-savings-allocation-breakdown">
+                  {savingsAllocation.map((item, index) => (
+                    <div key={index} className="desktop-savings-allocation-item">
+                      <div className="desktop-savings-allocation-item-header">
+                        <div 
+                          className="desktop-savings-allocation-dot"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="desktop-savings-allocation-name">{item.name}</span>
+                      </div>
+                      <div className="desktop-savings-allocation-item-details">
+                        <span className="desktop-savings-allocation-amount">${item.amount.toLocaleString()}.00</span>
+                        <span 
+                          className="desktop-savings-allocation-percentage"
+                          style={{ backgroundColor: `${item.color}20`, color: item.color }}
+                        >
+                          {item.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Savings Wallet */}
+            <div className="desktop-savings-section-card">
+              <div className="desktop-savings-section-indicator"></div>
+              <div className="desktop-savings-section-content">
+                <div className="desktop-savings-wallet-header">
+                  <h3 className="desktop-savings-section-title">Savings wallet</h3>
+                  <button 
+                    type="button" 
+                    className="desktop-savings-add-wallet-btn"
+                    onClick={() => setShowSavingsModal(true)}
+                  >
+                    + Add wallet
+                  </button>
+                </div>
+                <div className="desktop-savings-wallet-grid">
+                  {savingsWallets.map((wallet, index) => {
+                    const Icon = wallet.icon;
+                    return (
+                      <div key={index} className="desktop-savings-wallet-card">
+                        <div 
+                          className="desktop-savings-wallet-icon"
+                          style={{ backgroundColor: `${wallet.color}20` }}
+                        >
+                          <Icon size={20} style={{ color: wallet.color }} />
+                        </div>
+                        <div className="desktop-savings-wallet-name">{wallet.name}</div>
+                        <div className="desktop-savings-wallet-percentage">{wallet.percentage}</div>
+                        <div className="desktop-savings-wallet-saved">Saved: {wallet.saved}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="desktop-savings-actions-bottom">
+                  <button 
+                    type="button" 
+                    className="desktop-savings-add-money-btn"
+                    onClick={() => setShowSavingsModal(true)}
+                  >
+                    + Add money
+                  </button>
+                  <button 
+                    type="button" 
+                    className="desktop-savings-withdraw-btn"
+                    onClick={() => setShowWithdrawWalletModal(true)}
+                  >
+                    <ArrowDown size={16} />
+                    <Wallet size={16} />
+                    Withdraw
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="desktop-savings-right-panel">
+            {/* Cashflow */}
+            <div className="desktop-savings-section-card">
+              <div className="desktop-savings-section-indicator"></div>
+              <div className="desktop-savings-section-content">
+                <div className="desktop-savings-cashflow-header">
+                  <h3 className="desktop-savings-section-title">Cashflow</h3>
+                  <select className="desktop-savings-timeframe-select">
+                    <option>Monthly</option>
+                    <option>Weekly</option>
+                    <option>Yearly</option>
+                  </select>
+                </div>
+                <div className="desktop-savings-cashflow-legend">
+                  <div className="desktop-savings-legend-item">
+                    <div className="desktop-savings-legend-color" style={{ backgroundColor: '#2F74FF' }}></div>
+                    <span>Amount Saved</span>
+                  </div>
+                  <div className="desktop-savings-legend-item">
+                    <div className="desktop-savings-legend-color" style={{ backgroundColor: '#93c5fd' }}></div>
+                    <span>Amount Withdrawn</span>
+                  </div>
+                </div>
+                <div className="desktop-savings-cashflow-chart">
+                  <div className="desktop-savings-chart-bars">
+                    {cashflowData.map((data, index) => (
+                      <div key={index} className="desktop-savings-chart-bar-group">
+                        <div className="desktop-savings-chart-bar-wrapper">
+                          <div 
+                            className="desktop-savings-chart-bar saved"
+                            style={{ height: `${data.saved}%` }}
+                            title={`$${data.saved * 1000}`}
+                          ></div>
+                          <div 
+                            className="desktop-savings-chart-bar withdrawn"
+                            style={{ height: `${data.withdrawn}%` }}
+                            title={`$${data.withdrawn * 1000}`}
+                          ></div>
+                        </div>
+                        <div className="desktop-savings-chart-label">{data.month}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="desktop-savings-chart-y-axis">
+                    <span>100%</span>
+                    <span>75%</span>
+                    <span>50%</span>
+                    <span>25%</span>
+                    <span>0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Saving History */}
+            <div className="desktop-savings-section-card">
+              <div className="desktop-savings-section-indicator"></div>
+              <div className="desktop-savings-section-content">
+                <div className="desktop-savings-history-header">
+                  <h3 className="desktop-savings-section-title">Saving history</h3>
+                  <div className="desktop-savings-history-filters">
+                    <select className="desktop-savings-filter-select">
+                      <option>Filter</option>
+                      <option>All</option>
+                      <option>Received</option>
+                      <option>Sent</option>
+                    </select>
+                    <select className="desktop-savings-filter-select">
+                      <option>Monthly</option>
+                      <option>Weekly</option>
+                      <option>Yearly</option>
+                    </select>
+                    <button type="button" className="desktop-savings-filter-icon-btn">
+                      <Filter size={18} />
+                    </button>
+                  </div>
+                </div>
+                <div className="desktop-savings-history-table-wrapper">
+                  <table className="desktop-savings-history-table">
+                    <thead>
+                      <tr>
+                        <th>
+                          <input type="checkbox" />
+                        </th>
+                        <th>Transaction ID</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {savingHistory.map((transaction, index) => (
+                        <tr key={index}>
+                          <td>
+                            <input type="checkbox" />
+                          </td>
+                          <td>
+                            <div className="desktop-savings-transaction-type">
+                              <ArrowDown size={14} />
+                              <span>{transaction.type}</span>
+                            </div>
+                            <div className="desktop-savings-transaction-id">{transaction.id}</div>
+                          </td>
+                          <td className="desktop-savings-transaction-amount">{transaction.amount}</td>
+                          <td>
+                            <span className="desktop-savings-status-badge successful">{transaction.status}</span>
+                          </td>
+                          <td className="desktop-savings-transaction-date">{transaction.date}</td>
+                          <td>
+                            <button type="button" className="desktop-savings-transaction-arrow">
+                              <ArrowRight size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="desktop-savings-pagination">
+                  <button type="button" className="desktop-savings-pagination-btn">← Prev 10</button>
+                  <div className="desktop-savings-pagination-pages">
+                    <button type="button" className="desktop-savings-pagination-page">1</button>
+                    <span className="desktop-savings-pagination-ellipsis">...</span>
+                    <button type="button" className="desktop-savings-pagination-page">11</button>
+                    <button type="button" className="desktop-savings-pagination-page active">12</button>
+                    <button type="button" className="desktop-savings-pagination-page">13</button>
+                    <button type="button" className="desktop-savings-pagination-page">14</button>
+                    <button type="button" className="desktop-savings-pagination-page">15</button>
+                    <button type="button" className="desktop-savings-pagination-page">16</button>
+                    <button type="button" className="desktop-savings-pagination-page">17</button>
+                    <button type="button" className="desktop-savings-pagination-page">18</button>
+                  </div>
+                  <button type="button" className="desktop-savings-pagination-btn">Next 10 →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Render mobile savings full page
   if (showSavingsPage) {
     return (
@@ -2547,13 +2915,12 @@ const Transactions = () => {
                 </div>
 
                 {/* My Savings Section */}
-                <div className="desktop-savings-card">
+                <div className="desktop-savings-card" onClick={() => setShowDesktopSavingsDashboard(true)} style={{ cursor: 'pointer' }}>
                   <div className="desktop-savings-header">
                     <div className="desktop-savings-title-wrapper">
                       <div className="desktop-section-indicator"></div>
                       <h3 className="desktop-section-title">My Savings</h3>
                     </div>
-                    <ArrowRight size={20} className="desktop-savings-arrow" />
                   </div>
                   <div className="desktop-savings-content">
                     <div className="desktop-savings-badge">
