@@ -37,7 +37,11 @@ import {
   ArrowUpDown,
   ExternalLink,
   Copy,
-  QrCode
+  QrCode,
+  Menu,
+  AlertTriangle,
+  CheckCircle,
+  Package
 } from 'lucide-react';
 import './Dashboard.css';
 import './Transactions.css';
@@ -83,6 +87,7 @@ const Transactions = () => {
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState('Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState('All');
   const [kycComplete] = useState(true);
   
   const [dashboardData, setDashboardData] = useState(null);
@@ -93,7 +98,10 @@ const Transactions = () => {
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
+  const [userRole, setUserRole] = useState('Freelancer');
+  const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [beneficiaries, setBeneficiaries] = useState([]);
@@ -201,6 +209,7 @@ const Transactions = () => {
       if (isSessionExpired) {
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
+        setUserRole('Freelancer');
         setIsLoadingUserProfile(false);
         return;
       }
@@ -242,6 +251,10 @@ const Transactions = () => {
               }
             }
             setUserInitials(initials);
+            
+            // Set user role if available
+            const role = data.role || data.userRole || 'Freelancer';
+            setUserRole(role);
           }
         }
       } catch (error) {
@@ -1001,7 +1014,7 @@ const Transactions = () => {
   // Helper function to get currency display name
   const getCurrencyDisplayName = (currency) => {
     const mapping = {
-      'XRP': 'XPR wallet',
+      'XRP': 'XRP wallet',
       'USDT': 'Tether USD',
       'USDC': 'USD Coin'
     };
@@ -1011,7 +1024,7 @@ const Transactions = () => {
   // Helper function to get currency badge text
   const getCurrencyBadge = (currency) => {
     const mapping = {
-      'XRP': 'XPR',
+      'XRP': 'XRP',
       'USDT': 'USDT',
       'USDC': 'USDC'
     };
@@ -1226,8 +1239,180 @@ const Transactions = () => {
   }, [transactionData]);
 
   return (
-    <div className="dashboard transactions-page">
-      <aside className="dashboard-sidebar">
+    <>
+      {/* Mobile Header - Only visible on mobile */}
+      <div className="mobile-dashboard-header transactions-mobile-header">
+        <div className="mobile-header-left">
+          <div className="mobile-user-avatar">
+            {userAvatar ? (
+              <img src={userAvatar} alt={userFullName} />
+            ) : (
+              userInitials
+            )}
+          </div>
+          <div className="mobile-user-info">
+            <span className="mobile-user-name">
+              {isLoadingUserProfile ? 'Loading...' : userFullName}
+              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+            </span>
+            <span className="mobile-user-role">
+              {isLoadingUserProfile ? 'Loading...' : userRole}
+            </span>
+          </div>
+        </div>
+        <div className="mobile-header-right">
+          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
+            <Bell size={20} />
+          </button>
+          <button 
+            type="button" 
+            className="mobile-header-menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Drawer */}
+      <div className={`mobile-sidebar-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-sidebar-header">
+          <div className="mobile-sidebar-branding">
+            <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+            <div className="mobile-sidebar-branding-text">
+              <span className="mobile-sidebar-title">TrustiChain</span>
+              <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-sidebar-close"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-sidebar-content">
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">
+              {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
+            </p>
+            <nav className="mobile-sidebar-nav">
+              {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
+                const Icon = item.icon;
+                const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                                 (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                                 (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                                 (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                 (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                const handleNavClick = () => {
+                  setIsMobileMenuOpen(false);
+                  if (item.label === 'Dashboard') {
+                    navigate('/dashboard');
+                  } else if (item.label === 'My Escrow') {
+                    navigate('/my-escrow');
+                  } else if (item.label === 'Transactions') {
+                    navigate('/transactions');
+                  } else if (item.label === 'Dispute') {
+                    navigate('/dispute');
+                  } else if (item.label === 'Trusticard') {
+                    navigate('/trusticard');
+                  }
+                };
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={handleNavClick}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {accountType === 'Business Suite' && (
+            <div className="mobile-sidebar-section">
+              <p className="mobile-sidebar-section-label">Developers Tool</p>
+              <nav className="mobile-sidebar-nav">
+                {developersNav.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button 
+                      key={item.label} 
+                      type="button" 
+                      className="mobile-sidebar-nav-item"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
+
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">Support</p>
+            <nav className="mobile-sidebar-nav">
+              {supportNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button 
+                    key={item.label} 
+                    type="button" 
+                    className="mobile-sidebar-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="mobile-sidebar-bottom">
+            <div className="mobile-sidebar-help-card">
+              <div className="mobile-sidebar-help-icon">
+                <HelpCircle size={24} />
+              </div>
+              <h3>Help Center</h3>
+              <p>Having trouble in Trustichain? Please contact us</p>
+              <button type="button" className="mobile-sidebar-help-cta">
+                Contact us
+              </button>
+            </div>
+
+            <div className="mobile-sidebar-trustiscore">
+              <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+              <span className="mobile-sidebar-trustiscore-badge">97</span>
+            </div>
+
+            <button type="button" className="mobile-sidebar-logout">
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard transactions-page">
+        <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
           <img src={logo} alt="TrustiChain" className="sidebar-logo" />
           <div className="sidebar-branding-text">
@@ -1446,96 +1631,116 @@ const Transactions = () => {
             </div>
 
             {/* Wallet Summary Cards */}
-            <div className="wallet-overview-card">
-              <div className="wallet-overview-header">
-                <div className="wallet-overview-icon">XPR</div>
-                <h3 className="wallet-overview-name">XPR wallet</h3>
-              </div>
-              <div className="wallet-overview-content">
-                <div className="wallet-overview-primary">
-                  {showBalance 
-                    ? (isLoadingWalletBalances 
-                        ? 'Loading...' 
-                        : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
-                            ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP`
-                            : '0.00 XRP'))
-                    : '••••••'}
+            <div className="wallet-cards-grid">
+              <div className="wallet-overview-card">
+                <div className="wallet-overview-header">
+                  <div className="wallet-overview-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                      alt="XRP" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </div>
+                  <h3 className="wallet-overview-name">XRP wallet</h3>
                 </div>
-                <div className="wallet-overview-secondary">
-                  {showBalance 
-                    ? (isLoadingWalletBalances 
-                        ? 'Loading...' 
-                        : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
-                            ? `$${Number(walletBalances.xrp * 0.5430).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : '$0.00'))
-                    : '••••••'}
+                <div className="wallet-overview-content">
+                  <div className="wallet-overview-primary">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? 'Loading...' 
+                          : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
+                              ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP`
+                              : '0.00 XRP'))
+                      : '••••••'}
+                  </div>
+                  <div className="wallet-overview-secondary">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? 'Loading...' 
+                          : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
+                              ? `$${Number(walletBalances.xrp * 0.5430).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '$0.00'))
+                      : '••••••'}
+                  </div>
+                </div>
+                <div className="wallet-overview-trend">
+                  <TrendingUp size={14} />
+                  <span>+2.4%</span>
                 </div>
               </div>
-              <div className="wallet-overview-trend">
-                <TrendingUp size={14} />
-                <span>+2.4%</span>
-              </div>
-            </div>
 
-            <div className="wallet-overview-card">
-              <div className="wallet-overview-header">
-                <div className="wallet-overview-icon">USDT</div>
-                <h3 className="wallet-overview-name">Tether USD</h3>
-              </div>
-              <div className="wallet-overview-content">
-                <div className="wallet-overview-primary">
-                  {showBalance 
-                    ? (isLoadingWalletBalances 
-                        ? 'Loading...' 
-                        : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
-                            ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
-                            : '0.00 USDT'))
-                    : '••••••'}
+              <div className="wallet-overview-card">
+                <div className="wallet-overview-header">
+                  <div className="wallet-overview-icon usdt-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                      alt="USDT" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
+                  <h3 className="wallet-overview-name">Tether USD</h3>
                 </div>
-                <div className="wallet-overview-secondary">
-                  {showBalance 
-                    ? (isLoadingWalletBalances 
-                        ? 'Loading...' 
-                        : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
-                            ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : '$0.00'))
-                    : '••••••'}
+                <div className="wallet-overview-content">
+                  <div className="wallet-overview-primary">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? 'Loading...' 
+                          : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
+                              ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+                              : '0.00 USDT'))
+                      : '••••••'}
+                  </div>
+                  <div className="wallet-overview-secondary">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? 'Loading...' 
+                          : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
+                              ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '$0.00'))
+                      : '••••••'}
+                  </div>
+                </div>
+                <div className="wallet-overview-trend">
+                  <TrendingUp size={14} />
+                  <span>+2.4%</span>
                 </div>
               </div>
-              <div className="wallet-overview-trend">
-                <TrendingUp size={14} />
-                <span>+2.4%</span>
-              </div>
-            </div>
 
-            <div className="wallet-overview-card">
-              <div className="wallet-overview-header">
-                <div className="wallet-overview-icon">USDC</div>
-                <h3 className="wallet-overview-name">USD Coin</h3>
-              </div>
-              <div className="wallet-overview-content">
-                <div className="wallet-overview-primary">
-                  {showBalance 
-                    ? (isLoadingWalletBalances 
-                        ? 'Loading...' 
-                        : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
-                            ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
-                            : '0.00 USDC'))
-                    : '••••••'}
+              <div className="wallet-overview-card">
+                <div className="wallet-overview-header">
+                  <div className="wallet-overview-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                      alt="USDC" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
+                  <h3 className="wallet-overview-name">USD Coin</h3>
                 </div>
-                <div className="wallet-overview-secondary">
-                  {showBalance 
-                    ? (isLoadingWalletBalances 
-                        ? 'Loading...' 
-                        : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
-                            ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : '$0.00'))
-                    : '••••••'}
+                <div className="wallet-overview-content">
+                  <div className="wallet-overview-primary">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? 'Loading...' 
+                          : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
+                              ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
+                              : '0.00 USDC'))
+                      : '••••••'}
+                  </div>
+                  <div className="wallet-overview-secondary">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? 'Loading...' 
+                          : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
+                              ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '$0.00'))
+                      : '••••••'}
+                  </div>
                 </div>
-              </div>
-              <div className="wallet-overview-trend">
-                <TrendingUp size={14} />
-                <span>+2.4%</span>
+                <div className="wallet-overview-trend">
+                  <TrendingUp size={14} />
+                  <span>+2.4%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1545,7 +1750,7 @@ const Transactions = () => {
             {/* Left Column */}
             <div className="transactions-left-column">
               {/* My Details Section */}
-              <div className="transactions-section-card">
+              <div className="transactions-section-card my-details-section">
                 <div className="section-indicator"></div>
                 <div className="section-content">
                   <h3 className="section-title">My Details</h3>
@@ -1665,6 +1870,41 @@ const Transactions = () => {
                   </div>
                 </div>
               </div>
+
+              {/* My Goals and My Savings Container - Mobile Only */}
+              <div className="mobile-goals-savings-container">
+                {/* My Goals Section */}
+                <div className="mobile-goals-card">
+                  <div className="mobile-goals-header">
+                    <div className="mobile-section-indicator"></div>
+                    <h3 className="mobile-section-title">My Goals</h3>
+                  </div>
+                  <div className="mobile-goals-content">
+                    <div className="mobile-goals-progress">50% Complete</div>
+                    <div className="mobile-goals-amount">$75,000</div>
+                    <div className="mobile-goals-target">$150,000</div>
+                  </div>
+                </div>
+
+                {/* My Savings Section */}
+                <div className="mobile-savings-card">
+                  <div className="mobile-savings-header">
+                    <div className="mobile-savings-title-wrapper">
+                      <div className="mobile-section-indicator"></div>
+                      <h3 className="mobile-section-title">My Savings</h3>
+                    </div>
+                    <ArrowRight size={16} className="mobile-savings-arrow" />
+                  </div>
+                  <div className="mobile-savings-content">
+                    <div className="mobile-savings-badge">
+                      <TrendingUp size={12} />
+                      <span>+2.4%</span>
+                    </div>
+                    <div className="mobile-savings-amount">$12,500.00</div>
+                    <div className="mobile-savings-wallets">4 savings wallets</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Right Column */}
@@ -1674,7 +1914,10 @@ const Transactions = () => {
                 <div className="section-indicator"></div>
                 <div className="section-content">
                   <div className="transaction-history-header">
-                    <h3 className="section-title">Transaction history</h3>
+                    <div className="transaction-history-title-wrapper">
+                      <h3 className="section-title">Transaction history</h3>
+                      <ArrowRight size={20} className="transaction-history-arrow" />
+                    </div>
                     <div className="transaction-filters">
                       <select 
                         className="filter-select"
@@ -1699,6 +1942,55 @@ const Transactions = () => {
                         <Filter size={18} />
                       </button>
                     </div>
+                  </div>
+                  {/* Mobile Transaction Cards */}
+                  <div className="mobile-transaction-cards">
+                    {isLoadingTransactions && (
+                      <div className="mobile-transaction-card">
+                        <div className="mobile-transaction-content">
+                          <span>Loading transactions...</span>
+                        </div>
+                      </div>
+                    )}
+                    {!isLoadingTransactions && transactions.length === 0 && (
+                      <div className="mobile-transaction-card">
+                        <div className="mobile-transaction-content">
+                          <span>No transactions found</span>
+                        </div>
+                      </div>
+                    )}
+                    {!isLoadingTransactions && transactions.length > 0 && paginatedTransactions.length > 0 && paginatedTransactions.map((transaction, index) => {
+                      const globalIndex = (currentPage - 1) * itemsPerPage + index;
+                      const transactionId = formatTransactionId(transaction.id || transaction.transactionId || `TXN-${globalIndex}`);
+                      const type = transaction.type || transaction.transactionType || 'Received';
+                      const amountXrp = transaction.amount?.xrp || transaction.amountXrp || transaction.amount || 0;
+                      const amountUsd = transaction.amount?.usd || transaction.amountUsd || (amountXrp * 0.5);
+                      const status = transaction.status || 'Successful';
+                      const date = transaction.date || transaction.createdAt || '2024-07-04';
+                      const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit';
+
+                      return (
+                        <div key={transaction.id || globalIndex} className="mobile-transaction-card">
+                          <div className="mobile-transaction-left">
+                            <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`}>
+                              {isReceived ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+                            </div>
+                            <div className="mobile-transaction-type">{type}</div>
+                          </div>
+                          <div className="mobile-transaction-center">
+                            <div className="mobile-transaction-details">
+                              {isReceived ? 'You received' : 'You sent'} {Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP, worth ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD.
+                            </div>
+                          </div>
+                          <div className="mobile-transaction-right">
+                            <div className={`mobile-transaction-status ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
+                              {status}
+                            </div>
+                            <div className="mobile-transaction-date">{formatDate(date)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="transaction-table-wrapper">
                     <table className="transaction-table">
@@ -1836,6 +2128,127 @@ const Transactions = () => {
           </div>
         </div>
       </main>
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Notification</h2>
+              </div>
+              <button type="button" className="notification-close-btn" onClick={() => setShowNotificationModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="notification-filter-bar">
+              <div className="notification-filter-buttons">
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('All')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'Unread' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('Unread')}
+                >
+                  Unread
+                </button>
+              </div>
+              <button type="button" className="notification-filter-icon">
+                <Filter size={18} />
+              </button>
+            </div>
+
+            <div className="notification-list">
+              <div className="notification-item unread">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                  <span className="notification-bell-dot"></span>
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <AlertTriangle size={18} className="notification-status-icon warning" />
+                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+                <div className="notification-unread-dot"></div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <CheckCircle size={18} className="notification-status-icon success" />
+                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fund Wallet Modal */}
       {showFundWalletModal && (
@@ -2133,7 +2546,29 @@ const Transactions = () => {
                       <option value="USDC">USDC</option>
                     </select>
                     <div className="swap-currency-selector">
-                      <div className="swap-currency-badge">{getCurrencyBadge(swapForm.fromCurrency)}</div>
+                      <div className={`swap-currency-badge ${swapForm.fromCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
+                        {swapForm.fromCurrency === 'XRP' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                            alt="XRP" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapForm.fromCurrency === 'USDT' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                            alt="USDT" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapForm.fromCurrency === 'USDC' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                            alt="USDC" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : (
+                          getCurrencyBadge(swapForm.fromCurrency)
+                        )}
+                      </div>
                       <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.fromCurrency)}</span>
                       <ChevronDown size={16} />
                     </div>
@@ -2181,7 +2616,29 @@ const Transactions = () => {
                       <option value="USDC">USDC</option>
                     </select>
                     <div className="swap-currency-selector">
-                      <div className="swap-currency-badge">{getCurrencyBadge(swapForm.toCurrency)}</div>
+                      <div className={`swap-currency-badge ${swapForm.toCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
+                        {swapForm.toCurrency === 'XRP' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                            alt="XRP" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapForm.toCurrency === 'USDT' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                            alt="USDT" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapForm.toCurrency === 'USDC' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                            alt="USDC" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : (
+                          getCurrencyBadge(swapForm.toCurrency)
+                        )}
+                      </div>
                       <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.toCurrency)}</span>
                       <ChevronDown size={16} />
                     </div>
@@ -2253,7 +2710,13 @@ const Transactions = () => {
                 <div className="send-from-section">
                   <label className="send-section-label">From</label>
                   <div className="send-wallet-selector">
-                    <div className="send-currency-badge">XRP</div>
+                    <div className="send-currency-badge">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                        alt="XRP" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
                     <span className="send-wallet-text">XRP wallet</span>
                     <ChevronDown size={16} />
                   </div>
@@ -2448,8 +2911,14 @@ const Transactions = () => {
               <div className="fund-wallet-transfer-form-group">
                 <label className="fund-wallet-transfer-label">Currency</label>
                 <div className="fund-wallet-transfer-selector">
-                  <div className="fund-wallet-transfer-currency-badge">XRP</div>
-                  <span className="fund-wallet-transfer-selector-text">XPR wallet</span>
+                  <div className="fund-wallet-transfer-currency-badge">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                      alt="XRP" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
+                  <span className="fund-wallet-transfer-selector-text">XRP wallet</span>
                   <ChevronDown size={16} />
                 </div>
               </div>
@@ -2537,8 +3006,14 @@ const Transactions = () => {
                 <div className="savings-amount-header">
                   <label className="savings-section-label">Amount</label>
                   <div className="savings-wallet-selector">
-                    <div className="savings-currency-badge">XRP</div>
-                    <span className="savings-wallet-text">XPR wallet</span>
+                    <div className="savings-currency-badge">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                        alt="XRP" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
+                    <span className="savings-wallet-text">XRP wallet</span>
                     <ChevronDown size={16} />
                   </div>
                 </div>
@@ -2580,7 +3055,8 @@ const Transactions = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
