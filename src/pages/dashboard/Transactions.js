@@ -1591,9 +1591,31 @@ const Transactions = () => {
                   {showBalance 
                     ? (isLoadingDashboard 
                         ? 'Loading...' 
-                        : (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null 
-                            ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                            : '$0.00'))
+                        : (() => {
+                            // Calculate USD value from XRP using exchange rate from API
+                            if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+                              // Try to find XRP to USD rate
+                              const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+                              if (xrpToUsdRate) {
+                                const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+                                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              }
+                              // Fallback: try to find USD rate from exchange rates array
+                              const usdRate = exchangeRates.find(r => 
+                                (r.from === 'XRP' && r.to === 'USD') || 
+                                (r.currency === 'USD' || r.code === 'USD')
+                              );
+                              if (usdRate && usdRate.rate) {
+                                const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
+                                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              }
+                            }
+                            // Fallback to dashboard USD if available
+                            if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
+                              return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            }
+                            return '$0.00';
+                          })())
                     : '••••••'}
                 </div>
                 <div className="summary-card-subvalue">
@@ -1657,9 +1679,27 @@ const Transactions = () => {
                     {showBalance 
                       ? (isLoadingWalletBalances 
                           ? 'Loading...' 
-                          : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
-                              ? `$${Number(walletBalances.xrp * 0.5430).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : '$0.00'))
+                          : (() => {
+                              // Calculate USD value from XRP using exchange rate from API
+                              if (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+                                // Try to find XRP to USD rate
+                                const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+                                if (xrpToUsdRate) {
+                                  const usdValue = Number(walletBalances.xrp) * Number(xrpToUsdRate);
+                                  return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                }
+                                // Fallback: try to find USD rate from exchange rates array
+                                const usdRate = exchangeRates.find(r => 
+                                  (r.from === 'XRP' && r.to === 'USD') || 
+                                  (r.currency === 'USD' || r.code === 'USD')
+                                );
+                                if (usdRate && usdRate.rate) {
+                                  const usdValue = Number(walletBalances.xrp) * Number(usdRate.rate);
+                                  return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                }
+                              }
+                              return '$0.00';
+                            })())
                       : '••••••'}
                   </div>
                 </div>
