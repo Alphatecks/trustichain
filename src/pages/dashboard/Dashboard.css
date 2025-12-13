@@ -1636,6 +1636,11 @@
   border-radius: 50%;
 }
 
+.wallet-icon.usdt-icon,
+.wallet-icon.usdc-icon {
+  background: transparent !important;
+}
+
 .wallet-icon * {
   color: #ffffff !important;
 }
@@ -2742,6 +2747,11 @@
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+  }
+
+  .mobile-wallet-icon.usdt-icon,
+  .mobile-wallet-icon.usdc-icon {
+    background: transparent !important;
   }
 
   .mobile-wallet-icon-info {

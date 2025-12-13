@@ -2349,7 +2349,13 @@ const Dashboard = () => {
               </div>
               <div className="mobile-wallet-item">
                 <div className="mobile-wallet-icon-group">
-                  <div className="mobile-wallet-icon">USDT</div>
+                  <div className="mobile-wallet-icon usdt-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                      alt="USDT" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
                   <div className="mobile-wallet-icon-info">
                     <span className="mobile-wallet-name">Tether USD</span>
                     <span className="mobile-wallet-crypto">
@@ -2380,7 +2386,13 @@ const Dashboard = () => {
               </div>
               <div className="mobile-wallet-item">
                 <div className="mobile-wallet-icon-group">
-                  <div className="mobile-wallet-icon">USDC</div>
+                  <div className="mobile-wallet-icon usdc-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                      alt="USDC" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
                   <div className="mobile-wallet-icon-info">
                     <span className="mobile-wallet-name">USD Coin</span>
                     <span className="mobile-wallet-crypto">
@@ -2934,9 +2946,15 @@ const Dashboard = () => {
                 </div>
                 <div className="wallet-item">
                   <div className="wallet-icon-group">
-                    <div className="wallet-icon">USDT</div>
+                    <div className="wallet-icon usdt-icon">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                        alt="USDT" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
                     <div className="wallet-icon-info">
-                    <span className="wallet-name">USDT</span>
+                    <span className="wallet-name">Tether USD</span>
                       <span className="wallet-crypto">
                         {showBalance 
                           ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
@@ -2961,9 +2979,15 @@ const Dashboard = () => {
                 </div>
                 <div className="wallet-item">
                   <div className="wallet-icon-group">
-                    <div className="wallet-icon">USDC</div>
+                    <div className="wallet-icon usdc-icon">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                        alt="USDC" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
                     <div className="wallet-icon-info">
-                    <span className="wallet-name">USDC</span>
+                    <span className="wallet-name">USD Coin</span>
                       <span className="wallet-crypto">
                         {showBalance 
                           ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null

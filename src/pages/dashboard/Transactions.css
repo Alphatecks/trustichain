@@ -969,7 +969,8 @@ body.transactions-page-active .landing-navbar {
   border-radius: 50%;
 }
 
-.swap-currency-badge.usdt-badge {
+.swap-currency-badge.usdt-badge,
+.swap-currency-badge.usdc-badge {
   background: transparent !important;
 }
 
