@@ -23,13 +23,22 @@ import {
   Wallet,
   Eye,
   KeyRound,
-  Info
+  Info,
+  Menu,
+  DollarSign,
+  Users,
+  Building2,
+  FileCheck,
+  Code,
+  Box,
+  Link
 } from 'lucide-react';
 import './Dashboard.css';
 import './TrustiCard.css';
 import logo from '../../assets/images/icons/logo.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
 import { useSession } from '../../context/SessionContext';
+import { getApiUrl } from '../../utils/config';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -38,6 +47,21 @@ const sidebarNav = [
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'P2P trading', icon: Repeat, badge: null }
+];
+
+const businessSuiteNav = [
+  { label: 'Dashboard', icon: LayoutDashboard, badge: null },
+  { label: 'Payroll', icon: DollarSign, badge: null },
+  { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Transaction', icon: Repeat, badge: null },
+  { label: 'Teams', icon: Users, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: null }
+];
+
+const developersNav = [
+  { label: 'Api Keys', icon: Code, badge: null },
+  { label: 'Sand box enviroment', icon: Box, badge: null },
+  { label: 'Web hook', icon: Link, badge: null }
 ];
 
 const supportNav = [
@@ -69,13 +93,18 @@ const TrustiCard = () => {
   const [kycComplete] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
+  const [userAvatar, setUserAvatar] = useState(null);
+  const [userRole, setUserRole] = useState('User');
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [freezeCard, setFreezeCard] = useState(false);
   const [cashflowPeriod, setCashflowPeriod] = useState('Monthly');
   const [transactionFilter, setTransactionFilter] = useState('Filter');
   const [transactionPeriod, setTransactionPeriod] = useState('Monthly');
   const [currentPage, setCurrentPage] = useState(12);
   const [message, setMessage] = useState('');
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [notificationFilter, setNotificationFilter] = useState('All');
 
   const [formattedToday, setFormattedToday] = useState('');
 
@@ -130,11 +159,29 @@ const TrustiCard = () => {
           return;
         }
 
-        setUserFullName('Sarah Chen');
-        setUserInitials('SC');
+        const response = await fetch(`${getApiUrl()}/api/user/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setUserFullName(data.user.fullName || 'Sarah Chen');
+            setUserInitials(data.user.fullName ? data.user.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'SC');
+            setUserAvatar(data.user.avatar || null);
+            setUserRole(data.user.role || 'User');
+          }
+        } else {
+          setUserFullName('Sarah Chen');
+          setUserInitials('SC');
+        }
         setIsLoadingUserProfile(false);
       } catch (error) {
         console.error('Error fetching user profile:', error);
+        setUserFullName('Sarah Chen');
+        setUserInitials('SC');
         setIsLoadingUserProfile(false);
       }
     };
@@ -144,7 +191,187 @@ const TrustiCard = () => {
 
 
   return (
-    <div className="dashboard">
+    <>
+      {/* Mobile Header - Only visible on mobile */}
+      <div className="mobile-dashboard-header transactions-mobile-header">
+        <div className="mobile-header-left">
+          <div className="mobile-user-avatar">
+            {userAvatar ? (
+              <img src={userAvatar} alt={userFullName} />
+            ) : (
+              userInitials
+            )}
+          </div>
+          <div className="mobile-user-info">
+            <span className="mobile-user-name">
+              {isLoadingUserProfile ? 'Loading...' : userFullName}
+              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+            </span>
+            <span className="mobile-user-role">
+              {isLoadingUserProfile ? 'Loading...' : userRole}
+            </span>
+          </div>
+        </div>
+        <div className="mobile-header-right">
+          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
+            <Bell size={20} />
+          </button>
+          <button 
+            type="button" 
+            className="mobile-header-menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Drawer */}
+      <div className={`mobile-sidebar-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-sidebar-header">
+          <div className="mobile-sidebar-branding">
+            <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+            <div className="mobile-sidebar-branding-text">
+              <span className="mobile-sidebar-title">TrustiChain</span>
+              <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-sidebar-close"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-sidebar-content">
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">
+              {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
+            </p>
+            <nav className="mobile-sidebar-nav">
+              {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
+                const Icon = item.icon;
+                const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                                 (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                                 (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                                 (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                 (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                const handleNavClick = () => {
+                  setIsMobileMenuOpen(false);
+                  if (item.label === 'Dashboard') {
+                    navigate('/dashboard');
+                  } else if (item.label === 'My Escrow') {
+                    navigate('/my-escrow');
+                  } else if (item.label === 'Transactions') {
+                    navigate('/transactions');
+                  } else if (item.label === 'Dispute') {
+                    navigate('/dispute');
+                  } else if (item.label === 'Trusticard') {
+                    navigate('/trusticard');
+                  }
+                };
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={handleNavClick}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {accountType === 'Business Suite' && (
+            <div className="mobile-sidebar-section">
+              <p className="mobile-sidebar-section-label">Developers Tool</p>
+              <nav className="mobile-sidebar-nav">
+                {developersNav.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button 
+                      key={item.label} 
+                      type="button" 
+                      className="mobile-sidebar-nav-item"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
+
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">Support</p>
+            <nav className="mobile-sidebar-nav">
+              {supportNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button 
+                    key={item.label} 
+                    type="button" 
+                    className="mobile-sidebar-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="mobile-sidebar-bottom">
+            <div className="mobile-sidebar-help-card">
+              <div className="mobile-sidebar-help-icon">
+                <HelpCircle size={24} />
+              </div>
+              <h3>Help Center</h3>
+              <p>Having trouble in Trustichain? Please contact us</p>
+              <button type="button" className="mobile-sidebar-help-cta">
+                Contact us
+              </button>
+            </div>
+
+            <div className="mobile-sidebar-trustiscore">
+              <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+              <span className="mobile-sidebar-trustiscore-badge">850</span>
+            </div>
+
+            <button 
+              type="button" 
+              className="mobile-sidebar-logout"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                localStorage.removeItem('token');
+                navigate('/');
+              }}
+            >
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard">
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
           <img src={logo} alt="TrustiChain" className="sidebar-logo" />
@@ -291,6 +518,191 @@ const TrustiCard = () => {
         </header>
 
         <div className="trusticard-content">
+          {/* Mobile My Cards Section */}
+          <div className="mobile-my-cards-section">
+            <div className="mobile-my-cards-header">
+              <div className="mobile-my-cards-title-wrapper">
+                <div className="mobile-section-indicator"></div>
+                <h2 className="mobile-my-cards-title">My Cards</h2>
+              </div>
+              <button type="button" className="mobile-add-card-btn">
+                <Plus size={16} />
+                <span>Add card</span>
+              </button>
+            </div>
+            <div className="mobile-card-display">
+              {currentCardIndex === 0 ? (
+                <div className="mobile-card-blue">
+                  <div className="mobile-card-top">
+                    <span className="mobile-card-type-label">Platinum Card</span>
+                    <div className="mobile-card-debit-action">
+                      <span className="mobile-card-debit-text">Debit</span>
+                      <div className="mobile-card-debit-arrow">
+                        <ArrowRight size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mobile-card-balance">$24,567.89</div>
+                  <div className="mobile-card-bottom">
+                    <div className="mobile-card-bottom-item">
+                      <span className="mobile-card-bottom-label">Exp Date</span>
+                      <span className="mobile-card-bottom-value">4532 **** **** 5434</span>
+                    </div>
+                    <div className="mobile-card-bottom-item">
+                      <span className="mobile-card-bottom-label">Exp Date</span>
+                      <span className="mobile-card-bottom-value">19/29</span>
+                    </div>
+                    <div className="mobile-card-bottom-item">
+                      <span className="mobile-card-bottom-label">CVV</span>
+                      <span className="mobile-card-bottom-value">345/29</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mobile-card-white">
+                  <div className="mobile-card-top">
+                    <span className="mobile-card-type-label">Platinum Card</span>
+                    <div className="mobile-card-debit-action">
+                      <span className="mobile-card-debit-text">Debit</span>
+                      <div className="mobile-card-debit-arrow">
+                        <ArrowRight size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mobile-card-balance">$24,567.89</div>
+                  <div className="mobile-card-bottom">
+                    <div className="mobile-card-bottom-item">
+                      <span className="mobile-card-bottom-label">Exp Date</span>
+                      <span className="mobile-card-bottom-value">4532 **** **** 5434</span>
+                    </div>
+                    <div className="mobile-card-bottom-item">
+                      <span className="mobile-card-bottom-label">Exp Date</span>
+                      <span className="mobile-card-bottom-value">19/29</span>
+                    </div>
+                    <div className="mobile-card-bottom-item">
+                      <span className="mobile-card-bottom-label">CVV</span>
+                      <span className="mobile-card-bottom-value">345/29</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mobile-card-pagination">
+              <div 
+                className={`mobile-card-dot ${currentCardIndex === 0 ? 'active' : ''}`}
+                onClick={() => setCurrentCardIndex(0)}
+              ></div>
+              <div 
+                className={`mobile-card-dot ${currentCardIndex === 1 ? 'active' : ''}`}
+                onClick={() => setCurrentCardIndex(1)}
+              ></div>
+              <div 
+                className={`mobile-card-dot ${currentCardIndex === 2 ? 'active' : ''}`}
+                onClick={() => setCurrentCardIndex(2)}
+              ></div>
+            </div>
+          </div>
+
+          {/* Mobile Cashflow Section */}
+          <div className="mobile-cashflow-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h2 className="mobile-section-title">Cashflow</h2>
+              <div className="mobile-period-selector">
+                <select 
+                  value={cashflowPeriod} 
+                  onChange={(e) => setCashflowPeriod(e.target.value)}
+                  className="mobile-period-select"
+                >
+                  <option value="Monthly">Monthly</option>
+                  <option value="Yearly">Yearly</option>
+                </select>
+                <ChevronDown size={16} />
+              </div>
+            </div>
+            <div className="mobile-cashflow-legend">
+              <div className="mobile-legend-item">
+                <div className="mobile-legend-color received"></div>
+                <span>Amount received</span>
+              </div>
+              <div className="mobile-legend-item">
+                <div className="mobile-legend-color spent"></div>
+                <span>Amount Spent</span>
+              </div>
+            </div>
+            <div className="mobile-cashflow-chart-container">
+              <div className="mobile-chart-y-axis">
+                <span className="mobile-y-axis-label">100%</span>
+                <span className="mobile-y-axis-label">80%</span>
+                <span className="mobile-y-axis-label">60%</span>
+                <span className="mobile-y-axis-label">40%</span>
+                <span className="mobile-y-axis-label">20%</span>
+                <span className="mobile-y-axis-label">0%</span>
+              </div>
+              <div className="mobile-cashflow-chart">
+                <div className="mobile-chart-bars-container">
+                  {cashflowData.map((item, index) => (
+                    <div key={index} className="mobile-chart-month">
+                      <div className="mobile-chart-bars">
+                        <div 
+                          className="mobile-chart-bar received" 
+                          style={{ height: `${item.received}%` }}
+                        ></div>
+                        <div 
+                          className="mobile-chart-bar spent" 
+                          style={{ height: `${item.spent}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mobile-chart-labels-row">
+                  {cashflowData.map((item, index) => (
+                    <div key={index} className="mobile-chart-label-wrapper">
+                      <span className="mobile-chart-label">{item.month}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Transaction History Section */}
+          <div className="mobile-transaction-history-section">
+            <div className="mobile-section-header">
+              <div className="mobile-section-indicator"></div>
+              <h2 className="mobile-section-title">Transaction History</h2>
+              <button type="button" className="mobile-transaction-arrow">
+                <ArrowRight size={20} />
+              </button>
+            </div>
+            <div className="mobile-transaction-list">
+              {transactions.map((tx, index) => {
+                // Extract XRP amount from tx.amount (e.g., "+50 XRP" -> "50 XRP")
+                const xrpAmount = tx.amount.replace('+', '').replace('-', '');
+                return (
+                  <div key={index} className="mobile-transaction-item">
+                    <div className={`mobile-transaction-icon ${tx.type.toLowerCase()}`}>
+                      {tx.type === 'Received' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+                    </div>
+                    <div className="mobile-transaction-content">
+                      <div className="mobile-transaction-type">{tx.type}</div>
+                      <div className="mobile-transaction-description">
+                        You received {xrpAmount}, worth {tx.usd}.
+                      </div>
+                      <div className="mobile-transaction-footer">
+                        <span className={`mobile-transaction-status ${tx.status.toLowerCase()}`}>
+                          {tx.status}
+                        </span>
+                        <span className="mobile-transaction-date">{tx.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="trusticard-layout">
             {/* Left Column - My Cards */}
             <div className="trusticard-left-column">
@@ -842,7 +1254,85 @@ const TrustiCard = () => {
           </div>
         </div>
       )}
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Notification</h2>
+              </div>
+              <button type="button" className="notification-close-btn" onClick={() => setShowNotificationModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="notification-filter-bar">
+              <div className="notification-filter-buttons">
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('All')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'Unread' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('Unread')}
+                >
+                  Unread
+                </button>
+              </div>
+              <button type="button" className="notification-filter-icon">
+                <Filter size={18} />
+              </button>
+            </div>
+
+            <div className="notification-list">
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <p className="notification-message">Your payment of $1,200 has been processed successfully</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <p className="notification-message">New transaction received: 50 XRP</p>
+                  </div>
+                  <span className="notification-time">5m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <p className="notification-message">Card transaction completed</p>
+                  </div>
+                  <span className="notification-time">1h ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 };
 
