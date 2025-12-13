@@ -200,6 +200,39 @@ const Dashboard = () => {
     return null;
   };
 
+  // Helper function to get exchange rate between two currencies
+  const getExchangeRate = (fromCurrency, toCurrency) => {
+    if (!exchangeRates || !Array.isArray(exchangeRates)) return null;
+    if (fromCurrency === toCurrency) return 1;
+    
+    // Try to find direct rate
+    const directRate = exchangeRates.find(rate => 
+      rate.from === fromCurrency && rate.to === toCurrency
+    );
+    if (directRate) return directRate.rate;
+
+    // Try reverse rate
+    const reverseRate = exchangeRates.find(rate => 
+      rate.from === toCurrency && rate.to === fromCurrency
+    );
+    if (reverseRate) return 1 / reverseRate.rate;
+
+    // Fallback: try to find via USD if available
+    if (fromCurrency !== 'USD' && toCurrency !== 'USD') {
+      const fromToUsd = exchangeRates.find(rate => 
+        rate.from === fromCurrency && rate.to === 'USD'
+      );
+      const usdToTo = exchangeRates.find(rate => 
+        rate.from === 'USD' && rate.to === toCurrency
+      );
+      if (fromToUsd && usdToTo) {
+        return fromToUsd.rate * usdToTo.rate;
+      }
+    }
+
+    return null;
+  };
+
   const fetchDashboardSummary = async () => {
     try {
       // If session is expired, use fallback data
@@ -2030,16 +2063,34 @@ const Dashboard = () => {
             </div>
             <div className="mobile-balance-amount">
               {showBalance 
-                ? (() => {
-                    const usdBalance = getBalanceValue(dashboardData, 'usd');
-                    if (isLoadingDashboard) {
-                      return 'Loading...';
-                    }
-                    if (usdBalance !== null && usdBalance !== undefined) {
-                      return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                    }
-                    return '$0.00';
-                  })()
+                ? (isLoadingDashboard 
+                    ? 'Loading...' 
+                    : (() => {
+                        // Calculate USD value from XRP using exchange rate from API
+                        if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+                          // Try to find XRP to USD rate
+                          const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+                          if (xrpToUsdRate) {
+                            const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+                            return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          }
+                          // Fallback: try to find USD rate from exchange rates array
+                          const usdRate = exchangeRates.find(r => 
+                            (r.from === 'XRP' && r.to === 'USD') || 
+                            (r.currency === 'USD' || r.code === 'USD')
+                          );
+                          if (usdRate && usdRate.rate) {
+                            const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
+                            return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          }
+                        }
+                        // Fallback to dashboard USD if available
+                        const usdBalance = getBalanceValue(dashboardData, 'usd');
+                        if (usdBalance !== null && usdBalance !== undefined) {
+                          return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        }
+                        return '$0.00';
+                      })())
                 : '••••••'}
             </div>
             <div className="mobile-balance-xrp">
@@ -2491,9 +2542,33 @@ const Dashboard = () => {
             <div className="summary-card-value-row">
               <div className="summary-card-value">
                 {showBalance 
-                  ? (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null 
-                      ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                      : (isLoadingDashboard ? 'Loading...' : '$0.00'))
+                  ? (isLoadingDashboard 
+                      ? 'Loading...' 
+                      : (() => {
+                          // Calculate USD value from XRP using exchange rate from API
+                          if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+                            // Try to find XRP to USD rate
+                            const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+                            if (xrpToUsdRate) {
+                              const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            }
+                            // Fallback: try to find USD rate from exchange rates array
+                            const usdRate = exchangeRates.find(r => 
+                              (r.from === 'XRP' && r.to === 'USD') || 
+                              (r.currency === 'USD' || r.code === 'USD')
+                            );
+                            if (usdRate && usdRate.rate) {
+                              const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
+                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            }
+                          }
+                          // Fallback to dashboard USD if available
+                          if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
+                            return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          }
+                          return '$0.00';
+                        })())
                   : '••••••'}
               </div>
               <div className="summary-card-subvalue">
