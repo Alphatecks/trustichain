@@ -52,6 +52,7 @@ import logo from '../../assets/images/icons/logo.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../utils/config';
 import { useSession } from '../../context/SessionContext';
+import LoadingIndicator from '../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -1775,6 +1776,12 @@ const Transactions = () => {
             </div>
             <button 
               type="button" 
+              className="desktop-savings-create-wallet-btn"
+            >
+              Create Wallet
+            </button>
+            <button 
+              type="button" 
               className="desktop-savings-notification-btn"
               onClick={() => setShowNotificationModal(true)}
             >
@@ -2182,11 +2189,11 @@ const Transactions = () => {
           </div>
           <div className="mobile-user-info">
             <span className="mobile-user-name">
-              {isLoadingUserProfile ? 'Loading...' : userFullName}
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
               <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
             </span>
             <span className="mobile-user-role">
-              {isLoadingUserProfile ? 'Loading...' : userRole}
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
             </span>
           </div>
         </div>
@@ -2489,7 +2496,7 @@ const Transactions = () => {
               <div className="user-avatar">{userInitials}</div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>Freelancer</small>
@@ -2520,7 +2527,7 @@ const Transactions = () => {
                 <div className="summary-card-value">
                   {showBalance 
                     ? (isLoadingDashboard 
-                        ? 'Loading...' 
+                        ? <LoadingIndicator size="sm" />
                         : (() => {
                             // Calculate USD value from XRP using exchange rate from API
                             if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
@@ -2550,7 +2557,7 @@ const Transactions = () => {
                 </div>
                 <div className="summary-card-subvalue">
                   ≈ {isLoadingDashboard 
-                      ? 'Loading...' 
+                      ? <LoadingIndicator size="sm" />
                       : (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
                           ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) 
                           : '0.000000')} XRP
@@ -2606,7 +2613,7 @@ const Transactions = () => {
                   <div className="wallet-overview-primary">
                     {showBalance 
                       ? (isLoadingWalletBalances 
-                          ? 'Loading...' 
+                          ? <LoadingIndicator size="sm" />
                           : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
                               ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP`
                               : '0.00 XRP'))
@@ -2615,7 +2622,7 @@ const Transactions = () => {
                   <div className="wallet-overview-secondary">
                     {showBalance 
                       ? (isLoadingWalletBalances 
-                          ? 'Loading...' 
+                          ? <LoadingIndicator size="sm" /> 
                           : (() => {
                               // Calculate USD value from XRP using exchange rate from API
                               if (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
@@ -2661,7 +2668,7 @@ const Transactions = () => {
                   <div className="wallet-overview-primary">
                     {showBalance 
                       ? (isLoadingWalletBalances 
-                          ? 'Loading...' 
+                          ? <LoadingIndicator size="sm" />
                           : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
                               ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
                               : '0.00 USDT'))
@@ -2670,7 +2677,7 @@ const Transactions = () => {
                   <div className="wallet-overview-secondary">
                     {showBalance 
                       ? (isLoadingWalletBalances 
-                          ? 'Loading...' 
+                          ? <LoadingIndicator size="sm" /> 
                           : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
                               ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : '$0.00'))
@@ -2698,7 +2705,7 @@ const Transactions = () => {
                   <div className="wallet-overview-primary">
                     {showBalance 
                       ? (isLoadingWalletBalances 
-                          ? 'Loading...' 
+                          ? <LoadingIndicator size="sm" />
                           : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
                               ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
                               : '0.00 USDC'))
@@ -2707,7 +2714,7 @@ const Transactions = () => {
                   <div className="wallet-overview-secondary">
                     {showBalance 
                       ? (isLoadingWalletBalances 
-                          ? 'Loading...' 
+                          ? <LoadingIndicator size="sm" /> 
                           : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
                               ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : '$0.00'))
@@ -2796,7 +2803,7 @@ const Transactions = () => {
                     {isLoadingRates && (
                       <div className="rate-item">
                         <div className="rate-info">
-                          <span className="rate-currency">Loading rates...</span>
+                          <span className="rate-currency"><LoadingIndicator size="sm" /></span>
                         </div>
                       </div>
                     )}
@@ -2975,7 +2982,7 @@ const Transactions = () => {
                     {isLoadingTransactions && (
                       <div className="mobile-transaction-card">
                         <div className="mobile-transaction-content">
-                          <span>Loading transactions...</span>
+                          <span><LoadingIndicator size="md" /></span>
                         </div>
                       </div>
                     )}
@@ -3037,7 +3044,7 @@ const Transactions = () => {
                         {isLoadingTransactions && (
                           <tr>
                             <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
-                              Loading transactions...
+                              <LoadingIndicator size="md" />
                             </td>
                           </tr>
                         )}
@@ -3612,7 +3619,7 @@ const Transactions = () => {
                     disabled={isSwapping}
                   />
                   <div className="swap-balance-text">
-                    Balance: {isLoadingWalletBalances ? 'Loading...' : `${Number(getCurrencyBalance(swapForm.fromCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.fromCurrency}`}
+                    Balance: {isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : `${Number(getCurrencyBalance(swapForm.fromCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.fromCurrency}`}
                   </div>
                 </div>
 
@@ -3682,7 +3689,7 @@ const Transactions = () => {
                     disabled={isSwapping}
                   />
                   <div className="swap-balance-text">
-                    Balance: {isLoadingWalletBalances ? 'Loading...' : `${Number(getCurrencyBalance(swapForm.toCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.toCurrency}`}
+                    Balance: {isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : `${Number(getCurrencyBalance(swapForm.toCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.toCurrency}`}
                   </div>
                 </div>
               </div>

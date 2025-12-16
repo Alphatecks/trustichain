@@ -48,6 +48,7 @@ import cardIllustration from '../../assets/images/illustrations/card.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../utils/config';
 import { useSession } from '../../context/SessionContext';
+import LoadingIndicator from '../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -113,7 +114,6 @@ const Dashboard = () => {
     selfie: null
   });
 
-  const [walletAddress, setWalletAddress] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
@@ -131,6 +131,9 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState('Freelancer');
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [hasWallet, setHasWallet] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [fundWalletForm, setFundWalletForm] = useState({
     amount: '',
@@ -427,6 +430,56 @@ const Dashboard = () => {
     fetchUserProfile();
   }, [isSessionExpired]);
 
+  const handleCreateWallet = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('You need to be logged in to create a wallet.');
+        return;
+      }
+
+      const apiUrl = getApiUrl('api/wallet/balance');
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        toast.error('Failed to create wallet. Please try again.');
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result?.success) {
+        const xrplAddress = result?.data?.xrplAddress;
+        if (xrplAddress) {
+          setWalletAddress(xrplAddress);
+          setHasWallet(true);
+          toast.success('Wallet creation was successful');
+        } else {
+          toast.error('Wallet was created but address is missing in the response.');
+        }
+      } else {
+        const message = result?.message || 'Failed to create wallet. Please try again.';
+        toast.error(message);
+      }
+    } catch (error) {
+      console.error('Error creating wallet:', error);
+      toast.error('An error occurred while creating the wallet. Please try again.');
+    }
+  };
+
+  // Determine if wallet already exists based on initial walletAddress (if server pre-fills it)
+  useEffect(() => {
+    if (walletAddress && typeof walletAddress === 'string' && walletAddress.trim().length > 0) {
+      setHasWallet(true);
+    }
+  }, [walletAddress]);
+
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -587,6 +640,17 @@ const Dashboard = () => {
         if (response.ok) {
           const result = await response.json();
           console.log('Wallet balances API response data:', result);
+
+          // If backend includes an XRPL address, treat wallet as already created
+          const existingAddress = result?.data?.xrplAddress;
+          if (
+            existingAddress &&
+            typeof existingAddress === 'string' &&
+            existingAddress.trim().length > 0
+          ) {
+            setWalletAddress(prev => prev || existingAddress);
+            setHasWallet(true);
+          }
 
           // Handle different possible response structures
           let balances = null;
@@ -1880,11 +1944,16 @@ const Dashboard = () => {
               </div>
               <div className="mobile-user-info">
                 <span className="mobile-user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  {(() => {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.js:1947',message:'User profile loading check',data:{isLoadingUserProfile},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                    // #endregion
+                    return isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName;
+                  })()}
                   <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
                 </span>
                 <span className="mobile-user-role">
-                  {isLoadingUserProfile ? 'Loading...' : userRole}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
                 </span>
               </div>
             </div>
@@ -2014,6 +2083,26 @@ const Dashboard = () => {
                 </nav>
               </div>
 
+              <div className="mobile-sidebar-section">
+                <p className="mobile-sidebar-section-label">Wallet</p>
+                <nav className="mobile-sidebar-nav">
+                  <button
+                    type="button"
+                    className="mobile-sidebar-nav-item"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      if (hasWallet) {
+                        setShowWalletModal(true);
+                      } else {
+                        handleCreateWallet();
+                      }
+                    }}
+                  >
+                    <span>{hasWallet ? 'View wallet' : 'Create wallet'}</span>
+                  </button>
+                </nav>
+              </div>
+
               <div className="mobile-sidebar-bottom">
                 <div className="mobile-sidebar-help-card">
                   <div className="mobile-sidebar-help-icon">
@@ -2064,7 +2153,7 @@ const Dashboard = () => {
             <div className="mobile-balance-amount">
               {showBalance 
                 ? (isLoadingDashboard 
-                    ? 'Loading...' 
+                    ? <LoadingIndicator size="sm" />
                     : (() => {
                         // Calculate USD value from XRP using exchange rate from API
                         if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
@@ -2096,8 +2185,11 @@ const Dashboard = () => {
             <div className="mobile-balance-xrp">
               ≈ {(() => {
                   const xrpBalance = getBalanceValue(dashboardData, 'xrp');
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.js:2183',message:'Checking isLoadingDashboard for XRP balance',data:{isLoadingDashboard},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                  // #endregion
                   if (isLoadingDashboard) {
-                    return 'Loading...';
+                    return <LoadingIndicator size="sm" />;
                   }
                   if (xrpBalance !== null && xrpBalance !== undefined) {
                     return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2135,12 +2227,12 @@ const Dashboard = () => {
               <div className="mobile-metric-value">
                 {dashboardData?.activeEscrows?.count !== undefined 
                   ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? 'Loading...' : 23)}
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
               </div>
               <div className="mobile-metric-subvalue">
                 ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
                     ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? 'Loading...' : '156,789')} locked
+                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
               </div>
               <button type="button" className="mobile-metric-btn">
                 <Plus size={14} />
@@ -2155,13 +2247,13 @@ const Dashboard = () => {
               <div className="mobile-metric-value">
                 {dashboardData?.trustiscore?.score !== undefined 
                   ? dashboardData.trustiscore.score 
-                  : (isLoadingDashboard ? 'Loading...' : 70)}
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
                 <span className="mobile-metric-suffix">/100</span>
               </div>
               <div className="mobile-metric-subvalue">
                 {dashboardData?.trustiscore?.level !== undefined 
                   ? dashboardData.trustiscore.level 
-                  : (isLoadingDashboard ? 'Loading...' : 'Platinum')}
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
               </div>
               <button type="button" className="mobile-metric-btn">
                 View Level
@@ -2187,7 +2279,7 @@ const Dashboard = () => {
               </div>
               <div className="mobile-bar-chart">
                 {isLoadingPortfolio && (
-                  <span className="mobile-rate-currency">Loading portfolio...</span>
+                  <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
                 )}
 
                 {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
@@ -2232,7 +2324,7 @@ const Dashboard = () => {
               {isLoadingRates && (
                 <div className="mobile-rate-item">
                   <div className="mobile-rate-info">
-                    <span className="mobile-rate-currency">Loading rates...</span>
+                    <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
                   </div>
                 </div>
               )}
@@ -2315,7 +2407,7 @@ const Dashboard = () => {
                     <span className="mobile-wallet-crypto">
                       {showBalance 
                         ? (isLoadingWalletBalances 
-                            ? 'Loading...' 
+                            ? <LoadingIndicator size="sm" />
                             : (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null && walletBalances.xrp > 0
                                 ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
                                 : '0.00 XRP'))
@@ -2337,7 +2429,7 @@ const Dashboard = () => {
                           if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
                             return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                           }
-                          return isLoadingWalletBalances ? 'Loading...' : '$0.00';
+                          return isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00';
                         })()
                       : '••••••'}
                   </span>
@@ -2361,7 +2453,7 @@ const Dashboard = () => {
                     <span className="mobile-wallet-crypto">
                       {showBalance 
                         ? (isLoadingWalletBalances 
-                            ? 'Loading...' 
+                            ? <LoadingIndicator size="sm" />
                             : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null && walletBalances.usdt > 0
                                 ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
                                 : '0.00 USDT'))
@@ -2373,7 +2465,7 @@ const Dashboard = () => {
                     <span className="mobile-wallet-amount">
                       {showBalance 
                         ? (isLoadingWalletBalances 
-                            ? 'Loading...' 
+                            ? <LoadingIndicator size="sm" />
                             : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null && walletBalances.usdt > 0
                                 ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : '$0.00'))
@@ -2398,7 +2490,7 @@ const Dashboard = () => {
                     <span className="mobile-wallet-crypto">
                       {showBalance 
                         ? (isLoadingWalletBalances 
-                            ? 'Loading...' 
+                            ? <LoadingIndicator size="sm" />
                             : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null && walletBalances.usdc > 0
                                 ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
                                 : '0.00 USDC'))
@@ -2411,7 +2503,7 @@ const Dashboard = () => {
                     {showBalance 
                       ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
                           ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : (isLoadingWalletBalances ? 'Loading...' : '$8,750.00'))
+                          : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$8,750.00'))
                       : '••••••'}
                   </span>
                   <div className="mobile-wallet-change positive">
@@ -2432,7 +2524,7 @@ const Dashboard = () => {
             <div className="mobile-escrow-list">
               {isLoadingEscrows ? (
                 <div className="mobile-escrow-item">
-                  <div className="mobile-escrow-loading">Loading escrows...</div>
+                  <div className="mobile-escrow-loading"><LoadingIndicator size="md" /></div>
                 </div>
               ) : escrows && escrows.length > 0 ? (
                 escrows.slice(0, 3).map((escrow, index) => {
@@ -2527,7 +2619,7 @@ const Dashboard = () => {
               <div className="mobile-card-holder">
                 <span className="mobile-card-holder-label">Card holder</span>
                 <span className="mobile-card-holder-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
                 </span>
               </div>
             </div>
@@ -2555,7 +2647,7 @@ const Dashboard = () => {
               <div className="summary-card-value">
                 {showBalance 
                   ? (isLoadingDashboard 
-                      ? 'Loading...' 
+                      ? <LoadingIndicator size="sm" />
                       : (() => {
                           // Calculate USD value from XRP using exchange rate from API
                           if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
@@ -2586,7 +2678,7 @@ const Dashboard = () => {
               <div className="summary-card-subvalue">
                 ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
                     ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) 
-                    : (isLoadingDashboard ? 'Loading...' : '0.000000')} XRP
+                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.000000')} XRP
               </div>
             </div>
             <div className="summary-card-actions">
@@ -2616,12 +2708,12 @@ const Dashboard = () => {
               <div className="summary-card-value">
                 {dashboardData?.activeEscrows?.count !== undefined 
                   ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? 'Loading...' : 23)}
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
               </div>
               <div className="summary-card-subvalue">
                 ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
                     ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? 'Loading...' : '156,789')} locked
+                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
               </div>
             </div>
             <button type="button" className="summary-card-btn primary">+ Create Escrow</button>
@@ -2636,13 +2728,13 @@ const Dashboard = () => {
               <div className="summary-card-value">
                 {dashboardData?.trustiscore?.score !== undefined 
                   ? dashboardData.trustiscore.score 
-                  : (isLoadingDashboard ? 'Loading...' : 70)}
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
                 <span className="summary-card-value-suffix">/100</span>
               </div>
               <div className="summary-card-subvalue">
                 {dashboardData?.trustiscore?.level !== undefined 
                   ? dashboardData.trustiscore.level 
-                  : (isLoadingDashboard ? 'Loading...' : 'Platinum')}
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
               </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Level</button>
@@ -2657,7 +2749,7 @@ const Dashboard = () => {
               <div className="summary-card-value">
                 ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                     ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingTotalEscrowed ? 'Loading...' : '0.00')}
+                    : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '0.00')}
               </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Escrow</button>
@@ -2684,7 +2776,7 @@ const Dashboard = () => {
               </div>
               <div className="bar-chart">
                 {isLoadingPortfolio && (
-                  <span className="rate-currency">Loading portfolio...</span>
+                  <span className="rate-currency"><LoadingIndicator size="md" /></span>
                 )}
 
                 {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
@@ -2738,7 +2830,7 @@ const Dashboard = () => {
                     {isLoadingEscrows && (
                       <tr>
                         <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                          Loading escrows...
+                          <LoadingIndicator size="md" />
                         </td>
                       </tr>
                     )}
@@ -2833,7 +2925,7 @@ const Dashboard = () => {
                 {isLoadingRates && (
                   <div className="rate-item">
                     <div className="rate-info">
-                      <span className="rate-currency">Loading rates...</span>
+                      <span className="rate-currency"><LoadingIndicator size="sm" /></span>
                     </div>
                   </div>
                 )}
@@ -2913,7 +3005,7 @@ const Dashboard = () => {
                         {showBalance 
                           ? (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null
                               ? `${Number(walletBalances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP`
-                              : (isLoadingWalletBalances ? 'Loading...' : '0.00 XRP'))
+                              : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '0.00 XRP'))
                           : '••••••'}
                       </span>
                     </div>
@@ -2934,7 +3026,7 @@ const Dashboard = () => {
                             if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
                               return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                             }
-                            return isLoadingWalletBalances ? 'Loading...' : '$0.00';
+                            return isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00';
                           })()
                         : '••••••'}
                     </span>
@@ -2959,7 +3051,7 @@ const Dashboard = () => {
                         {showBalance 
                           ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
                               ? `${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
-                              : (isLoadingWalletBalances ? 'Loading...' : '0.00 USDT'))
+                              : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '0.00 USDT'))
                           : '••••••'}
                       </span>
                     </div>
@@ -2969,7 +3061,7 @@ const Dashboard = () => {
                       {showBalance 
                         ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
                             ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : (isLoadingWalletBalances ? 'Loading...' : '$0.00'))
+                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
                         : '••••••'}
                     </span>
                   <div className="wallet-change neutral">
@@ -2992,7 +3084,7 @@ const Dashboard = () => {
                         {showBalance 
                           ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
                               ? `${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
-                              : (isLoadingWalletBalances ? 'Loading...' : '0.00 USDC'))
+                              : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '0.00 USDC'))
                           : '••••••'}
                       </span>
                     </div>
@@ -3002,7 +3094,7 @@ const Dashboard = () => {
                       {showBalance 
                         ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
                             ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : (isLoadingWalletBalances ? 'Loading...' : '$0.00'))
+                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
                         : '••••••'}
                     </span>
                   <div className="wallet-change positive">
@@ -3359,22 +3451,37 @@ const Dashboard = () => {
 
           <div className="header-actions">
             {kycComplete ? (
-              <div className="account-type-buttons">
+              <>
+                <div className="account-type-buttons">
+                  <button 
+                    type="button" 
+                    className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
+                    onClick={() => setAccountType('Personal')}
+                  >
+                    Personal
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
+                    onClick={() => setAccountType('Business Suite')}
+                  >
+                    Business Suite
+                  </button>
+                </div>
                 <button 
                   type="button" 
-                  className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
-                  onClick={() => setAccountType('Personal')}
+                  className="create-wallet-btn"
+                  onClick={() => {
+                    if (hasWallet) {
+                      setShowWalletModal(true);
+                    } else {
+                      handleCreateWallet();
+                    }
+                  }}
                 >
-                  Personal
+                  {hasWallet ? 'View Wallet' : 'Create Wallet'}
                 </button>
-                <button 
-                  type="button" 
-                  className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
-                  onClick={() => setAccountType('Business Suite')}
-                >
-                  Business Suite
-                </button>
-              </div>
+              </>
             ) : (
             <button type="button" className="kyc-status">
               <KeyRound size={16} />
@@ -3389,7 +3496,7 @@ const Dashboard = () => {
               <div className="user-avatar">{userInitials}</div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>Freelancer</small>
@@ -3699,6 +3806,47 @@ const Dashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Modal */}
+      {showWalletModal && hasWallet && walletAddress && (
+        <div className="wallet-modal-overlay" onClick={() => setShowWalletModal(false)}>
+          <div className="wallet-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="wallet-modal-header">
+              <h2>Your Wallet</h2>
+              <button
+                type="button"
+                className="wallet-modal-close-btn"
+                onClick={() => setShowWalletModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="wallet-modal-body">
+              <p className="wallet-modal-label">XRPL Address</p>
+              <div className="wallet-modal-address-row">
+                <div className="wallet-modal-address-box">
+                  {walletAddress}
+                </div>
+                <button
+                  type="button"
+                  className="wallet-modal-copy-btn"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(walletAddress);
+                      toast.success('Wallet address copied');
+                    } catch (err) {
+                      console.error('Failed to copy wallet address:', err);
+                      toast.error('Failed to copy wallet address');
+                    }
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

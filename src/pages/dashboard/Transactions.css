@@ -4266,6 +4266,29 @@ body.transactions-page-active .landing-navbar {
   color: var(--blue-600);
 }
 
+.desktop-savings-create-wallet-btn {
+  padding: 0.5rem 1.25rem;
+  margin-left: 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #2F74FF;
+  color: var(--white);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.desktop-savings-create-wallet-btn:hover {
+  background: #2563eb;
+}
+
+.desktop-savings-create-wallet-btn:active {
+  transform: translateY(1px);
+}
+
 .desktop-savings-notification-btn {
   width: 40px;
   height: 40px;

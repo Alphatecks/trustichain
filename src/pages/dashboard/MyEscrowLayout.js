@@ -30,6 +30,7 @@ import verifyBadge from '../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../utils/config';
 import { useSession } from '../../context/SessionContext';
 import './Dashboard.css';
+import LoadingIndicator from '../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -337,7 +338,7 @@ const MyEscrowLayout = ({ children }) => {
               <div className="user-avatar">{userInitials}</div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>Freelancer</small>

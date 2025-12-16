@@ -38,6 +38,7 @@ import './TrustiCard.css';
 import logo from '../../assets/images/icons/logo.png';
 import verifyBadge from '../../assets/images/icons/verify.png';
 import { useSession } from '../../context/SessionContext';
+import LoadingIndicator from '../../components/LoadingIndicator';
 import { getApiUrl } from '../../utils/config';
 
 const sidebarNav = [
@@ -240,11 +241,11 @@ const TrustiCard = () => {
           </div>
           <div className="mobile-user-info">
             <span className="mobile-user-name">
-              {isLoadingUserProfile ? 'Loading...' : userFullName}
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
               <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
             </span>
             <span className="mobile-user-role">
-              {isLoadingUserProfile ? 'Loading...' : userRole}
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
             </span>
           </div>
         </div>
@@ -544,7 +545,7 @@ const TrustiCard = () => {
               <div className="user-avatar">{userInitials}</div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>Freelancer</small>

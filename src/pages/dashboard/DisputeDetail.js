@@ -36,6 +36,7 @@ import verifyBadge from '../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../context/SessionContext';
 import { getApiUrl } from '../../utils/config';
+import LoadingIndicator from '../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -99,66 +100,39 @@ const DisputeDetail = () => {
     { sender: 'Mediator', text: 'Thank you, Jane. The artwork I received doesn\'t match the style and color scheme we agreed upon. I specifically requested a minimalist design with blue tones, but what I received is very complex with warm colors' }
   ];
 
-  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (isSessionExpired) {
-        setUserFullName('Sarah Chen');
-        setUserInitials('SC');
-        setUserRole('Personal Account');
-        setIsLoadingUserProfile(false);
-        return;
-      }
-
       try {
+        if (isSessionExpired) {
+          setIsLoadingUserProfile(false);
+          return;
+        }
+
         const token = localStorage.getItem('token');
         if (!token) {
           setIsLoadingUserProfile(false);
           return;
         }
 
-        const apiUrl = getApiUrl('api/user/profile');
-        const response = await fetch(apiUrl, {
-          method: 'GET',
+        const response = await fetch(`${getApiUrl()}/api/user/profile`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+            'Authorization': `Bearer ${token}`
+          }
         });
 
         if (response.ok) {
-          const result = await response.json();
-          if (result?.success && result?.data) {
-            const data = result.data;
-            const fullName = data.fullName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.name || 'Sarah Chen';
-            setUserFullName(fullName);
-
-            const firstName = data.firstName || '';
-            const lastName = data.lastName || '';
-            let initials = 'SC';
-            if (firstName && lastName) {
-              initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
-            } else if (fullName && typeof fullName === 'string') {
-              const nameParts = fullName.trim().split(/\s+/);
-              if (nameParts.length >= 2) {
-                initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
-              } else if (nameParts.length === 1) {
-                initials = nameParts[0].charAt(0).toUpperCase();
-              }
-            }
-            setUserInitials(initials);
-            
-            // Set user role if available
-            const role = data.role || data.userRole || 'Personal Account';
-            setUserRole(role);
-            
-            // Set avatar if available
-            setUserAvatar(data.avatar || null);
+          const data = await response.json();
+          if (data.user) {
+            setUserFullName(data.user.fullName || 'Sarah Chen');
+            const names = (data.user.fullName || 'Sarah Chen').split(' ');
+            setUserInitials((names[0]?.[0] || '') + (names[1]?.[0] || ''));
+            setUserAvatar(data.user.avatar || null);
+            setUserRole(data.user.role || 'Personal Account');
           }
         }
+        setIsLoadingUserProfile(false);
       } catch (error) {
         console.error('Error fetching user profile:', error);
-      } finally {
         setIsLoadingUserProfile(false);
       }
     };
@@ -187,11 +161,11 @@ const DisputeDetail = () => {
           </div>
           <div className="mobile-user-info">
             <span className="mobile-user-name">
-              {isLoadingUserProfile ? 'Loading...' : userFullName}
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
               <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
             </span>
             <span className="mobile-user-role">
-              {isLoadingUserProfile ? 'Loading...' : userRole}
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
             </span>
           </div>
         </div>
@@ -455,20 +429,7 @@ const DisputeDetail = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
-                {userAvatar ? (
-                  <img src={userAvatar} alt={userFullName} />
-                ) : (
-                  userInitials
-                )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{isLoadingUserProfile ? 'Loading...' : userRole}</small>
-              </div>
+              <div className="user-avatar">{userInitials}</div>
             </div>
           </div>
         </header>

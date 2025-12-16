@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../utils/config';
+import LoadingIndicator from '../../components/LoadingIndicator';
 import { useSession } from '../../context/SessionContext';
 import toast from 'react-hot-toast';
 import logo from '../../assets/images/icons/logo.png';
@@ -1064,15 +1065,15 @@ const MyEscrow = () => {
                   userInitials
                 )}
               </div>
-              <div className="mobile-user-info">
-                <span className="mobile-user-name">
-                  {isLoadingUserProfile ? 'Loading...' : userFullName}
-                  <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-                </span>
-                <span className="mobile-user-role">
-                  {isLoadingUserProfile ? 'Loading...' : userRole}
-                </span>
-              </div>
+            <div className="mobile-user-info">
+              <span className="mobile-user-name">
+                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+              </span>
+              <span className="mobile-user-role">
+                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+              </span>
+            </div>
             </div>
             <div className="mobile-header-right">
               <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
@@ -1266,7 +1267,7 @@ const MyEscrow = () => {
           <div className="metric-content">
             <div className="metric-value">
               {isLoadingEscrowMetrics 
-                ? 'Loading...' 
+                ? <LoadingIndicator size="sm" />
                 : `$${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                     ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '0.00'}`}
@@ -1295,7 +1296,7 @@ const MyEscrow = () => {
           <div className="metric-content">
             <div className="metric-value">
               {isLoadingEscrowMetrics 
-                ? 'Loading...' 
+                ? <LoadingIndicator size="sm" />
                 : (totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0)}
             </div>
             <div className="metric-subtitle-row">
@@ -1318,7 +1319,7 @@ const MyEscrow = () => {
           <div className="metric-content">
             <div className="metric-value">
               {isLoadingEscrowMetrics 
-                ? 'Loading...' 
+                ? <LoadingIndicator size="sm" />
                 : (activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0)}
             </div>
             <div className="metric-subtitle-row">
@@ -1337,7 +1338,7 @@ const MyEscrow = () => {
           <div className="metric-content">
             <div className="metric-value">
               {isLoadingCompletedEscrow 
-                ? 'Loading...' 
+                ? <LoadingIndicator size="sm" />
                 : (completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0)}
             </div>
             <div className="metric-subtitle-row">
@@ -1402,7 +1403,7 @@ const MyEscrow = () => {
                   All industries
                 </div>
                 {isLoadingIndustries ? (
-                  <div style={{ padding: '8px 12px', textAlign: 'center' }}>Loading...</div>
+                  <div style={{ padding: '8px 12px', textAlign: 'center' }}><LoadingIndicator size="sm" /></div>
                 ) : industries.length > 0 ? (
                   industries.map((industry, idx) => (
                     <div
@@ -1455,7 +1456,7 @@ const MyEscrow = () => {
       <div className="escrow-history-list">
         {isLoadingEscrows && (
           <div className="escrow-history-card" style={{ textAlign: 'center', padding: '2rem' }}>
-            Loading escrows...
+            <LoadingIndicator size="md" />
           </div>
         )}
         {!isLoadingEscrows && escrows.length === 0 && (
@@ -1525,7 +1526,7 @@ const MyEscrow = () => {
             {isLoadingEscrows && (
               <tr>
                 <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
-                  Loading escrows...
+                  <LoadingIndicator size="md" />
                 </td>
               </tr>
             )}
@@ -2496,7 +2497,7 @@ const MyEscrow = () => {
                 <div className="metric-content">
                   <div className="metric-value">
                     {isLoadingEscrowMetrics 
-                      ? 'Loading...' 
+                      ? <LoadingIndicator size="sm" />
                       : `$${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                           ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                           : '0.00'}`}
@@ -2523,7 +2524,7 @@ const MyEscrow = () => {
                 <div className="metric-content">
                   <div className="metric-value">
                     {isLoadingEscrowMetrics 
-                      ? 'Loading...' 
+                      ? <LoadingIndicator size="sm" />
                       : (totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0)}
                   </div>
                   <div className="metric-subtitle">This month</div>
@@ -2544,7 +2545,7 @@ const MyEscrow = () => {
                 <div className="metric-content">
                   <div className="metric-value">
                     {isLoadingEscrowMetrics 
-                      ? 'Loading...' 
+                      ? <LoadingIndicator size="sm" />
                       : (activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0)}
                   </div>
                   <div className="metric-subtitle">This month</div>
@@ -2561,7 +2562,7 @@ const MyEscrow = () => {
                 <div className="metric-content">
                   <div className="metric-value">
                     {isLoadingCompletedEscrow 
-                      ? 'Loading...' 
+                      ? <LoadingIndicator size="sm" />
                       : (completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0)}
                   </div>
                   <div className="metric-subtitle">This month</div>
@@ -2624,7 +2625,7 @@ const MyEscrow = () => {
                         All industries
                       </div>
                       {isLoadingIndustries ? (
-                        <div style={{ padding: '8px 12px', textAlign: 'center' }}>Loading...</div>
+                        <div style={{ padding: '8px 12px', textAlign: 'center' }}><LoadingIndicator size="sm" /></div>
                       ) : industries.length > 0 ? (
                         industries.map((industry, idx) => (
                           <div
@@ -2675,7 +2676,7 @@ const MyEscrow = () => {
                   {isLoadingEscrows && (
                     <tr>
                       <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
-                        Loading escrows...
+                        <LoadingIndicator size="md" />
                       </td>
                     </tr>
                   )}
