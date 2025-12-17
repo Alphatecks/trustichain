@@ -49,6 +49,7 @@ import verifyBadge from '../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../utils/config';
 import { useSession } from '../../context/SessionContext';
 import LoadingIndicator from '../../components/LoadingIndicator';
+import CreateEscrowForm from '../../components/CreateEscrowForm';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -134,6 +135,7 @@ const Dashboard = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [fundWalletForm, setFundWalletForm] = useState({
     amount: '',
@@ -2234,7 +2236,11 @@ const Dashboard = () => {
                     ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
                     : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
               </div>
-              <button type="button" className="mobile-metric-btn">
+            <button
+              type="button"
+              className="mobile-metric-btn"
+              onClick={() => setShowCreateEscrowModal(true)}
+            >
                 <Plus size={14} />
                 Create Escrow
               </button>
@@ -2716,7 +2722,13 @@ const Dashboard = () => {
                     : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
               </div>
             </div>
-            <button type="button" className="summary-card-btn primary">+ Create Escrow</button>
+            <button
+              type="button"
+              className="summary-card-btn primary"
+              onClick={() => setShowCreateEscrowModal(true)}
+            >
+              + Create Escrow
+            </button>
           </div>
 
           <div className="summary-card trustiscore-card">
@@ -3674,6 +3686,16 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Create Escrow Modal (Dashboard-scoped, reusing shared form) */}
+      <CreateEscrowForm
+        isOpen={showCreateEscrowModal}
+        onCancel={() => setShowCreateEscrowModal(false)}
+        onSuccess={() => {
+          // After creating an escrow, refresh high-level dashboard summary.
+          fetchDashboardSummary();
+        }}
+      />
 
       {/* Fund Wallet Modal */}
       {showFundWalletModal && (
