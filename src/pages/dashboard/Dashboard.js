@@ -36,7 +36,8 @@ import {
   CheckCircle,
   Package,
   Menu,
-  Wallet
+  Wallet,
+  ChevronRight
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../assets/images/icons/logo.png';
@@ -50,6 +51,7 @@ import { getApiUrl } from '../../utils/config';
 import { useSession } from '../../context/SessionContext';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import CreateEscrowForm from '../../components/CreateEscrowForm';
+import BusinessSuiteLoader from '../../components/BusinessSuiteLoader';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -101,6 +103,8 @@ const Dashboard = () => {
   const [accountType, setAccountType] = useState('Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
+  const [isSwitchingAccountType, setIsSwitchingAccountType] = useState(false);
+  const [switchMessage, setSwitchMessage] = useState('');
   const [kycForm, setKycForm] = useState({
     firstName: '',
     lastName: '',
@@ -2002,6 +2006,42 @@ const Dashboard = () => {
 
             <div className="mobile-sidebar-content">
               <div className="mobile-sidebar-section">
+                <button
+                  type="button"
+                  className="account-chip-mobile"
+                  onClick={() => {
+                    if (accountType === 'Business Suite') {
+                      setSwitchMessage('switching to personal');
+                      setIsSwitchingAccountType(true);
+                      setTimeout(() => {
+                        setAccountType('Personal');
+                        setIsSwitchingAccountType(false);
+                        setSwitchMessage('');
+                      }, 2000);
+                    } else {
+                      setSwitchMessage('switching to business suite');
+                      setIsSwitchingAccountType(true);
+                      setTimeout(() => {
+                        setAccountType('Business Suite');
+                        setIsSwitchingAccountType(false);
+                        setSwitchMessage('');
+                      }, 2000);
+                    }
+                  }}
+                >
+                  <div className="account-chip-text">
+                    <span className="account-label">Account</span>
+                    <span className="account-type">
+                      {accountType === 'Business Suite' ? 'Business Suite' : 'Personal'}
+                    </span>
+                  </div>
+                  <span className="account-chip-icon">
+                    <ChevronRight size={14} />
+                  </span>
+                </button>
+              </div>
+
+              <div className="mobile-sidebar-section">
                 <p className="mobile-sidebar-section-label">
                   {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
                 </p>
@@ -3336,6 +3376,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
+      {isSwitchingAccountType && <BusinessSuiteLoader message={switchMessage} />}
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
           <img src={logo} alt="TrustiChain" className="sidebar-logo" />
@@ -3468,14 +3509,36 @@ const Dashboard = () => {
                   <button 
                     type="button" 
                     className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
-                    onClick={() => setAccountType('Personal')}
+                    onClick={() => {
+                      if (accountType === 'Business Suite') {
+                        setSwitchMessage('switching to personal');
+                        setIsSwitchingAccountType(true);
+                        setTimeout(() => {
+                          setAccountType('Personal');
+                          setIsSwitchingAccountType(false);
+                          setSwitchMessage('');
+                        }, 2000);
+                      } else {
+                        setAccountType('Personal');
+                      }
+                    }}
                   >
                     Personal
                   </button>
                   <button 
                     type="button" 
                     className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
-                    onClick={() => setAccountType('Business Suite')}
+                    onClick={() => {
+                      if (accountType !== 'Business Suite') {
+                        setSwitchMessage('switching to business suite');
+                        setIsSwitchingAccountType(true);
+                        setTimeout(() => {
+                          setAccountType('Business Suite');
+                          setIsSwitchingAccountType(false);
+                          setSwitchMessage('');
+                        }, 2000);
+                      }
+                    }}
                   >
                     Business Suite
                   </button>

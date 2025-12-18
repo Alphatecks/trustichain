@@ -409,21 +409,8 @@ const DisputeDetail = () => {
           </div>
 
           <div className="header-actions">
-            <div className="account-type-buttons">
-              <button 
-                type="button" 
-                className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
-                onClick={() => setAccountType('Personal')}
-              >
-                Personal
-              </button>
-              <button 
-                type="button" 
-                className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
-                onClick={() => setAccountType('Business Suite')}
-              >
-                Business Suite
-              </button>
+            <div className="account-type-display">
+              <span className="account-type-label">{accountType}</span>
             </div>
             <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
               <Bell size={18} />

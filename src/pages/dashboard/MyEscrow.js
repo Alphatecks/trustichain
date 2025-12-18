@@ -1568,8 +1568,15 @@ const MyEscrow = () => {
                 : 'N/A';
               
               // Determine action button text and availability
-              const canRelease = statusLower === 'pending' || statusLower === 'active' || statusLower === 'pending release';
-              const actionText = canRelease ? 'Release' : statusLower === 'completed' ? 'Completed' : 'View';
+              const hasXrplEscrowId = !!(escrow.xrplEscrowId || escrow.xrpl_escrow_id);
+              const canRelease =
+                hasXrplEscrowId &&
+                (statusLower === 'active' || statusLower === 'pending release');
+              const actionText = canRelease
+                ? 'Release'
+                : statusLower === 'completed'
+                ? 'Completed'
+                : 'View';
               
               return (
                 <tr key={escrow.id || escrow.xrplEscrowId || index}>

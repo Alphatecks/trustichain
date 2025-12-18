@@ -271,8 +271,14 @@
     background: var(--white);
     border-radius: 0.75rem;
     padding: 1rem;
-    margin: 0 1rem 1.5rem 1rem;
+    width: 90%;
+    margin: 0 0.5rem 1.5rem auto; /* slightly narrower and nudged right */
     font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .mobile-cashflow-section .mobile-section-header,
+  .mobile-cashflow-section .mobile-cashflow-legend {
+    padding-left: 1rem; /* shift header and legend further right inside the card */
   }
 
   .mobile-section-header {

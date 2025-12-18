@@ -547,6 +547,23 @@
   margin-left: 2rem;
 }
 
+.account-type-display {
+  display: flex;
+  align-items: center;
+  margin-left: 2rem;
+}
+
+.account-type-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--white);
+}
+
 .create-wallet-btn {
   padding: 0.45rem 1.1rem;
   margin-left: 0.75rem;
@@ -3277,6 +3294,49 @@
     gap: 0.75rem;
     padding: 0 1.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  .account-chip-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f9fafb;
+    color: #111827;
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: 'Poppins', sans-serif;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    cursor: pointer;
+  }
+
+  .account-chip-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .account-chip-mobile .account-label {
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.78rem;
+  }
+
+  .account-chip-mobile .account-type {
+    color: var(--blue-600);
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .account-chip-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
   }
 
   .mobile-sidebar-section-label {

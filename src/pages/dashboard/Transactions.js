@@ -44,7 +44,8 @@ import {
   Package,
   Trophy,
   ShoppingBag,
-  Home
+  Home,
+  Calendar
 } from 'lucide-react';
 import './Dashboard.css';
 import './Transactions.css';
@@ -125,6 +126,21 @@ const Transactions = () => {
   const [fundingStep, setFundingStep] = useState('idle');
   const [transactionData, setTransactionData] = useState(null);
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
+  const [showSavingsWithdrawModal, setShowSavingsWithdrawModal] = useState(false);
+  const [showSavingsWithdrawConfirmModal, setShowSavingsWithdrawConfirmModal] = useState(false);
+  const [selectedWithdrawWallet, setSelectedWithdrawWallet] = useState(null);
+  const [showSavingsAddMoneyModal, setShowSavingsAddMoneyModal] = useState(false);
+  const [savingsAddMoneyForm, setSavingsAddMoneyForm] = useState({
+    amount: '',
+    sourceWallet: 'XRP',
+    savingAccount: 'My Goals'
+  });
+  const [showAddSavingsAccountModal, setShowAddSavingsAccountModal] = useState(false);
+  const [addSavingsAccountForm, setAddSavingsAccountForm] = useState({
+    name: '',
+    category: 'My Goals',
+    duration: ''
+  });
   const [withdrawWalletForm, setWithdrawWalletForm] = useState({
     amount: '',
     currency: 'USD',
@@ -148,6 +164,7 @@ const Transactions = () => {
   const [showSavingsSummary, setShowSavingsSummary] = useState(false);
   const [showDesktopSavingsDashboard, setShowDesktopSavingsDashboard] = useState(false);
   const [savingsAmount, setSavingsAmount] = useState('');
+  const [cashflowPeriod, setCashflowPeriod] = useState('Monthly');
   const [showFundWalletPage, setShowFundWalletPage] = useState(false);
   const [showFundWalletSummary, setShowFundWalletSummary] = useState(false);
   const [fundWalletNetwork, setFundWalletNetwork] = useState('');
@@ -170,6 +187,14 @@ const Transactions = () => {
     const month = now.toLocaleDateString(undefined, { month: 'long' });
     return `${weekday}, ${day}${day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} ${month}`;
   }, []);
+
+  // Savings wallets data - accessible throughout component
+  const savingsWallets = [
+    { name: 'My goals', percentage: '65%', saved: '$16,000', icon: Trophy, color: '#2F74FF' },
+    { name: 'Utility', percentage: '15%', saved: '$4,000', icon: Home, color: '#10b981' },
+    { name: 'Expenses', percentage: '15%', saved: '$4,000', icon: ShoppingBag, color: '#9333ea' },
+    { name: 'Others', percentage: '15%', saved: '$4,000', icon: Package, color: '#f59e0b' }
+  ];
 
   // Fetch dashboard summary for total balance
   useEffect(() => {
@@ -1714,26 +1739,20 @@ const Transactions = () => {
 
     // Mock data for savings dashboard
     const savingsAllocation = [
-      { name: 'My Goals', amount: 16000, percentage: 65, color: '#2F74FF' },
-      { name: 'House Rent', amount: 16000, percentage: 65, color: '#10b981' },
-      { name: 'Expenses', amount: 16000, percentage: 65, color: '#9333ea' },
-      { name: 'Set up', amount: 16000, percentage: 65, color: '#f59e0b' }
+      { name: 'My Goals', amount: 16000, percentage: 40, color: '#2F74FF' },
+      { name: 'House Rent', amount: 16000, percentage: 25, color: '#10b981' },
+      { name: 'Expenses', amount: 16000, percentage: 20, color: '#9333ea' },
+      { name: 'Set up', amount: 16000, percentage: 15, color: '#f59e0b' }
     ];
 
-    const savingsWallets = [
-      { name: 'My goals', percentage: '65%', saved: '$16,000', icon: Trophy, color: '#2F74FF' },
-      { name: 'Utility', percentage: '15%', saved: '$4,000', icon: Home, color: '#10b981' },
-      { name: 'Expenses', percentage: '15%', saved: '$4,000', icon: ShoppingBag, color: '#9333ea' },
-      { name: 'Others', percentage: '15%', saved: '$4,000', icon: Package, color: '#f59e0b' }
-    ];
 
     const cashflowData = [
-      { month: 'Jan', saved: 40, withdrawn: 15 },
-      { month: 'Feb', saved: 50, withdrawn: 20 },
-      { month: 'Mar', saved: 80, withdrawn: 25 },
-      { month: 'Apr', saved: 45, withdrawn: 18 },
-      { month: 'May', saved: 55, withdrawn: 22 },
-      { month: 'Jun', saved: 60, withdrawn: 20 }
+      { month: 'Jan', received: 75, spent: 55 },
+      { month: 'Feb', received: 48, spent: 38 },
+      { month: 'Mar', received: 61, spent: 21 },
+      { month: 'Apr', received: 34, spent: 22 },
+      { month: 'May', received: 83, spent: 55 },
+      { month: 'Jun', received: 74, spent: 49 },
     ];
 
     const savingHistory = [
@@ -1745,95 +1764,375 @@ const Transactions = () => {
     ];
 
     return (
-      <div className="desktop-savings-dashboard">
-        {/* Header */}
-        <div className="desktop-savings-header">
-          <div className="desktop-savings-header-left">
-            <span className="desktop-savings-date">{formattedDate}</span>
+      <>
+      {/* Mobile Header - Only visible on mobile for savings details */}
+      <div className="mobile-dashboard-header transactions-mobile-header">
+        <div className="mobile-header-left">
+          <div className="mobile-user-avatar">
+            {userAvatar ? (
+              <img src={userAvatar} alt={userFullName} />
+            ) : (
+              userInitials
+            )}
           </div>
-          <div className="desktop-savings-header-center">
-            <div className="desktop-savings-search">
-              <Search size={18} />
-              <input type="text" placeholder="Search" />
-            </div>
-          </div>
-          <div className="desktop-savings-header-right">
-            <div className="desktop-savings-nav-tabs">
-              <button 
-                type="button" 
-                className={`desktop-savings-nav-tab ${accountType === 'Personal' ? 'active' : ''}`}
-                onClick={() => setAccountType('Personal')}
-              >
-                Personal
-              </button>
-              <button 
-                type="button" 
-                className={`desktop-savings-nav-tab ${accountType === 'Business Suite' ? 'active' : ''}`}
-                onClick={() => setAccountType('Business Suite')}
-              >
-                Business suite
-              </button>
-            </div>
-            <button 
-              type="button" 
-              className="desktop-savings-create-wallet-btn"
-            >
-              Create Wallet
-            </button>
-            <button 
-              type="button" 
-              className="desktop-savings-notification-btn"
-              onClick={() => setShowNotificationModal(true)}
-            >
-              <Bell size={20} />
-            </button>
-            <div className="desktop-savings-user-profile">
-              <div className="desktop-savings-user-avatar">
-                {userAvatar ? (
-                  <img src={userAvatar} alt={userFullName} />
-                ) : (
-                  userInitials
-                )}
-              </div>
-              <div className="desktop-savings-user-info">
-                <span className="desktop-savings-user-name">
-                  {userFullName}
-                  <img src={verifyBadge} alt="Verified" className="desktop-savings-verified-icon" />
-                </span>
-                <span className="desktop-savings-user-role">{userRole}</span>
-              </div>
-            </div>
+          <div className="mobile-user-info">
+            <span className="mobile-user-name">
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+            </span>
+            <span className="mobile-user-role">
+              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+            </span>
           </div>
         </div>
-
-        {/* Breadcrumb */}
-        <div className="desktop-savings-breadcrumb">
-          <button 
-            type="button"
-            className="desktop-savings-back-btn"
-            onClick={() => setShowDesktopSavingsDashboard(false)}
-          >
-            <ArrowLeft size={16} />
+        <div className="mobile-header-right">
+          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
+            <Bell size={20} />
           </button>
-          <span>General</span>
-          <span className="desktop-savings-breadcrumb-separator">/</span>
-          <span>Dashboard</span>
+          <button 
+            type="button" 
+            className="mobile-header-menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Drawer */}
+      <div className={`mobile-sidebar-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-sidebar-header">
+          <div className="mobile-sidebar-branding">
+            <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+            <div className="mobile-sidebar-branding-text">
+              <span className="mobile-sidebar-title">TrustiChain</span>
+              <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            className="mobile-sidebar-close"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Main Content */}
-        <div className="desktop-savings-content">
+        <div className="mobile-sidebar-section">
+          <p className="mobile-sidebar-section-label">{accountType === 'Business Suite' ? 'Business Suite' : 'General'}</p>
+          <nav className="mobile-sidebar-nav">
+            {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
+              const Icon = item.icon;
+              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
+              const handleNavClick = () => {
+                if (item.label === 'Dashboard') {
+                  navigate('/dashboard');
+                  setShowDesktopSavingsDashboard(false);
+                } else if (item.label === 'My Escrow') {
+                  navigate('/my-escrow');
+                  setShowDesktopSavingsDashboard(false);
+                } else if (item.label === 'Transactions') {
+                  navigate('/transactions');
+                  setShowDesktopSavingsDashboard(false);
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
+                  setShowDesktopSavingsDashboard(false);
+                } else if (item.label === 'Trusticard') {
+                  navigate('/trusticard');
+                  setShowDesktopSavingsDashboard(false);
+                }
+              };
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                  {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {accountType === 'Business Suite' && (
+          <div className="mobile-sidebar-section">
+            <p className="mobile-sidebar-section-label">Developers Tool</p>
+            <nav className="mobile-sidebar-nav">
+              {developersNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button key={item.label} type="button" className="mobile-sidebar-nav-item">
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
+
+        <div className="mobile-sidebar-section">
+          <p className="mobile-sidebar-section-label">Support</p>
+          <nav className="mobile-sidebar-nav">
+            {supportNav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button key={item.label} type="button" className="mobile-sidebar-nav-item">
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="mobile-sidebar-bottom">
+          <div className="mobile-sidebar-help-card">
+            <div className="mobile-sidebar-help-icon">
+              <HelpCircle size={24} />
+            </div>
+            <h3>Help Center</h3>
+            <p>Having trouble in Trustichain? Please contact us</p>
+            <button type="button" className="mobile-sidebar-help-cta">
+              Contact us
+            </button>
+          </div>
+
+          <div className="mobile-sidebar-trustiscore">
+            <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+            <span className="mobile-sidebar-trustiscore-badge">97</span>
+          </div>
+
+          <button type="button" className="mobile-sidebar-logout">
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="dashboard transactions-page">
+        <aside className="dashboard-sidebar">
+        <div className="sidebar-branding">
+          <img src={logo} alt="TrustiChain" className="sidebar-logo" />
+          <div className="sidebar-branding-text">
+            <span className="sidebar-title">TrustiChain</span>
+            <span className="sidebar-tagline">Secure escrow platform</span>
+          </div>
+        </div>
+
+        <div className="sidebar-section">
+          <p className="sidebar-section-label">{accountType === 'Business Suite' ? 'Business Suite' : 'General'}</p>
+          <nav className="sidebar-nav">
+            {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
+              const Icon = item.icon;
+              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
+              const handleNavClick = () => {
+                if (item.label === 'Dashboard') {
+                  navigate('/dashboard');
+                } else if (item.label === 'My Escrow') {
+                  navigate('/my-escrow');
+                } else if (item.label === 'Transactions') {
+                  navigate('/transactions');
+                  setShowDesktopSavingsDashboard(false);
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
+                } else if (item.label === 'Trusticard') {
+                  navigate('/trusticard');
+                } else if (item.label === 'Dispute') {
+                  navigate('/dispute');
+                }
+              };
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {accountType === 'Business Suite' && (
+          <div className="sidebar-section">
+            <p className="sidebar-section-label">Developers Tool</p>
+            <nav className="sidebar-nav">
+              {developersNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button key={item.label} type="button" className="sidebar-nav-item">
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
+
+        <div className="sidebar-section">
+          <p className="sidebar-section-label">Support</p>
+          <nav className="sidebar-nav">
+            {supportNav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button key={item.label} type="button" className="sidebar-nav-item">
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="sidebar-bottom-section">
+          <div className="sidebar-help-card">
+            <div className="help-icon-large">
+              <HelpCircle size={24} />
+            </div>
+            <h3>Help Center</h3>
+            <p>Having trouble in Trustichain? Please contact us</p>
+            <button type="button" className="help-cta">
+              Contact us
+            </button>
+          </div>
+
+          <div className="sidebar-trustiscore">
+            <span className="trustiscore-label">Trustiscore</span>
+            <span className="trustiscore-badge">97</span>
+          </div>
+
+          <button type="button" className="sidebar-logout">
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="dashboard-main">
+        <header className="dashboard-header">
+          <div className="header-info">
+            <p className="header-date">{formattedToday}</p>
+            <h1>Welcome Back !</h1>
+          </div>
+
+          <div className="header-search-group">
+            <label className="header-search">
+              <input type="text" placeholder="Search" />
+            </label>
+            <span className="search-divider" aria-hidden="true" />
+            <button type="button" className="search-icon-btn">
+              <Search size={18} />
+            </button>
+          </div>
+
+          <div className="header-actions">
+            <div className="account-type-display">
+              <span className="account-type-label">{accountType}</span>
+            </div>
+            <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
+              <Bell size={18} />
+            </button>
+            <div className="header-user">
+              <div className="user-avatar">{userInitials}</div>
+              <div className="user-info">
+                <span className="user-name">
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
+                </span>
+                <small>{isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}</small>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="transactions-content">
+          {/* Breadcrumb */}
+          <div className="card-breadcrumb">
+            <button 
+              type="button"
+              className="desktop-savings-back-btn"
+              onClick={() => setShowDesktopSavingsDashboard(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginRight: '0.5rem', display: 'inline-flex', alignItems: 'center' }}
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className="breadcrumb-root">General</span>
+            <span className="breadcrumb-divider">›</span>
+            <span className="breadcrumb-current">My Savings</span>
+          </div>
+
+          {/* Main Content */}
+          <div className="desktop-savings-content">
           {/* Left Panel */}
           <div className="desktop-savings-left-panel">
+            {/* #region agent log */}
+            {(() => {
+              const logData = {
+                location: 'Transactions.js:2094',
+                message: 'Left panel render check',
+                data: {
+                  showDesktopSavingsDashboard: showDesktopSavingsDashboard,
+                  windowWidth: typeof window !== 'undefined' ? window.innerWidth : 0
+                },
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                runId: 'run1',
+                hypothesisId: 'C'
+              };
+              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(logData)
+              }).catch(() => {});
+              return null;
+            })()}
+            {/* #endregion */}
             {/* Savings Allocation */}
             <div className="desktop-savings-section-card">
               <div className="desktop-savings-section-indicator"></div>
               <div className="desktop-savings-section-content">
-                <h3 className="desktop-savings-section-title">Savings Allocation</h3>
+                <h3 className="desktop-savings-section-title">
+                  <div className="desktop-savings-allocation-title-wrapper">
+                    <div className="desktop-savings-allocation-indicator"></div>
+                    <span>Savings Allocation</span>
+                  </div>
+                </h3>
                 <p className="desktop-savings-section-subtitle">Total amount you have in your savings.</p>
-                <div className="desktop-savings-total-amount">$24,567.89</div>
-                <div className="desktop-savings-growth">
-                  <TrendingUp size={14} />
-                  <span>+3.1% This Month</span>
+                <div className="desktop-savings-total-wrapper">
+                  <div className="desktop-savings-total-amount">$24,567.89</div>
+                  <div className="desktop-savings-growth-wrapper">
+                    <div className="desktop-savings-growth">
+                      <TrendingUp size={14} />
+                      <span>+3.1%</span>
+                    </div>
+                    <span className="desktop-savings-growth-period">This Month</span>
+                  </div>
                 </div>
                 <div className="desktop-savings-allocation-bar">
                   {savingsAllocation.map((item, index) => (
@@ -1874,14 +2173,16 @@ const Transactions = () => {
 
             {/* Savings Wallet */}
             <div className="desktop-savings-section-card">
-              <div className="desktop-savings-section-indicator"></div>
               <div className="desktop-savings-section-content">
                 <div className="desktop-savings-wallet-header">
-                  <h3 className="desktop-savings-section-title">Savings wallet</h3>
+                  <div className="desktop-savings-wallet-title-wrapper">
+                    <div className="desktop-savings-wallet-indicator"></div>
+                    <h3 className="desktop-savings-wallet-title">Savings wallet</h3>
+                  </div>
                   <button 
                     type="button" 
                     className="desktop-savings-add-wallet-btn"
-                    onClick={() => setShowSavingsModal(true)}
+                    onClick={() => setShowAddSavingsAccountModal(true)}
                   >
                     + Add wallet
                   </button>
@@ -1889,17 +2190,62 @@ const Transactions = () => {
                 <div className="desktop-savings-wallet-grid">
                   {savingsWallets.map((wallet, index) => {
                     const Icon = wallet.icon;
+                    const percentageValue = parseInt(wallet.percentage);
+                    const circumference = 2 * Math.PI * 20; // radius = 20
+                    const offset = circumference - (percentageValue / 100) * circumference;
+                    
+                    // Convert hex to rgba for background circle
+                    const hexToRgba = (hex, alpha) => {
+                      const r = parseInt(hex.slice(1, 3), 16);
+                      const g = parseInt(hex.slice(3, 5), 16);
+                      const b = parseInt(hex.slice(5, 7), 16);
+                      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                    };
+                    
+                    const backgroundColor = hexToRgba(wallet.color, 0.2);
+                    
                     return (
                       <div key={index} className="desktop-savings-wallet-card">
-                        <div 
-                          className="desktop-savings-wallet-icon"
-                          style={{ backgroundColor: `${wallet.color}20` }}
-                        >
-                          <Icon size={20} style={{ color: wallet.color }} />
+                        <div className="desktop-savings-wallet-card-top">
+                          <div className="desktop-savings-wallet-icon-container">
+                            <svg className="desktop-savings-wallet-progress-circle" width="48" height="48">
+                              <circle
+                                cx="24"
+                                cy="24"
+                                r="20"
+                                fill="none"
+                                stroke={backgroundColor}
+                                strokeWidth="4"
+                              />
+                              <circle
+                                cx="24"
+                                cy="24"
+                                r="20"
+                                fill="none"
+                                stroke={wallet.color}
+                                strokeWidth="4"
+                            strokeDasharray={2 * Math.PI * 16}
+                            strokeDashoffset={offset}
+                              strokeLinecap="round"
+                              transform="rotate(-90 24 24)"
+                            />
+                            </svg>
+                            <div 
+                              className="desktop-savings-wallet-icon"
+                              style={{ backgroundColor: backgroundColor }}
+                            >
+                              <Icon size={20} style={{ color: wallet.color }} />
+                            </div>
+                          </div>
+                          <div className="desktop-savings-wallet-name-wrapper">
+                            <div className="desktop-savings-wallet-name">{wallet.name}</div>
+                            <div className="desktop-savings-wallet-percentage">{wallet.percentage}</div>
+                          </div>
                         </div>
-                        <div className="desktop-savings-wallet-name">{wallet.name}</div>
-                        <div className="desktop-savings-wallet-percentage">{wallet.percentage}</div>
-                        <div className="desktop-savings-wallet-saved">Saved: {wallet.saved}</div>
+                        <div className="desktop-savings-wallet-card-bottom">
+                          <div className="desktop-savings-wallet-saved-label">Saved:</div>
+                          <div className="desktop-savings-wallet-amount">{wallet.saved}</div>
+                        </div>
                       </div>
                     );
                   })}
@@ -1908,14 +2254,14 @@ const Transactions = () => {
                   <button 
                     type="button" 
                     className="desktop-savings-add-money-btn"
-                    onClick={() => setShowSavingsModal(true)}
+                    onClick={() => setShowSavingsAddMoneyModal(true)}
                   >
                     + Add money
                   </button>
                   <button 
                     type="button" 
                     className="desktop-savings-withdraw-btn"
-                    onClick={() => setShowWithdrawWalletModal(true)}
+                    onClick={() => setShowSavingsWithdrawModal(true)}
                   >
                     <ArrowDown size={16} />
                     <Wallet size={16} />
@@ -1924,58 +2270,187 @@ const Transactions = () => {
                 </div>
               </div>
             </div>
+
+            {/* Cashflow - Mobile Only */}
+            <div className="desktop-savings-section-card mobile-cashflow-section">
+              {/* #region agent log */}
+              {(() => {
+                const logData = {
+                  location: 'Transactions.js:2253',
+                  message: 'Mobile cashflow section render check',
+                  data: {
+                    cashflowDataExists: !!cashflowData,
+                    cashflowDataLength: cashflowData?.length || 0,
+                    cashflowPeriod: cashflowPeriod,
+                    showDesktopSavingsDashboard: showDesktopSavingsDashboard
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'run1',
+                  hypothesisId: 'A'
+                };
+                fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(logData)
+                }).catch(() => {});
+                return null;
+              })()}
+              {/* #endregion */}
+              <div className="desktop-savings-section-content">
+                <div className="cashflow-section">
+                  <div className="section-header">
+                    <div className="section-indicator"></div>
+                    <h2 className="section-title">Cashflow</h2>
+                    <div className="period-selector">
+                      <select 
+                        value={cashflowPeriod} 
+                        onChange={(e) => setCashflowPeriod(e.target.value)}
+                        className="period-select"
+                      >
+                        <option value="Monthly">Monthly</option>
+                        <option value="Yearly">Yearly</option>
+                      </select>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                  <div className="cashflow-legend">
+                    <div className="legend-item">
+                      <div className="legend-color received"></div>
+                      <span>Amount Saved</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color spent"></div>
+                      <span>Amount Withdrawn</span>
+                    </div>
+                  </div>
+                  <div className="cashflow-chart-container">
+                    {/* #region agent log */}
+                    {(() => {
+                      const logData = {
+                        location: 'Transactions.js:2281',
+                        message: 'Cashflow chart rendering',
+                        data: {
+                          cashflowDataLength: cashflowData?.length || 0,
+                          firstItem: cashflowData?.[0] || null
+                        },
+                        timestamp: Date.now(),
+                        sessionId: 'debug-session',
+                        runId: 'run1',
+                        hypothesisId: 'B'
+                      };
+                      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(logData)
+                      }).catch(() => {});
+                      return null;
+                    })()}
+                    {/* #endregion */}
+                    <div className="chart-y-axis">
+                      <span className="y-axis-label">100%</span>
+                      <span className="y-axis-label">80%</span>
+                      <span className="y-axis-label">60%</span>
+                      <span className="y-axis-label">40%</span>
+                      <span className="y-axis-label">20%</span>
+                      <span className="y-axis-label">0%</span>
+                    </div>
+                    <div className="cashflow-chart">
+                      {/* Bars only */}
+                      <div className="chart-bars-container">
+                        {cashflowData.map((item, index) => (
+                          <div key={index} className="chart-month">
+                            <div className="chart-bars">
+                              <div 
+                                className="chart-bar received" 
+                                style={{ height: `${item.received}%` }}
+                              ></div>
+                              <div 
+                                className="chart-bar spent" 
+                                style={{ height: `${item.spent}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Labels row below */}
+                      <div className="chart-labels-row">
+                        {cashflowData.map((item, index) => (
+                          <div key={index} className="chart-label-wrapper">
+                            <span className="chart-label">{item.month}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Right Panel */}
           <div className="desktop-savings-right-panel">
             {/* Cashflow */}
-            <div className="desktop-savings-section-card">
-              <div className="desktop-savings-section-indicator"></div>
-              <div className="desktop-savings-section-content">
-                <div className="desktop-savings-cashflow-header">
-                  <h3 className="desktop-savings-section-title">Cashflow</h3>
-                  <select className="desktop-savings-timeframe-select">
-                    <option>Monthly</option>
-                    <option>Weekly</option>
-                    <option>Yearly</option>
+            <div className="cashflow-section">
+              <div className="section-header">
+                <div className="section-indicator"></div>
+                <h2 className="section-title">Cashflow</h2>
+                <div className="period-selector">
+                  <select 
+                    value={cashflowPeriod} 
+                    onChange={(e) => setCashflowPeriod(e.target.value)}
+                    className="period-select"
+                  >
+                    <option value="Monthly">Monthly</option>
+                    <option value="Yearly">Yearly</option>
                   </select>
+                  <ChevronDown size={16} />
                 </div>
-                <div className="desktop-savings-cashflow-legend">
-                  <div className="desktop-savings-legend-item">
-                    <div className="desktop-savings-legend-color" style={{ backgroundColor: '#2F74FF' }}></div>
-                    <span>Amount Saved</span>
-                  </div>
-                  <div className="desktop-savings-legend-item">
-                    <div className="desktop-savings-legend-color" style={{ backgroundColor: '#93c5fd' }}></div>
-                    <span>Amount Withdrawn</span>
-                  </div>
+              </div>
+              <div className="cashflow-legend">
+                <div className="legend-item">
+                  <div className="legend-color received"></div>
+                  <span>Amount received</span>
                 </div>
-                <div className="desktop-savings-cashflow-chart">
-                  <div className="desktop-savings-chart-bars">
-                    {cashflowData.map((data, index) => (
-                      <div key={index} className="desktop-savings-chart-bar-group">
-                        <div className="desktop-savings-chart-bar-wrapper">
+                <div className="legend-item">
+                  <div className="legend-color spent"></div>
+                  <span>Amount Spent</span>
+                </div>
+              </div>
+              <div className="cashflow-chart-container">
+                <div className="chart-y-axis">
+                  <span className="y-axis-label">100%</span>
+                  <span className="y-axis-label">80%</span>
+                  <span className="y-axis-label">60%</span>
+                  <span className="y-axis-label">40%</span>
+                  <span className="y-axis-label">20%</span>
+                  <span className="y-axis-label">0%</span>
+                </div>
+                <div className="cashflow-chart">
+                  {/* Bars only */}
+                  <div className="chart-bars-container">
+                    {cashflowData.map((item, index) => (
+                      <div key={index} className="chart-month">
+                        <div className="chart-bars">
                           <div 
-                            className="desktop-savings-chart-bar saved"
-                            style={{ height: `${data.saved}%` }}
-                            title={`$${data.saved * 1000}`}
+                            className="chart-bar received" 
+                            style={{ height: `${item.received}%` }}
                           ></div>
                           <div 
-                            className="desktop-savings-chart-bar withdrawn"
-                            style={{ height: `${data.withdrawn}%` }}
-                            title={`$${data.withdrawn * 1000}`}
+                            className="chart-bar spent" 
+                            style={{ height: `${item.spent}%` }}
                           ></div>
                         </div>
-                        <div className="desktop-savings-chart-label">{data.month}</div>
                       </div>
                     ))}
                   </div>
-                  <div className="desktop-savings-chart-y-axis">
-                    <span>100%</span>
-                    <span>75%</span>
-                    <span>50%</span>
-                    <span>25%</span>
-                    <span>0%</span>
+                  {/* Labels row below */}
+                  <div className="chart-labels-row">
+                    {cashflowData.map((item, index) => (
+                      <div key={index} className="chart-label-wrapper">
+                        <span className="chart-label">{item.month}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1983,10 +2458,13 @@ const Transactions = () => {
 
             {/* Saving History */}
             <div className="desktop-savings-section-card">
-              <div className="desktop-savings-section-indicator"></div>
               <div className="desktop-savings-section-content">
                 <div className="desktop-savings-history-header">
-                  <h3 className="desktop-savings-section-title">Saving history</h3>
+                  <div className="desktop-savings-history-title-wrapper">
+                    <div className="desktop-savings-history-indicator"></div>
+                    <h3 className="desktop-savings-history-title">Transaction History</h3>
+                    <ArrowRight size={20} className="desktop-savings-history-arrow" />
+                  </div>
                   <div className="desktop-savings-history-filters">
                     <select className="desktop-savings-filter-select">
                       <option>Filter</option>
@@ -2046,6 +2524,37 @@ const Transactions = () => {
                     </tbody>
                   </table>
                 </div>
+                {/* Mobile Transaction History Cards */}
+                <div className="mobile-savings-history-cards">
+                  {savingHistory.map((transaction, index) => {
+                    // Extract amount value
+                    const amountValue = transaction.amount.replace('$', '').replace(',', '');
+                    const numericAmount = parseFloat(amountValue);
+                    // Calculate XRP amount (assuming $1,200 = 50 XRP for example, or use actual conversion)
+                    const xrpAmount = Math.round(numericAmount / 24); // Approximate conversion
+                    const usdValue = numericAmount.toFixed(2);
+                    
+                    return (
+                      <div key={index} className="mobile-savings-history-card">
+                        <div className="mobile-savings-history-left">
+                          <div className="mobile-savings-history-icon">
+                            <ArrowDown size={16} />
+                          </div>
+                          <div className="mobile-savings-history-details">
+                            <div className="mobile-savings-history-type">{transaction.type}</div>
+                            <div className="mobile-savings-history-description">
+                              You received {xrpAmount} XRP, worth ${usdValue} USD.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mobile-savings-history-right">
+                          <div className="mobile-savings-history-status">{transaction.status}</div>
+                          <div className="mobile-savings-history-date">{transaction.date}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 <div className="desktop-savings-pagination">
                   <button type="button" className="desktop-savings-pagination-btn">← Prev 10</button>
                   <div className="desktop-savings-pagination-pages">
@@ -2066,27 +2575,715 @@ const Transactions = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+    </div>
+
+      {/* Notification Modal - For savings details page */}
+      {showNotificationModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Notification</h2>
+              </div>
+              <button type="button" className="notification-close-btn" onClick={() => setShowNotificationModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="notification-filter-bar">
+              <div className="notification-filter-buttons">
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('All')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`notification-filter-btn ${notificationFilter === 'Unread' ? 'active' : ''}`}
+                  onClick={() => setNotificationFilter('Unread')}
+                >
+                  Unread
+                </button>
+              </div>
+              <button type="button" className="notification-filter-icon">
+                <Filter size={18} />
+              </button>
+            </div>
+
+            <div className="notification-list">
+              <div className="notification-item unread">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                  <span className="notification-bell-dot"></span>
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <AlertTriangle size={18} className="notification-status-icon warning" />
+                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+                <div className="notification-unread-dot"></div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <CheckCircle size={18} className="notification-status-icon success" />
+                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+
+              <div className="notification-item">
+                <div className="notification-bell-icon">
+                  <Bell size={16} />
+                </div>
+                <div className="notification-content">
+                  <div className="notification-message-wrapper">
+                    <Package size={18} className="notification-status-icon package" />
+                    <p className="notification-message">15K products shipped this month</p>
+                  </div>
+                  <span className="notification-time">2m ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Savings Withdraw Modal - Wallet Selection (for savings details page) */}
+      {showSavingsWithdrawModal && (
+        <div className="savings-withdraw-modal-overlay" onClick={() => {
+          setShowSavingsWithdrawModal(false);
+          setSelectedWithdrawWallet(null);
+        }}>
+          <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="savings-withdraw-modal-header">
+              <h2 className="savings-withdraw-modal-title">Withdraw</h2>
+              <button 
+                type="button" 
+                className="savings-withdraw-modal-close" 
+                onClick={() => {
+                  setShowSavingsWithdrawModal(false);
+                  setSelectedWithdrawWallet(null);
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="savings-withdraw-modal-content">
+              <div className="savings-withdraw-select-label">Select Wallet</div>
+              
+              <div className="savings-withdraw-wallet-grid">
+                {savingsWallets.map((wallet, index) => {
+                  const Icon = wallet.icon;
+                  const percentageValue = parseInt(wallet.percentage);
+                  const radius = 14;
+                  const circumference = 2 * Math.PI * radius;
+                  const offset = circumference - (percentageValue / 100) * circumference;
+                  
+                  const hexToRgba = (hex, alpha) => {
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                  };
+                  
+                  const backgroundColor = hexToRgba(wallet.color, 0.2);
+                  const isSelected = selectedWithdrawWallet === index;
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`savings-withdraw-wallet-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => setSelectedWithdrawWallet(index)}
+                    >
+                      <div className="savings-withdraw-wallet-card-top">
+                        <div className="savings-withdraw-wallet-icon-container">
+                          <svg className="savings-withdraw-wallet-progress-circle" width="36" height="36">
+                            <circle
+                              cx="18"
+                              cy="18"
+                              r="14"
+                              fill="none"
+                              stroke={backgroundColor}
+                              strokeWidth="2.5"
+                            />
+                            <circle
+                              cx="18"
+                              cy="18"
+                              r="14"
+                              fill="none"
+                              stroke={wallet.color}
+                              strokeWidth="2.5"
+                              strokeDasharray={2 * Math.PI * 14}
+                              strokeDashoffset={offset}
+                              strokeLinecap="round"
+                              transform="rotate(-90 18 18)"
+                            />
+                          </svg>
+                          <div 
+                            className="savings-withdraw-wallet-icon"
+                            style={{ backgroundColor: backgroundColor }}
+                          >
+                            <Icon size={14} style={{ color: wallet.color }} />
+                          </div>
+                        </div>
+                        <div className="savings-withdraw-wallet-name-wrapper">
+                          <div className="savings-withdraw-wallet-name">{wallet.name}</div>
+                          <div className="savings-withdraw-wallet-percentage">{wallet.percentage}</div>
+                        </div>
+                      </div>
+                      <div className="savings-withdraw-wallet-card-bottom">
+                        <div className="savings-withdraw-wallet-saved-label">Saved:</div>
+                        <div className="savings-withdraw-wallet-amount">{wallet.saved}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="savings-withdraw-next-btn"
+                onClick={() => {
+                  if (selectedWithdrawWallet !== null) {
+                    setShowSavingsWithdrawModal(false);
+                    setShowSavingsWithdrawConfirmModal(true);
+                  }
+                }}
+                disabled={selectedWithdrawWallet === null}
+              >
+                Next
+              </button>
+
+              <div className="savings-withdraw-info-message">
+                <div className="savings-withdraw-info-icon">
+                  <Info size={16} />
+                </div>
+                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Savings Add Money Modal */}
+      {showSavingsAddMoneyModal && (
+        <div className="savings-withdraw-modal-overlay" onClick={() => {
+          setShowSavingsAddMoneyModal(false);
+          setSavingsAddMoneyForm({
+            amount: '',
+            sourceWallet: 'XRP',
+            savingAccount: 'My Goals'
+          });
+        }}>
+          <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="savings-withdraw-modal-header">
+              <h2 className="savings-withdraw-modal-title">Add Money</h2>
+              <button 
+                type="button" 
+                className="savings-withdraw-modal-close" 
+                onClick={() => {
+                  setShowSavingsAddMoneyModal(false);
+                  setSavingsAddMoneyForm({
+                    amount: '',
+                    sourceWallet: 'XRP',
+                    savingAccount: 'My Goals'
+                  });
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="savings-add-money-modal-content">
+              <div className="savings-add-money-card">
+                <div className="savings-add-money-amount-section">
+                  <div className="savings-add-money-amount-header">
+                    <label className="savings-add-money-label">Amount</label>
+                    <button 
+                      type="button"
+                      className="savings-add-money-wallet-selector"
+                      onClick={() => {
+                        // Handle wallet selection
+                      }}
+                    >
+                      <div className="savings-add-money-wallet-icon">
+                        <img
+                          src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                          alt="XRP"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                        />
+                      </div>
+                      <span className="savings-add-money-wallet-name">XRP wallet</span>
+                      <ChevronDown size={16} />
+                    </button>
+                  </div>
+                  <div className="savings-add-money-amount-display">$24,567.89</div>
+                  <div className="savings-add-money-balance-info">Balance: 24,567.89 USDT</div>
+                </div>
+
+                <div className="savings-add-money-accounts-section">
+                  <label className="savings-add-money-label">Saving accounts</label>
+                  <button 
+                    type="button"
+                    className="savings-add-money-account-selector"
+                    onClick={() => {
+                      // Handle account selection
+                    }}
+                  >
+                    <span className="savings-add-money-account-name">{savingsAddMoneyForm.savingAccount}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="savings-add-money-submit-btn"
+                  onClick={() => {
+                    // Handle add funds
+                    setShowSavingsAddMoneyModal(false);
+                    toast.success('Funds added successfully');
+                    setSavingsAddMoneyForm({
+                      amount: '',
+                      sourceWallet: 'XRP',
+                      savingAccount: 'My Goals'
+                    });
+                  }}
+                >
+                  Transfer
+                </button>
+
+                <div className="savings-withdraw-info-message">
+                  <div className="savings-withdraw-info-icon">
+                    <Info size={16} />
+                  </div>
+                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Savings Account Modal */}
+      {showAddSavingsAccountModal && (
+        <div className="savings-withdraw-modal-overlay" onClick={() => {
+          setShowAddSavingsAccountModal(false);
+          setAddSavingsAccountForm({
+            name: '',
+            category: 'My Goals',
+            duration: ''
+          });
+        }}>
+          <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="savings-withdraw-modal-header">
+              <h2 className="savings-withdraw-modal-title">Add Savings Account</h2>
+              <button 
+                type="button" 
+                className="savings-withdraw-modal-close" 
+                onClick={() => {
+                  setShowAddSavingsAccountModal(false);
+                  setAddSavingsAccountForm({
+                    name: '',
+                    category: 'My Goals',
+                    duration: ''
+                  });
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="savings-add-account-modal-content">
+              <div className="savings-add-account-amount-section">
+                <div className="savings-add-account-amount-header">
+                  <label className="savings-add-account-label">Amount</label>
+                  <button 
+                    type="button"
+                    className="savings-add-account-wallet-selector"
+                    onClick={() => {
+                      // Handle wallet selection
+                    }}
+                  >
+                    <div className="savings-add-account-wallet-icon">
+                      <img
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                        alt="XRP"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
+                    <span className="savings-add-account-wallet-name">XRP wallet</span>
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+                <div className="savings-add-account-amount-display">24,000 XRP</div>
+                <div className="savings-add-account-exchange-rate">1XRP = 1.05 USD</div>
+              </div>
+
+              <div className="savings-add-account-form-section">
+                <div className="savings-add-account-form-field">
+                  <label className="savings-add-account-label">Name</label>
+                  <input
+                    type="text"
+                    className="savings-add-account-input"
+                    placeholder="Enter name"
+                    value={addSavingsAccountForm.name}
+                    onChange={(e) => setAddSavingsAccountForm({ ...addSavingsAccountForm, name: e.target.value })}
+                  />
+                </div>
+
+                <div className="savings-add-account-form-field">
+                  <label className="savings-add-account-label">Categories</label>
+                  <button 
+                    type="button"
+                    className="savings-add-account-category-selector"
+                    onClick={() => {
+                      // Handle category selection
+                    }}
+                  >
+                    <span className="savings-add-account-category-name">{addSavingsAccountForm.category}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+
+                <div className="savings-add-account-form-field">
+                  <label className="savings-add-account-label">Duration</label>
+                  <button 
+                    type="button"
+                    className="savings-add-account-duration-selector"
+                    onClick={() => {
+                      // Handle duration selection
+                    }}
+                  >
+                    <span className="savings-add-account-duration-text">Add</span>
+                    <Calendar size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="savings-add-account-create-btn"
+                onClick={() => {
+                  // Handle create
+                  setShowAddSavingsAccountModal(false);
+                  toast.success('Savings account created successfully');
+                  setAddSavingsAccountForm({
+                    name: '',
+                    category: 'My Goals',
+                    duration: ''
+                  });
+                }}
+              >
+                Create
+              </button>
+
+              <div className="savings-withdraw-info-message">
+                <div className="savings-withdraw-info-icon">
+                  <Info size={16} />
+                </div>
+                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Savings Withdraw Confirm Modal - Shows selected wallet and balance */}
+      {showSavingsWithdrawConfirmModal && selectedWithdrawWallet !== null && (
+        <div className="savings-withdraw-modal-overlay" onClick={() => {
+          setShowSavingsWithdrawConfirmModal(false);
+          setSelectedWithdrawWallet(null);
+        }}>
+          <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="savings-withdraw-modal-header">
+              <h2 className="savings-withdraw-modal-title">Withdraw</h2>
+              <button 
+                type="button" 
+                className="savings-withdraw-modal-close" 
+                onClick={() => {
+                  setShowSavingsWithdrawConfirmModal(false);
+                  setSelectedWithdrawWallet(null);
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="savings-withdraw-confirm-content">
+              <div className="savings-withdraw-confirm-card">
+                <div className="savings-withdraw-confirm-wallet-section">
+                  <div className="savings-withdraw-confirm-wallet-info">
+                    <div className="savings-withdraw-confirm-wallet-icon-container">
+                      <div 
+                        className="savings-withdraw-confirm-wallet-icon"
+                        style={{ backgroundColor: savingsWallets[selectedWithdrawWallet].color }}
+                      >
+                        {(() => {
+                          const Icon = savingsWallets[selectedWithdrawWallet].icon;
+                          return <Icon size={18} style={{ color: '#ffffff' }} />;
+                        })()}
+                      </div>
+                    </div>
+                    <div className="savings-withdraw-confirm-wallet-name-wrapper">
+                      <div className="savings-withdraw-confirm-wallet-name">{savingsWallets[selectedWithdrawWallet].name}</div>
+                      <div className="savings-withdraw-confirm-status-badge">
+                        <span>Completed</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="savings-withdraw-confirm-balance-section">
+                    <div className="savings-withdraw-confirm-balance-label">Balance</div>
+                    <div className="savings-withdraw-confirm-balance-amount">{savingsWallets[selectedWithdrawWallet].saved}</div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="savings-withdraw-confirm-btn"
+                  onClick={() => {
+                    // Handle withdrawal
+                    setShowSavingsWithdrawConfirmModal(false);
+                    setSelectedWithdrawWallet(null);
+                    toast.success('Withdrawal processed successfully');
+                  }}
+                >
+                  Withdraw
+                </button>
+
+                <div className="savings-withdraw-info-message">
+                  <div className="savings-withdraw-info-icon">
+                    <Info size={16} />
+                  </div>
+                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </>
     );
   }
 
   // Render mobile savings full page
   if (showSavingsPage) {
     return (
-      <div className="mobile-savings-full-page">
-        <div className="mobile-savings-page-header">
-          <div className="mobile-savings-page-title-wrapper">
-            <div className="mobile-section-indicator"></div>
-            <h2>Fund Savings</h2>
+      <>
+        {/* Mobile Sidebar Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="mobile-sidebar-overlay"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Mobile Sidebar Drawer */}
+        <div className={`mobile-sidebar-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+          <div className="mobile-sidebar-header">
+            <div className="mobile-sidebar-branding">
+              <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+              <div className="mobile-sidebar-branding-text">
+                <span className="mobile-sidebar-title">TrustiChain</span>
+                <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              className="mobile-sidebar-close"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button 
-            type="button" 
-            className="mobile-savings-close-btn"
-            onClick={() => setShowSavingsPage(false)}
-          >
-            <X size={20} />
-          </button>
+
+          <div className="mobile-sidebar-content">
+            <div className="mobile-sidebar-section">
+              <p className="mobile-sidebar-section-label">
+                {accountType === 'Business Suite' ? 'Business Suite' : 'General'}
+              </p>
+              <nav className="mobile-sidebar-nav">
+                {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
+                  const Icon = item.icon;
+                  const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                                   (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                                   (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                                   (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                   (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                  const handleNavClick = () => {
+                    setIsMobileMenuOpen(false);
+                    if (item.label === 'Dashboard') {
+                      navigate('/dashboard');
+                    } else if (item.label === 'My Escrow') {
+                      navigate('/my-escrow');
+                    } else if (item.label === 'Transactions') {
+                      navigate('/transactions');
+                    } else if (item.label === 'Dispute') {
+                      navigate('/dispute');
+                    } else if (item.label === 'Trusticard') {
+                      navigate('/trusticard');
+                    }
+                  };
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                      onClick={handleNavClick}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                      {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {accountType === 'Business Suite' && (
+              <div className="mobile-sidebar-section">
+                <p className="mobile-sidebar-section-label">Developers Tool</p>
+                <nav className="mobile-sidebar-nav">
+                  {developersNav.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button 
+                        key={item.label} 
+                        type="button" 
+                        className="mobile-sidebar-nav-item"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Icon size={18} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            )}
+
+            <div className="mobile-sidebar-section">
+              <p className="mobile-sidebar-section-label">Support</p>
+              <nav className="mobile-sidebar-nav">
+                {supportNav.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button 
+                      key={item.label} 
+                      type="button" 
+                      className="mobile-sidebar-nav-item"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="mobile-sidebar-bottom">
+              <div className="mobile-sidebar-help-card">
+                <div className="mobile-sidebar-help-icon">
+                  <HelpCircle size={24} />
+                </div>
+                <h3>Help Center</h3>
+                <p>Having trouble in Trustichain? Please contact us</p>
+                <button type="button" className="mobile-sidebar-help-cta">
+                  Contact us
+                </button>
+              </div>
+
+              <div className="mobile-sidebar-trustiscore">
+                <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
+                <span className="mobile-sidebar-trustiscore-badge">97</span>
+              </div>
+
+              <button type="button" className="mobile-sidebar-logout">
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
         </div>
+
+        <div className="mobile-savings-full-page">
+          <div className="mobile-savings-page-header">
+            <div className="mobile-savings-page-title-wrapper">
+              <div className="mobile-section-indicator"></div>
+              <h2>Fund Savings</h2>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className="mobile-header-menu"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                style={{ background: 'transparent', border: 'none', padding: '4px', cursor: 'pointer' }}
+              >
+                <Menu size={20} />
+              </button>
+              <button 
+                type="button" 
+                className="mobile-savings-close-btn"
+                onClick={() => setShowSavingsPage(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
 
         <div className="mobile-savings-page-content">
           {/* Amount Section */}
@@ -2172,6 +3369,7 @@ const Transactions = () => {
           </div>
         </div>
       </div>
+      </>
     );
   }
 
@@ -2473,21 +3671,8 @@ const Transactions = () => {
           </div>
 
           <div className="header-actions">
-            <div className="account-type-buttons">
-              <button 
-                type="button" 
-                className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
-                onClick={() => setAccountType('Personal')}
-              >
-                Personal
-              </button>
-              <button 
-                type="button" 
-                className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
-                onClick={() => setAccountType('Business Suite')}
-              >
-                Business Suite
-              </button>
+            <div className="account-type-display">
+              <span className="account-type-label">{accountType}</span>
             </div>
             <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
               <Bell size={18} />
@@ -2882,7 +4067,14 @@ const Transactions = () => {
                 </div>
 
                 {/* My Savings Section */}
-                <div className="mobile-savings-card">
+                <div 
+                  className="mobile-savings-card"
+                  onClick={() => {
+                    // Open desktop savings dashboard on mobile
+                    setShowDesktopSavingsDashboard(true);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="mobile-savings-header">
                     <div className="mobile-savings-title-wrapper">
                       <div className="mobile-section-indicator"></div>
@@ -2891,7 +4083,11 @@ const Transactions = () => {
                     <ArrowRight 
                       size={16} 
                       className="mobile-savings-arrow" 
-                      onClick={() => setShowSavingsPage(true)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent double-triggering
+                        // Open desktop savings dashboard on mobile
+                        setShowDesktopSavingsDashboard(true);
+                      }}
                       style={{ cursor: 'pointer' }}
                     />
                   </div>
@@ -3418,7 +4614,7 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Withdraw Wallet Modal */}
+      {/* Withdraw Wallet Modal - Form (for transactions page) */}
       {showWithdrawWalletModal && (
         <div className="notification-modal-overlay" onClick={() => {
           if (!isWithdrawingWallet) {
