@@ -214,6 +214,26 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       setIsCreatingEscrow(true);
       setEscrowCreationStep('creating');
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'H1',
+          location: 'CreateEscrowForm.js:handleCreateEscrow:entry',
+          message: 'Entered handleCreateEscrow',
+          data: {
+            currentStep,
+            releaseType: termsData.releaseType,
+            totalAmount: termsData.totalAmount,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+
       // Validate required fields
       if (!formData.payerWallet || !formData.counterpartyWallet) {
         toast.error('Please fill in all required fields');
@@ -340,26 +360,76 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             escrowId,
             xrplTxHash,
             escrow,
+            xrplEscrowId,
             cancelled,
             expired,
           } = responseData;
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H2',
+              location: 'CreateEscrowForm.js:handleCreateEscrow:response',
+              message: 'Escrow create response summary',
+              data: {
+                hasXummUrl: !!xummUrl,
+                hasEscrowId: !!escrowId,
+                hasXrplTxHash: !!xrplTxHash,
+                escrowStatus: escrow?.status || null,
+              },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          // #endregion
 
           // Snapshot amount & rate at creation time so UI doesn't drift during polling
           const totalAmountNumber = parseFloat(termsData.totalAmount);
           const effectiveRate = exchangeRate || 1;
 
           // Helper to build createdEscrow object in a consistent way
-          const buildCreatedEscrow = (escrowSource) => ({
-            ...(escrowSource || {}),
-            amount: termsData.totalAmount,
-            amountUsd: (totalAmountNumber * effectiveRate).toFixed(2),
-          });
+          const buildCreatedEscrow = (escrowSource) => {
+            const base = escrowSource || {};
+            return {
+              ...base,
+              // Ensure xrplEscrowId is preserved even if nested differently
+              xrplEscrowId:
+                base.xrplEscrowId ||
+                base.xrpl_escrow_id ||
+                xrplEscrowId ||
+                responseData.xrpl_escrow_id,
+              amount: termsData.totalAmount,
+              amountUsd: (totalAmountNumber * effectiveRate).toFixed(2),
+            };
+          };
 
           // Case 1: Backend already created and activated XRPL escrow (no XUMM needed)
           if (
             xrplTxHash &&
             (escrow?.status === 'active' || escrow?.status === 'ACTIVE')
           ) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: 'debug-session',
+                runId: 'pre-fix',
+                hypothesisId: 'H3',
+                location: 'CreateEscrowForm.js:handleCreateEscrow:case1',
+                message: 'Taking immediate XRPL success branch (no XUMM)',
+                data: {
+                  hasXrplTxHash: !!xrplTxHash,
+                  escrowStatus: escrow?.status || null,
+                },
+                timestamp: Date.now(),
+              }),
+            }).catch(() => {});
+            // #endregion
+
             const createdEscrow = buildCreatedEscrow(escrow || responseData);
 
             toast.success('Escrow created successfully!');
@@ -380,6 +450,25 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
           if (xummUrl && escrowId) {
             console.log('Using Xaman flow for escrow creation. Escrow ID:', escrowId);
 
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: 'debug-session',
+                runId: 'pre-fix',
+                hypothesisId: 'H4',
+                location: 'CreateEscrowForm.js:handleCreateEscrow:case2',
+                message: 'Starting XUMM signing flow',
+                data: {
+                  escrowId,
+                  hasXummUrl: !!xummUrl,
+                },
+                timestamp: Date.now(),
+              }),
+            }).catch(() => {});
+            // #endregion
+
             setEscrowCreationStep('signing');
             toast.loading('Please sign the escrow in your Xaman wallet...', {
               id: 'create-escrow',
@@ -393,8 +482,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
             const pollInterval = setInterval(async () => {
               try {
-                const statusUrl = getApiUrl(
-                  `api/escrow/${escrowId}/xumm-create-status`,
+            const statusUrl = getApiUrl(
+                  `api/escrow/${escrowId}/create/status`,
                 );
                 const statusResponse = await fetch(statusUrl, {
                   method: 'GET',
@@ -415,12 +504,36 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
                 const statusData = statusResult.data || {};
 
+                const escrowStatus =
+                  (statusData.escrow?.status || statusData.status || '').toLowerCase();
+
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    sessionId: 'debug-session',
+                    runId: 'pre-fix',
+                    hypothesisId: 'H5',
+                    location: 'CreateEscrowForm.js:handleCreateEscrow:poll',
+                    message: 'Escrow create status poll',
+                    data: {
+                      success: statusResult.success,
+                      signed: statusData.signed,
+                      hasXrplTxHash: !!statusData.xrplTxHash,
+                      escrowStatus,
+                    },
+                    timestamp: Date.now(),
+                  }),
+                }).catch(() => {});
+                // #endregion
+
                 // Successful XRPL-backed escrow creation
                 if (
                   statusResult.success === true &&
+                  statusData.signed === true &&
                   statusData.xrplTxHash &&
-                  (statusData.escrow?.status === 'active' ||
-                    statusData.escrow?.status === 'ACTIVE')
+                  escrowStatus === 'active'
                 ) {
                   clearEscrowPolling();
 
@@ -500,6 +613,24 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
         setIsCreatingEscrow(false);
         setEscrowCreationStep('idle');
       }
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'H6',
+          location: 'CreateEscrowForm.js:handleCreateEscrow:finally',
+          message: 'handleCreateEscrow finally block executed',
+          data: {
+            escrowCreationStep,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
     }
   };
 

@@ -99,6 +99,10 @@ const Dashboard = () => {
     const stored = localStorage.getItem('kycComplete');
     return stored ? JSON.parse(stored) : true;
   });
+  const [businessKycComplete, setBusinessKycComplete] = useState(() => {
+    const stored = localStorage.getItem('businessKycComplete');
+    return stored ? JSON.parse(stored) : false;
+  });
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState('Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -1894,6 +1898,9 @@ const Dashboard = () => {
     return mockIllustration;
   }, [currentStep]);
 
+  const isKycCompleteForAccount =
+    accountType === 'Business Suite' ? businessKycComplete : kycComplete;
+
   const formattedToday = useMemo(() => {
     const now = new Date();
     const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
@@ -1917,8 +1924,13 @@ const Dashboard = () => {
   const handleSubmitAndNext = (event) => {
     event.preventDefault();
     if (currentStep === 2) {
-      setKycComplete(true);
-      localStorage.setItem('kycComplete', 'true');
+      if (accountType === 'Business Suite') {
+        setBusinessKycComplete(true);
+        localStorage.setItem('businessKycComplete', 'true');
+      } else {
+        setKycComplete(true);
+        localStorage.setItem('kycComplete', 'true');
+      }
     } else {
       advanceStep();
     }
@@ -3503,7 +3515,7 @@ const Dashboard = () => {
           </div>
 
           <div className="header-actions">
-            {kycComplete ? (
+            {isKycCompleteForAccount ? (
               <>
                 <div className="account-type-buttons">
                   <button 
@@ -3580,7 +3592,7 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {kycComplete ? (
+        {isKycCompleteForAccount ? (
           renderDashboardView()
         ) : (
           <section className="dashboard-card">
