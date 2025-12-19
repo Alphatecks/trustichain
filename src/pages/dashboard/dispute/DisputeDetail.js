@@ -29,14 +29,14 @@ import {
   X,
   Menu
 } from 'lucide-react';
-import './Dashboard.css';
+import '../dashboard/Dashboard.css';
 import './DisputeDetail.css';
-import logo from '../../assets/images/icons/logo.png';
-import verifyBadge from '../../assets/images/icons/verify.png';
-import cloudDownloadIcon from '../../assets/images/icons/cloud-download.png';
-import { useSession } from '../../context/SessionContext';
-import { getApiUrl } from '../../utils/config';
-import LoadingIndicator from '../../components/LoadingIndicator';
+import logo from '../../../assets/images/icons/logo.png';
+import verifyBadge from '../../../assets/images/icons/verify.png';
+import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
+import { useSession } from '../../../context/SessionContext';
+import { getApiUrl } from '../../../utils/config';
+import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },

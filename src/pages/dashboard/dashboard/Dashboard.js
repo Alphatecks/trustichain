@@ -37,21 +37,24 @@ import {
   Package,
   Menu,
   Wallet,
-  ChevronRight
+  ChevronRight,
+  Upload
 } from 'lucide-react';
 import './Dashboard.css';
-import logo from '../../assets/images/icons/logo.png';
-import logoWhite from '../../assets/images/logo/logo_white.png';
-import mockIllustration from '../../assets/images/illustrations/mock.png';
-import uploadIllustration from '../../assets/images/illustrations/upload.png';
-import chainsIllustration from '../../assets/images/illustrations/chain.png';
-import cardIllustration from '../../assets/images/illustrations/card.png';
-import verifyBadge from '../../assets/images/icons/verify.png';
-import { getApiUrl } from '../../utils/config';
-import { useSession } from '../../context/SessionContext';
-import LoadingIndicator from '../../components/LoadingIndicator';
-import CreateEscrowForm from '../../components/CreateEscrowForm';
-import BusinessSuiteLoader from '../../components/BusinessSuiteLoader';
+import logo from '../../../assets/images/icons/logo.png';
+import logoWhite from '../../../assets/images/logo/logo_white.png';
+import mockIllustration from '../../../assets/images/illustrations/mock.png';
+import uploadIllustration from '../../../assets/images/illustrations/upload.png';
+import chainsIllustration from '../../../assets/images/illustrations/chain.png';
+import cardIllustration from '../../../assets/images/illustrations/card.png';
+import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
+import verifyBadge from '../../../assets/images/icons/verify.png';
+import { getApiUrl } from '../../../utils/config';
+import { useSession } from '../../../context/SessionContext';
+import LoadingIndicator from '../../../components/LoadingIndicator';
+import CreateEscrowForm from '../../../components/CreateEscrowForm';
+import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
+import BusinessDashboard from '../business-suite/BusinessDashboard';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -83,10 +86,16 @@ const supportNav = [
   { label: 'Help', icon: HelpCircle }
 ];
 
-const steps = [
+const personalSteps = [
   { label: 'Proof of identity', detail: 'Proof of identity' },
   { label: 'Document upload', detail: 'Document upload' },
   { label: 'Connect Wallet', detail: 'Connect Wallet' }
+];
+
+const businessSteps = [
+  { label: 'Brand Customization', detail: 'Brand Customization' },
+  { label: 'Escrow Configuration', detail: 'Escrow Configuration' },
+  { label: 'Compliance', detail: 'Compliance' }
 ];
 
 const Dashboard = () => {
@@ -104,8 +113,18 @@ const Dashboard = () => {
     return stored ? JSON.parse(stored) : false;
   });
   const [showBalance, setShowBalance] = useState(true);
-  const [accountType, setAccountType] = useState('Personal');
+  const [accountType, setAccountType] = useState(() => {
+    // Check if account type was passed via navigation state
+    return 'Personal';
+  });
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  
+  // Update account type from navigation state if provided
+  useEffect(() => {
+    if (location.state?.accountType) {
+      setAccountType(location.state.accountType);
+    }
+  }, [location.state]);
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [isSwitchingAccountType, setIsSwitchingAccountType] = useState(false);
   const [switchMessage, setSwitchMessage] = useState('');
@@ -121,6 +140,26 @@ const Dashboard = () => {
     front: null,
     back: null,
     selfie: null
+  });
+
+  const [businessForm, setBusinessForm] = useState({
+    companyName: '',
+    businessDescription: '',
+    companyLogo: null
+  });
+
+  const [escrowConfigForm, setEscrowConfigForm] = useState({
+    defaultEscrowFeeRate: '',
+    autoReleasePeriod: '',
+    approvalWorkflow: ''
+  });
+
+  const [complianceForm, setComplianceForm] = useState({
+    arbitrationType: '',
+    transactionLimits: '',
+    identityVerificationRequired: false,
+    addressVerificationRequired: false,
+    enhancedDueDiligence: false
   });
 
   const [dashboardData, setDashboardData] = useState(null);
@@ -1893,13 +1932,25 @@ const Dashboard = () => {
   };
 
   const activeIllustration = useMemo(() => {
-    if (currentStep === 1) return uploadIllustration;
-    if (currentStep === 2) return chainsIllustration;
+    if (currentStep === 1) {
+      // For Business Suite Escrow Configuration, use card illustration
+      if (accountType === 'Business Suite') return cardIllustration;
+      return uploadIllustration;
+    }
+    if (currentStep === 2) {
+      // For Business Suite Compliance, use compliance illustration
+      if (accountType === 'Business Suite') return complianceIllustration;
+      return chainsIllustration;
+    }
     return mockIllustration;
-  }, [currentStep]);
+  }, [currentStep, accountType]);
 
   const isKycCompleteForAccount =
     accountType === 'Business Suite' ? businessKycComplete : kycComplete;
+
+  const steps = useMemo(() => {
+    return accountType === 'Business Suite' ? businessSteps : personalSteps;
+  }, [accountType]);
 
   const formattedToday = useMemo(() => {
     const now = new Date();
@@ -2060,12 +2111,16 @@ const Dashboard = () => {
                 <nav className="mobile-sidebar-nav">
                   {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
                     const Icon = item.icon;
+                    const isDisabled = accountType === 'Business Suite' && !businessKycComplete;
                     const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                      (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                      (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                      (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                                     (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                                     (item.label === 'Trusticard' && location.pathname === '/trusticard') ||
+                                     (item.label === 'Payroll' && location.pathname === '/payroll') ||
+                                     (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
                     const handleNavClick = () => {
+                      if (isDisabled) return;
                       setIsMobileMenuOpen(false);
                       if (item.label === 'Dashboard') {
                         navigate('/dashboard');
@@ -2077,14 +2132,19 @@ const Dashboard = () => {
                         navigate('/dispute');
                       } else if (item.label === 'Trusticard') {
                         navigate('/trusticard');
+                      } else if (item.label === 'Payroll') {
+                        navigate('/payroll');
+                      } else if (item.label === 'Supplier Contract') {
+                        navigate('/supplier-contract');
                       }
                     };
                     return (
                       <button
                         key={item.label}
                         type="button"
-                        className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
+                        className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
                         onClick={handleNavClick}
+                        disabled={isDisabled}
                       >
                         <Icon size={18} />
                         <span>{item.label}</span>
@@ -2101,12 +2161,16 @@ const Dashboard = () => {
                   <nav className="mobile-sidebar-nav">
                     {developersNav.map((item) => {
                       const Icon = item.icon;
+                      const isDisabled = !businessKycComplete;
                       return (
                         <button 
                           key={item.label} 
                           type="button" 
-                          className="mobile-sidebar-nav-item"
-                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={`mobile-sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
+                          onClick={() => {
+                            if (!isDisabled) setIsMobileMenuOpen(false);
+                          }}
+                          disabled={isDisabled}
                         >
                           <Icon size={18} />
                           <span>{item.label}</span>
@@ -3199,8 +3263,134 @@ const Dashboard = () => {
     );
   };
 
+  const handleBusinessInputChange = (field, value) => {
+    setBusinessForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBusinessLogoChange = (file) => {
+    setBusinessForm((prev) => ({ ...prev, companyLogo: file || null }));
+  };
+
+  const handleEscrowConfigChange = (field, value) => {
+    setEscrowConfigForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleComplianceChange = (field, value) => {
+    setComplianceForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   const renderStepContent = () => {
+    // Brand Customization form for Business Suite
+    if (currentStep === 0 && accountType === 'Business Suite') {
+      return (
+        <>
+          <form className="kyc-form brand-customization-form" onSubmit={handleSubmitAndNext}>
+            <label>
+              <span>Company Name</span>
+              <input
+                type="text"
+                placeholder="Enter your company name"
+                value={businessForm.companyName}
+                onChange={(e) => handleBusinessInputChange('companyName', e.target.value)}
+              />
+            </label>
+            <label>
+              <span>Business Description</span>
+              <input
+                type="text"
+                placeholder="Enter your company description"
+                value={businessForm.businessDescription}
+                onChange={(e) => handleBusinessInputChange('businessDescription', e.target.value)}
+              />
+            </label>
+            <label>
+              <span>Company Logo</span>
+              <label className="company-logo-upload" htmlFor="logo-upload">
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/svg+xml,image/png,image/jpeg"
+                  onChange={(e) => handleBusinessLogoChange(e.target.files[0])}
+                />
+                <div className="logo-upload-icon">
+                  <Upload size={32} />
+                </div>
+                <div className="logo-upload-text">
+                  <p>Click to upload or drag and drop</p>
+                  <span>SVG, PNG, JPG up to 2MB</span>
+                </div>
+                {businessForm.companyLogo && (
+                  <div className="logo-upload-preview">
+                    {businessForm.companyLogo.name}
+                  </div>
+                )}
+              </label>
+            </label>
+            <div className="form-actions">
+              <button type="submit" className="primary-btn">
+                <span className="btn-arrow">
+                  <ArrowRight size={16} />
+                </span>
+                <span className="btn-text">Submit and Next</span>
+              </button>
+            </div>
+          </form>
+        </>
+      );
+    }
+
     if (currentStep === 1) {
+      // Escrow Configuration form for Business Suite
+      if (accountType === 'Business Suite') {
+        return (
+          <>
+            <form className="kyc-form escrow-config-form" onSubmit={handleSubmitAndNext}>
+              <label>
+                <span>Default Escrow Fee Rate</span>
+                <input
+                  type="text"
+                  placeholder="Enter escrow fee rate"
+                  value={escrowConfigForm.defaultEscrowFeeRate}
+                  onChange={(e) => handleEscrowConfigChange('defaultEscrowFeeRate', e.target.value)}
+                />
+              </label>
+              <label>
+                <span>Auto-Release Period</span>
+                <input
+                  type="text"
+                  placeholder="Enter auto-release period"
+                  value={escrowConfigForm.autoReleasePeriod}
+                  onChange={(e) => handleEscrowConfigChange('autoReleasePeriod', e.target.value)}
+                />
+              </label>
+              <label>
+                <span>Approval Workflow</span>
+                <div className="select-field">
+                  <select
+                    value={escrowConfigForm.approvalWorkflow}
+                    onChange={(e) => handleEscrowConfigChange('approvalWorkflow', e.target.value)}
+                  >
+                    <option value="">Select approval workflow</option>
+                    <option value="single">Single Approval</option>
+                    <option value="dual">Dual Approval</option>
+                    <option value="multi">Multi-Party Approval</option>
+                  </select>
+                </div>
+              </label>
+              <div className="form-actions">
+                <button type="submit" className="primary-btn">
+                  <span className="btn-arrow">
+                    <ArrowRight size={16} />
+                  </span>
+                  <span className="btn-text">Submit and Next</span>
+                </button>
+              </div>
+            </form>
+          </>
+        );
+      }
+
+      // Document upload for Personal accounts
       return (
         <>
           <div className="upload-grid">
@@ -3266,6 +3456,81 @@ const Dashboard = () => {
     }
 
     if (currentStep === 2) {
+      // Compliance form for Business Suite
+      if (accountType === 'Business Suite') {
+        return (
+          <>
+            <form className="kyc-form compliance-form" onSubmit={handleSubmitAndNext}>
+              <label>
+                <span>Arbitration Type</span>
+                <div className="select-field">
+                  <select
+                    value={complianceForm.arbitrationType}
+                    onChange={(e) => handleComplianceChange('arbitrationType', e.target.value)}
+                  >
+                    <option value="">Select arbitration type</option>
+                    <option value="binding">Binding Arbitration</option>
+                    <option value="non-binding">Non-Binding Arbitration</option>
+                    <option value="mediation">Mediation</option>
+                  </select>
+                </div>
+              </label>
+              <label>
+                <span>Transaction Limits</span>
+                <input
+                  type="text"
+                  placeholder="Enter transaction limits"
+                  value={complianceForm.transactionLimits}
+                  onChange={(e) => handleComplianceChange('transactionLimits', e.target.value)}
+                />
+              </label>
+              <div className="kyc-requirements-section">
+                <h3 className="kyc-requirements-title">KYC Requirements</h3>
+                <div className="kyc-toggle-item">
+                  <span className="kyc-toggle-label">Identity Verification Required</span>
+                  <button
+                    type="button"
+                    className={`kyc-toggle ${complianceForm.identityVerificationRequired ? 'active' : ''}`}
+                    onClick={() => handleComplianceChange('identityVerificationRequired', !complianceForm.identityVerificationRequired)}
+                  >
+                    <div className={`kyc-toggle-slider ${complianceForm.identityVerificationRequired ? 'active' : ''}`}></div>
+                  </button>
+                </div>
+                <div className="kyc-toggle-item">
+                  <span className="kyc-toggle-label">Address Verification Required</span>
+                  <button
+                    type="button"
+                    className={`kyc-toggle ${complianceForm.addressVerificationRequired ? 'active' : ''}`}
+                    onClick={() => handleComplianceChange('addressVerificationRequired', !complianceForm.addressVerificationRequired)}
+                  >
+                    <div className={`kyc-toggle-slider ${complianceForm.addressVerificationRequired ? 'active' : ''}`}></div>
+                  </button>
+                </div>
+                <div className="kyc-toggle-item">
+                  <span className="kyc-toggle-label">Enhanced Due Diligence</span>
+                  <button
+                    type="button"
+                    className={`kyc-toggle ${complianceForm.enhancedDueDiligence ? 'active' : ''}`}
+                    onClick={() => handleComplianceChange('enhancedDueDiligence', !complianceForm.enhancedDueDiligence)}
+                  >
+                    <div className={`kyc-toggle-slider ${complianceForm.enhancedDueDiligence ? 'active' : ''}`}></div>
+                  </button>
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="primary-btn">
+                  <span className="btn-arrow">
+                    <ArrowRight size={16} />
+                  </span>
+                  <span className="btn-text">Submit for verification</span>
+                </button>
+              </div>
+            </form>
+          </>
+        );
+      }
+
+      // Wallet form for Personal accounts
       return (
         <>
           <form className="wallet-form" onSubmit={handleSubmitAndNext}>
@@ -3403,12 +3668,16 @@ const Dashboard = () => {
           <nav className="sidebar-nav">
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
+              const isDisabled = accountType === 'Business Suite' && !businessKycComplete;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
+                               (item.label === 'Trusticard' && location.pathname === '/trusticard') ||
+                               (item.label === 'Payroll' && location.pathname === '/payroll') ||
+                               (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
               const handleNavClick = () => {
+                if (isDisabled) return;
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
                 } else if (item.label === 'My Escrow') {
@@ -3419,14 +3688,19 @@ const Dashboard = () => {
                   navigate('/dispute');
                 } else if (item.label === 'Trusticard') {
                   navigate('/trusticard');
+                } else if (item.label === 'Payroll') {
+                  navigate('/payroll');
+                } else if (item.label === 'Supplier Contract') {
+                  navigate('/supplier-contract');
                 }
               };
               return (
                 <button
                   key={item.label}
                   type="button"
-                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
                   onClick={handleNavClick}
+                  disabled={isDisabled}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -3443,8 +3717,14 @@ const Dashboard = () => {
             <nav className="sidebar-nav">
               {developersNav.map((item) => {
                 const Icon = item.icon;
+                const isDisabled = !businessKycComplete;
                 return (
-                  <button key={item.label} type="button" className="sidebar-nav-item">
+                  <button 
+                    key={item.label} 
+                    type="button" 
+                    className={`sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
+                    disabled={isDisabled}
+                  >
                     <Icon size={18} />
                     <span>{item.label}</span>
                   </button>
@@ -3515,7 +3795,7 @@ const Dashboard = () => {
           </div>
 
           <div className="header-actions">
-            {isKycCompleteForAccount ? (
+            {accountType === 'Business Suite' || isKycCompleteForAccount ? (
               <>
                 <div className="account-type-buttons">
                   <button 
@@ -3555,19 +3835,21 @@ const Dashboard = () => {
                     Business Suite
                   </button>
                 </div>
-                <button 
-                  type="button" 
-                  className="create-wallet-btn"
-                  onClick={() => {
-                    if (hasWallet) {
-                      setShowWalletModal(true);
-                    } else {
-                      handleCreateWallet();
-                    }
-                  }}
-                >
-                  {hasWallet ? 'View Wallet' : 'Create Wallet'}
-                </button>
+                {isKycCompleteForAccount && (
+                  <button 
+                    type="button" 
+                    className="create-wallet-btn"
+                    onClick={() => {
+                      if (hasWallet) {
+                        setShowWalletModal(true);
+                      } else {
+                        handleCreateWallet();
+                      }
+                    }}
+                  >
+                    {hasWallet ? 'View Wallet' : 'Create Wallet'}
+                  </button>
+                )}
               </>
             ) : (
             <button type="button" className="kyc-status">
@@ -3593,18 +3875,65 @@ const Dashboard = () => {
         </header>
 
         {isKycCompleteForAccount ? (
-          renderDashboardView()
+          accountType === 'Business Suite' ? (
+            <BusinessDashboard
+              dashboardData={dashboardData}
+              isLoadingDashboard={isLoadingDashboard}
+              exchangeRates={exchangeRates}
+              isLoadingRates={isLoadingRates}
+              portfolioPoints={portfolioPoints}
+              isLoadingPortfolio={isLoadingPortfolio}
+              walletBalances={walletBalances}
+              isLoadingWalletBalances={isLoadingWalletBalances}
+              escrows={escrows}
+              isLoadingEscrows={isLoadingEscrows}
+              totalEscrowedAmount={totalEscrowedAmount}
+              isLoadingTotalEscrowed={isLoadingTotalEscrowed}
+              userFullName={userFullName}
+              userInitials={userInitials}
+              userRole={userRole}
+              userAvatar={userAvatar}
+              isLoadingUserProfile={isLoadingUserProfile}
+              showBalance={showBalance}
+              setShowBalance={setShowBalance}
+              showNotificationModal={showNotificationModal}
+              setShowNotificationModal={setShowNotificationModal}
+              isMobileMenuOpen={isMobileMenuOpen}
+              setIsMobileMenuOpen={setIsMobileMenuOpen}
+              hasWallet={hasWallet}
+              setShowWalletModal={setShowWalletModal}
+              handleCreateWallet={handleCreateWallet}
+              setShowFundWalletModal={setShowFundWalletModal}
+              setShowWithdrawWalletModal={setShowWithdrawWalletModal}
+              setShowCreateEscrowModal={setShowCreateEscrowModal}
+              accountType={accountType}
+              setAccountType={setAccountType}
+              setIsSwitchingAccountType={setIsSwitchingAccountType}
+              setSwitchMessage={setSwitchMessage}
+              businessKycComplete={businessKycComplete}
+              navigate={navigate}
+              location={location}
+              getBalanceValue={getBalanceValue}
+              getExchangeRate={getExchangeRate}
+            />
+          ) : (
+            renderDashboardView()
+          )
         ) : (
-          <section className="dashboard-card">
-            <div className="kyc-mobile-header-only">
-              <div className="kyc-mobile-indicator"></div>
-              <h1 className="kyc-mobile-title-only">KYC Verification</h1>
-            </div>
+          <section className={`dashboard-card ${accountType === 'Business Suite' ? 'business-kyc' : ''}`}>
+            {accountType !== 'Business Suite' && (
+              <div className="kyc-mobile-header-only">
+                <div className="kyc-mobile-indicator"></div>
+                <h1 className="kyc-mobile-title-only">KYC Verification</h1>
+              </div>
+            )}
             <div className="card-header kyc-header-desktop">
               <div className="card-breadcrumb">
                 <span className="breadcrumb-root">KYC verification Form</span>
                 <span className="breadcrumb-divider">›</span>
-                <span className="breadcrumb-current">{steps[currentStep].detail}</span>
+                <span className="breadcrumb-current">
+                  {accountType === 'Business Suite' && currentStep === 0 ? 'Upload Document' : steps[currentStep].detail}
+                </span>
               </div>
             </div>
 
@@ -3620,16 +3949,16 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <div className={`card-content ${currentStep === 1 ? 'single-column' : ''}`}>
+            <div className={`card-content ${currentStep === 1 && accountType !== 'Business Suite' ? 'single-column' : ''}`}>
               <div className="card-left">
-                {currentStep === 0 && <h2 className="kyc-section-title-mobile">Proof of identity</h2>}
+                {currentStep === 0 && <h2 className="kyc-section-title-mobile">{steps[currentStep].detail}</h2>}
                 {renderStepContent()}
               </div>
 
-              {currentStep !== 1 && (
+              {(currentStep !== 1 || accountType === 'Business Suite') && (
                 <div className="card-illustration">
                   <img src={activeIllustration} alt="Document illustration" />
-                  {currentStep === 2 && (
+                  {currentStep === 2 && accountType !== 'Business Suite' && (
                     <div className="card-overlay">
                       <img src={cardIllustration} alt="Card illustration" className="card-image" />
                     </div>

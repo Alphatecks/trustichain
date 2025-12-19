@@ -93,7 +93,7 @@
 
   .mobile-card-blue {
     background: #0671FF;
-    background-image: url('../../assets/images/backgrounds/card.png');
+    background-image: url('../../../assets/images/backgrounds/card.png');
     background-position: bottom right;
     background-repeat: no-repeat;
     background-size: contain;
@@ -198,7 +198,7 @@
 
   .mobile-card-white {
     background: var(--white);
-    background-image: url('../../assets/images/backgrounds/card.png');
+    background-image: url('../../../assets/images/backgrounds/card.png');
     background-position: bottom right;
     background-repeat: no-repeat;
     background-size: contain;
@@ -1482,7 +1482,7 @@
 
 .platinum-card.blue-card {
   background: #0671FF;
-  background-image: url('../../assets/images/backgrounds/card.png');
+  background-image: url('../../../assets/images/backgrounds/card.png');
   background-position: bottom right;
   background-repeat: no-repeat;
   background-size: contain;

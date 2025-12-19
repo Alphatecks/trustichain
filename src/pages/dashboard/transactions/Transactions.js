@@ -47,13 +47,13 @@ import {
   Home,
   Calendar
 } from 'lucide-react';
-import './Dashboard.css';
+import '../dashboard/Dashboard.css';
 import './Transactions.css';
-import logo from '../../assets/images/icons/logo.png';
-import verifyBadge from '../../assets/images/icons/verify.png';
-import { getApiUrl } from '../../utils/config';
-import { useSession } from '../../context/SessionContext';
-import LoadingIndicator from '../../components/LoadingIndicator';
+import logo from '../../../assets/images/icons/logo.png';
+import verifyBadge from '../../../assets/images/icons/verify.png';
+import { getApiUrl } from '../../../utils/config';
+import { useSession } from '../../../context/SessionContext';
+import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },

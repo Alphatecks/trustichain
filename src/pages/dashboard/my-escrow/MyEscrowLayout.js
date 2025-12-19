@@ -25,12 +25,12 @@ import {
   CheckCircle,
   Package
 } from 'lucide-react';
-import logo from '../../assets/images/icons/logo.png';
-import verifyBadge from '../../assets/images/icons/verify.png';
-import { getApiUrl } from '../../utils/config';
-import { useSession } from '../../context/SessionContext';
-import './Dashboard.css';
-import LoadingIndicator from '../../components/LoadingIndicator';
+import logo from '../../../assets/images/icons/logo.png';
+import verifyBadge from '../../../assets/images/icons/verify.png';
+import { getApiUrl } from '../../../utils/config';
+import { useSession } from '../../../context/SessionContext';
+import '../dashboard/Dashboard.css';
+import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },

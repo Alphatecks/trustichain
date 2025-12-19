@@ -37,13 +37,13 @@ import {
   FileCheck
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
-import { getApiUrl } from '../../utils/config';
-import LoadingIndicator from '../../components/LoadingIndicator';
-import { useSession } from '../../context/SessionContext';
+import { getApiUrl } from '../../../utils/config';
+import LoadingIndicator from '../../../components/LoadingIndicator';
+import { useSession } from '../../../context/SessionContext';
 import toast from 'react-hot-toast';
-import logo from '../../assets/images/icons/logo.png';
-import verifyBadge from '../../assets/images/icons/verify.png';
-import './Dashboard.css';
+import logo from '../../../assets/images/icons/logo.png';
+import verifyBadge from '../../../assets/images/icons/verify.png';
+import '../dashboard/Dashboard.css';
 import './MyEscrow.css';
 
 const sidebarNav = [

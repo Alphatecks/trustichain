@@ -17,12 +17,15 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import TwoFactor from './pages/auth/TwoFactor';
 import Otp from './pages/auth/Otp';
 import OAuthCallback from './pages/auth/OAuthCallback';
-import Dashboard from './pages/dashboard/Dashboard';
-import MyEscrow from './pages/dashboard/MyEscrow';
-import Transactions from './pages/dashboard/Transactions';
-import Dispute from './pages/dashboard/Dispute';
-import DisputeDetail from './pages/dashboard/DisputeDetail';
-import TrustiCard from './pages/dashboard/TrustiCard';
+import Dashboard from './pages/dashboard/dashboard/Dashboard';
+import MyEscrow from './pages/dashboard/my-escrow/MyEscrow';
+import Transactions from './pages/dashboard/transactions/Transactions';
+import Dispute from './pages/dashboard/dispute/Dispute';
+import DisputeDetail from './pages/dashboard/dispute/DisputeDetail';
+import TrustiCard from './pages/dashboard/trusticard/TrustiCard';
+import Payroll from './pages/dashboard/business-suite/Payroll';
+import PayrollDetail from './pages/dashboard/business-suite/PayrollDetail';
+import SupplierContractPage from './pages/dashboard/business-suite/SupplierContractPage';
 import useAutoLogout from './hooks/useAutoLogout';
 import './App.css';
 
@@ -33,7 +36,7 @@ function AppContent() {
   useAutoLogout(3600000);
   
   // Hide navbar on auth pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard' || location.pathname === '/payroll' || location.pathname.startsWith('/payroll/') || location.pathname === '/supplier-contract';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
@@ -60,6 +63,9 @@ function AppContent() {
           <Route path="/dispute" element={<Dispute />} />
           <Route path="/dispute/:id" element={<DisputeDetail />} />
           <Route path="/trusticard" element={<TrustiCard />} />
+          <Route path="/payroll" element={<Payroll />} />
+          <Route path="/payroll/:payrollId" element={<PayrollDetail />} />
+          <Route path="/supplier-contract" element={<SupplierContractPage />} />
         </Routes>
       </main>
       <Toaster 

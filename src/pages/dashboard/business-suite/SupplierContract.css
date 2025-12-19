@@ -1,0 +1,710 @@
+/* Supplier Contract Page Styles */
+
+/* Overview Cards - New Design */
+.overview-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.overview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(59, 130, 246, 0.02) 10px, rgba(59, 130, 246, 0.02) 20px),
+    repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(59, 130, 246, 0.02) 10px, rgba(59, 130, 246, 0.02) 20px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.overview-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.overview-card-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.overview-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--blue-600);
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.overview-card-metrics {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.total-supplier-card .overview-card-metrics {
+  flex-direction: row;
+  align-items: baseline;
+}
+
+.overview-card-main-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  line-height: 1;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.overview-card-ratio {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
+.overview-card-secondary-value {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.overview-card-label {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  position: relative;
+  z-index: 1;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.overview-card-button {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  margin-top: auto;
+}
+
+.overview-card-button:hover {
+  background: var(--blue-500);
+}
+
+.overview-card-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Spacing for overview cards in summary cards grid */
+.dashboard-summary-cards .overview-card {
+  margin-left: 1.5rem;
+}
+
+.dashboard-summary-cards .overview-card:first-of-type {
+  margin-left: 0;
+}
+
+
+/* Total Supply Amount Card - Blue Background */
+.summary-card.total-supply-amount-card {
+  background: #0671FF;
+  background-image: url('../../../assets/images/backgrounds/card.png');
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-size: contain;
+  color: var(--white);
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.total-supply-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.total-supply-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.total-supply-icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #5D93F3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  flex-shrink: 0;
+}
+
+.total-supply-icon-circle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.total-supply-header h3 {
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.total-supply-eye-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.total-supply-amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+}
+
+.total-supply-main-amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.total-supply-xrp-amount {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #6ED68F;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.total-supply-xrp-amount span {
+  color: #6ED68F;
+}
+
+.total-supply-actions {
+  display: flex;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.total-supply-btn {
+  flex: 1;
+  padding: 0.875rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border: none;
+}
+
+.total-supply-btn.fund-btn {
+  background: var(--white);
+  color: #2A74E9;
+  border: 1px solid rgba(45, 116, 233, 0.2);
+}
+
+.total-supply-btn.fund-btn:hover {
+  background: #f8f9fa;
+}
+
+.total-supply-btn.fund-btn svg {
+  color: #2A74E9;
+}
+
+.total-supply-btn.withdraw-btn {
+  background: #5D93F3;
+  color: var(--white);
+}
+
+.total-supply-btn.withdraw-btn:hover {
+  background: #4d83e3;
+}
+
+.total-supply-btn.withdraw-btn svg {
+  color: var(--white);
+}
+
+.total-supply-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Supplier Contract Middle Section */
+.dashboard-middle.supplier-contract-middle {
+  display: grid !important;
+  grid-template-columns: 0.7fr 1fr !important;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.supplier-contract-middle {
+  display: grid !important;
+  grid-template-columns: 1.2fr 1fr !important;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Ensure supplier details takes more space */
+.supplier-contract-middle .supplier-details-section {
+  min-width: 0;
+  flex: 1;
+}
+
+/* Constrain transaction history width */
+.supplier-contract-middle .transaction-history-section {
+  min-width: 0;
+  max-width: 900px;
+  width: 100%;
+}
+
+/* Supplier Details Section */
+.supplier-details-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.supplier-details-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.supplier-details-section .section-indicator {
+  width: 6px;
+  height: 24px;
+  background: #3366FF;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.supplier-details-section .section-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.supplier-detail-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.supplier-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.supplier-progress-circle {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-background {
+  stroke: #E5E7EB;
+}
+
+.progress-ring-progress {
+  stroke: #3B82F6;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.supplier-id {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.supplier-due-date,
+.supplier-percentage {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.supplier-amount-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: auto;
+}
+
+.supplier-amount-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1;
+}
+
+/* Transaction History Section */
+.transaction-history-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.transaction-history-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.transaction-history-section .section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.transaction-history-section .section-indicator {
+  width: 6px;
+  height: 24px;
+  background: #3366FF;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.transaction-history-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.transaction-history-section .section-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: 'Poppins', sans-serif;
+}
+
+.filter-dropdown:hover {
+  border-color: var(--blue-400);
+}
+
+.filter-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  color: var(--text-dark);
+}
+
+.filter-icon-btn:hover {
+  border-color: var(--blue-400);
+}
+
+.transaction-table-container {
+  flex: 1;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.transaction-table thead {
+  background: var(--blue-100);
+}
+
+.transaction-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Poppins', sans-serif;
+}
+
+.transaction-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  font-family: 'Poppins', sans-serif;
+}
+
+.transaction-table tbody tr:hover {
+  background: var(--blue-100);
+}
+
+.transaction-type-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.transaction-type-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transaction-type-icon.received {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--blue-600);
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+}
+
+.status-badge.successful {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+}
+
+.transaction-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--blue-600);
+}
+
+.transaction-view-btn:hover {
+  background: var(--blue-600);
+  color: var(--white);
+  border-color: var(--blue-600);
+}
+
+.transaction-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Poppins', sans-serif;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--blue-400);
+  color: var(--blue-600);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-numbers span {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: color 0.2s;
+  font-family: 'Poppins', sans-serif;
+}
+
+.pagination-numbers span:hover {
+  color: var(--blue-600);
+}
+
+.pagination-numbers span.active {
+  background: var(--blue-600);
+  color: var(--white);
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .supplier-contract-middle {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .supplier-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transaction-table-container {
+    overflow-x: scroll;
+  }
+
+  .transaction-filters {
+    flex-wrap: wrap;
+  }
+}

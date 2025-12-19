@@ -1,0 +1,589 @@
+/* Payroll Page Styles */
+.payroll-page {
+  padding: 2rem;
+}
+
+/* Shift header actions to the left on Payroll page only */
+.payroll-dashboard .dashboard-main .dashboard-header .header-actions {
+  margin-right: 4rem;
+}
+
+.payroll-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.payroll-page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.add-payroll-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.add-payroll-btn:hover {
+  background: var(--blue-500);
+}
+
+.payroll-content {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* Payroll Cards Section */
+.payroll-cards-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  /* Hide vertical scrollbar (slider indicator) */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.payroll-cards-section::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.payroll-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.payroll-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payroll-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.payroll-view-link {
+  font-size: 0.85rem;
+  color: var(--blue-600);
+  text-decoration: none;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: color 0.2s;
+}
+
+.payroll-view-link:hover {
+  color: var(--blue-500);
+}
+
+/* Segmented Toggle */
+.payroll-segmented-toggle {
+  display: flex;
+  gap: 2px;
+  background: transparent;
+  border-radius: 0;
+  overflow: hidden;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.segmented-toggle-segment {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: #CBD9ED;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border-radius: 0;
+  position: relative;
+}
+
+.segmented-toggle-segment:first-child {
+  flex: 0 0 33.33%;
+}
+
+.segmented-toggle-segment:last-child {
+  flex: 1;
+}
+
+.segmented-toggle-segment.active {
+  background: #4278FF;
+  color: var(--white);
+  z-index: 1;
+}
+
+.segmented-toggle-segment:not(.active) {
+  background: #CBD9ED;
+  color: var(--text-dark);
+}
+
+.payroll-progress-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.payroll-progress-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.payroll-release-date {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.payroll-date-value {
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.payroll-freeze-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.freeze-toggle-label {
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--blue-600);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.payroll-release-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.payroll-release-btn:hover {
+  background: var(--blue-500);
+}
+
+
+/* Payroll Summary Section */
+.payroll-summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.payroll-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.payroll-summary-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.summary-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  background: var(--blue-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue-600);
+  flex-shrink: 0;
+}
+
+.summary-card-content {
+  flex: 1;
+}
+
+.summary-card-title {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.summary-card-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.summary-card-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.summary-card-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.summary-card-trend.positive {
+  color: #10b981;
+}
+
+.summary-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Transaction History Section */
+.transaction-history-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.transaction-history-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-indicator {
+  width: 4px;
+  height: 1.5rem;
+  background: var(--blue-600);
+  border-radius: 2px;
+}
+
+.transaction-history-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-btn,
+.monthly-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.filter-btn:hover,
+.monthly-filter-btn:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-200);
+}
+
+.filter-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-icon-btn:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-200);
+}
+
+.transaction-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.transaction-table thead {
+  background: #f9fafb;
+}
+
+.transaction-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-table th:first-child {
+  width: 40px;
+}
+
+.transaction-table th:last-child {
+  width: 50px;
+}
+
+.transaction-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+
+.transaction-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.transaction-table td {
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-id {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.transaction-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.transaction-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.transaction-action-btn:hover {
+  background: var(--blue-500);
+}
+
+.transaction-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--blue-50);
+  border-color: var(--blue-200);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-number {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.pagination-number:hover {
+  background: var(--blue-50);
+}
+
+.pagination-number.active {
+  background: var(--blue-600);
+  color: var(--white);
+}
+
+.pagination-ellipsis {
+  padding: 0.5rem 0.25rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .payroll-page {
+    padding: 1rem;
+  }
+
+  .payroll-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .payroll-cards-section {
+    max-height: none;
+    order: 2;
+  }
+
+  .payroll-summary-section {
+    order: 1;
+  }
+
+  .payroll-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .transaction-table-wrapper {
+    overflow-x: scroll;
+  }
+
+  .transaction-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-numbers {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

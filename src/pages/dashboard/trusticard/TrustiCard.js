@@ -33,13 +33,13 @@ import {
   Box,
   Link
 } from 'lucide-react';
-import './Dashboard.css';
+import '../dashboard/Dashboard.css';
 import './TrustiCard.css';
-import logo from '../../assets/images/icons/logo.png';
-import verifyBadge from '../../assets/images/icons/verify.png';
-import { useSession } from '../../context/SessionContext';
-import LoadingIndicator from '../../components/LoadingIndicator';
-import { getApiUrl } from '../../utils/config';
+import logo from '../../../assets/images/icons/logo.png';
+import verifyBadge from '../../../assets/images/icons/verify.png';
+import { useSession } from '../../../context/SessionContext';
+import LoadingIndicator from '../../../components/LoadingIndicator';
+import { getApiUrl } from '../../../utils/config';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },

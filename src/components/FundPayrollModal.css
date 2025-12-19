@@ -1,0 +1,188 @@
+/* Fund Payroll Modal Styles */
+.fund-payroll-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.fund-payroll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.fund-payroll-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.wallet-selector-wrapper {
+  position: relative;
+}
+
+.wallet-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.wallet-selector-btn:hover {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+}
+
+.wallet-selector-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.wallet-selector-icon-fallback {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.wallet-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 150px;
+  overflow: hidden;
+}
+
+.wallet-dropdown-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--white);
+  border: none;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.wallet-dropdown-item:hover {
+  background: var(--blue-50);
+}
+
+.fund-payroll-amount-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.amount-currency {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.amount-input {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.amount-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.amount-input:focus {
+  outline: none;
+}
+
+.balance-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-payroll-transfer-btn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  margin-bottom: 1rem;
+}
+
+.fund-payroll-transfer-btn:hover {
+  background: var(--blue-500);
+}
+
+.fund-payroll-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--blue-50);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  line-height: 1.5;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-payroll-info svg {
+  color: var(--blue-600);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.fund-payroll-info span {
+  flex: 1;
+}

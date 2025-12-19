@@ -1,0 +1,93 @@
+/* Change Release Date Modal Styles */
+.change-release-date-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.change-release-date-section .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.change-release-date-section .form-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.change-release-date-section .form-label.new-label {
+  color: var(--blue-600);
+}
+
+.change-release-date-section .form-input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  background: var(--white);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.change-release-date-section .form-input:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+.change-release-date-section .form-input.readonly {
+  background: #f5f5f5;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.change-release-date-section .form-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.change-release-date-save-btn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  margin-top: 0.5rem;
+}
+
+.change-release-date-save-btn:hover {
+  background: var(--blue-500);
+}
+
+.change-release-date-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--blue-50);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  line-height: 1.5;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.change-release-date-info svg {
+  color: var(--blue-600);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.change-release-date-info span {
+  flex: 1;
+}
