@@ -38,6 +38,7 @@ import './SupplierContract.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -82,7 +83,10 @@ const SupplierContract = ({
   setShowWalletModal,
   handleCreateWallet,
   setShowFundWalletModal,
+  setShowFundSupplyAccountModal,
   setShowWithdrawWalletModal,
+  setShowWithdrawModal,
+  setShowCreateNewSupplierModal,
   accountType,
   setAccountType,
   setIsSwitchingAccountType,
@@ -402,15 +406,15 @@ const SupplierContract = ({
               <button 
                 type="button" 
                 className="total-supply-btn fund-btn"
-                onClick={() => setShowFundWalletModal(true)}
+                onClick={() => setShowFundSupplyAccountModal(true)}
               >
                 <Plus size={16} />
-                Fund Wallet
+                Fund Supply Account
               </button>
               <button 
                 type="button" 
                 className="total-supply-btn withdraw-btn"
-                onClick={() => setShowWithdrawWalletModal(true)}
+                onClick={() => setShowWithdrawModal(true)}
               >
                 <Plus size={16} />
                 Withdraw
@@ -439,6 +443,7 @@ const SupplierContract = ({
             <button
               type="button"
               className="overview-card-button"
+              onClick={() => setShowCreateNewSupplierModal(true)}
             >
               <Plus size={16} />
               Create new supplier

@@ -20,6 +20,9 @@ import {
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl } from '../../../utils/config';
 import SupplierContract from './SupplierContract';
+import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
+import WithdrawModal from '../../../components/WithdrawModal';
+import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import '../dashboard/Dashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
@@ -73,7 +76,10 @@ const SupplierContractPage = () => {
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
+  const [showFundSupplyAccountModal, setShowFundSupplyAccountModal] = useState(false);
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showCreateNewSupplierModal, setShowCreateNewSupplierModal] = useState(false);
   const [businessKycComplete, setBusinessKycComplete] = useState(() => {
     const stored = localStorage.getItem('businessKycComplete');
     return stored ? JSON.parse(stored) : false;
@@ -442,7 +448,10 @@ const SupplierContractPage = () => {
           setShowWalletModal={setShowWalletModal}
           handleCreateWallet={handleCreateWallet}
           setShowFundWalletModal={setShowFundWalletModal}
+          setShowFundSupplyAccountModal={setShowFundSupplyAccountModal}
           setShowWithdrawWalletModal={setShowWithdrawWalletModal}
+          setShowWithdrawModal={setShowWithdrawModal}
+          setShowCreateNewSupplierModal={setShowCreateNewSupplierModal}
           accountType={accountType}
           setAccountType={setAccountType}
           setIsSwitchingAccountType={setIsSwitchingAccountType}
@@ -456,6 +465,36 @@ const SupplierContractPage = () => {
           isLoadingTotalEscrowed={isLoadingTotalEscrowed}
         />
       </main>
+
+      <FundSupplyAccountModal
+        isOpen={showFundSupplyAccountModal}
+        onCancel={() => setShowFundSupplyAccountModal(false)}
+        onSuccess={(data) => {
+          console.log('Fund supply account:', data);
+          // Handle the transfer logic here
+          setShowFundSupplyAccountModal(false);
+        }}
+      />
+
+      <WithdrawModal
+        isOpen={showWithdrawModal}
+        onCancel={() => setShowWithdrawModal(false)}
+        onSuccess={(data) => {
+          console.log('Withdraw:', data);
+          // Handle the withdraw logic here
+          setShowWithdrawModal(false);
+        }}
+      />
+
+      <CreateNewSupplierModal
+        isOpen={showCreateNewSupplierModal}
+        onCancel={() => setShowCreateNewSupplierModal(false)}
+        onSuccess={(data) => {
+          console.log('Create new supplier:', data);
+          // Handle the create supplier logic here
+          // Don't close modal on Next - likely goes to next step
+        }}
+      />
     </div>
   );
 };
