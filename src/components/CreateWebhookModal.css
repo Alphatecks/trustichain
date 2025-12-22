@@ -1,0 +1,295 @@
+/* Create Webhook Modal Styles */
+.create-webhook-modal {
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-webhook-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.create-webhook-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.create-webhook-field-half {
+  width: 100%;
+}
+
+.create-webhook-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-webhook-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-webhook-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #F3F7FF;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: #000000;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.create-webhook-input::placeholder {
+  color: #999999;
+}
+
+.create-webhook-input:focus {
+  background: #F3F7FF;
+}
+
+.create-webhook-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.create-webhook-dropdown-btn {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #F3F7FF;
+  color: #000000;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.create-webhook-dropdown-btn:hover {
+  background: #F5F5F5;
+}
+
+.create-webhook-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.create-webhook-dropdown-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: #FFFFFF;
+  border: none;
+  font-size: 0.9rem;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.create-webhook-dropdown-item:hover {
+  background: #F5F5F5;
+}
+
+/* Date Input */
+.create-webhook-date-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.create-webhook-date-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  padding-right: 2.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #F3F7FF;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: #000000;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.create-webhook-date-input::placeholder {
+  color: #999999;
+}
+
+.create-webhook-date-input:focus {
+  background: #F3F7FF;
+}
+
+.create-webhook-calendar-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999999;
+  pointer-events: none;
+}
+
+/* Status Display */
+.create-webhook-status {
+  display: flex;
+  align-items: center;
+  padding-top: 0.5rem;
+  padding: 0.875rem 1rem;
+  background: #F3F7FF;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.create-webhook-status-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-webhook-status-text.active {
+  color: #10B981;
+}
+
+.create-webhook-status-text.inactive {
+  color: #EF4444;
+}
+
+/* Event Types */
+.create-webhook-event-types-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 0.5rem;
+  row-gap: 1rem;
+}
+
+.create-webhook-event-type {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-webhook-event-type input[type="checkbox"] {
+  display: none;
+}
+
+.create-webhook-event-type .radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--blue-600);
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.create-webhook-event-type input[type="checkbox"]:checked + .radio-custom {
+  border-color: var(--blue-600);
+  background: var(--blue-600);
+}
+
+.create-webhook-event-type input[type="checkbox"]:checked + .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FFFFFF;
+}
+
+.create-webhook-event-type input[type="checkbox"]:not(:checked) + .radio-custom {
+  border-color: var(--blue-600);
+  background: transparent;
+}
+
+.radio-label {
+  font-size: 0.9rem;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Footer */
+.create-webhook-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #E0E0E0;
+  justify-content: flex-start;
+}
+
+.create-webhook-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.create-webhook-footer-btn-primary {
+  background: var(--blue-600);
+  color: #FFFFFF;
+}
+
+.create-webhook-footer-btn-primary:hover {
+  background: var(--blue-500);
+}
+
+.create-webhook-footer-btn-primary .create-webhook-arrow-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  color: var(--blue-600);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .create-webhook-row {
+    grid-template-columns: 1fr;
+  }
+
+  .create-webhook-event-types-group {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .create-webhook-footer {
+    flex-direction: column;
+  }
+
+  .create-webhook-footer-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

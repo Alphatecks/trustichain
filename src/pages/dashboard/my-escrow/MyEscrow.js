@@ -52,16 +52,14 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
-  { label: 'P2P trading', icon: Repeat, badge: null }
+  { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Transaction', icon: Repeat, badge: null },
-  { label: 'Teams', icon: Users, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: null }
+  { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
 const developersNav = [
@@ -1186,12 +1184,20 @@ const MyEscrow = () => {
                 <nav className="mobile-sidebar-nav">
                   {supportNav.map((item) => {
                     const Icon = item.icon;
+                    const handleSupportNavClick = () => {
+                      setIsMobileMenuOpen(false);
+                      if (item.label === 'Settings') {
+                        navigate('/settings');
+                      } else if (item.label === 'Security') {
+                        navigate('/security');
+                      }
+                    };
                     return (
                       <button 
                         key={item.label} 
                         type="button" 
                         className="mobile-sidebar-nav-item"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={handleSupportNavClick}
                       >
                         <Icon size={18} />
                         <span>{item.label}</span>

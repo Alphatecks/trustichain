@@ -32,9 +32,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Transaction', icon: Repeat, badge: null },
-  { label: 'Teams', icon: Users, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: null }
+  { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
 const developersNav = [
@@ -325,8 +323,19 @@ const SupplierContractPage = () => {
           <nav className="sidebar-nav">
             {developersNav.map((item) => {
               const Icon = item.icon;
+              const isActive = item.label === 'Api Keys' && location.pathname === '/api-keys';
+              const handleDevelopersNavClick = () => {
+                if (item.label === 'Api Keys') {
+                  navigate('/api-keys');
+                }
+              };
               return (
-                <button key={item.label} type="button" className="sidebar-nav-item">
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleDevelopersNavClick}
+                >
                   <Icon size={18} />
                   <span>{item.label}</span>
                 </button>

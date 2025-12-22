@@ -44,9 +44,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Transaction', icon: Repeat, badge: null },
-  { label: 'Teams', icon: Users, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: null }
+  { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
 const developersNav = [
@@ -221,11 +219,13 @@ const SupplierContract = ({
                     if (isDisabled) return;
                     setIsMobileMenuOpen(false);
                     if (item.label === 'Dashboard') {
-                      navigate('/dashboard');
+                      navigate('/dashboard', { state: { accountType: 'Business Suite' } });
                     } else if (item.label === 'Payroll') {
                       navigate('/payroll');
                     } else if (item.label === 'Supplier Contract') {
                       navigate('/supplier-contract');
+                    } else if (item.label === 'Transaction') {
+                      navigate('/transactions', { state: { accountType: 'Business Suite' } });
                     }
                   };
                   return (

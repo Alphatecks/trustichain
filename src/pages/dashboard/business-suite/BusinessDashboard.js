@@ -39,9 +39,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Transaction', icon: Repeat, badge: null },
-  { label: 'Teams', icon: Users, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: null }
+  { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
 const developersNav = [
@@ -229,14 +227,23 @@ const BusinessDashboard = ({
                 {developersNav.map((item) => {
                   const Icon = item.icon;
                   const isDisabled = !businessKycComplete;
+                  const handleDevelopersNavClick = () => {
+                    if (isDisabled) return;
+                    setIsMobileMenuOpen(false);
+                    if (item.label === 'Api Keys') {
+                      navigate('/api-keys');
+                    } else if (item.label === 'Sand box enviroment') {
+                      navigate('/sandbox-environment');
+                    } else if (item.label === 'Web hook') {
+                      navigate('/webhook');
+                    }
+                  };
                   return (
                     <button 
                       key={item.label} 
                       type="button" 
                       className={`mobile-sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
-                      onClick={() => {
-                        if (!isDisabled) setIsMobileMenuOpen(false);
-                      }}
+                      onClick={handleDevelopersNavClick}
                       disabled={isDisabled}
                     >
                       <Icon size={18} />

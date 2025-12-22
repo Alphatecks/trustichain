@@ -61,16 +61,14 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
-  { label: 'P2P trading', icon: Repeat, badge: null }
+  { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Transaction', icon: Repeat, badge: null },
-  { label: 'Teams', icon: Users, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: null }
+  { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
 const developersNav = [
@@ -90,7 +88,7 @@ const Transactions = () => {
   const location = useLocation();
   const { isSessionExpired } = useSession();
   const [showBalance, setShowBalance] = useState(true);
-  const [accountType, setAccountType] = useState('Personal');
+  const [accountType, setAccountType] = useState(location.state?.accountType || 'Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [kycComplete] = useState(true);
@@ -195,6 +193,13 @@ const Transactions = () => {
     { name: 'Expenses', percentage: '15%', saved: '$4,000', icon: ShoppingBag, color: '#9333ea' },
     { name: 'Others', percentage: '15%', saved: '$4,000', icon: Package, color: '#f59e0b' }
   ];
+
+  // Update accountType from location state
+  useEffect(() => {
+    if (location.state?.accountType) {
+      setAccountType(location.state.accountType);
+    }
+  }, [location.state]);
 
   // Fetch dashboard summary for total balance
   useEffect(() => {
@@ -1892,8 +1897,21 @@ const Transactions = () => {
           <nav className="mobile-sidebar-nav">
             {supportNav.map((item) => {
               const Icon = item.icon;
+              const handleSupportNavClick = () => {
+                setIsMobileMenuOpen(false);
+                if (item.label === 'Settings') {
+                  navigate('/settings');
+                } else if (item.label === 'Security') {
+                  navigate('/security');
+                }
+              };
               return (
-                <button key={item.label} type="button" className="mobile-sidebar-nav-item">
+                <button 
+                  key={item.label} 
+                  type="button" 
+                  className="mobile-sidebar-nav-item"
+                  onClick={handleSupportNavClick}
+                >
                   <Icon size={18} />
                   <span>{item.label}</span>
                 </button>
@@ -2000,8 +2018,21 @@ const Transactions = () => {
           <nav className="sidebar-nav">
             {supportNav.map((item) => {
               const Icon = item.icon;
+              const handleSupportNavClick = () => {
+                if (item.label === 'Settings') {
+                  navigate('/settings');
+                } else if (item.label === 'Security') {
+                  navigate('/security');
+                }
+              };
+              const isActive = item.label === 'Settings' && location.pathname === '/settings';
               return (
-                <button key={item.label} type="button" className="sidebar-nav-item">
+                <button 
+                  key={item.label} 
+                  type="button" 
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleSupportNavClick}
+                >
                   <Icon size={18} />
                   <span>{item.label}</span>
                 </button>
@@ -3619,8 +3650,21 @@ const Transactions = () => {
           <nav className="sidebar-nav">
             {supportNav.map((item) => {
               const Icon = item.icon;
+              const handleSupportNavClick = () => {
+                if (item.label === 'Settings') {
+                  navigate('/settings');
+                } else if (item.label === 'Security') {
+                  navigate('/security');
+                }
+              };
+              const isActive = item.label === 'Settings' && location.pathname === '/settings';
               return (
-                <button key={item.label} type="button" className="sidebar-nav-item">
+                <button 
+                  key={item.label} 
+                  type="button" 
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleSupportNavClick}
+                >
                   <Icon size={18} />
                   <span>{item.label}</span>
                 </button>

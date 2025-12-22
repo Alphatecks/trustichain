@@ -1,0 +1,1050 @@
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/dashboard"},"timestamp":1766420267776,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420267785,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/dashboard"},"timestamp":1766420267777,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420267786,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420267779,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420267780,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420267787,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420267787,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420267781,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420267781,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/login"},"timestamp":1766420267885,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/login"},"timestamp":1766420267887,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420360877,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420360875,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420360878,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420360878,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420366005,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420366006,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420366009,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420366008,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420375008,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420375009,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420375010,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420375011,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420376088,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420376089,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420376091,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420376092,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/dashboard"},"timestamp":1766420478352,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/dashboard"},"timestamp":1766420478352,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766420478360,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766420478361,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766420478362,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766420478363,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478368,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478369,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478369,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478369,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478369,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478369,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478629,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478629,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478630,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478630,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478630,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478630,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478631,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478631,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478631,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478631,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478631,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478632,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478632,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478632,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478632,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478633,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478633,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478633,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478634,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478634,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478634,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478634,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478635,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478635,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478635,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478635,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478635,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478635,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420478636,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420478636,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478636,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478636,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478637,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478637,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478637,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478637,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478638,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478638,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478638,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478638,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478638,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478639,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478639,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478639,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478639,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478639,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420478640,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420478640,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420478641,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420478641,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478641,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478641,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478642,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478642,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478642,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478642,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478643,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420478644,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480024,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766420480025,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480026,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766420480026,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480035,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480035,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480036,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480036,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480036,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480037,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480037,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480037,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480037,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480038,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480038,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480038,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480039,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480039,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480039,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480040,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480040,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480060,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480060,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480061,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480062,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480064,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480065,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480065,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480065,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480066,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480066,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480066,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480067,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480067,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480067,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480068,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480068,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480068,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480068,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480163,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480164,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480165,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480165,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480168,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480169,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480169,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480169,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480170,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420480170,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480170,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480170,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480286,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480287,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480288,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480288,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480291,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480291,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480292,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480292,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480589,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480590,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480592,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480593,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480603,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480604,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480605,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480606,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480608,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480609,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480609,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420480610,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480762,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480763,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480764,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480765,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480768,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480769,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480770,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480771,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480833,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480834,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420480835,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420480836,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420481078,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420481079,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420481081,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420481082,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420590119,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420590120,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420590121,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420590124,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420590126,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420590124,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420590126,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420590127,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420590127,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420590127,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420591572,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420591573,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420591573,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420591573,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420591574,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420591575,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420591575,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420591575,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420591576,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420591576,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420591915,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420591916,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420591916,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420591917,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420591917,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420591918,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420591918,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420591919,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420591919,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420591919,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420592151,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420592152,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420592152,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420592152,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420592153,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420592153,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420592154,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420592154,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420592154,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420592155,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420592160,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420592161,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420592161,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420592161,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420592162,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420592163,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420592163,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420592163,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420592164,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420592164,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3742","message":"Settings button clicked","data":{"itemLabel":"Settings","currentPath":"/dashboard"},"timestamp":1766420603037,"sessionId":"debug-session","runId":"run3","hypothesisId":"A"}
+{"location":"Dashboard.js:3745","message":"Navigating to /settings","data":{"currentPath":"/dashboard"},"timestamp":1766420603038,"sessionId":"debug-session","runId":"run3","hypothesisId":"B"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/settings"},"timestamp":1766420603039,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"App.js:75","message":"Settings route matched","data":{"pathname":"/settings"},"timestamp":1766420603040,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Settings.js:41","message":"Settings component rendering","data":{"pathname":"/settings"},"timestamp":1766420603042,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"Settings.js:45","message":"Location hook values","data":{"pathname":"/settings","pathnameFromWindow":"/settings"},"timestamp":1766420603042,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Settings.js:111","message":"About to return JSX","data":{"pathname":"/settings"},"timestamp":1766420603043,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"Settings.js:41","message":"Settings component rendering","data":{"pathname":"/settings"},"timestamp":1766420603043,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"Settings.js:45","message":"Location hook values","data":{"pathname":"/settings","pathnameFromWindow":"/settings"},"timestamp":1766420603044,"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}
+{"location":"Settings.js:111","message":"About to return JSX","data":{"pathname":"/settings"},"timestamp":1766420603044,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"Settings.js:111","message":"About to return JSX","data":{"pathname":"/settings"},"timestamp":1766420701993,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"Settings.js:111","message":"About to return JSX","data":{"pathname":"/settings"},"timestamp":1766420701994,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420722635,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420722642,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420722636,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420722643,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766420722643,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420722637,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766420722644,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722647,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722647,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766420722640,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722648,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722648,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722648,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722648,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766420722641,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722649,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722649,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722650,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722650,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722650,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420722642,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722650,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722651,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722651,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722651,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722651,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722652,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722652,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722653,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722653,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722653,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722653,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722654,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722655,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722656,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722657,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722657,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722657,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420722657,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420722657,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420722657,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420722658,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722658,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722658,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722658,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722658,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722659,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722659,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722660,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722660,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722660,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722660,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722660,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722661,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722661,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420722661,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420724053,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420724054,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420724054,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766420724054,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724054,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420724054,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420724055,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420724055,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766420724055,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724055,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724056,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724056,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724057,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724057,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724057,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724057,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724058,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724059,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724061,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724062,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724062,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724062,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724062,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724062,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724062,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420724093,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420724094,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420724094,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724094,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724094,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420724095,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420724095,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420724095,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724095,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724095,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724103,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420724309,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420724310,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420724310,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724310,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724310,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Settings"},"timestamp":1766420724311,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Security"},"timestamp":1766420724311,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:3738","message":"Rendering support nav item","data":{"itemLabel":"Help"},"timestamp":1766420724311,"sessionId":"debug-session","runId":"run3","hypothesisId":"E"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724311,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724311,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724313,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724314,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724314,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724314,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724314,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724314,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724315,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724317,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724317,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724317,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724317,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724317,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724317,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724318,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724319,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724319,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724319,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724319,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724326,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724327,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724328,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724329,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724331,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724331,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724331,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724331,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724331,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724331,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724332,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724334,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724335,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724529,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724529,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724530,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724531,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724533,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724533,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724533,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724533,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724534,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724534,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724534,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724534,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724534,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724534,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724758,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724758,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724759,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724759,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724789,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724789,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724790,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724790,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724793,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724793,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724793,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724794,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724866,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724866,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724867,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724868,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724872,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724872,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724873,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420724873,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724873,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420724873,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724973,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724973,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420724974,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420724974,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725290,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725290,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725291,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725291,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725336,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725337,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725338,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725338,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725432,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725432,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725433,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725433,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725998,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725998,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420725999,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420725999,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420726187,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420726187,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":false},"timestamp":1766420726188,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":false},"timestamp":1766420726188,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890013,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890013,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890018,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890014,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890018,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890014,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890014,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890015,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890014,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890020,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890020,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890016,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890016,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890016,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890016,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890016,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890016,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890017,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890017,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890017,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890017,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890017,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420890034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420890034,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891469,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891470,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891470,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891471,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891471,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891471,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891472,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891472,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891473,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891473,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891473,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891473,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891473,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891474,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891475,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891475,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891475,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891475,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891550,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891551,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891551,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891551,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891552,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891552,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891553,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891553,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891553,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891553,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891554,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766420891554,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891975,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891975,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891975,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420891976,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420892026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420892026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420892026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766420892026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766422490423,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766422490423,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766422490424,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766422490425,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490426,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490426,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490427,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490427,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490427,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490427,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490428,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490428,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490428,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490428,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490429,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490430,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490430,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490430,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490430,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490430,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490430,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490431,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490431,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490431,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490431,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490432,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490433,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490434,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490434,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490434,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490434,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490434,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490434,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490435,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422490436,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766422514091,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766422514091,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:1947","message":"User profile loading check","data":{"isLoadingUserProfile":true},"timestamp":1766422514092,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514097,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"Dashboard.js:2183","message":"Checking isLoadingDashboard for XRP balance","data":{"isLoadingDashboard":true},"timestamp":1766422514092,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514093,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514094,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514094,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514094,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422514098,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514099,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514100,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514094,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514094,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514101,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514096,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422514102,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517876,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517877,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517877,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517877,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517877,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517877,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517879,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517879,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517879,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517879,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517880,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517880,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517880,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517880,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517881,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517881,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517881,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517881,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517881,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517881,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517882,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517882,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517882,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517882,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517882,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517882,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517883,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517883,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517893,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517894,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517894,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517894,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517894,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517894,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517895,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517895,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517895,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517895,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517896,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422517897,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517898,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422517898,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520025,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520026,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520028,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520028,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520030,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520031,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422520029,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422520032,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422520033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422520033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422520033,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524202,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524203,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524203,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524203,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524204,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524204,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524205,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524205,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524205,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524206,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524207,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524207,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524207,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524207,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524207,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524208,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524208,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524208,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524208,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524211,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524211,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524211,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524211,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524213,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524214,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524214,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524215,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524216,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524216,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524216,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524216,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524743,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524743,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524743,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524743,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524744,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524744,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524744,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524745,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524745,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524745,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524745,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524745,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524746,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524746,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524746,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524746,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524751,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524751,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524752,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524752,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524753,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524753,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524753,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422524754,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524754,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524754,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524754,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422524754,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525918,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525918,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525918,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525919,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525920,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525920,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422525921,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422525921,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422525921,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"md"},"timestamp":1766422525921,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525938,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525938,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525939,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525939,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525940,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422525940,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526236,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526236,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526236,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526236,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526238,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526239,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526542,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526542,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526542,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526542,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526544,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"LoadingIndicator.js:6","message":"LoadingIndicator rendered","data":{"size":"sm"},"timestamp":1766422526544,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}

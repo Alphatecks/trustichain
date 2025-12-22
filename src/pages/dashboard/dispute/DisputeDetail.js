@@ -44,7 +44,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
-  { label: 'P2P trading', icon: Repeat, badge: null }
+  { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
 const supportNav = [
