@@ -3,44 +3,2124 @@
   padding: 2rem;
 }
 
+/* Mobile Payroll Styles */
+@media (max-width: 768px) {
+  .payroll-dashboard .mobile-dashboard {
+    display: block !important;
+    width: 100%;
+    padding: 0;
+    background: var(--white);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    box-sizing: border-box;
+  }
+
+  .payroll-dashboard .dashboard-main {
+    display: none !important;
+  }
+
+  .payroll-dashboard .dashboard-sidebar {
+    display: none !important;
+  }
+
+  .payroll-page-mobile {
+    padding: 1rem;
+    background: var(--white);
+  }
+
+  .payroll-summary-cards-wrapper-mobile {
+    margin-bottom: 1.5rem;
+    padding: 0 1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .payroll-summary-cards-mobile {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .payroll-summary-cards-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .payroll-summary-card-mobile {
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 240px;
+  }
+
+  .payroll-summary-card-mobile {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .summary-card-icon-mobile {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 0.5rem;
+    background: var(--blue-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue-600);
+    flex-shrink: 0;
+  }
+
+  .summary-card-content-mobile {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .summary-card-title-mobile {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.2;
+  }
+
+  .summary-card-value-row-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .summary-card-value-mobile {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.2;
+  }
+
+  .summary-card-trend-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .summary-card-trend-mobile.positive {
+    color: #10b981;
+  }
+
+  .summary-card-subtitle-mobile {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.2;
+  }
+
+  .payroll-cards-section-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0 1rem 2rem;
+  }
+
+  .payroll-card-mobile {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .payroll-card-header-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .payroll-card-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-view-link-mobile {
+    font-size: 0.85rem;
+    color: var(--blue-600);
+    text-decoration: none;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-segmented-toggle-mobile {
+    display: flex;
+    gap: 2px;
+    background: transparent;
+    border-radius: 0;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .segmented-toggle-segment-mobile {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: #CBD9ED;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    border-radius: 0;
+  }
+
+  .segmented-toggle-segment-mobile:first-child {
+    flex: 0 0 33.33%;
+  }
+
+  .segmented-toggle-segment-mobile:last-child {
+    flex: 1;
+  }
+
+  .segmented-toggle-segment-mobile.active {
+    background: #4278FF;
+    color: var(--white);
+  }
+
+  .payroll-release-date-mobile {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-date-value-mobile {
+    color: var(--text-dark);
+    font-weight: 500;
+  }
+
+  .payroll-freeze-toggle-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .freeze-toggle-label-mobile {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .toggle-switch-mobile {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+
+  .toggle-switch-mobile input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider-mobile {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+  }
+
+  .toggle-slider-mobile:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .toggle-switch-mobile input:checked + .toggle-slider-mobile {
+    background-color: var(--blue-600);
+  }
+
+  .toggle-switch-mobile input:checked + .toggle-slider-mobile:before {
+    transform: translateX(20px);
+  }
+
+  .payroll-release-btn-mobile {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-release-btn-mobile:hover {
+    background: var(--blue-500);
+  }
+
+  /* Mobile Payroll Header */
+  .payroll-section-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    margin-top: 1.5rem;
+    padding-left: 2.0rem;
+    padding-right: 0.5rem;
+    gap: 0.5rem;
+    position: relative;
+  }
+
+  .payroll-section-header-mobile::before {
+    content: '';
+    position: absolute;
+    left: 1.2rem;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--blue-600);
+    border-radius: 2px;
+  }
+
+  .payroll-section-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-payroll-btn-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--blue-600);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-payroll-btn-mobile span {
+    color: var(--blue-600);
+  }
+
+  /* Mobile Payroll List */
+  .payroll-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0 1rem 2rem;
+  }
+
+  .payroll-list-item-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .payroll-list-item-mobile:active {
+    background: var(--gray-50);
+  }
+
+  .payroll-list-item-content-mobile {
+    flex: 1;
+  }
+
+  .payroll-list-item-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--blue-600);
+    margin: 0 0 0.25rem 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-list-item-subtitle-mobile {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-list-item-arrow-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .payroll-list-item-arrow-mobile:active {
+    background: var(--blue-500);
+  }
+
+  /* Mobile Transaction History */
+  .transaction-history-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2rem;
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+    position: relative;
+  }
+
+  .transaction-history-header-mobile::before {
+    content: '';
+    position: absolute;
+    left: 1.2rem;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--blue-600);
+    border-radius: 2px;
+  }
+
+  .transaction-history-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .transaction-history-actions-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .transaction-history-calendar-mobile,
+  .transaction-history-arrow-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--blue-600);
+    cursor: pointer;
+  }
+
+  .transaction-history-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0 1rem 2rem;
+  }
+
+  .transaction-item-mobile {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  .transaction-item-content-mobile {
+    flex: 1;
+  }
+
+  .transaction-id-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .transaction-recipient-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--blue-600);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .transaction-item-right-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .transaction-amount-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+
+  .transaction-status-mobile {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+
+  .transaction-status-mobile.pending {
+    background: #fbbf24;
+    color: var(--white);
+  }
+
+  .transaction-status-mobile.successful {
+    background: #10b981;
+    color: var(--white);
+  }
+
+  /* Mobile Payroll Details Screen - Full Screen Dialog */
+  .payroll-details-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    padding: 1rem;
+    padding-bottom: 2rem;
+    background: var(--white);
+    z-index: 1000;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .payroll-details-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .payroll-details-header-mobile::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .payroll-details-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+  }
+
+  .payroll-details-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-details-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .payroll-details-close-mobile:active {
+    background: var(--gray-50);
+  }
+
+  .payroll-details-grid-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .payroll-detail-card-mobile {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .payroll-detail-card-header-mobile {
+    position: relative;
+    padding-left: 0.75rem;
+  }
+
+  .payroll-detail-card-header-mobile::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--blue-600);
+    border-radius: 2px;
+  }
+
+  .payroll-detail-card-title-mobile {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-detail-card-value-mobile {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--blue-600);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  .payroll-detail-card-amount-wrapper-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .payroll-detail-card-amount-secondary-mobile {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-detail-card-action-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.5rem;
+    background: var(--blue-600);
+    border: none;
+    border-radius: 0.5rem;
+    color: var(--white);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: all 0.2s;
+    white-space: nowrap;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .payroll-detail-card-action-mobile span {
+    font-size: 0.8rem;
+    color: var(--white);
+  }
+
+  .payroll-detail-card-action-mobile svg {
+    color: var(--white);
+  }
+
+  .payroll-detail-card-action-mobile:active {
+    background: var(--blue-50);
+  }
+
+  /* Payroll Details Transaction History */
+  .payroll-details-transaction-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2rem;
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .payroll-details-transaction-header-mobile::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .payroll-details-transaction-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    padding-left: 0.75rem;
+  }
+
+  .payroll-details-transaction-actions-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .payroll-details-transaction-calendar-mobile,
+  .payroll-details-transaction-arrow-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--blue-600);
+    cursor: pointer;
+  }
+
+  .payroll-details-transaction-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .payroll-details-transaction-item-mobile {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .payroll-details-transaction-content-mobile {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .payroll-details-transaction-sender-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-details-transaction-amount-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--blue-600);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .payroll-details-transaction-right-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .payroll-details-transaction-date-mobile {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+
+  .payroll-details-transaction-arrow-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--blue-600);
+    border: none;
+    border-radius: 0.5rem;
+    color: var(--white);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .payroll-details-transaction-arrow-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .payroll-details-transaction-arrow-btn-mobile svg {
+    color: var(--white);
+  }
+
+  /* Add Team Member Modal */
+  .add-team-member-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    padding: 1rem;
+    padding-bottom: 2rem;
+    background: var(--white);
+    z-index: 1002;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .add-team-member-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .add-team-member-header-mobile::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .add-team-member-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+  }
+
+  .add-team-member-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-team-member-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .add-team-member-close-mobile:active {
+    background: var(--gray-50);
+  }
+
+  /* Step Indicator */
+  .step-indicator-mobile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .step-indicator-icon-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--blue-600);
+    color: var(--blue-600);
+    flex-shrink: 0;
+  }
+
+  .step-indicator-content-mobile {
+    flex: 1;
+  }
+
+  .step-indicator-step-mobile {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .step-indicator-label-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Personal Details Form */
+  .personal-details-form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .personal-details-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--blue-600);
+    margin: 0 0 0.5rem 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .form-field-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-label-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .form-input-wrapper-mobile {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-input-mobile {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    background: var(--blue-50);
+    color: var(--text-dark);
+    box-sizing: border-box;
+  }
+
+  .form-input-mobile:focus {
+    outline: none;
+    background: var(--blue-100);
+  }
+
+  .form-input-icon-mobile {
+    position: absolute;
+    right: 0.75rem;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .gender-options-mobile {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .gender-option-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  .gender-option-mobile input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--blue-600);
+  }
+
+  .submit-next-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 0.75rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    margin-top: 1rem;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .submit-next-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .submit-next-icon-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--white);
+    color: var(--blue-600);
+  }
+
+  .submit-next-icon-mobile svg {
+    color: var(--blue-600);
+  }
+
+  /* Job Details Form */
+  .job-details-form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .job-details-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--blue-600);
+    margin: 0 0 0.5rem 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .employment-type-options-mobile,
+  .disbursement-mode-options-mobile {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .employment-type-option-mobile,
+  .disbursement-mode-option-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  .employment-type-option-mobile input[type="radio"],
+  .disbursement-mode-option-mobile input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--blue-600);
+  }
+
+  .form-navigation-buttons-mobile {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .previous-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 0.75rem;
+    background: var(--gray-100);
+    color: var(--text-dark);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  .previous-btn-mobile:active {
+    background: var(--gray-200);
+  }
+
+  .previous-icon-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--text-dark);
+    color: var(--white);
+  }
+
+  .previous-icon-mobile svg {
+    color: var(--white);
+  }
+
+  .submit-next-btn-mobile {
+    flex: 1;
+  }
+
+  /* Payment Details Form */
+  .payment-details-form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .payment-details-section-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--blue-600);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .account-type-options-mobile {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .account-type-option-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .account-type-option-mobile.selected {
+    background: var(--blue-600);
+    color: var(--white);
+    border-color: var(--blue-600);
+  }
+
+  .account-type-option-mobile.selected svg {
+    color: var(--white);
+  }
+
+  .account-type-option-mobile:not(.selected) svg {
+    color: var(--text-dark);
+  }
+
+  .add-team-member-final-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    margin-top: 1rem;
+    transition: background 0.2s;
+  }
+
+  .add-team-member-final-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .add-team-member-final-icon-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--white);
+  }
+
+  .add-team-member-final-icon-mobile svg {
+    color: var(--blue-600);
+  }
+
+  /* Fund Wallet Modal */
+  .fund-wallet-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .fund-wallet-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .fund-wallet-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .fund-wallet-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .fund-wallet-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-wallet-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .fund-wallet-content-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .fund-wallet-amount-section-mobile {
+    background: var(--white);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .fund-wallet-amount-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .fund-wallet-amount-label-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-wallet-currency-selector-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1.5rem;
+    cursor: pointer;
+  }
+
+  .fund-wallet-currency-logo-mobile {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+
+  .fund-wallet-currency-logo-mobile svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .fund-wallet-currency-logo-mobile img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .fund-wallet-currency-badge-mobile {
+    padding: 0.25rem 0.5rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-wallet-currency-text-mobile {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-wallet-amount-input-mobile {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    border: none;
+    background: transparent;
+    width: 100%;
+    outline: none;
+    padding: 0;
+  }
+
+  .fund-wallet-amount-input-mobile::placeholder {
+    color: var(--text-gray);
+    opacity: 0.5;
+  }
+
+  .fund-wallet-balance-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-wallet-button-mobile {
+    width: 100%;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .fund-wallet-button-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .fund-wallet-info-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+  }
+
+  .fund-wallet-info-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .fund-wallet-info-mobile span {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Change Release Date Modal */
+  .change-release-date-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .change-release-date-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .change-release-date-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .change-release-date-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .change-release-date-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .change-release-date-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .change-release-date-content-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .change-release-date-field-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .change-release-date-label-mobile {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .change-release-date-label-editable-mobile {
+    color: var(--blue-600);
+  }
+
+  .change-release-date-display-mobile {
+    padding: 0.75rem 1rem;
+    background: var(--gray-100);
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .change-release-date-input-mobile {
+    padding: 0.75rem 1rem;
+    background: var(--gray-100);
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    outline: none;
+  }
+
+  .change-release-date-input-mobile:focus {
+    background: var(--gray-200);
+  }
+
+  .change-release-date-save-btn-mobile {
+    width: 100%;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .change-release-date-save-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .change-release-date-info-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+  }
+
+  .change-release-date-info-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .change-release-date-info-mobile span {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Add New Payroll Modal */
+  .add-new-payroll-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .add-new-payroll-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .add-new-payroll-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .add-new-payroll-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .add-new-payroll-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .add-new-payroll-step-indicator-mobile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .add-new-payroll-step-icon-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    color: var(--white);
+    flex-shrink: 0;
+  }
+
+  .add-new-payroll-step-content-mobile {
+    flex: 1;
+  }
+
+  .add-new-payroll-step-number-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    margin-bottom: 0.25rem;
+  }
+
+  .add-new-payroll-step-label-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .add-new-payroll-form-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0 0 0.5rem 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-field-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .add-new-payroll-label-mobile {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-input-wrapper-mobile {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .add-new-payroll-input-mobile {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: var(--blue-50);
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    outline: none;
+  }
+
+  .add-new-payroll-input-mobile:focus {
+    background: var(--blue-100);
+  }
+
+  .add-new-payroll-input-icon-mobile {
+    position: absolute;
+    right: 1rem;
+    color: var(--text-gray);
+    pointer-events: none;
+  }
+
+  .add-new-payroll-radio-group-mobile {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .add-new-payroll-radio-option-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  .add-new-payroll-radio-option-mobile input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--blue-600);
+  }
+
+  .add-new-payroll-toggle-wrapper-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--blue-50);
+    border-radius: 0.5rem;
+  }
+
+  .add-new-payroll-toggle-text-mobile {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-toggle-mobile {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+
+  .add-new-payroll-toggle-mobile input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .add-new-payroll-toggle-slider-mobile {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--gray-300);
+    transition: 0.3s;
+    border-radius: 24px;
+  }
+
+  .add-new-payroll-toggle-slider-mobile:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--white);
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .add-new-payroll-toggle-mobile input:checked + .add-new-payroll-toggle-slider-mobile {
+    background-color: var(--blue-600);
+  }
+
+  .add-new-payroll-toggle-mobile input:checked + .add-new-payroll-toggle-slider-mobile:before {
+    transform: translateX(20px);
+  }
+
+  .add-new-payroll-submit-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 0.75rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    margin-top: 1rem;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .add-new-payroll-submit-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .add-new-payroll-submit-icon-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--white);
+  }
+
+  .add-new-payroll-submit-icon-mobile svg {
+    color: var(--blue-600);
+  }
+
+  /* Confirmation Section */
+  .add-new-payroll-confirmation-section-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-new-payroll-confirmation-item-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .add-new-payroll-confirmation-item-mobile:last-child {
+    border-bottom: none;
+  }
+
+  .add-new-payroll-confirmation-label-mobile {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-confirmation-value-mobile {
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-confirmation-value-mobile.enabled {
+    color: var(--green-600);
+    font-weight: 500;
+  }
+
+  .add-new-payroll-confirmation-value-with-icon-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .add-new-payroll-confirmation-value-with-icon-mobile svg {
+    color: var(--text-gray);
+  }
+
+  .add-new-payroll-save-lock-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 0.75rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    margin-top: 1rem;
+    transition: background 0.2s;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  .add-new-payroll-save-lock-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  /* Mobile Notifications Dialog */
+  .mobile-notifications-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .mobile-notifications-dialog {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 400px;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  .mobile-notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mobile-notifications-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .mobile-notifications-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .mobile-notifications-close:active {
+    background: var(--gray-100);
+  }
+
+  .mobile-notifications-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 0;
+  }
+
+  .mobile-notification-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--gray-100);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .mobile-notification-item:active {
+    background: var(--gray-50);
+  }
+
+  .mobile-notification-icon {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--blue-50);
+    color: var(--blue-600);
+    flex-shrink: 0;
+    padding-top: 0.5rem;
+  }
+
+  .mobile-notification-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .mobile-notification-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .mobile-notification-message {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.4;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .mobile-notification-time {
+    font-size: 0.75rem;
+    color: var(--text-gray);
+    margin-top: 0.25rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+}
+
 /* Shift header actions to the left on Payroll page only */
 .payroll-dashboard .dashboard-main .dashboard-header .header-actions {
   margin-right: 4rem;
 }
 
-.payroll-page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.payroll-page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--text-dark);
-  margin: 0;
-  font-family: 'Satoshi', 'Inter', sans-serif;
-}
-
-.add-payroll-btn {
+/* Add Payroll Button in Header */
+.add-payroll-btn-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--blue-600);
-  color: var(--white);
+  padding: 0.45rem 1.1rem;
+  margin-left: 0.75rem;
   border: none;
   border-radius: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
+  background: var(--blue-600);
+  color: var(--white);
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
   font-family: 'Satoshi', 'Inter', sans-serif;
+  white-space: nowrap;
 }
 
-.add-payroll-btn:hover {
+.add-payroll-btn-header:hover {
   background: var(--blue-500);
+}
+
+.add-payroll-btn-header:active {
+  transform: translateY(1px);
 }
 
 .payroll-content {
@@ -55,7 +2135,8 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-height: calc(100vh - 150px);
+  max-height: calc(100vh - 80px);
+  min-height: calc(100vh - 150px);
   overflow-y: auto;
   padding-right: 0.5rem;
   /* Hide vertical scrollbar (slider indicator) */
@@ -65,6 +2146,57 @@
 
 .payroll-cards-section::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+.payroll-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
+  padding-left: 0.75rem;
+  position: relative;
+  min-height: 24px;
+}
+
+.payroll-section-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--blue-600);
+  border-radius: 2px;
+}
+
+.payroll-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+  line-height: 1.5;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.add-payroll-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.add-payroll-btn:hover {
+  background: var(--blue-500);
 }
 
 .payroll-card {
@@ -259,6 +2391,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .payroll-summary-card {
@@ -340,14 +2473,22 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  padding-left: 0.75rem;
+  position: relative;
+  min-height: 24px;
 }
 
-.section-indicator {
+.transaction-history-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 4px;
-  height: 1.5rem;
   background: var(--blue-600);
   border-radius: 2px;
 }
+
 
 .transaction-history-title {
   font-size: 1.25rem;
@@ -569,8 +2710,78 @@
     order: 1;
   }
 
+  /* Make summary cards horizontally scrollable on mobile */
+  .payroll-summary-cards-wrapper {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+  }
+
   .payroll-summary-cards {
-    grid-template-columns: 1fr;
+    display: flex;
+    grid-template-columns: none;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .payroll-summary-cards::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .payroll-summary-card {
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 240px;
+    padding: 1rem;
+    gap: 0.75rem;
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .summary-card-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+  }
+  
+  .summary-card-content {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .summary-card-title {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+  }
+  
+  .summary-card-value-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .summary-card-value {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+  
+  .summary-card-trend {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background: rgba(16, 185, 129, 0.1);
+  }
+  
+  .summary-card-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
 
   .transaction-table-wrapper {
@@ -585,5 +2796,34 @@
   .pagination-numbers {
     flex-wrap: wrap;
     justify-content: center;
+  }
+}
+
+/* Fix mobile sidebar - make bottom section scrollable with content */
+@media (max-width: 768px) {
+  /* Remove auto margin from bottom section so it flows with content */
+  .payroll-dashboard .mobile-sidebar-drawer .mobile-sidebar-bottom {
+    margin-top: 0 !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Make the drawer itself handle scrolling, not just the content area */
+  .payroll-dashboard .mobile-sidebar-drawer {
+    overflow-y: auto !important;
+  }
+  
+  /* Remove overflow from content area so drawer handles all scrolling */
+  .payroll-dashboard .mobile-sidebar-content {
+    flex: 1 !important;
+    overflow-y: visible !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Add spacing to bottom section */
+  .payroll-dashboard .mobile-sidebar-bottom {
+    margin-top: 1.5rem !important;
   }
 }

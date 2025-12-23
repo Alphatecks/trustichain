@@ -710,4 +710,1399 @@
   .transaction-filters {
     flex-wrap: wrap;
   }
+
+  /* Hide desktop dashboard on mobile */
+  .dashboard-content {
+    display: none !important;
+  }
+
+  /* Mobile Supplier Contract Content */
+  .supplier-contract-mobile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  /* Total Supply Amount Card - Mobile */
+  .supplier-total-supply-card-mobile {
+    background: #0671FF;
+    background-image: url('../../../assets/images/backgrounds/card.png');
+    background-position: bottom right;
+    background-repeat: no-repeat;
+    background-size: contain;
+    color: var(--white);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .supplier-total-supply-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-total-supply-header-left-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .supplier-total-supply-icon-mobile {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #5D93F3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    flex-shrink: 0;
+  }
+
+  .supplier-total-supply-title-mobile {
+    color: var(--white);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-total-supply-eye-mobile {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--white);
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-total-supply-amount-mobile {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-total-supply-xrp-mobile {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #6ED68F;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-total-supply-actions-mobile {
+    display: flex;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 1;
+    margin-top: 0.5rem;
+  }
+
+  .supplier-fund-wallet-btn-mobile,
+  .supplier-withdraw-btn-mobile {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    border: none;
+    white-space: nowrap;
+  }
+
+  .supplier-fund-wallet-btn-mobile {
+    background: var(--white);
+    color: #2A74E9;
+  }
+
+  .supplier-fund-wallet-btn-mobile:active {
+    background: #f8f9fa;
+  }
+
+  .supplier-fund-wallet-btn-mobile svg {
+    color: #2A74E9;
+  }
+
+  .supplier-withdraw-btn-mobile {
+    background: #5D93F3;
+    color: var(--white);
+  }
+
+  .supplier-withdraw-btn-mobile:active {
+    background: #4d83e3;
+  }
+
+  .supplier-withdraw-btn-mobile svg {
+    color: var(--white);
+  }
+
+  /* Supplier Cards Scrollable Container - Mobile */
+  .supplier-cards-scrollable-mobile {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .supplier-cards-scrollable-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Total Supplier Card - Mobile */
+  .supplier-total-supplier-card-mobile,
+  .supplier-pending-supplier-card-mobile,
+  .supplier-total-supplier-amount-card-mobile {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    flex-shrink: 0;
+    min-width: 220px;
+    width: 220px;
+  }
+
+  .supplier-total-supplier-card-mobile::before,
+  .supplier-pending-supplier-card-mobile::before,
+  .supplier-total-supplier-amount-card-mobile::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(59, 130, 246, 0.02) 10px, rgba(59, 130, 246, 0.02) 20px),
+      repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(59, 130, 246, 0.02) 10px, rgba(59, 130, 246, 0.02) 20px);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .supplier-card-header-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-card-icon-mobile {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-card-title-mobile {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--blue-600);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-card-value-mobile {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--blue-600);
+    line-height: 1;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-card-ratio-mobile {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 0.25rem;
+  }
+
+  .supplier-card-secondary-mobile {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-card-label-mobile {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+
+  .supplier-create-btn-mobile {
+    width: 100%;
+    padding: 0.875rem 0.75rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    margin-top: auto;
+    position: relative;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .supplier-create-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .supplier-create-btn-mobile svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Upcoming Supply Section - Mobile */
+  .upcoming-supply-section-mobile {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .upcoming-supply-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-left: 0.75rem;
+    position: relative;
+  }
+
+  .upcoming-supply-title-wrapper-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .upcoming-supply-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 24px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .upcoming-supply-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .upcoming-supply-see-all-mobile {
+    background: transparent;
+    border: none;
+    color: var(--blue-600);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    padding: 0;
+  }
+
+  .upcoming-supply-grid-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .upcoming-supply-card-mobile {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .upcoming-supply-progress-circle-mobile {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .upcoming-supply-progress-ring-mobile {
+    transform: rotate(-90deg);
+  }
+
+  .upcoming-supply-progress-ring-background-mobile {
+    stroke: #E5E7EB;
+  }
+
+  .upcoming-supply-progress-ring-progress-mobile {
+    stroke: #3B82F6;
+    transition: stroke-dashoffset 0.3s ease;
+  }
+
+  .upcoming-supply-progress-text-mobile {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .upcoming-supply-id-mobile {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.2;
+  }
+
+  .upcoming-supply-due-date-mobile,
+  .upcoming-supply-percentage-mobile {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.2;
+  }
+
+  .upcoming-supply-amount-section-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: auto;
+  }
+
+  .upcoming-supply-amount-label-mobile {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .upcoming-supply-amount-value-mobile {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1;
+  }
+
+  /* Transaction History Section - Mobile */
+  .supplier-transaction-history-section-mobile {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .supplier-transaction-history-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-left: 0.75rem;
+    position: relative;
+  }
+
+  .supplier-transaction-history-title-wrapper-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .supplier-transaction-history-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 24px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .supplier-transaction-history-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-transaction-history-arrow-mobile {
+    background: transparent;
+    border: none;
+    color: var(--blue-600);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .supplier-transaction-history-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .supplier-transaction-item-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+  }
+
+  .supplier-transaction-icon-mobile {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--blue-50);
+    color: var(--blue-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .supplier-transaction-content-mobile {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .supplier-transaction-type-mobile {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-transaction-description-mobile {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    line-height: 1.4;
+  }
+
+  .supplier-transaction-right-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .supplier-transaction-status-mobile {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #22C55E;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-transaction-date-mobile {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Fund Supply Account Modal - Mobile */
+  .fund-supply-account-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .fund-supply-account-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .fund-supply-account-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .fund-supply-account-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .fund-supply-account-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-supply-account-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .fund-supply-account-content-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .fund-supply-account-amount-section-mobile {
+    background: var(--white);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .fund-supply-account-amount-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .fund-supply-account-amount-label-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-supply-account-currency-selector-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 1.5rem;
+    cursor: pointer;
+  }
+
+  .fund-supply-account-currency-logo-mobile {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  .fund-supply-account-currency-text-mobile {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-supply-account-amount-input-mobile {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    border: none;
+    background: transparent;
+    width: 100%;
+    outline: none;
+    padding: 0;
+  }
+
+  .fund-supply-account-amount-input-mobile::placeholder {
+    color: var(--text-gray);
+    opacity: 0.5;
+  }
+
+  .fund-supply-account-balance-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .fund-supply-account-button-mobile {
+    width: 100%;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .fund-supply-account-button-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .fund-supply-account-info-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+  }
+
+  .fund-supply-account-info-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .fund-supply-account-info-mobile span {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Withdraw Supply Account Modal - Mobile */
+  .withdraw-supply-account-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .withdraw-supply-account-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .withdraw-supply-account-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .withdraw-supply-account-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .withdraw-supply-account-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .withdraw-supply-account-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .withdraw-supply-account-content-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .withdraw-supply-account-amount-section-mobile {
+    background: var(--white);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .withdraw-supply-account-amount-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .withdraw-supply-account-amount-label-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .withdraw-supply-account-currency-selector-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .withdraw-supply-account-currency-logo-mobile {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  .withdraw-supply-account-currency-text-mobile {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .withdraw-supply-account-currency-selector-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+  }
+
+  .withdraw-supply-account-amount-input-mobile {
+    width: 100%;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .withdraw-supply-account-amount-input-mobile:focus {
+    outline: none;
+  }
+
+  .withdraw-supply-account-amount-input-mobile::placeholder {
+    color: var(--text-gray);
+    opacity: 0.5;
+  }
+
+  .withdraw-supply-account-balance-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .withdraw-supply-account-wallet-type-section-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .withdraw-supply-account-wallet-type-label-mobile {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .withdraw-supply-account-wallet-type-selector-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    cursor: pointer;
+  }
+
+  .withdraw-supply-account-wallet-type-text-mobile {
+    font-size: 0.9rem;
+    color: var(--blue-600);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .withdraw-supply-account-wallet-type-selector-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+  }
+
+  .withdraw-supply-account-button-mobile {
+    width: 100%;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .withdraw-supply-account-button-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .withdraw-supply-account-info-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+  }
+
+  .withdraw-supply-account-info-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .withdraw-supply-account-info-mobile span {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  /* Create New Supplier Modal - Mobile */
+  .create-new-supplier-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .create-new-supplier-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .create-new-supplier-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .create-new-supplier-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .create-new-supplier-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .create-new-supplier-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .create-new-supplier-content-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .create-new-supplier-field-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .create-new-supplier-label-mobile {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .create-new-supplier-input-mobile {
+    width: 100%;
+    padding: 1rem;
+    background: var(--gray-50);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    outline: none;
+  }
+
+  .create-new-supplier-input-mobile::placeholder {
+    color: var(--text-gray);
+    opacity: 0.6;
+  }
+
+  .create-new-supplier-input-wrapper-mobile {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .create-new-supplier-input-wrapper-mobile .create-new-supplier-input-mobile {
+    padding-right: 3rem;
+  }
+
+  .create-new-supplier-input-wrapper-mobile .create-new-supplier-input-mobile::placeholder {
+    color: var(--blue-600);
+  }
+
+  .create-new-supplier-input-icon-mobile {
+    position: absolute;
+    right: 1rem;
+    color: var(--text-gray);
+    pointer-events: none;
+  }
+
+  .create-new-supplier-amount-section-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .create-new-supplier-amount-input-mobile {
+    width: 100%;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 0;
+    outline: none;
+  }
+
+  .create-new-supplier-amount-input-mobile:focus {
+    outline: none;
+  }
+
+  .create-new-supplier-amount-input-mobile::placeholder {
+    color: var(--text-gray);
+    opacity: 0.5;
+  }
+
+  .create-new-supplier-balance-mobile {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .create-new-supplier-button-mobile {
+    width: 100%;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .create-new-supplier-button-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .create-new-supplier-info-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+  }
+
+  .create-new-supplier-info-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .create-new-supplier-info-mobile span {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .create-new-supplier-account-type-label-mobile {
+    font-size: 0.9rem;
+    color: var(--blue-600);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .create-new-supplier-account-type-buttons-mobile {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .create-new-supplier-account-type-btn-mobile {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .create-new-supplier-account-type-btn-mobile svg {
+    color: var(--text-gray);
+  }
+
+  .create-new-supplier-account-type-btn-mobile.active {
+    background: var(--blue-600);
+    border-color: var(--blue-600);
+    color: var(--white);
+  }
+
+  .create-new-supplier-account-type-btn-mobile.active svg {
+    color: var(--white);
+  }
+
+  /* Supplier Details Modal - Mobile */
+  .supplier-details-modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .supplier-details-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-left: 0.75rem;
+    position: relative;
+    height: 36px;
+  }
+
+  .supplier-details-title-wrapper-mobile {
+    flex: 1;
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .supplier-details-blue-accent-mobile {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 32px;
+    background: var(--blue-600);
+    border-radius: 3px;
+  }
+
+  .supplier-details-title-mobile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-details-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--blue-600);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .supplier-details-content-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .supplier-details-section-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .supplier-details-section-title-mobile {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-details-row-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .supplier-details-label-mobile {
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-details-value-mobile {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-details-status-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .supplier-details-status-value-mobile {
+    font-size: 0.9rem;
+    color: #10b981;
+    font-weight: 500;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .supplier-details-actions-mobile {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .supplier-details-delete-btn-mobile {
+    flex: 1;
+    padding: 1rem;
+    background: var(--gray-100);
+    color: var(--text-dark);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .supplier-details-delete-btn-mobile:active {
+    background: var(--gray-200);
+  }
+
+  .supplier-details-done-btn-mobile {
+    flex: 1;
+    padding: 1rem;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .supplier-details-done-btn-mobile:active {
+    background: var(--blue-500);
+  }
+
+  .supplier-details-info-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+  }
+
+  .supplier-details-info-mobile svg {
+    color: var(--text-gray);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .supplier-details-info-mobile span {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
 }

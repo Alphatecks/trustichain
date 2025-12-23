@@ -80,8 +80,7 @@ const developersNav = [
 
 const supportNav = [
   { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck },
-  { label: 'Help', icon: HelpCircle }
+  { label: 'Security', icon: ShieldCheck }
 ];
 
 const personalSteps = [
@@ -2011,12 +2010,7 @@ const Dashboard = () => {
               </div>
               <div className="mobile-user-info">
                 <span className="mobile-user-name">
-                  {(() => {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.js:1947',message:'User profile loading check',data:{isLoadingUserProfile},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                    // #endregion
-                    return isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName;
-                  })()}
+                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
                   <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
                 </span>
                 <span className="mobile-user-role">
@@ -2228,17 +2222,6 @@ const Dashboard = () => {
               </div>
 
               <div className="mobile-sidebar-bottom">
-                <div className="mobile-sidebar-help-card">
-                  <div className="mobile-sidebar-help-icon">
-                    <HelpCircle size={24} />
-                  </div>
-                  <h3>Help Center</h3>
-                  <p>Having trouble in Trustichain? Please contact us</p>
-                  <button type="button" className="mobile-sidebar-help-cta">
-                    Contact us
-                  </button>
-                </div>
-
                 <div className="mobile-sidebar-trustiscore">
                   <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
                   <span className="mobile-sidebar-trustiscore-badge">
@@ -2309,9 +2292,6 @@ const Dashboard = () => {
             <div className="mobile-balance-xrp">
               ≈ {(() => {
                   const xrpBalance = getBalanceValue(dashboardData, 'xrp');
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.js:2183',message:'Checking isLoadingDashboard for XRP balance',data:{isLoadingDashboard},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                  // #endregion
                   if (isLoadingDashboard) {
                     return <LoadingIndicator size="sm" />;
                   }

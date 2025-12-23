@@ -31,7 +31,10 @@ import {
   ArrowRight as ArrowRightIcon,
   Filter,
   ShoppingCart,
-  Package
+  Package,
+  Monitor,
+  Info,
+  Calendar
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './SupplierContract.css';
@@ -55,8 +58,7 @@ const developersNav = [
 
 const supportNav = [
   { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck },
-  { label: 'Help', icon: HelpCircle }
+  { label: 'Security', icon: ShieldCheck }
 ];
 
 const SupplierContract = ({
@@ -100,6 +102,25 @@ const SupplierContract = ({
   const [transactionFilter, setTransactionFilter] = useState('All');
   const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
   const [currentPage, setCurrentPage] = useState(12);
+  const [fundSupplyAmount, setFundSupplyAmount] = useState('24,567.89');
+  const [showFundSupplyAccountModalMobile, setShowFundSupplyAccountModalMobile] = useState(false);
+  const [showWithdrawSupplyAccountModalMobile, setShowWithdrawSupplyAccountModalMobile] = useState(false);
+  const [withdrawSupplyAmount, setWithdrawSupplyAmount] = useState('24,567.89');
+  const [withdrawWalletType, setWithdrawWalletType] = useState('USD wallet');
+  const [showCreateNewSupplierModalMobile, setShowCreateNewSupplierModalMobile] = useState(false);
+  const [newSupplierStep, setNewSupplierStep] = useState(1);
+  const [showSupplierDetailsModalMobile, setShowSupplierDetailsModalMobile] = useState(false);
+  const [newSupplierForm, setNewSupplierForm] = useState({
+    supplierName: '',
+    dueDate: '',
+    amount: '24,567.89',
+    accountType: 'bank',
+    walletType: '',
+    walletAddress: '',
+    currency: '',
+    bankName: '',
+    accountNumber: ''
+  });
 
   const supplierDetails = [
     { id: 'SUPP-2024-00', progress: 75, dueDate: '14th Nov 25', amount: '$16,000' },
@@ -342,6 +363,655 @@ const SupplierContract = ({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Mobile Supplier Contract Content */}
+        <div className="supplier-contract-mobile-content">
+          {/* Total Supply Amount Card - Mobile */}
+          <div className="supplier-total-supply-card-mobile">
+            <div className="supplier-total-supply-header-mobile">
+              <div className="supplier-total-supply-header-left-mobile">
+                <div className="supplier-total-supply-icon-mobile">
+                  <Wallet size={18} />
+                </div>
+                <h3 className="supplier-total-supply-title-mobile">Total supply amount</h3>
+              </div>
+              <button 
+                type="button" 
+                className="supplier-total-supply-eye-mobile"
+                onClick={() => setShowBalance(!showBalance)}
+              >
+                {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
+            <div className="supplier-total-supply-amount-mobile">
+              {showBalance 
+                ? (isLoadingDashboard 
+                    ? <LoadingIndicator size="sm" />
+                    : (() => {
+                        if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+                          const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+                          if (xrpToUsdRate) {
+                            const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+                            return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          }
+                        }
+                        const usdBalance = getBalanceValue(dashboardData, 'usd');
+                        if (usdBalance !== null && usdBalance !== undefined) {
+                          return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        }
+                        return '$24,567.89';
+                      })())
+                : '••••••'}
+            </div>
+            <div className="supplier-total-supply-xrp-mobile">
+              ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
+                  ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '45,234')} XRP
+            </div>
+            <div className="supplier-total-supply-actions-mobile">
+              <button 
+                type="button" 
+                className="supplier-fund-wallet-btn-mobile"
+                onClick={() => setShowFundSupplyAccountModalMobile(true)}
+              >
+                <Plus size={16} />
+                <span>Fund Wallet</span>
+              </button>
+              <button 
+                type="button" 
+                className="supplier-withdraw-btn-mobile"
+                onClick={() => setShowWithdrawSupplyAccountModalMobile(true)}
+              >
+                <Plus size={16} />
+                <span>Withdraw</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Supplier Cards - Horizontally Scrollable */}
+          <div className="supplier-cards-scrollable-mobile">
+            {/* Total Supplier Card - Mobile */}
+            <div className="supplier-total-supplier-card-mobile">
+              <div className="supplier-card-header-mobile">
+                <div className="supplier-card-icon-mobile">
+                  <Users size={20} />
+                </div>
+                <h3 className="supplier-card-title-mobile">Total supplier</h3>
+              </div>
+              <div className="supplier-card-value-mobile">
+                {dashboardData?.activeEscrows?.count !== undefined 
+                  ? dashboardData.activeEscrows.count 
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
+              </div>
+              <div className="supplier-card-secondary-mobile">
+                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
+                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) 
+                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
+              </div>
+              <button
+                type="button"
+                className="supplier-create-btn-mobile"
+                onClick={() => setShowCreateNewSupplierModalMobile(true)}
+              >
+                <Plus size={16} />
+                <span>Create new supplier</span>
+              </button>
+            </div>
+
+            {/* Pending Supplier Card - Mobile */}
+            <div className="supplier-pending-supplier-card-mobile">
+              <div className="supplier-card-header-mobile">
+                <div className="supplier-card-icon-mobile">
+                  <Monitor size={20} />
+                </div>
+                <h3 className="supplier-card-title-mobile">Pending supplier</h3>
+              </div>
+              <div className="supplier-card-value-mobile">
+                {dashboardData?.trustiscore?.score !== undefined 
+                  ? dashboardData.trustiscore.score
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
+                <span className="supplier-card-ratio-mobile">/100</span>
+              </div>
+              <div className="supplier-card-label-mobile">
+                {dashboardData?.trustiscore?.level !== undefined 
+                  ? dashboardData.trustiscore.level 
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+              </div>
+            </div>
+
+            {/* Total Supplier Amount Card - Mobile */}
+            <div className="supplier-total-supplier-amount-card-mobile">
+              <div className="supplier-card-header-mobile">
+                <div className="supplier-card-icon-mobile">
+                  <FileText size={20} />
+                </div>
+                <h3 className="supplier-card-title-mobile">Total Supplier Amount</h3>
+              </div>
+              <div className="supplier-card-value-mobile">
+                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                    : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '45,280')}
+              </div>
+            </div>
+          </div>
+
+          {/* Upcoming Supply Section - Mobile */}
+          <div className="upcoming-supply-section-mobile">
+            <div className="upcoming-supply-header-mobile">
+              <div className="upcoming-supply-title-wrapper-mobile">
+                <div className="upcoming-supply-blue-accent-mobile"></div>
+                <h2 className="upcoming-supply-title-mobile">Upcoming Supply</h2>
+              </div>
+              <button className="upcoming-supply-see-all-mobile">See All</button>
+            </div>
+
+            <div className="upcoming-supply-grid-mobile">
+              {supplierDetails.map((supplier, index) => (
+                <div key={index} className="upcoming-supply-card-mobile">
+                  <div className="upcoming-supply-progress-circle-mobile">
+                    <svg className="upcoming-supply-progress-ring-mobile" width="60" height="60">
+                      <circle
+                        className="upcoming-supply-progress-ring-background-mobile"
+                        cx="30"
+                        cy="30"
+                        r="25"
+                        fill="none"
+                        stroke="#E5E7EB"
+                        strokeWidth="4"
+                      />
+                      <circle
+                        className="upcoming-supply-progress-ring-progress-mobile"
+                        cx="30"
+                        cy="30"
+                        r="25"
+                        fill="none"
+                        stroke="#3B82F6"
+                        strokeWidth="4"
+                        strokeDasharray={`${2 * Math.PI * 25}`}
+                        strokeDashoffset={`${2 * Math.PI * 25 * (1 - supplier.progress / 100)}`}
+                        transform="rotate(-90 30 30)"
+                      />
+                    </svg>
+                    <span className="upcoming-supply-progress-text-mobile">{supplier.progress}%</span>
+                  </div>
+                  <div className="upcoming-supply-id-mobile">#{supplier.id}</div>
+                  {supplier.dueDate && (
+                    <div className="upcoming-supply-due-date-mobile">Due date: {supplier.dueDate}</div>
+                  )}
+                  {supplier.percentage && (
+                    <div className="upcoming-supply-percentage-mobile">{supplier.percentage}</div>
+                  )}
+                  <div className="upcoming-supply-amount-section-mobile">
+                    <div className="upcoming-supply-amount-label-mobile">Amount</div>
+                    <div className="upcoming-supply-amount-value-mobile">{supplier.amount}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Transaction History Section - Mobile */}
+          <div className="supplier-transaction-history-section-mobile">
+            <div className="supplier-transaction-history-header-mobile">
+              <div className="supplier-transaction-history-title-wrapper-mobile">
+                <div className="supplier-transaction-history-blue-accent-mobile"></div>
+                <h2 className="supplier-transaction-history-title-mobile">Transaction History</h2>
+              </div>
+              <button className="supplier-transaction-history-arrow-mobile">
+                <ArrowRight size={20} />
+              </button>
+            </div>
+
+            <div className="supplier-transaction-history-list-mobile">
+              {transactions.slice(0, 4).map((transaction, index) => (
+                <div key={index} className="supplier-transaction-item-mobile">
+                  <div className="supplier-transaction-icon-mobile">
+                    <ArrowDown size={16} />
+                  </div>
+                  <div className="supplier-transaction-content-mobile">
+                    <div className="supplier-transaction-type-mobile">Received</div>
+                    <div className="supplier-transaction-description-mobile">You received 50 XRP, worth $25.00 USD.</div>
+                  </div>
+                  <div className="supplier-transaction-right-mobile">
+                    <div className="supplier-transaction-status-mobile">Successful</div>
+                    <div className="supplier-transaction-date-mobile">2024-07-04</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fund Supply Account Modal - Mobile */}
+          {showFundSupplyAccountModalMobile && (
+            <div className="fund-supply-account-modal-mobile">
+              <div className="fund-supply-account-header-mobile">
+                <div className="fund-supply-account-title-wrapper-mobile">
+                  <div className="fund-supply-account-blue-accent-mobile"></div>
+                  <h2 className="fund-supply-account-title-mobile">Fund supply account</h2>
+                </div>
+                <button
+                  className="fund-supply-account-close-mobile"
+                  onClick={() => setShowFundSupplyAccountModalMobile(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="fund-supply-account-content-mobile">
+                <div className="fund-supply-account-amount-section-mobile">
+                  <div className="fund-supply-account-amount-header-mobile">
+                    <label className="fund-supply-account-amount-label-mobile">Amount</label>
+                    <div className="fund-supply-account-currency-selector-mobile">
+                      <img
+                        src="https://cryptologos.cc/logos/xrp-xrp-logo.png"
+                        alt="XRP"
+                        className="fund-supply-account-currency-logo-mobile"
+                      />
+                      <span className="fund-supply-account-currency-text-mobile">XRP wallet</span>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    className="fund-supply-account-amount-input-mobile"
+                    value={`$${fundSupplyAmount}`}
+                    onChange={(e) => {
+                      const value = e.target.value.replace('$', '').replace(/,/g, '');
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setFundSupplyAmount(value);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('$', '').replace(/,/g, '');
+                      if (value) {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                          setFundSupplyAmount(numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                        }
+                      }
+                    }}
+                    placeholder="$0.00"
+                  />
+                  <div className="fund-supply-account-balance-mobile">Balance: 24,567.89 USDT</div>
+                </div>
+
+                <button className="fund-supply-account-button-mobile">
+                  Fund
+                </button>
+
+                <div className="fund-supply-account-info-mobile">
+                  <Info size={16} />
+                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Withdraw Supply Account Modal - Mobile */}
+          {showWithdrawSupplyAccountModalMobile && (
+            <div className="withdraw-supply-account-modal-mobile">
+              <div className="withdraw-supply-account-header-mobile">
+                <div className="withdraw-supply-account-title-wrapper-mobile">
+                  <div className="withdraw-supply-account-blue-accent-mobile"></div>
+                  <h2 className="withdraw-supply-account-title-mobile">Withdraw</h2>
+                </div>
+                <button
+                  className="withdraw-supply-account-close-mobile"
+                  onClick={() => setShowWithdrawSupplyAccountModalMobile(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="withdraw-supply-account-content-mobile">
+                <div className="withdraw-supply-account-amount-section-mobile">
+                  <div className="withdraw-supply-account-amount-header-mobile">
+                    <label className="withdraw-supply-account-amount-label-mobile">Amount</label>
+                    <div className="withdraw-supply-account-currency-selector-mobile">
+                      <img
+                        src="https://cryptologos.cc/logos/xrp-xrp-logo.png"
+                        alt="XRP"
+                        className="withdraw-supply-account-currency-logo-mobile"
+                      />
+                      <span className="withdraw-supply-account-currency-text-mobile">XRP wallet</span>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    className="withdraw-supply-account-amount-input-mobile"
+                    value={`$${withdrawSupplyAmount}`}
+                    onChange={(e) => {
+                      const value = e.target.value.replace('$', '').replace(/,/g, '');
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setWithdrawSupplyAmount(value);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('$', '').replace(/,/g, '');
+                      if (value) {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                          setWithdrawSupplyAmount(numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                        }
+                      }
+                    }}
+                    placeholder="$0.00"
+                  />
+                  <div className="withdraw-supply-account-balance-mobile">Balance: 24,567.89 USDT</div>
+                </div>
+
+                <div className="withdraw-supply-account-wallet-type-section-mobile">
+                  <label className="withdraw-supply-account-wallet-type-label-mobile">Wallet Type</label>
+                  <div className="withdraw-supply-account-wallet-type-selector-mobile">
+                    <span className="withdraw-supply-account-wallet-type-text-mobile">{withdrawWalletType}</span>
+                    <ChevronDown size={16} />
+                  </div>
+                </div>
+
+                <button className="withdraw-supply-account-button-mobile">
+                  Withdraw
+                </button>
+
+                <div className="withdraw-supply-account-info-mobile">
+                  <Info size={16} />
+                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Create New Supplier Modal - Mobile */}
+          {showCreateNewSupplierModalMobile && (
+            <div className="create-new-supplier-modal-mobile">
+              <div className="create-new-supplier-header-mobile">
+                <div className="create-new-supplier-title-wrapper-mobile">
+                  <div className="create-new-supplier-blue-accent-mobile"></div>
+                  <h2 className="create-new-supplier-title-mobile">Create New Supplier</h2>
+                </div>
+                <button
+                  className="create-new-supplier-close-mobile"
+                  onClick={() => {
+                    setShowCreateNewSupplierModalMobile(false);
+                    setNewSupplierStep(1);
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="create-new-supplier-content-mobile">
+                {newSupplierStep === 1 && (
+                  <>
+                    <div className="create-new-supplier-field-mobile">
+                      <label className="create-new-supplier-label-mobile">Supplier name</label>
+                      <input
+                        type="text"
+                        className="create-new-supplier-input-mobile"
+                        placeholder="Enter name"
+                        value={newSupplierForm.supplierName}
+                        onChange={(e) => setNewSupplierForm({...newSupplierForm, supplierName: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="create-new-supplier-field-mobile">
+                      <label className="create-new-supplier-label-mobile">Due Date</label>
+                      <div className="create-new-supplier-input-wrapper-mobile">
+                        <input
+                          type="text"
+                          className="create-new-supplier-input-mobile"
+                          placeholder="00/00/00"
+                          value={newSupplierForm.dueDate}
+                          onChange={(e) => setNewSupplierForm({...newSupplierForm, dueDate: e.target.value})}
+                        />
+                        <Calendar size={18} className="create-new-supplier-input-icon-mobile" />
+                      </div>
+                    </div>
+
+                    <div className="create-new-supplier-amount-section-mobile">
+                      <label className="create-new-supplier-label-mobile">Amount</label>
+                      <input
+                        type="text"
+                        className="create-new-supplier-amount-input-mobile"
+                        value={`$${newSupplierForm.amount}`}
+                        onChange={(e) => {
+                          const value = e.target.value.replace('$', '').replace(/,/g, '');
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            setNewSupplierForm({...newSupplierForm, amount: value});
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.replace('$', '').replace(/,/g, '');
+                          if (value) {
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                              setNewSupplierForm({...newSupplierForm, amount: numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })});
+                            }
+                          }
+                        }}
+                        placeholder="$0.00"
+                      />
+                      <div className="create-new-supplier-balance-mobile">Balance: {newSupplierForm.amount}</div>
+                    </div>
+
+                    <button 
+                      className="create-new-supplier-button-mobile"
+                      onClick={() => setNewSupplierStep(2)}
+                    >
+                      Next
+                    </button>
+
+                    <div className="create-new-supplier-info-mobile">
+                      <Info size={16} />
+                      <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                    </div>
+                  </>
+                )}
+
+                {newSupplierStep === 2 && (
+                  <>
+                    <div className="create-new-supplier-field-mobile">
+                      <label className="create-new-supplier-account-type-label-mobile">Account Type</label>
+                      <div className="create-new-supplier-account-type-buttons-mobile">
+                        <button
+                          type="button"
+                          className={`create-new-supplier-account-type-btn-mobile ${newSupplierForm.accountType === 'bank' ? 'active' : ''}`}
+                          onClick={() => setNewSupplierForm({...newSupplierForm, accountType: 'bank'})}
+                        >
+                          <Building2 size={18} />
+                          <span>Bank Transfer</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`create-new-supplier-account-type-btn-mobile ${newSupplierForm.accountType === 'wallet' ? 'active' : ''}`}
+                          onClick={() => setNewSupplierForm({...newSupplierForm, accountType: 'wallet'})}
+                        >
+                          <Wallet size={18} />
+                          <span>Wallet Transfer</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {newSupplierForm.accountType === 'bank' ? (
+                      <>
+                        <div className="create-new-supplier-field-mobile">
+                          <label className="create-new-supplier-label-mobile">Currency</label>
+                          <div className="create-new-supplier-input-wrapper-mobile">
+                            <input
+                              type="text"
+                              className="create-new-supplier-input-mobile"
+                              placeholder="Select"
+                              value={newSupplierForm.currency}
+                              onChange={(e) => setNewSupplierForm({...newSupplierForm, currency: e.target.value})}
+                            />
+                            <ChevronDown size={18} className="create-new-supplier-input-icon-mobile" />
+                          </div>
+                        </div>
+
+                        <div className="create-new-supplier-field-mobile">
+                          <label className="create-new-supplier-label-mobile">Bank Name</label>
+                          <div className="create-new-supplier-input-wrapper-mobile">
+                            <input
+                              type="text"
+                              className="create-new-supplier-input-mobile"
+                              placeholder="Select"
+                              value={newSupplierForm.bankName}
+                              onChange={(e) => setNewSupplierForm({...newSupplierForm, bankName: e.target.value})}
+                            />
+                            <ChevronDown size={18} className="create-new-supplier-input-icon-mobile" />
+                          </div>
+                        </div>
+
+                        <div className="create-new-supplier-field-mobile">
+                          <label className="create-new-supplier-label-mobile">Account Number</label>
+                          <input
+                            type="text"
+                            className="create-new-supplier-input-mobile"
+                            placeholder="Enter account name"
+                            value={newSupplierForm.accountNumber}
+                            onChange={(e) => setNewSupplierForm({...newSupplierForm, accountNumber: e.target.value})}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="create-new-supplier-field-mobile">
+                          <label className="create-new-supplier-label-mobile">Wallet Type</label>
+                          <div className="create-new-supplier-input-wrapper-mobile">
+                            <input
+                              type="text"
+                              className="create-new-supplier-input-mobile"
+                              placeholder="Select"
+                              value={newSupplierForm.walletType}
+                              onChange={(e) => setNewSupplierForm({...newSupplierForm, walletType: e.target.value})}
+                            />
+                            <ChevronDown size={18} className="create-new-supplier-input-icon-mobile" />
+                          </div>
+                        </div>
+
+                        <div className="create-new-supplier-field-mobile">
+                          <label className="create-new-supplier-label-mobile">Wallet Address</label>
+                          <div className="create-new-supplier-input-wrapper-mobile">
+                            <input
+                              type="text"
+                              className="create-new-supplier-input-mobile"
+                              placeholder="Enter Wallet address"
+                              value={newSupplierForm.walletAddress}
+                              onChange={(e) => setNewSupplierForm({...newSupplierForm, walletAddress: e.target.value})}
+                            />
+                            <ChevronDown size={18} className="create-new-supplier-input-icon-mobile" />
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <button 
+                      className="create-new-supplier-button-mobile"
+                      onClick={() => {
+                        setShowCreateNewSupplierModalMobile(false);
+                        setShowSupplierDetailsModalMobile(true);
+                        setNewSupplierStep(1);
+                      }}
+                    >
+                      Done
+                    </button>
+
+                    <div className="create-new-supplier-info-mobile">
+                      <Info size={16} />
+                      <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Supplier Details Modal - Mobile */}
+          {showSupplierDetailsModalMobile && (
+            <div className="supplier-details-modal-mobile">
+              <div className="supplier-details-header-mobile">
+                <div className="supplier-details-title-wrapper-mobile">
+                  <div className="supplier-details-blue-accent-mobile"></div>
+                  <h2 className="supplier-details-title-mobile">Details</h2>
+                </div>
+                <button
+                  className="supplier-details-close-mobile"
+                  onClick={() => setShowSupplierDetailsModalMobile(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="supplier-details-content-mobile">
+                <div className="supplier-details-section-mobile">
+                  <h3 className="supplier-details-section-title-mobile">Transaction ID</h3>
+                  
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Supplier Details</span>
+                    <span className="supplier-details-value-mobile">#SUPP-2024-00</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Supplier Name</span>
+                    <span className="supplier-details-value-mobile">Jenny . O</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Due Date</span>
+                    <span className="supplier-details-value-mobile">30 - 12 - 25</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Account Type</span>
+                    <span className="supplier-details-value-mobile">Bank Transfer</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Currency</span>
+                    <span className="supplier-details-value-mobile">USD</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Amount</span>
+                    <span className="supplier-details-value-mobile">$5,000</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Bank Name</span>
+                    <span className="supplier-details-value-mobile">Bank Name</span>
+                  </div>
+
+                  <div className="supplier-details-row-mobile">
+                    <span className="supplier-details-label-mobile">Account Number</span>
+                    <span className="supplier-details-value-mobile">034326483252</span>
+                  </div>
+                </div>
+
+                <div className="supplier-details-status-mobile">
+                  <span className="supplier-details-label-mobile">Status</span>
+                  <span className="supplier-details-status-value-mobile">Successful</span>
+                </div>
+
+                <div className="supplier-details-actions-mobile">
+                  <button className="supplier-details-delete-btn-mobile">
+                    Delete
+                  </button>
+                  <button 
+                    className="supplier-details-done-btn-mobile"
+                    onClick={() => setShowSupplierDetailsModalMobile(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+
+                <div className="supplier-details-info-mobile">
+                  <Info size={16} />
+                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
