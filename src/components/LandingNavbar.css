@@ -332,18 +332,20 @@
 
   .mobile-menu-button {
     display: block;
+    top: 45%;
+    transform: translateY(-50%);
   }
 
   .landing-navbar-brand {
-    top: 55%;
-    padding-top: 20px;
+    top: 45%;
+    padding-top: 10px;
     padding-right: 30px;
   }
 
   .brand-logo {
     width: 200px;
     height: 200px;
-    transform: translateX(10px) translateY(8px);
+    transform: translateX(10px) translateY(0px);
   }
 }
 
