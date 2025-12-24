@@ -406,7 +406,7 @@
 /* Responsive Design for Pricing Cards */
 @media (max-width: 768px) {
   .pricing-cards-section {
-    padding: 4rem 2rem;
+    padding: 40rem 2rem 4rem 2rem; /* Increased top padding to give space below hero text on mobile */
   }
 
   .pricing-cards-grid {

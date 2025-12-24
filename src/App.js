@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
@@ -38,6 +38,11 @@ function AppContent() {
   
   // Enable auto-logout after 3600 seconds (1 hour) of inactivity
   useAutoLogout(3600000);
+  
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
   
   // Hide navbar on auth pages
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard' || location.pathname === '/payroll' || location.pathname.startsWith('/payroll/') || location.pathname === '/supplier-contract' || location.pathname === '/api-keys' || location.pathname === '/sandbox-environment' || location.pathname === '/webhook' || location.pathname === '/settings';
