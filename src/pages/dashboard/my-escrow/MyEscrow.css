@@ -2099,6 +2099,20 @@
     margin-bottom: 2rem !important;
     color: var(--blue-600) !important;
   }
+
+  /* Remove width 100% from category filter buttons on desktop */
+  .category-filter-btn {
+    width: auto !important;
+  }
+
+  .category-filters {
+    width: auto !important;
+  }
+
+  /* Hide progress percentage text (100%) on desktop/web view */
+  .progress-text {
+    display: none !important;
+  }
 }
 
 /* Payment Success Modal */

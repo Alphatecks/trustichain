@@ -34,6 +34,7 @@ import logo from '../../../assets/images/icons/logo.png';
 import logoWhite from '../../../assets/images/logo/logo_white.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { handleLogout } from '../../../utils/logout';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -319,6 +320,7 @@ const BusinessDashboard = ({
                 className="mobile-sidebar-logout"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
+                  handleLogout();
                 }}
               >
                 <LogOut size={18} />

@@ -46,6 +46,7 @@ import './Dispute.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 
@@ -330,8 +331,7 @@ const Dispute = () => {
               className="mobile-sidebar-logout"
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                localStorage.removeItem('token');
-                navigate('/');
+                handleLogout();
               }}
             >
               <LogOut size={18} />
@@ -422,7 +422,7 @@ const Dispute = () => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

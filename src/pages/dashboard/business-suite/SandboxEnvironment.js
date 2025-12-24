@@ -31,6 +31,7 @@ import './SandboxEnvironment.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateSandboxKeyModal from '../../../components/CreateSandboxKeyModal';
 
@@ -266,7 +267,7 @@ const SandboxEnvironment = () => {
                 <span className="sidebar-trustiscore-label">Trustiscore</span>
                 <span className="sidebar-trustiscore-badge">97</span>
               </div>
-              <button type="button" className="sidebar-logout">
+              <button type="button" className="sidebar-logout" onClick={handleLogout}>
                 <LogOut size={18} />
                 <span>Logout</span>
               </button>

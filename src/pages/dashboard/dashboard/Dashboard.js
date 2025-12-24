@@ -50,6 +50,7 @@ import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
@@ -2237,7 +2238,7 @@ const Dashboard = () => {
                   className="mobile-sidebar-logout"
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    // Add logout logic here
+                    handleLogout();
                   }}
                 >
                   <LogOut size={18} />
@@ -3842,7 +3843,7 @@ const Dashboard = () => {
             </span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

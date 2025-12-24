@@ -36,6 +36,7 @@ import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
@@ -294,8 +295,7 @@ const DisputeDetail = () => {
               className="mobile-sidebar-logout"
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                localStorage.removeItem('token');
-                navigate('/');
+                handleLogout();
               }}
             >
               <LogOut size={18} />
@@ -383,7 +383,7 @@ const DisputeDetail = () => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

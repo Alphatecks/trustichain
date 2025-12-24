@@ -28,6 +28,7 @@ import {
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import '../dashboard/Dashboard.css';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -292,7 +293,7 @@ const MyEscrowLayout = ({ children }) => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

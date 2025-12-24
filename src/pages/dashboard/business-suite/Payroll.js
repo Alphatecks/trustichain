@@ -44,6 +44,7 @@ import './Payroll.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import AddPayrollModal from '../../../components/AddPayrollModal';
 
@@ -442,6 +443,7 @@ const Payroll = () => {
               className="mobile-sidebar-logout"
               onClick={() => {
                 setIsMobileMenuOpen(false);
+                handleLogout();
               }}
             >
               <LogOut size={18} />
@@ -1774,7 +1776,7 @@ const Payroll = () => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

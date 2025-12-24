@@ -40,6 +40,7 @@ import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -394,8 +395,7 @@ const TrustiCard = () => {
               className="mobile-sidebar-logout"
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                localStorage.removeItem('token');
-                navigate('/');
+                handleLogout();
               }}
             >
               <LogOut size={18} />
@@ -486,7 +486,7 @@ const TrustiCard = () => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

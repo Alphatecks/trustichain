@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import { useSession } from '../../../context/SessionContext';
 import toast from 'react-hot-toast';
@@ -1228,8 +1229,7 @@ const MyEscrow = () => {
                   className="mobile-sidebar-logout"
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    localStorage.removeItem('token');
-                    navigate('/');
+                    handleLogout();
                   }}
                 >
                   <LogOut size={18} />

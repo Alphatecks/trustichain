@@ -41,6 +41,7 @@ import './SupplierContract.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { handleLogout } from '../../../utils/logout';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 
 const businessSuiteNav = [
@@ -356,6 +357,7 @@ const SupplierContract = ({
                 className="mobile-sidebar-logout"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
+                  handleLogout();
                 }}
               >
                 <LogOut size={18} />

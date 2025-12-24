@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl } from '../../../utils/config';
+import { handleLogout } from '../../../utils/logout';
 import SupplierContract from './SupplierContract';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 import WithdrawModal from '../../../components/WithdrawModal';
@@ -375,7 +376,7 @@ const SupplierContractPage = () => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>

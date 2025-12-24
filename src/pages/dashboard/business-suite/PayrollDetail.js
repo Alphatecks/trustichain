@@ -39,6 +39,7 @@ import './PayrollDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { handleLogout } from '../../../utils/logout';
 import AddTeamMemberModal from '../../../components/AddTeamMemberModal';
 import FundPayrollModal from '../../../components/FundPayrollModal';
 import ChangeReleaseDateModal from '../../../components/ChangeReleaseDateModal';
@@ -184,7 +185,7 @@ const PayrollDetail = () => {
             <span className="trustiscore-badge">97</span>
           </div>
 
-          <button type="button" className="sidebar-logout">
+          <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Logout</span>
           </button>
