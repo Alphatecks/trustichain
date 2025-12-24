@@ -23,7 +23,7 @@ const Features = () => {
                 Explore how TrustiChain combines blockchain security, speed, and compliance to simplify every transaction.
               </p>
               <div className="features-hero-actions">
-                <Link to="/create" className="features-cta-button primary">
+                <Link to="/signup" className="features-cta-button primary">
                   Signup
                   <ArrowRight className="features-button-icon" />
                 </Link>
@@ -412,7 +412,7 @@ const Features = () => {
               <h2 className="features-cta-heading-line2">Released with Confidence.</h2>
               
               <div className="features-cta-buttons">
-                <Link to="/create" className="features-cta-button features-cta-button-primary">
+                <Link to="/signup" className="features-cta-button features-cta-button-primary">
                   Signup
                   <ArrowRight className="features-cta-button-icon" />
                 </Link>
