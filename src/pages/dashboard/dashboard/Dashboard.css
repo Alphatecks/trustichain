@@ -1770,6 +1770,10 @@
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* My Teams Card Styles */
@@ -1981,6 +1985,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 /* Business Cards Grid */
@@ -2195,9 +2201,16 @@
 
 .rate-list,
 .wallet-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  gap: 1rem !important;
+  width: 100% !important;
+  align-items: stretch !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns: none !important;
+  grid-auto-flow: row !important;
 }
 
 .rate-item {
@@ -2210,13 +2223,36 @@
 }
 
 .wallet-item {
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.75rem;
   background: #fbfdff;
   border-radius: 0.75rem;
+  width: 100% !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  clear: both !important;
+  float: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.wallet-item:nth-child(4),
+.wallet-item:last-child {
+  width: 100% !important;
+  clear: both !important;
+  margin-top: 1rem !important;
+  left: 0 !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+.wallet-list > .wallet-item {
+  order: 0 !important;
+  flex-basis: auto !important;
+  max-width: 100% !important;
 }
 
 .wallet-icon-group {

@@ -60,8 +60,7 @@ const sidebarNav = [
 
 const supportNav = [
   { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck },
-  { label: 'Help', icon: HelpCircle }
+  { label: 'Security', icon: ShieldCheck }
 ];
 
 const Dispute = () => {

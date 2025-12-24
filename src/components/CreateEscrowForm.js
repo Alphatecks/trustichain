@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
   FileText,
@@ -55,11 +55,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
   const [exchangeRate, setExchangeRate] = useState(null); // XRP to USD rate
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
-  const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating' | 'signing'
-
-  // Refs to manage XUMM/Xaman polling lifecycle for escrow creation
-  const escrowPollIntervalRef = useRef(null);
-  const escrowPollTimeoutRef = useRef(null);
+  const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
 
   // Fetch exchange rate for XRP to USD conversion (copied from MyEscrow)
   useEffect(() => {
@@ -154,19 +150,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     return mapping[escrowType] || 'custom';
   };
 
-  const clearEscrowPolling = () => {
-    if (escrowPollIntervalRef.current) {
-      clearInterval(escrowPollIntervalRef.current);
-      escrowPollIntervalRef.current = null;
-    }
-    if (escrowPollTimeoutRef.current) {
-      clearTimeout(escrowPollTimeoutRef.current);
-      escrowPollTimeoutRef.current = null;
-    }
-  };
-
   const resetFormState = () => {
-    clearEscrowPolling();
     setEscrowCreationStep('idle');
     setIsCreatingEscrow(false);
     setCurrentStep(1);
@@ -195,17 +179,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     });
   };
 
-  // Cleanup polling when modal closes or component unmounts
+  // Cleanup when modal closes or component unmounts
   useEffect(() => {
     if (!isOpen) {
-      clearEscrowPolling();
       setEscrowCreationStep('idle');
       setIsCreatingEscrow(false);
     }
-
-    return () => {
-      clearEscrowPolling();
-    };
   }, [isOpen]);
 
   // Handle create escrow (adapted from MyEscrow, extended with XUMM/Xaman flow)
@@ -446,144 +425,31 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             return;
           }
 
-          // Case 2: XUMM/Xaman signing flow required
+          // Case 2: XUMM/Xaman signing flow - open URL if provided (backend handles the rest)
           if (xummUrl && escrowId) {
-            console.log('Using Xaman flow for escrow creation. Escrow ID:', escrowId);
-
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId: 'debug-session',
-                runId: 'pre-fix',
-                hypothesisId: 'H4',
-                location: 'CreateEscrowForm.js:handleCreateEscrow:case2',
-                message: 'Starting XUMM signing flow',
-                data: {
-                  escrowId,
-                  hasXummUrl: !!xummUrl,
-                },
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {});
-            // #endregion
-
-            setEscrowCreationStep('signing');
-            toast.loading('Please sign the escrow in your Xaman wallet...', {
-              id: 'create-escrow',
-            });
+            console.log('Xaman signing URL provided. Escrow ID:', escrowId);
 
             // Open XUMM/Xaman signing URL
             window.open(xummUrl, '_blank');
 
-            // Start polling backend for escrow creation status
-            const tokenHeader = `Bearer ${token}`;
+            // Backend handles the rest, so we can treat this as success
+            // The escrow will be created once signed in Xaman
+            toast.success('Escrow creation initiated. Please sign in your Xaman wallet.', {
+              id: 'create-escrow',
+            });
 
-            const pollInterval = setInterval(async () => {
-              try {
-            const statusUrl = getApiUrl(
-                  `api/escrow/${escrowId}/create/status`,
-                );
-                const statusResponse = await fetch(statusUrl, {
-                  method: 'GET',
-                  headers: {
-                    Authorization: tokenHeader,
-                    'Content-Type': 'application/json',
-                  },
-                });
-
-                if (!statusResponse.ok) {
-                  return;
-                }
-
-                const statusResult = await statusResponse.json().catch(() => null);
-                console.log('Escrow creation status check:', statusResult);
-
-                if (!statusResult) return;
-
-                const statusData = statusResult.data || {};
-
-                const escrowStatus =
-                  (statusData.escrow?.status || statusData.status || '').toLowerCase();
-
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    sessionId: 'debug-session',
-                    runId: 'pre-fix',
-                    hypothesisId: 'H5',
-                    location: 'CreateEscrowForm.js:handleCreateEscrow:poll',
-                    message: 'Escrow create status poll',
-                    data: {
-                      success: statusResult.success,
-                      signed: statusData.signed,
-                      hasXrplTxHash: !!statusData.xrplTxHash,
-                      escrowStatus,
-                    },
-                    timestamp: Date.now(),
-                  }),
-                }).catch(() => {});
-                // #endregion
-
-                // Successful XRPL-backed escrow creation
-                if (
-                  statusResult.success === true &&
-                  statusData.signed === true &&
-                  statusData.xrplTxHash &&
-                  escrowStatus === 'active'
-                ) {
-                  clearEscrowPolling();
-
-                  const createdEscrow = buildCreatedEscrow(
-                    statusData.escrow || statusData,
-                  );
-
-                  toast.success('Escrow created and activated on XRPL!', {
-                    id: 'create-escrow',
-                  });
-
-                  if (onSuccess) {
-                    onSuccess(createdEscrow);
-                  }
-
-                  resetFormState();
-                  if (onCancel) {
-                    onCancel();
-                  }
-                } else if (statusData.cancelled || statusData.expired) {
-                  clearEscrowPolling();
-                  setIsCreatingEscrow(false);
-                  setEscrowCreationStep('idle');
-
-                  toast.error('Escrow creation was cancelled or expired.', {
-                    id: 'create-escrow',
-                  });
-                }
-              } catch (pollError) {
-                console.error('Error polling escrow creation status:', pollError);
+            // If escrow data is already available, use it
+            if (escrow) {
+              const createdEscrow = buildCreatedEscrow(escrow);
+              if (onSuccess) {
+                onSuccess(createdEscrow);
               }
-            }, 2000);
+            }
 
-            escrowPollIntervalRef.current = pollInterval;
-
-            // Timeout after 5 minutes
-            const timeoutId = setTimeout(() => {
-              if (escrowPollIntervalRef.current) {
-                clearEscrowPolling();
-                setIsCreatingEscrow(false);
-                setEscrowCreationStep('idle');
-                toast.error('Escrow creation signing timed out.', {
-                  id: 'create-escrow',
-                });
-              }
-            }, 5 * 60 * 1000);
-
-            escrowPollTimeoutRef.current = timeoutId;
-
-            // Do not clear isCreatingEscrow here; we are waiting for signature/polling
+            resetFormState();
+            if (onCancel) {
+              onCancel();
+            }
             return;
           }
 
@@ -608,8 +474,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       console.error('Error creating escrow:', error);
       toast.error('An error occurred while creating escrow');
     } finally {
-      // Only reset flags here if we are not in the XUMM signing/polling phase
-      if (escrowCreationStep !== 'signing') {
+      // Reset flags if not in creating state
+      if (escrowCreationStep !== 'creating') {
         setIsCreatingEscrow(false);
         setEscrowCreationStep('idle');
       }
@@ -1424,11 +1290,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                 )}
               </div>
               <span>
-                {isCreatingEscrow
-                  ? escrowCreationStep === 'signing'
-                    ? 'Waiting for signature...'
-                    : 'Creating...'
-                  : 'Confirm'}
+                {isCreatingEscrow ? 'Creating...' : 'Confirm'}
               </span>
             </button>
           </div>

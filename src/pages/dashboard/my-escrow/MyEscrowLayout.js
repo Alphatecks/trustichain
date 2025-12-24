@@ -56,8 +56,7 @@ const developersNav = [
 
 const supportNav = [
   { label: 'Settings', icon: Settings, badge: null },
-  { label: 'Security', icon: ShieldCheck, badge: null },
-  { label: 'Help', icon: HelpCircle, badge: null }
+  { label: 'Security', icon: ShieldCheck, badge: null }
 ];
 
 const MyEscrowLayout = ({ children }) => {

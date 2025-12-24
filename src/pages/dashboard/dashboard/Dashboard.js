@@ -741,13 +741,14 @@ const Dashboard = () => {
             const normalizedBalances = {
               xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
               usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
-              usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0
+              usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0,
+              rippleUsd: balances.rippleUsd !== undefined && balances.rippleUsd !== null ? Number(balances.rippleUsd) : (balances.xrpusd !== undefined && balances.xrpusd !== null ? Number(balances.xrpusd) : 0)
             };
             console.log('Setting normalized wallet balances:', normalizedBalances);
             setWalletBalances(normalizedBalances);
           } else {
             console.warn('Could not extract wallet balances from API response:', result);
-            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
+            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -756,11 +757,11 @@ const Dashboard = () => {
             statusText: response.statusText,
             data: errorData
           });
-          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
+          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
         }
       } catch (error) {
         console.error('Error fetching wallet balances:', error);
-        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
+        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
       } finally {
         setIsLoadingWalletBalances(false);
       }
@@ -2620,6 +2621,44 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+              <div className="mobile-wallet-item">
+                <div className="mobile-wallet-icon-group">
+                  <div className="mobile-wallet-icon">
+                    <img 
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                      alt="Ripple USD" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
+                  <div className="mobile-wallet-icon-info">
+                    <span className="mobile-wallet-name">Ripple USD</span>
+                    <span className="mobile-wallet-crypto">
+                      {showBalance 
+                        ? (isLoadingWalletBalances 
+                            ? <LoadingIndicator size="sm" />
+                            : (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null && walletBalances.rippleUsd > 0
+                                ? `${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRPUSD`
+                                : '0.00 XRPUSD'))
+                        : '••••••'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mobile-wallet-value-change">
+                  <span className="mobile-wallet-amount">
+                    {showBalance 
+                      ? (isLoadingWalletBalances 
+                          ? <LoadingIndicator size="sm" />
+                          : (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null && walletBalances.rippleUsd > 0
+                              ? `$${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '$0.00'))
+                      : '••••••'}
+                  </span>
+                  <div className="mobile-wallet-change positive">
+                    <TrendingUp size={14} />
+                    <span>+1.2%</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -3214,6 +3253,40 @@ const Dashboard = () => {
                   <div className="wallet-change positive">
                     <TrendingUp size={14} />
                     <span>+0.1%</span>
+                  </div>
+                </div>
+                <div className="wallet-item">
+                  <div className="wallet-icon-group">
+                    <div className="wallet-icon">
+                      <img 
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                        alt="Ripple USD" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
+                    <div className="wallet-icon-info">
+                      <span className="wallet-name">Ripple USD</span>
+                      <span className="wallet-crypto">
+                        {showBalance 
+                          ? (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null
+                              ? `${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRPUSD`
+                              : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '0.00 XRPUSD'))
+                          : '••••••'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="wallet-value-change">
+                    <span className="wallet-amount">
+                      {showBalance 
+                        ? (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null
+                            ? `$${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
+                        : '••••••'}
+                    </span>
+                    <div className="wallet-change positive">
+                      <TrendingUp size={14} />
+                      <span>+1.2%</span>
+                    </div>
                   </div>
                 </div>
               </div>

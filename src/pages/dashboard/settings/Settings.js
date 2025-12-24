@@ -37,8 +37,7 @@ const sidebarNav = [
 
 const supportNav = [
   { label: 'Settings', icon: SettingsIcon },
-  { label: 'Security', icon: ShieldCheck },
-  { label: 'Help', icon: HelpCircle }
+  { label: 'Security', icon: ShieldCheck }
 ];
 
 const Settings = () => {
