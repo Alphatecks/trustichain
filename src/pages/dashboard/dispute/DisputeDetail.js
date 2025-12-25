@@ -6,6 +6,7 @@ import {
   CreditCard,
   Repeat,
   Briefcase,
+  FileCheck,
   Settings,
   HelpCircle,
   Search,
@@ -36,6 +37,7 @@ import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl } from '../../../utils/config';
+import { getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 
@@ -45,6 +47,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
@@ -52,6 +55,30 @@ const supportNav = [
   { label: 'Settings', icon: Settings },
   { label: 'Security', icon: ShieldCheck }
 ];
+
+const toNumberOrNull = (value) => {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const formatUsdAmount = (value) => {
+  const num = toNumberOrNull(value);
+  if (num === null) return '—';
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(num);
+};
+
+const titleCaseStatus = (status) => {
+  if (!status || typeof status !== 'string') return '—';
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};
+
+const getInitials = (fullName) => {
+  if (!fullName || typeof fullName !== 'string') return '—';
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '—';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return `${parts[0].charAt(0).toUpperCase()}${parts[parts.length - 1].charAt(0).toUpperCase()}`;
+};
 
 const DisputeDetail = () => {
   const navigate = useNavigate();
@@ -69,6 +96,7 @@ const DisputeDetail = () => {
   const [mediatorEnabled, setMediatorEnabled] = useState(true);
   const [message, setMessage] = useState('');
   const [showAddEvidenceModal, setShowAddEvidenceModal] = useState(false);
+  const [disputeDetail, setDisputeDetail] = useState(null);
 
   const formattedToday = useMemo(() => {
     const now = new Date();
@@ -100,6 +128,44 @@ const DisputeDetail = () => {
     { sender: 'Mediator', text: 'Thank you, Jane. The artwork I received doesn\'t match the style and color scheme we agreed upon. I specifically requested a minimalist design with blue tones, but what I received is very complex with warm colors' }
   ];
 
+  const disputeCaseIdNoHash = useMemo(() => {
+    const raw = disputeDetail?.caseId || id || 'DSP-2024-002';
+    return String(raw).replace(/^#/, '');
+  }, [disputeDetail?.caseId, id]);
+
+  const initiatorName = disputeDetail?.initiatorName || 'Sarah Chen';
+  const respondentName = disputeDetail?.respondentName || 'Sarah Chen';
+  const initiatorInitials = useMemo(() => getInitials(initiatorName), [initiatorName]);
+  const respondentInitials = useMemo(() => getInitials(respondentName), [respondentName]);
+  const disputeClaimsText = disputeDetail?.description || disputeDetail?.reason || 'Artwork doesn\'t match specifications';
+  const disputeStatusText = disputeDetail?.status ? titleCaseStatus(disputeDetail.status) : 'In progress';
+  const disputeAmountText = disputeDetail?.amount?.usd !== undefined ? formatUsdAmount(disputeDetail.amount.usd) : '$6,000';
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchDispute = async () => {
+      if (!id) return;
+      if (isSessionExpired) return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const data = await getDisputeDetail({ token, id });
+        if (!cancelled) {
+          setDisputeDetail(data);
+        }
+      } catch (error) {
+        console.error('Error fetching dispute detail:', error);
+      }
+    };
+
+    fetchDispute();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isSessionExpired]);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -114,20 +180,28 @@ const DisputeDetail = () => {
           return;
         }
 
-        const response = await fetch(`${getApiUrl()}/api/user/profile`, {
+        const response = await fetch(getApiUrl('api/user/profile'), {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.user) {
-            setUserFullName(data.user.fullName || 'Sarah Chen');
-            const names = (data.user.fullName || 'Sarah Chen').split(' ');
-            setUserInitials((names[0]?.[0] || '') + (names[1]?.[0] || ''));
-            setUserAvatar(data.user.avatar || null);
-            setUserRole(data.user.role || 'Personal Account');
+          const payload = await response.json().catch(() => null);
+          const profile = payload?.data || payload?.user || payload?.data?.user;
+          if (profile) {
+            const fullName =
+              profile.fullName ||
+              [profile.firstName, profile.lastName].filter(Boolean).join(' ') ||
+              profile.name ||
+              'Sarah Chen';
+
+            setUserFullName(fullName);
+            setUserInitials(getInitials(fullName));
+            setUserAvatar(profile.avatar || null);
+            setUserRole(profile.role || profile.userRole || 'Personal Account');
           }
         }
         setIsLoadingUserProfile(false);
@@ -309,9 +383,9 @@ const DisputeDetail = () => {
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
           <img src={logo} alt="TrustiChain" className="sidebar-logo" />
-          <div className="sidebar-brand-text">
-            <span className="sidebar-brand-name">TrustiChain</span>
-            <span className="sidebar-brand-tagline">Escrow Platform</span>
+          <div className="sidebar-branding-text">
+            <span className="sidebar-title">TrustiChain</span>
+            <span className="sidebar-tagline">Secure escrow platform</span>
           </div>
         </div>
 
@@ -427,7 +501,7 @@ const DisputeDetail = () => {
             <span className="breadcrumb-divider">›</span>
             <span className="breadcrumb-link" onClick={() => navigate('/dispute')}>Dispute</span>
             <span className="breadcrumb-divider">›</span>
-            <span className="breadcrumb-current">#{id || 'DSP-2024-002'}</span>
+            <span className="breadcrumb-current">#{disputeCaseIdNoHash}</span>
           </div>
 
           {/* Party Overview Cards */}
@@ -435,11 +509,11 @@ const DisputeDetail = () => {
             {/* Party 1 - Buyer */}
             <div className="dispute-party-card buyer-card">
               <div className="buyer-card-top">
-                <div className="party-avatar">SC</div>
+                <div className="party-avatar">{initiatorInitials}</div>
                 <div className="party-info">
                   <div className="party-header-row">
                     <div className="party-name-section">
-                      <h3 className="party-name">Sarah Chen</h3>
+                      <h3 className="party-name">{initiatorName}</h3>
                       <p className="party-role">Buyer ( me )</p>
                     </div>
                     <span className="party-badge">Party 1</span>
@@ -448,7 +522,7 @@ const DisputeDetail = () => {
               </div>
               <div className="buyer-card-claims">
                 <h4 className="party-claims-heading">Claims</h4>
-                <p className="party-claims-text">Artwork doesn't match specifications</p>
+                <p className="party-claims-text">{disputeClaimsText}</p>
               </div>
             </div>
 
@@ -456,13 +530,13 @@ const DisputeDetail = () => {
             <div className="dispute-party-card seller-card">
               <div className="seller-card-top">
                 <div className="party-avatar-wrapper">
-                  <div className="party-avatar">SC</div>
+                  <div className="party-avatar">{respondentInitials}</div>
                 </div>
                 <div className="party-info">
                   <div className="party-header-row">
                     <div className="party-name-section">
                       <div className="party-name-with-check">
-                        <h3 className="party-name">Sarah Chen</h3>
+                        <h3 className="party-name">{respondentName}</h3>
                         <CheckCircle2 size={16} className="party-check-icon" />
                       </div>
                       <p className="party-role">Seller</p>
@@ -473,7 +547,7 @@ const DisputeDetail = () => {
               </div>
               <div className="seller-card-claims">
                 <h4 className="party-claims-heading">Claims</h4>
-                <p className="party-claims-text">Artwork doesn't match specifications</p>
+                <p className="party-claims-text">{disputeClaimsText}</p>
               </div>
             </div>
 
@@ -489,15 +563,15 @@ const DisputeDetail = () => {
                   <div className="details-content">
                     <div className="detail-item">
                       <span className="detail-label">Status</span>
-                      <span className="detail-value status-in-progress">In progress</span>
+                      <span className="detail-value status-in-progress">{disputeStatusText}</span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Case ID</span>
-                      <span className="detail-value">#{id || 'DSP-2024-002'}</span>
+                      <span className="detail-value">#{disputeCaseIdNoHash}</span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Amount</span>
-                      <span className="detail-value">$6,000</span>
+                      <span className="detail-value">{disputeAmountText}</span>
                     </div>
                   </div>
                 </div>
@@ -646,7 +720,7 @@ const DisputeDetail = () => {
               <div className="dispute-section">
                 <div className="section-header">
                   <div className="section-indicator"></div>
-                  <h2 className="section-title">Dispute Chat #{id || 'DSP-2024-002'}</h2>
+                  <h2 className="section-title">Dispute Chat #{disputeCaseIdNoHash}</h2>
                 </div>
                 <div className="chat-containers-wrapper">
                   {/* Seller Chat */}

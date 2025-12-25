@@ -45,23 +45,53 @@ import {
   Trophy,
   ShoppingBag,
   Home,
-  Calendar
+  Calendar,
+  PiggyBank
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './Transactions.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+
+const formatTimeAgo = (isoString) => {
+  if (!isoString) return 'N/A';
+  const date = new Date(isoString);
+  const time = date.getTime();
+  if (!Number.isFinite(time)) return 'N/A';
+  const diffMs = Date.now() - time;
+  const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+};
+
+const getNotificationIconConfig = (type) => {
+  if (type === 'wallet_deposit') {
+    return { Icon: CheckCircle, className: 'notification-status-icon success' };
+  }
+  if (type === 'escrow_completed') {
+    return { Icon: Package, className: 'notification-status-icon package' };
+  }
+  return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
+};
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Savings', icon: PiggyBank, badge: null },
   { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
@@ -69,6 +99,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
@@ -91,7 +122,100 @@ const Transactions = () => {
   const [accountType, setAccountType] = useState(location.state?.accountType || 'Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
+  const [notifications, setNotifications] = useState([]);
+  const [, setNotificationsTotal] = useState(0);
+  const [, setNotificationsUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [kycComplete] = useState(true);
+
+  const notificationsApiFilter = useMemo(() => (notificationFilter === 'Unread' ? 'unread' : 'all'), [notificationFilter]);
+  
+  // Fetch notifications for the modal (All / Unread)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchNotifications = async () => {
+      if (!showNotificationModal) return;
+      if (isSessionExpired) {
+        setNotifications([]);
+        setNotificationsTotal(0);
+        setNotificationsUnreadCount(0);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setNotifications([]);
+        setNotificationsTotal(0);
+        setNotificationsUnreadCount(0);
+        return;
+      }
+
+      setIsLoadingNotifications(true);
+      try {
+        const data = await getNotifications({ token, filter: notificationsApiFilter, page: 1, pageSize: 10 });
+        if (cancelled) return;
+        setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+        setNotificationsTotal(Number(data?.total) || 0);
+        setNotificationsUnreadCount(Number(data?.unreadCount) || 0);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        if (!cancelled) {
+          setNotifications([]);
+          setNotificationsTotal(0);
+          setNotificationsUnreadCount(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingNotifications(false);
+        }
+      }
+    };
+
+    fetchNotifications();
+    return () => {
+      cancelled = true;
+    };
+  }, [showNotificationModal, isSessionExpired, notificationsApiFilter]);
+
+  const handleMarkNotificationRead = async (notificationId) => {
+    if (!notificationId) return;
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markNotificationRead({ token, id: notificationId });
+      setNotifications((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        if (notificationsApiFilter === 'unread') {
+          return prev.filter((n) => n?.id !== notificationId);
+        }
+        return prev.map((n) => (n?.id === notificationId ? { ...n, isRead: true } : n));
+      });
+      setNotificationsUnreadCount((prev) => Math.max(0, (Number(prev) || 0) - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markAllNotificationsRead({ token });
+      setNotifications((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        if (notificationsApiFilter === 'unread') return [];
+        return prev.map((n) => ({ ...n, isRead: true }));
+      });
+      setNotificationsUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
   
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
@@ -160,7 +284,7 @@ const Transactions = () => {
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [showSavingsPage, setShowSavingsPage] = useState(false);
   const [showSavingsSummary, setShowSavingsSummary] = useState(false);
-  const [showDesktopSavingsDashboard, setShowDesktopSavingsDashboard] = useState(false);
+  const [showDesktopSavingsDashboard, setShowDesktopSavingsDashboard] = useState(location.pathname === '/savings');
   const [savingsAmount, setSavingsAmount] = useState('');
   const [cashflowPeriod, setCashflowPeriod] = useState('Monthly');
   const [showFundWalletPage, setShowFundWalletPage] = useState(false);
@@ -186,13 +310,152 @@ const Transactions = () => {
     return `${weekday}, ${day}${day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} ${month}`;
   }, []);
 
-  // Savings wallets data - accessible throughout component
-  const savingsWallets = [
-    { name: 'My goals', percentage: '65%', saved: '$16,000', icon: Trophy, color: '#2F74FF' },
-    { name: 'Utility', percentage: '15%', saved: '$4,000', icon: Home, color: '#10b981' },
-    { name: 'Expenses', percentage: '15%', saved: '$4,000', icon: ShoppingBag, color: '#9333ea' },
-    { name: 'Others', percentage: '15%', saved: '$4,000', icon: Package, color: '#f59e0b' }
+  // Savings (API-backed) state
+  const [savingsSummaryRange] = useState('this_month');
+  const [isLoadingSavingsSummary, setIsLoadingSavingsSummary] = useState(false);
+  const [savingsSummary, setSavingsSummary] = useState(null);
+
+  const [isLoadingSavingsCashflow, setIsLoadingSavingsCashflow] = useState(false);
+  const [savingsCashflow, setSavingsCashflow] = useState({ interval: 'monthly', points: [] });
+
+  const [isLoadingSavingsWallets, setIsLoadingSavingsWallets] = useState(false);
+  const [savingsWallets, setSavingsWallets] = useState([]);
+
+  const [isLoadingSavingsTransactions, setIsLoadingSavingsTransactions] = useState(false);
+  const [savingsTransactionsTotal, setSavingsTransactionsTotal] = useState(0);
+  const [savingsTransactionsPage, setSavingsTransactionsPage] = useState(1);
+  const [savingsTransactionsDirection, setSavingsTransactionsDirection] = useState('all'); // all | received | spent
+  const [savingsTransactionsRange, setSavingsTransactionsRange] = useState('monthly'); // daily | weekly | monthly
+  const [savingsTransactionsWalletId] = useState('');
+  const [savingHistory, setSavingHistory] = useState([]);
+
+  const isSavingsDashboardActive = location.pathname === '/savings' || showDesktopSavingsDashboard;
+
+  const formatUsd = useMemo(() => {
+    const formatter = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return (value) => {
+      const num = typeof value === 'number' ? value : Number(value);
+      if (!Number.isFinite(num)) return 'N/A';
+      return formatter.format(num);
+    };
+  }, []);
+
+  const formatUsdNoCents = useMemo(() => {
+    const formatter = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    return (value) => {
+      const num = typeof value === 'number' ? value : Number(value);
+      if (!Number.isFinite(num)) return 'N/A';
+      return formatter.format(num);
+    };
+  }, []);
+
+  const formatSignedPercent = (value) => {
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num)) return 'N/A';
+    const rounded = Number.isInteger(num) ? num : Number(num.toFixed(1));
+    return `${rounded > 0 ? '+' : ''}${rounded}%`;
+  };
+
+  const savingsWalletColorById = useMemo(() => {
+    const map = {};
+    savingsWallets.forEach((wallet) => {
+      if (wallet?.id) map[wallet.id] = wallet.color;
+    });
+    return map;
+  }, [savingsWallets]);
+
+  const savingsAllocation = useMemo(() => {
+    const palette = ['#2F74FF', '#10b981', '#9333ea', '#f59e0b', '#ef4444', '#06b6d4'];
+    const categories = Array.isArray(savingsSummary?.categories) ? savingsSummary.categories : [];
+    return categories.map((category, index) => {
+      const amountUsd = typeof category?.amountUsd === 'number' ? category.amountUsd : Number(category?.amountUsd) || 0;
+      const percentage = typeof category?.percentage === 'number' ? category.percentage : Number(category?.percentage) || 0;
+      const walletId = category?.walletId;
+      return {
+        walletId,
+        name: category?.name || '—',
+        amount: amountUsd,
+        percentage,
+        color: (walletId && savingsWalletColorById[walletId]) || palette[index % palette.length],
+      };
+    });
+  }, [savingsSummary, savingsWalletColorById]);
+
+  const cashflowData = useMemo(() => {
+    const points = Array.isArray(savingsCashflow?.points) ? savingsCashflow.points : [];
+    const values = points.flatMap((p) => [
+      typeof p?.receivedUsd === 'number' ? p.receivedUsd : Number(p?.receivedUsd) || 0,
+      typeof p?.spentUsd === 'number' ? p.spentUsd : Number(p?.spentUsd) || 0,
+    ]);
+    const max = Math.max(...values, 0);
+    return points.map((p) => {
+      const receivedUsd = typeof p?.receivedUsd === 'number' ? p.receivedUsd : Number(p?.receivedUsd) || 0;
+      const spentUsd = typeof p?.spentUsd === 'number' ? p.spentUsd : Number(p?.spentUsd) || 0;
+      return {
+        month: p?.period || '—',
+        received: max > 0 ? (receivedUsd / max) * 100 : 0,
+        spent: max > 0 ? (spentUsd / max) * 100 : 0,
+        receivedUsd,
+        spentUsd,
+      };
+    });
+  }, [savingsCashflow]);
+
+  const toISODate = (date) => {
+    try {
+      return new Date(date).toISOString().slice(0, 10);
+    } catch {
+      return undefined;
+    }
+  };
+
+  const savingsWalletStylePresets = [
+    { icon: Trophy, color: '#2F74FF' },
+    { icon: Home, color: '#10b981' },
+    { icon: ShoppingBag, color: '#9333ea' },
+    { icon: Package, color: '#f59e0b' },
   ];
+
+  const hashStringToIndex = (value, modulo) => {
+    if (!value || !modulo) return 0;
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+    }
+    return hash % modulo;
+  };
+
+  const mapSavingsWalletApiToUi = (wallet, fallbackIndex) => {
+    const styleIndex = wallet?.id
+      ? hashStringToIndex(String(wallet.id), savingsWalletStylePresets.length)
+      : fallbackIndex % savingsWalletStylePresets.length;
+    const style = savingsWalletStylePresets[styleIndex] || savingsWalletStylePresets[0];
+
+    const percentageNum = typeof wallet?.percentage === 'number' ? wallet.percentage : Number(wallet?.percentage) || 0;
+    const amountUsd = typeof wallet?.amountUsd === 'number' ? wallet.amountUsd : Number(wallet?.amountUsd) || 0;
+    const targetAmountUsd =
+      typeof wallet?.targetAmountUsd === 'number' ? wallet.targetAmountUsd : Number(wallet?.targetAmountUsd) || 0;
+
+    return {
+      id: wallet?.id ? String(wallet.id) : `wallet-${fallbackIndex}`,
+      name: wallet?.name || `Wallet ${fallbackIndex + 1}`,
+      percentage: `${percentageNum}%`,
+      saved: formatUsdNoCents(amountUsd),
+      icon: style.icon,
+      color: style.color,
+      targetAmountUsd,
+    };
+  };
 
   // Update accountType from location state
   useEffect(() => {
@@ -200,6 +463,221 @@ const Transactions = () => {
       setAccountType(location.state.accountType);
     }
   }, [location.state]);
+
+  // Show savings screen if on /savings route
+  useEffect(() => {
+    if (location.pathname === '/savings') {
+      setShowDesktopSavingsDashboard(true);
+    } else {
+      setShowDesktopSavingsDashboard(false);
+    }
+  }, [location.pathname]);
+
+  // Savings endpoints (only when Savings dashboard is visible)
+  useEffect(() => {
+    if (!isSavingsDashboardActive) return;
+    if (isSessionExpired) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const controller = new AbortController();
+
+    const fetchSavingsSummary = async () => {
+      setIsLoadingSavingsSummary(true);
+      try {
+        const params = new URLSearchParams();
+        if (savingsSummaryRange) params.set('range', savingsSummaryRange);
+
+        const apiUrl = `${getApiUrl('api/savings/summary')}${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result?.success && result?.data) {
+          setSavingsSummary(result.data);
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.error('Error fetching savings summary:', error);
+        }
+      } finally {
+        setIsLoadingSavingsSummary(false);
+      }
+    };
+
+    fetchSavingsSummary();
+    return () => controller.abort();
+  }, [isSavingsDashboardActive, isSessionExpired, savingsSummaryRange]);
+
+  useEffect(() => {
+    if (!isSavingsDashboardActive) return;
+    if (isSessionExpired) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const controller = new AbortController();
+
+    const fetchSavingsWallets = async () => {
+      setIsLoadingSavingsWallets(true);
+      try {
+        const apiUrl = getApiUrl('api/savings/wallets');
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result?.success && result?.data?.wallets) {
+          const wallets = Array.isArray(result.data.wallets) ? result.data.wallets : [];
+          setSavingsWallets(wallets.map((w, idx) => mapSavingsWalletApiToUi(w, idx)));
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.error('Error fetching savings wallets:', error);
+        }
+      } finally {
+        setIsLoadingSavingsWallets(false);
+      }
+    };
+
+    fetchSavingsWallets();
+    return () => controller.abort();
+  }, [isSavingsDashboardActive, isSessionExpired]);
+
+  useEffect(() => {
+    if (!isSavingsDashboardActive) return;
+    if (isSessionExpired) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const controller = new AbortController();
+
+    const fetchSavingsCashflow = async () => {
+      setIsLoadingSavingsCashflow(true);
+      try {
+        const to = new Date();
+        const from = new Date();
+        const monthsBack = cashflowPeriod === 'Yearly' ? 11 : 5;
+        from.setMonth(to.getMonth() - monthsBack);
+        from.setDate(1);
+
+        const params = new URLSearchParams();
+        params.set('interval', 'monthly');
+        const fromIso = toISODate(from);
+        const toIso = toISODate(to);
+        if (fromIso) params.set('from', fromIso);
+        if (toIso) params.set('to', toIso);
+
+        const apiUrl = `${getApiUrl('api/savings/cashflow')}?${params.toString()}`;
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result?.success && result?.data) {
+          setSavingsCashflow(result.data);
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.error('Error fetching savings cashflow:', error);
+        }
+      } finally {
+        setIsLoadingSavingsCashflow(false);
+      }
+    };
+
+    fetchSavingsCashflow();
+    return () => controller.abort();
+  }, [isSavingsDashboardActive, isSessionExpired, cashflowPeriod]);
+
+  useEffect(() => {
+    if (!isSavingsDashboardActive) return;
+    if (isSessionExpired) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const controller = new AbortController();
+
+    const fetchSavingsTransactions = async () => {
+      setIsLoadingSavingsTransactions(true);
+      try {
+        const params = new URLSearchParams();
+        if (savingsTransactionsWalletId) params.set('walletId', savingsTransactionsWalletId);
+        params.set('direction', savingsTransactionsDirection || 'all');
+        params.set('range', savingsTransactionsRange || 'monthly');
+        params.set('page', String(savingsTransactionsPage || 1));
+        params.set('pageSize', String(itemsPerPage || 10));
+
+        const apiUrl = `${getApiUrl('api/savings/transactions')}?${params.toString()}`;
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result?.success && result?.data) {
+          const transactions = Array.isArray(result.data.transactions) ? result.data.transactions : [];
+          const mapped = transactions.map((tx) => {
+            const amountUsd = typeof tx?.amountUsd === 'number' ? tx.amountUsd : Number(tx?.amountUsd) || 0;
+            return {
+              id: tx?.txHash || tx?.id || '—',
+              amount: formatUsdNoCents(amountUsd),
+              status: tx?.status || '—',
+              date: tx?.date || '—',
+              type: tx?.txLabel || '—',
+              direction: tx?.direction || 'all',
+              walletId: tx?.walletId,
+              walletName: tx?.walletName,
+            };
+          });
+
+          setSavingHistory(mapped);
+          setSavingsTransactionsTotal(typeof result.data.total === 'number' ? result.data.total : mapped.length);
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.error('Error fetching savings transactions:', error);
+        }
+      } finally {
+        setIsLoadingSavingsTransactions(false);
+      }
+    };
+
+    fetchSavingsTransactions();
+    return () => controller.abort();
+  }, [
+    isSavingsDashboardActive,
+    isSessionExpired,
+    savingsTransactionsDirection,
+    savingsTransactionsRange,
+    savingsTransactionsPage,
+    itemsPerPage,
+    savingsTransactionsWalletId,
+    formatUsdNoCents,
+  ]);
 
   // Fetch dashboard summary for total balance
   useEffect(() => {
@@ -1731,42 +2209,32 @@ const Transactions = () => {
   }
 
   // Render desktop savings dashboard
-  if (showDesktopSavingsDashboard) {
-    // Get current date
-    const currentDate = new Date();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayName = days[currentDate.getDay()];
-    const day = currentDate.getDate();
-    const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthName = months[currentDate.getMonth()];
-    const formattedDate = `${dayName}, ${day}${suffix} ${monthName}`;
+  if (location.pathname === '/savings' || showDesktopSavingsDashboard) {
+    const savingsAllocationForRender =
+      savingsAllocation.length > 0
+        ? savingsAllocation
+        : (isLoadingSavingsSummary
+            ? [{ walletId: 'na', name: 'N/A', amount: NaN, percentage: 100, color: '#e5e7eb', isPlaceholder: true }]
+            : []);
 
-    // Mock data for savings dashboard
-    const savingsAllocation = [
-      { name: 'My Goals', amount: 16000, percentage: 40, color: '#2F74FF' },
-      { name: 'House Rent', amount: 16000, percentage: 25, color: '#10b981' },
-      { name: 'Expenses', amount: 16000, percentage: 20, color: '#9333ea' },
-      { name: 'Set up', amount: 16000, percentage: 15, color: '#f59e0b' }
+    const placeholderSavingsWallets = [
+      { id: 'na-1', name: 'N/A', percentage: '0%', saved: 'N/A', icon: Trophy, color: '#e5e7eb', isPlaceholder: true },
+      { id: 'na-2', name: 'N/A', percentage: '0%', saved: 'N/A', icon: Home, color: '#e5e7eb', isPlaceholder: true },
+      { id: 'na-3', name: 'N/A', percentage: '0%', saved: 'N/A', icon: ShoppingBag, color: '#e5e7eb', isPlaceholder: true },
+      { id: 'na-4', name: 'N/A', percentage: '0%', saved: 'N/A', icon: Package, color: '#e5e7eb', isPlaceholder: true },
     ];
 
+    const savingsWalletsForRender =
+      savingsWallets.length > 0 ? savingsWallets : (isLoadingSavingsWallets ? placeholderSavingsWallets : []);
 
-    const cashflowData = [
-      { month: 'Jan', received: 75, spent: 55 },
-      { month: 'Feb', received: 48, spent: 38 },
-      { month: 'Mar', received: 61, spent: 21 },
-      { month: 'Apr', received: 34, spent: 22 },
-      { month: 'May', received: 83, spent: 55 },
-      { month: 'Jun', received: 74, spent: 49 },
+    const placeholderSavingsTransactions = [
+      { id: 'N/A', amount: 'N/A', status: 'N/A', date: 'N/A', type: 'N/A', direction: 'all' },
+      { id: 'N/A', amount: 'N/A', status: 'N/A', date: 'N/A', type: 'N/A', direction: 'all' },
+      { id: 'N/A', amount: 'N/A', status: 'N/A', date: 'N/A', type: 'N/A', direction: 'all' },
     ];
 
-    const savingHistory = [
-      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
-      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
-      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
-      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' },
-      { id: 'F4E5D6...C1B2A3', amount: '$1,200', status: 'Successful', date: '2024-07-04', type: 'Received' }
-    ];
+    const savingHistoryForRender =
+      savingHistory.length > 0 ? savingHistory : (isLoadingSavingsTransactions ? placeholderSavingsTransactions : []);
 
     return (
       <>
@@ -1840,6 +2308,7 @@ const Transactions = () => {
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Savings' && location.pathname === '/savings') ||
                                (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
@@ -1854,6 +2323,9 @@ const Transactions = () => {
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
                   setShowDesktopSavingsDashboard(false);
+                } else if (item.label === 'Savings') {
+                  setShowDesktopSavingsDashboard(true);
+                  navigate('/savings');
                 } else if (item.label === 'Trusticard') {
                   navigate('/trusticard');
                   setShowDesktopSavingsDashboard(false);
@@ -1963,6 +2435,7 @@ const Transactions = () => {
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Savings' && location.pathname === '/savings') ||
                                (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
@@ -1974,10 +2447,11 @@ const Transactions = () => {
                   setShowDesktopSavingsDashboard(false);
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
+                } else if (item.label === 'Savings') {
+                  setShowDesktopSavingsDashboard(true);
+                  navigate('/savings');
                 } else if (item.label === 'Trusticard') {
                   navigate('/trusticard');
-                } else if (item.label === 'Dispute') {
-                  navigate('/dispute');
                 }
               };
               return (
@@ -2105,14 +2579,6 @@ const Transactions = () => {
         <div className="transactions-content">
           {/* Breadcrumb */}
           <div className="card-breadcrumb">
-            <button 
-              type="button"
-              className="desktop-savings-back-btn"
-              onClick={() => setShowDesktopSavingsDashboard(false)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginRight: '0.5rem', display: 'inline-flex', alignItems: 'center' }}
-            >
-              <ArrowLeft size={16} />
-            </button>
             <span className="breadcrumb-root">General</span>
             <span className="breadcrumb-divider">›</span>
             <span className="breadcrumb-current">My Savings</span>
@@ -2156,17 +2622,17 @@ const Transactions = () => {
                 </h3>
                 <p className="desktop-savings-section-subtitle">Total amount you have in your savings.</p>
                 <div className="desktop-savings-total-wrapper">
-                  <div className="desktop-savings-total-amount">$24,567.89</div>
+                  <div className="desktop-savings-total-amount">{formatUsd(savingsSummary?.totalUsd)}</div>
                   <div className="desktop-savings-growth-wrapper">
                     <div className="desktop-savings-growth">
-                      <TrendingUp size={14} />
-                      <span>+3.1%</span>
+                      {(Number(savingsSummary?.changePercent) || 0) >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      <span>{formatSignedPercent(savingsSummary?.changePercent)}</span>
                     </div>
-                    <span className="desktop-savings-growth-period">This Month</span>
+                    <span className="desktop-savings-growth-period">{savingsSummary?.periodLabel || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="desktop-savings-allocation-bar">
-                  {savingsAllocation.map((item, index) => (
+                  {savingsAllocationForRender.map((item, index) => (
                     <div 
                       key={index}
                       className="desktop-savings-allocation-segment"
@@ -2178,7 +2644,7 @@ const Transactions = () => {
                   ))}
                 </div>
                 <div className="desktop-savings-allocation-breakdown">
-                  {savingsAllocation.map((item, index) => (
+                  {savingsAllocationForRender.map((item, index) => (
                     <div key={index} className="desktop-savings-allocation-item">
                       <div className="desktop-savings-allocation-item-header">
                         <div 
@@ -2188,12 +2654,12 @@ const Transactions = () => {
                         <span className="desktop-savings-allocation-name">{item.name}</span>
                       </div>
                       <div className="desktop-savings-allocation-item-details">
-                        <span className="desktop-savings-allocation-amount">${item.amount.toLocaleString()}.00</span>
+                        <span className="desktop-savings-allocation-amount">{formatUsd(item.amount)}</span>
                         <span 
                           className="desktop-savings-allocation-percentage"
                           style={{ backgroundColor: `${item.color}20`, color: item.color }}
                         >
-                          {item.percentage}%
+                          {item.isPlaceholder ? 'N/A' : `${item.percentage}%`}
                         </span>
                       </div>
                     </div>
@@ -2219,9 +2685,9 @@ const Transactions = () => {
                   </button>
                 </div>
                 <div className="desktop-savings-wallet-grid">
-                  {savingsWallets.map((wallet, index) => {
+                  {savingsWalletsForRender.map((wallet, index) => {
                     const Icon = wallet.icon;
-                    const percentageValue = parseInt(wallet.percentage);
+                    const percentageValue = parseInt(wallet.percentage, 10) || 0;
                     const circumference = 2 * Math.PI * 20; // radius = 20
                     const offset = circumference - (percentageValue / 100) * circumference;
                     
@@ -2269,13 +2735,13 @@ const Transactions = () => {
                             </div>
                           </div>
                           <div className="desktop-savings-wallet-name-wrapper">
-                            <div className="desktop-savings-wallet-name">{wallet.name}</div>
-                            <div className="desktop-savings-wallet-percentage">{wallet.percentage}</div>
+                            <div className="desktop-savings-wallet-name">{wallet.isPlaceholder ? 'N/A' : wallet.name}</div>
+                            <div className="desktop-savings-wallet-percentage">{wallet.isPlaceholder ? 'N/A' : wallet.percentage}</div>
                           </div>
                         </div>
                         <div className="desktop-savings-wallet-card-bottom">
                           <div className="desktop-savings-wallet-saved-label">Saved:</div>
-                          <div className="desktop-savings-wallet-amount">{wallet.saved}</div>
+                          <div className="desktop-savings-wallet-amount">{wallet.isPlaceholder ? 'N/A' : wallet.saved}</div>
                         </div>
                       </div>
                     );
@@ -2497,13 +2963,37 @@ const Transactions = () => {
                     <ArrowRight size={20} className="desktop-savings-history-arrow" />
                   </div>
                   <div className="desktop-savings-history-filters">
-                    <select className="desktop-savings-filter-select">
+                    <select
+                      className="desktop-savings-filter-select"
+                      onChange={(e) => {
+                        const raw = String(e.target.value || '').trim().toLowerCase();
+                        const next =
+                          raw === 'received' ? 'received' :
+                          raw === 'sent' ? 'spent' :
+                          raw === 'spent' ? 'spent' :
+                          raw === 'all' ? 'all' : 'all';
+                        setSavingsTransactionsDirection(next);
+                        setSavingsTransactionsPage(1);
+                      }}
+                    >
                       <option>Filter</option>
                       <option>All</option>
                       <option>Received</option>
                       <option>Sent</option>
                     </select>
-                    <select className="desktop-savings-filter-select">
+                    <select
+                      className="desktop-savings-filter-select"
+                      onChange={(e) => {
+                        const raw = String(e.target.value || '').trim().toLowerCase();
+                        const next =
+                          raw === 'weekly' ? 'weekly' :
+                          raw === 'daily' ? 'daily' :
+                          raw === 'yearly' ? 'monthly' :
+                          'monthly';
+                        setSavingsTransactionsRange(next);
+                        setSavingsTransactionsPage(1);
+                      }}
+                    >
                       <option>Monthly</option>
                       <option>Weekly</option>
                       <option>Yearly</option>
@@ -2528,14 +3018,14 @@ const Transactions = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {savingHistory.map((transaction, index) => (
+                      {savingHistoryForRender.map((transaction, index) => (
                         <tr key={index}>
                           <td>
                             <input type="checkbox" />
                           </td>
                           <td>
                             <div className="desktop-savings-transaction-type">
-                              <ArrowDown size={14} />
+                              {transaction.direction === 'spent' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
                               <span>{transaction.type}</span>
                             </div>
                             <div className="desktop-savings-transaction-id">{transaction.id}</div>
@@ -2557,24 +3047,27 @@ const Transactions = () => {
                 </div>
                 {/* Mobile Transaction History Cards */}
                 <div className="mobile-savings-history-cards">
-                  {savingHistory.map((transaction, index) => {
+                  {savingHistoryForRender.map((transaction, index) => {
                     // Extract amount value
-                    const amountValue = transaction.amount.replace('$', '').replace(',', '');
+                    const amountValue = typeof transaction.amount === 'string'
+                      ? transaction.amount.replace('$', '').replace(',', '')
+                      : '';
                     const numericAmount = parseFloat(amountValue);
+                    const hasAmount = Number.isFinite(numericAmount);
                     // Calculate XRP amount (assuming $1,200 = 50 XRP for example, or use actual conversion)
-                    const xrpAmount = Math.round(numericAmount / 24); // Approximate conversion
-                    const usdValue = numericAmount.toFixed(2);
+                    const xrpAmount = hasAmount ? Math.round(numericAmount / 24) : 'N/A'; // Approximate conversion
+                    const usdValue = hasAmount ? numericAmount.toFixed(2) : 'N/A';
                     
                     return (
                       <div key={index} className="mobile-savings-history-card">
                         <div className="mobile-savings-history-left">
                           <div className="mobile-savings-history-icon">
-                            <ArrowDown size={16} />
+                            {transaction.direction === 'spent' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
                           </div>
                           <div className="mobile-savings-history-details">
                             <div className="mobile-savings-history-type">{transaction.type}</div>
                             <div className="mobile-savings-history-description">
-                              You received {xrpAmount} XRP, worth ${usdValue} USD.
+                              You {transaction.direction === 'spent' ? 'spent' : 'received'} {xrpAmount} XRP, worth ${usdValue} USD.
                             </div>
                           </div>
                         </div>
@@ -2641,91 +3134,50 @@ const Transactions = () => {
                   Unread
                 </button>
               </div>
-              <button type="button" className="notification-filter-icon">
+              <button
+                type="button"
+                className="notification-filter-icon"
+                onClick={handleMarkAllNotificationsRead}
+                disabled={isLoadingNotifications}
+              >
                 <Filter size={18} />
               </button>
             </div>
 
             <div className="notification-list">
-              <div className="notification-item unread">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                  <span className="notification-bell-dot"></span>
+              {Array.isArray(notifications) && notifications.length > 0 ? (
+                notifications.map((n) => {
+                  const isUnread = !n?.isRead;
+                  const { Icon, className } = getNotificationIconConfig(n?.type);
+                  const message = n?.message || n?.title || 'N/A';
+                  return (
+                    <div
+                      key={n?.id}
+                      className={`notification-item ${isUnread ? 'unread' : ''}`}
+                      onClick={() => {
+                        if (isUnread) handleMarkNotificationRead(n?.id);
+                      }}
+                    >
+                      <div className="notification-bell-icon">
+                        <Bell size={16} />
+                        {isUnread && <span className="notification-bell-dot"></span>}
+                      </div>
+                      <div className="notification-content">
+                        <div className="notification-message-wrapper">
+                          <Icon size={18} className={className} />
+                          <p className="notification-message">{message}</p>
+                        </div>
+                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
+                      </div>
+                      {isUnread && <div className="notification-unread-dot"></div>}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  N/A
                 </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <AlertTriangle size={18} className="notification-status-icon warning" />
-                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-                <div className="notification-unread-dot"></div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <CheckCircle size={18} className="notification-status-icon success" />
-                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -3047,15 +3499,52 @@ const Transactions = () => {
               <button
                 type="button"
                 className="savings-add-account-create-btn"
-                onClick={() => {
-                  // Handle create
-                  setShowAddSavingsAccountModal(false);
-                  toast.success('Savings account created successfully');
-                  setAddSavingsAccountForm({
-                    name: '',
-                    category: 'My Goals',
-                    duration: ''
-                  });
+                onClick={async () => {
+                  const name = String(addSavingsAccountForm.name || '').trim();
+                  if (!name) {
+                    toast.error('Please enter a wallet name');
+                    return;
+                  }
+
+                  const token = localStorage.getItem('token');
+                  if (!token) {
+                    toast.error('Please login to create a savings wallet');
+                    return;
+                  }
+
+                  const parsedTarget = Number(addSavingsAccountForm.duration);
+                  const targetAmountUsd = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : 5000;
+
+                  try {
+                    const apiUrl = getApiUrl('api/savings/wallets');
+                    const response = await fetch(apiUrl, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ name, targetAmountUsd }),
+                    });
+
+                    const result = await response.json().catch(() => ({}));
+                    if (response.ok && result?.success && result?.data?.wallets?.length) {
+                      const created = result.data.wallets[0];
+                      setSavingsWallets((prev) => [...prev, mapSavingsWalletApiToUi(created, prev.length)]);
+
+                      setShowAddSavingsAccountModal(false);
+                      toast.success(result.message || 'Savings wallet created successfully');
+                      setAddSavingsAccountForm({
+                        name: '',
+                        category: 'My Goals',
+                        duration: ''
+                      });
+                    } else {
+                      toast.error(result?.message || 'Failed to create savings wallet');
+                    }
+                  } catch (error) {
+                    console.error('Error creating savings wallet:', error);
+                    toast.error('Failed to create savings wallet');
+                  }
                 }}
               >
                 Create
@@ -3479,6 +3968,7 @@ const Transactions = () => {
                                  (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                  (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                  (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                 (item.label === 'Savings' && location.pathname === '/savings') ||
                                  (item.label === 'Trusticard' && location.pathname === '/trusticard');
                 const handleNavClick = () => {
                   setIsMobileMenuOpen(false);
@@ -3490,6 +3980,8 @@ const Transactions = () => {
                     navigate('/transactions');
                   } else if (item.label === 'Dispute') {
                     navigate('/dispute');
+                  } else if (item.label === 'Savings') {
+                    navigate('/savings');
                   } else if (item.label === 'Trusticard') {
                     navigate('/trusticard');
                   }
@@ -3596,6 +4088,7 @@ const Transactions = () => {
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Savings' && location.pathname === '/savings') ||
                                (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
@@ -3606,10 +4099,11 @@ const Transactions = () => {
                   navigate('/transactions');
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
+                } else if (item.label === 'Savings') {
+                  setShowDesktopSavingsDashboard(true);
+                  navigate('/savings');
                 } else if (item.label === 'Trusticard') {
                   navigate('/trusticard');
-                } else if (item.label === 'Dispute') {
-                  navigate('/dispute');
                 }
               };
               return (
@@ -4434,91 +4928,50 @@ const Transactions = () => {
                   Unread
                 </button>
               </div>
-              <button type="button" className="notification-filter-icon">
+              <button
+                type="button"
+                className="notification-filter-icon"
+                onClick={handleMarkAllNotificationsRead}
+                disabled={isLoadingNotifications}
+              >
                 <Filter size={18} />
               </button>
             </div>
 
             <div className="notification-list">
-              <div className="notification-item unread">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                  <span className="notification-bell-dot"></span>
+              {Array.isArray(notifications) && notifications.length > 0 ? (
+                notifications.map((n) => {
+                  const isUnread = !n?.isRead;
+                  const { Icon, className } = getNotificationIconConfig(n?.type);
+                  const message = n?.message || n?.title || 'N/A';
+                  return (
+                    <div
+                      key={n?.id}
+                      className={`notification-item ${isUnread ? 'unread' : ''}`}
+                      onClick={() => {
+                        if (isUnread) handleMarkNotificationRead(n?.id);
+                      }}
+                    >
+                      <div className="notification-bell-icon">
+                        <Bell size={16} />
+                        {isUnread && <span className="notification-bell-dot"></span>}
+                      </div>
+                      <div className="notification-content">
+                        <div className="notification-message-wrapper">
+                          <Icon size={18} className={className} />
+                          <p className="notification-message">{message}</p>
+                        </div>
+                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
+                      </div>
+                      {isUnread && <div className="notification-unread-dot"></div>}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  N/A
                 </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <AlertTriangle size={18} className="notification-status-icon warning" />
-                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-                <div className="notification-unread-dot"></div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <CheckCircle size={18} className="notification-status-icon success" />
-                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

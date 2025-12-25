@@ -10,6 +10,7 @@ import {
   DollarSign,
   Building2,
   Repeat,
+  FileCheck,
   Code,
   Box,
   Link,
@@ -39,6 +40,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
 

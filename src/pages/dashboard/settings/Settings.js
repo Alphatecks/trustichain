@@ -6,6 +6,7 @@ import {
   CreditCard,
   Repeat,
   Briefcase,
+  FileCheck,
   Settings as SettingsIcon,
   HelpCircle,
   Search,
@@ -33,6 +34,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 

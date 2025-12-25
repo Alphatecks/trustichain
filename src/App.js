@@ -20,6 +20,7 @@ import OAuthCallback from './pages/auth/OAuthCallback';
 import Dashboard from './pages/dashboard/dashboard/Dashboard';
 import MyEscrow from './pages/dashboard/my-escrow/MyEscrow';
 import Transactions from './pages/dashboard/transactions/Transactions';
+import Savings from './pages/dashboard/savings/Savings';
 import Dispute from './pages/dashboard/dispute/Dispute';
 import DisputeDetail from './pages/dashboard/dispute/DisputeDetail';
 import TrustiCard from './pages/dashboard/trusticard/TrustiCard';
@@ -45,7 +46,7 @@ function AppContent() {
   }, [location.pathname]);
   
   // Hide navbar on auth pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard' || location.pathname === '/payroll' || location.pathname.startsWith('/payroll/') || location.pathname === '/supplier-contract' || location.pathname === '/api-keys' || location.pathname === '/sandbox-environment' || location.pathname === '/webhook' || location.pathname === '/settings';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/savings' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard' || location.pathname === '/payroll' || location.pathname.startsWith('/payroll/') || location.pathname === '/supplier-contract' || location.pathname === '/api-keys' || location.pathname === '/sandbox-environment' || location.pathname === '/webhook' || location.pathname === '/settings';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
@@ -69,6 +70,7 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/my-escrow" element={<MyEscrow />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/savings" element={<Savings />} />
           <Route path="/dispute" element={<Dispute />} />
           <Route path="/dispute/:id" element={<DisputeDetail />} />
           <Route path="/trusticard" element={<TrustiCard />} />

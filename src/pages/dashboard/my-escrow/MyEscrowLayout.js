@@ -28,10 +28,37 @@ import {
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import '../dashboard/Dashboard.css';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+
+const formatTimeAgo = (isoString) => {
+  if (!isoString) return 'N/A';
+  const date = new Date(isoString);
+  const time = date.getTime();
+  if (!Number.isFinite(time)) return 'N/A';
+  const diffMs = Date.now() - time;
+  const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+};
+
+const getNotificationIconConfig = (type) => {
+  if (type === 'wallet_deposit') {
+    return { Icon: CheckCircle, className: 'notification-status-icon success' };
+  }
+  if (type === 'escrow_completed') {
+    return { Icon: Package, className: 'notification-status-icon package' };
+  }
+  return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
+};
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -39,6 +66,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
   { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
@@ -46,6 +74,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: FileCheck, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
@@ -66,12 +95,105 @@ const MyEscrowLayout = ({ children }) => {
   const { isSessionExpired } = useSession();
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
+  const [notifications, setNotifications] = useState([]);
+  const [, setNotificationsTotal] = useState(0);
+  const [, setNotificationsUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [accountType, setAccountType] = useState('Personal');
   const [kycComplete] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [formattedToday, setFormattedToday] = useState('');
+
+  const notificationsApiFilter = notificationFilter === 'Unread' ? 'unread' : 'all';
+
+  // Fetch notifications for the modal (All / Unread)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchNotifications = async () => {
+      if (!showNotificationModal) return;
+      if (isSessionExpired) {
+        setNotifications([]);
+        setNotificationsTotal(0);
+        setNotificationsUnreadCount(0);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setNotifications([]);
+        setNotificationsTotal(0);
+        setNotificationsUnreadCount(0);
+        return;
+      }
+
+      setIsLoadingNotifications(true);
+      try {
+        const data = await getNotifications({ token, filter: notificationsApiFilter, page: 1, pageSize: 10 });
+        if (cancelled) return;
+        setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+        setNotificationsTotal(Number(data?.total) || 0);
+        setNotificationsUnreadCount(Number(data?.unreadCount) || 0);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        if (!cancelled) {
+          setNotifications([]);
+          setNotificationsTotal(0);
+          setNotificationsUnreadCount(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingNotifications(false);
+        }
+      }
+    };
+
+    fetchNotifications();
+    return () => {
+      cancelled = true;
+    };
+  }, [showNotificationModal, isSessionExpired, notificationsApiFilter]);
+
+  const handleMarkNotificationRead = async (notificationId) => {
+    if (!notificationId) return;
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markNotificationRead({ token, id: notificationId });
+      setNotifications((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        if (notificationsApiFilter === 'unread') {
+          return prev.filter((n) => n?.id !== notificationId);
+        }
+        return prev.map((n) => (n?.id === notificationId ? { ...n, isRead: true } : n));
+      });
+      setNotificationsUnreadCount((prev) => Math.max(0, (Number(prev) || 0) - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markAllNotificationsRead({ token });
+      setNotifications((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        if (notificationsApiFilter === 'unread') return [];
+        return prev.map((n) => ({ ...n, isRead: true }));
+      });
+      setNotificationsUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
 
   // Real-time date formatting - updates every minute
   useEffect(() => {
@@ -378,91 +500,50 @@ const MyEscrowLayout = ({ children }) => {
                   Unread
                 </button>
               </div>
-              <button type="button" className="notification-filter-icon">
+              <button
+                type="button"
+                className="notification-filter-icon"
+                onClick={handleMarkAllNotificationsRead}
+                disabled={isLoadingNotifications}
+              >
                 <Filter size={18} />
               </button>
             </div>
 
             <div className="notification-list">
-              <div className="notification-item unread">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                  <span className="notification-bell-dot"></span>
+              {Array.isArray(notifications) && notifications.length > 0 ? (
+                notifications.map((n) => {
+                  const isUnread = !n?.isRead;
+                  const { Icon, className } = getNotificationIconConfig(n?.type);
+                  const message = n?.message || n?.title || 'N/A';
+                  return (
+                    <div
+                      key={n?.id}
+                      className={`notification-item ${isUnread ? 'unread' : ''}`}
+                      onClick={() => {
+                        if (isUnread) handleMarkNotificationRead(n?.id);
+                      }}
+                    >
+                      <div className="notification-bell-icon">
+                        <Bell size={16} />
+                        {isUnread && <span className="notification-bell-dot"></span>}
+                      </div>
+                      <div className="notification-content">
+                        <div className="notification-message-wrapper">
+                          <Icon size={18} className={className} />
+                          <p className="notification-message">{message}</p>
+                        </div>
+                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
+                      </div>
+                      {isUnread && <div className="notification-unread-dot"></div>}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  N/A
                 </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <AlertTriangle size={18} className="notification-status-icon warning" />
-                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-                <div className="notification-unread-dot"></div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <CheckCircle size={18} className="notification-status-icon success" />
-                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

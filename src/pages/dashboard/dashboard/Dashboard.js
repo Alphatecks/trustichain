@@ -38,7 +38,8 @@ import {
   Menu,
   Wallet,
   ChevronRight,
-  Upload
+  Upload,
+  PiggyBank
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
@@ -50,6 +51,7 @@ import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -62,7 +64,9 @@ const sidebarNav = [
   { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Savings', icon: PiggyBank, badge: null },
   { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
@@ -70,6 +74,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
 
@@ -95,6 +100,32 @@ const businessSteps = [
   { label: 'Escrow Configuration', detail: 'Escrow Configuration' },
   { label: 'Compliance', detail: 'Compliance' }
 ];
+
+const formatTimeAgo = (isoString) => {
+  if (!isoString) return 'N/A';
+  const date = new Date(isoString);
+  const time = date.getTime();
+  if (!Number.isFinite(time)) return 'N/A';
+  const diffMs = Date.now() - time;
+  const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+};
+
+const getNotificationIconConfig = (type) => {
+  if (type === 'wallet_deposit') {
+    return { Icon: CheckCircle, className: 'notification-status-icon success' };
+  }
+  if (type === 'escrow_completed') {
+    return { Icon: Package, className: 'notification-status-icon package' };
+  }
+  return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -124,6 +155,100 @@ const Dashboard = () => {
     }
   }, [location.state]);
   const [notificationFilter, setNotificationFilter] = useState('All');
+  const [notifications, setNotifications] = useState([]);
+  const [, setNotificationsTotal] = useState(0);
+  const [, setNotificationsUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+
+  const notificationsApiFilter = useMemo(() => (notificationFilter === 'Unread' ? 'unread' : 'all'), [notificationFilter]);
+
+  // Fetch notifications for the modal (All / Unread)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchNotifications = async () => {
+      if (!showNotificationModal) return;
+      if (isSessionExpired) {
+        setNotifications([]);
+        setNotificationsTotal(0);
+        setNotificationsUnreadCount(0);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setNotifications([]);
+        setNotificationsTotal(0);
+        setNotificationsUnreadCount(0);
+        return;
+      }
+
+      setIsLoadingNotifications(true);
+      try {
+        const data = await getNotifications({ token, filter: notificationsApiFilter, page: 1, pageSize: 10 });
+        if (cancelled) return;
+        setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+        setNotificationsTotal(Number(data?.total) || 0);
+        setNotificationsUnreadCount(Number(data?.unreadCount) || 0);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        if (!cancelled) {
+          setNotifications([]);
+          setNotificationsTotal(0);
+          setNotificationsUnreadCount(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingNotifications(false);
+        }
+      }
+    };
+
+    fetchNotifications();
+    return () => {
+      cancelled = true;
+    };
+  }, [showNotificationModal, isSessionExpired, notificationsApiFilter]);
+
+  const handleMarkNotificationRead = async (notificationId) => {
+    if (!notificationId) return;
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markNotificationRead({ token, id: notificationId });
+      setNotifications((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        if (notificationsApiFilter === 'unread') {
+          return prev.filter((n) => n?.id !== notificationId);
+        }
+        return prev.map((n) => (n?.id === notificationId ? { ...n, isRead: true } : n));
+      });
+      setNotificationsUnreadCount((prev) => Math.max(0, (Number(prev) || 0) - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markAllNotificationsRead({ token });
+      setNotifications((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        if (notificationsApiFilter === 'unread') return [];
+        return prev.map((n) => ({ ...n, isRead: true }));
+      });
+      setNotificationsUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
   const [isSwitchingAccountType, setIsSwitchingAccountType] = useState(false);
   const [switchMessage, setSwitchMessage] = useState('');
   const [kycForm, setKycForm] = useState({
@@ -2110,6 +2235,7 @@ const Dashboard = () => {
                                      (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                      (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                      (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                     (item.label === 'Savings' && location.pathname === '/savings') ||
                                      (item.label === 'Trusticard' && location.pathname === '/trusticard') ||
                                      (item.label === 'Payroll' && location.pathname === '/payroll') ||
                                      (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
@@ -2124,6 +2250,8 @@ const Dashboard = () => {
                         navigate('/transactions');
                       } else if (item.label === 'Dispute') {
                         navigate('/dispute');
+                      } else if (item.label === 'Savings') {
+                        navigate('/savings');
                       } else if (item.label === 'Trusticard') {
                         navigate('/trusticard');
                       } else if (item.label === 'Payroll') {
@@ -3729,30 +3857,36 @@ const Dashboard = () => {
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
               const isDisabled = accountType === 'Business Suite' && !businessKycComplete;
-              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                               (item.label === 'Trusticard' && location.pathname === '/trusticard') ||
-                               (item.label === 'Payroll' && location.pathname === '/payroll') ||
-                               (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
+
+              const routeByLabel = {
+                Dashboard: '/dashboard',
+                'My Escrow': '/my-escrow',
+                Transactions: '/transactions',
+                Transaction: '/transactions',
+                Dispute: '/dispute',
+                Savings: '/savings',
+                Trusticard: '/trusticard',
+                Payroll: '/payroll',
+                'Supplier Contract': '/supplier-contract',
+              };
+
+              const targetPath = routeByLabel[item.label];
+
+              const isActive = (() => {
+                if (!targetPath) return false;
+                if (targetPath === '/dispute') {
+                  return location.pathname === '/dispute' || location.pathname.startsWith('/dispute/');
+                }
+                if (targetPath === '/payroll') {
+                  return location.pathname === '/payroll' || location.pathname.startsWith('/payroll/');
+                }
+                return location.pathname === targetPath;
+              })();
+
               const handleNavClick = () => {
                 if (isDisabled) return;
-                if (item.label === 'Dashboard') {
-                  navigate('/dashboard');
-                } else if (item.label === 'My Escrow') {
-                  navigate('/my-escrow');
-                } else if (item.label === 'Transactions') {
-                  navigate('/transactions');
-                } else if (item.label === 'Dispute') {
-                  navigate('/dispute');
-                } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
-                } else if (item.label === 'Payroll') {
-                  navigate('/payroll');
-                } else if (item.label === 'Supplier Contract') {
-                  navigate('/supplier-contract');
-                }
+                if (!targetPath) return;
+                navigate(targetPath);
               };
               return (
                 <button
@@ -4074,91 +4208,50 @@ const Dashboard = () => {
                   Unread
                 </button>
               </div>
-              <button type="button" className="notification-filter-icon">
+              <button
+                type="button"
+                className="notification-filter-icon"
+                onClick={handleMarkAllNotificationsRead}
+                disabled={isLoadingNotifications}
+              >
                 <Filter size={18} />
               </button>
             </div>
 
             <div className="notification-list">
-              <div className="notification-item unread">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                  <span className="notification-bell-dot"></span>
+              {Array.isArray(notifications) && notifications.length > 0 ? (
+                notifications.map((n) => {
+                  const isUnread = !n?.isRead;
+                  const { Icon, className } = getNotificationIconConfig(n?.type);
+                  const message = n?.message || n?.title || 'N/A';
+                  return (
+                    <div
+                      key={n?.id}
+                      className={`notification-item ${isUnread ? 'unread' : ''}`}
+                      onClick={() => {
+                        if (isUnread) handleMarkNotificationRead(n?.id);
+                      }}
+                    >
+                      <div className="notification-bell-icon">
+                        <Bell size={16} />
+                        {isUnread && <span className="notification-bell-dot"></span>}
+                      </div>
+                      <div className="notification-content">
+                        <div className="notification-message-wrapper">
+                          <Icon size={18} className={className} />
+                          <p className="notification-message">{message}</p>
+                        </div>
+                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
+                      </div>
+                      {isUnread && <div className="notification-unread-dot"></div>}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  N/A
                 </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <AlertTriangle size={18} className="notification-status-icon warning" />
-                    <p className="notification-message">Low stock for "Premium Sofa" (only 3K available, 5K required)</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-                <div className="notification-unread-dot"></div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <CheckCircle size={18} className="notification-status-icon success" />
-                    <p className="notification-message">Stock updated for "Sneakers" — now 8K available</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <div className="notification-bell-icon">
-                  <Bell size={16} />
-                </div>
-                <div className="notification-content">
-                  <div className="notification-message-wrapper">
-                    <Package size={18} className="notification-status-icon package" />
-                    <p className="notification-message">15K products shipped this month</p>
-                  </div>
-                  <span className="notification-time">2m ago</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

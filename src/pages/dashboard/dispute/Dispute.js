@@ -39,13 +39,24 @@ import {
   Copy,
   QrCode,
   Calendar,
-  Menu
+  Menu,
+  Plus,
+  CheckCircle,
+  FileText,
+  Download,
+  Clock,
+  Coins,
+  Upload,
+  PiggyBank
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
+import '../my-escrow/MyEscrow.css';
 import './Dispute.css';
+import './DisputeDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -55,7 +66,9 @@ const sidebarNav = [
   { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Savings', icon: PiggyBank, badge: null },
   { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
@@ -63,6 +76,71 @@ const supportNav = [
   { label: 'Settings', icon: Settings },
   { label: 'Security', icon: ShieldCheck }
 ];
+
+const MONTH_LABEL_TO_NUMBER = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12
+};
+
+const toNumberOrNull = (value) => {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const formatPercent = (value) => {
+  const num = toNumberOrNull(value);
+  if (num === null) return 'N/A';
+  const sign = num > 0 ? '+' : '';
+  return `${sign}${num}%`;
+};
+
+const formatXrpAmount = (value) => {
+  const num = toNumberOrNull(value);
+  if (num === null) return '—';
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(num);
+};
+
+const formatUsdAmount = (value) => {
+  const num = toNumberOrNull(value);
+  if (num === null) return '—';
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(num);
+};
+
+const formatDurationSeconds = (seconds) => {
+  const num = toNumberOrNull(seconds);
+  if (num === null) return 'N/A';
+  const abs = Math.abs(num);
+  const days = abs / 86400;
+  if (days >= 1) return `${Number(days.toFixed(1))} days`;
+  const hours = abs / 3600;
+  if (hours >= 1) return `${Number(hours.toFixed(1))} hrs`;
+  const minutes = abs / 60;
+  if (minutes >= 1) return `${Number(minutes.toFixed(1))} mins`;
+  return `${Number(abs.toFixed(1))} Sec`;
+};
+
+const titleCaseStatus = (status) => {
+  if (!status || typeof status !== 'string') return '—';
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};
+
+const monthLabelToYYYYMM = (monthLabel) => {
+  if (!monthLabel || typeof monthLabel !== 'string') return undefined;
+  const monthNumber = MONTH_LABEL_TO_NUMBER[monthLabel.trim().toLowerCase()];
+  if (!monthNumber) return undefined;
+  const year = new Date().getFullYear();
+  return `${year}-${String(monthNumber).padStart(2, '0')}`;
+};
 
 const Dispute = () => {
   const navigate = useNavigate();
@@ -82,7 +160,101 @@ const Dispute = () => {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState('November');
 
+  const [summaryMetrics, setSummaryMetrics] = useState({
+    totalDisputes: null,
+    activeDisputes: null,
+    resolvedDisputes: null,
+    avgResolutionTimeSeconds: null,
+    totalChangePercent: null,
+    activeChangePercent: null,
+    resolvedChangePercent: null,
+    avgResolutionTimeChangePercent: null
+  });
+
+  const [disputeData, setDisputeData] = useState([]);
+
+  const monthParam = useMemo(() => monthLabelToYYYYMM(selectedMonth), [selectedMonth]);
+  const statusParam = useMemo(() => {
+    const normalized = (selectedFilter || '').trim().toLowerCase();
+    if (!normalized || normalized === 'all') return 'all';
+    if (['pending', 'active', 'resolved', 'cancelled'].includes(normalized)) return normalized;
+    return 'all';
+  }, [selectedFilter]);
+
   const [formattedToday, setFormattedToday] = useState('');
+
+  // Dispute creation modal state
+  const [showCreateDisputeModal, setShowCreateDisputeModal] = useState(false);
+  const [disputeCurrentStep, setDisputeCurrentStep] = useState(1);
+  const [selectedDisputeType, setSelectedDisputeType] = useState('Freelancing');
+  const [disputeFormData, setDisputeFormData] = useState({
+    payerWallet: '',
+    payerEmail: '',
+    payerName: '',
+    payerPhone: '',
+    counterpartyWallet: '',
+    counterpartyEmail: '',
+    counterpartyName: '',
+    counterpartyPhone: ''
+  });
+
+  const [disputeTermsData, setDisputeTermsData] = useState({
+    disputeCategory: 'Quality Issue',
+    disputeReason: '',
+    disputeDescription: '',
+    amountInDispute: '',
+    disputeResolutionPeriod: '',
+    evidenceDescription: '',
+    expectedResolutionDate: ''
+  });
+
+  const [evidenceImages, setEvidenceImages] = useState([]);
+  const [isCreatingDispute, setIsCreatingDispute] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleEvidenceUpload = (files) => {
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+    const imageFiles = fileArray.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      const newImages = imageFiles.map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        name: file.name
+      }));
+      setEvidenceImages([...evidenceImages, ...newImages]);
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    handleEvidenceUpload(e.target.files);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleEvidenceUpload(files);
+    }
+  };
+
+  const removeEvidenceImage = (index) => {
+    const newImages = evidenceImages.filter((_, i) => i !== index);
+    // Revoke object URLs to prevent memory leaks
+    URL.revokeObjectURL(evidenceImages[index].preview);
+    setEvidenceImages(newImages);
+  };
 
   // Real-time date formatting - updates every minute
   useEffect(() => {
@@ -104,17 +276,125 @@ const Dispute = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Mock dispute data
-  const disputeData = Array.from({ length: 11 }, (_, i) => ({
-    id: `DSP-2024-${String(i + 1).padStart(3, '0')}`,
-    parties: { from: 'John Smith', to: 'Sarah Wilson' },
-    amount: { xrp: '5,000', usd: '$2,715.00' },
-    status: 'Pending',
-    reason: 'Logo design dispute',
-    duration: '1.5 days'
-  }));
+  // Cleanup evidence image URLs when modal closes
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount or when modal closes
+      evidenceImages.forEach(image => {
+        URL.revokeObjectURL(image.preview);
+      });
+    };
+  }, [evidenceImages]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!showCreateDisputeModal) {
+      setDisputeCurrentStep(1);
+    }
+  }, [showCreateDisputeModal]);
 
   const totalPages = 78;
+
+  // KPI fallback (unauthenticated / session expired)
+  useEffect(() => {
+    if (isSessionExpired) {
+      setSummaryMetrics({
+        totalDisputes: null,
+        activeDisputes: null,
+        resolvedDisputes: null,
+        avgResolutionTimeSeconds: null,
+        totalChangePercent: null,
+        activeChangePercent: null,
+        resolvedChangePercent: null,
+        avgResolutionTimeChangePercent: null
+      });
+    }
+  }, [isSessionExpired]);
+
+  // Dispute list fallback (unauthenticated / session expired)
+  useEffect(() => {
+    if (isSessionExpired) {
+      setDisputeData([]);
+    }
+  }, [isSessionExpired]);
+
+  // Fetch dispute summary (top cards)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSummary = async () => {
+      if (isSessionExpired) return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const data = await getDisputeSummary({ token, month: monthParam });
+        const metrics = data?.metrics;
+        if (!cancelled && metrics) {
+          setSummaryMetrics((prev) => ({ ...prev, ...metrics }));
+        }
+      } catch (error) {
+        console.error('Error fetching dispute summary:', error);
+      }
+    };
+
+    fetchSummary();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSessionExpired, monthParam]);
+
+  // Fetch disputes list (table)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchList = async () => {
+      if (isSessionExpired) return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const data = await getDisputes({
+          token,
+          status: statusParam,
+          month: monthParam,
+          page: currentPage,
+          pageSize: itemsPerPage
+        });
+
+        const disputes = Array.isArray(data?.disputes) ? data.disputes : [];
+        const mapped = disputes.map((d) => ({
+          id: (d?.caseId || '').replace(/^#/, '') || '—',
+          apiId: d?.id,
+          parties: {
+            from: d?.initiatorName || '—',
+            to: d?.respondentName || '—'
+          },
+          amount: {
+            xrp: formatXrpAmount(d?.amount?.xrp),
+            usd: formatUsdAmount(d?.amount?.usd)
+          },
+          status: titleCaseStatus(d?.status),
+          reason: d?.reason || '—',
+          duration: formatDurationSeconds(d?.durationSeconds)
+        }));
+
+        if (!cancelled) {
+          setDisputeData(mapped);
+        }
+      } catch (error) {
+        console.error('Error fetching disputes list:', error);
+        if (!cancelled) {
+          setDisputeData([]);
+        }
+      }
+    };
+
+    fetchList();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSessionExpired, monthParam, statusParam, currentPage, itemsPerPage]);
 
   // Fetch user profile
   useEffect(() => {
@@ -345,9 +625,9 @@ const Dispute = () => {
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
           <img src={logo} alt="TrustiChain" className="sidebar-logo" />
-          <div className="sidebar-brand-text">
-            <span className="sidebar-brand-name">TrustiChain</span>
-            <span className="sidebar-brand-tagline">Escrow Platform</span>
+          <div className="sidebar-branding-text">
+            <span className="sidebar-title">TrustiChain</span>
+            <span className="sidebar-tagline">Secure escrow platform</span>
           </div>
         </div>
 
@@ -360,8 +640,12 @@ const Dispute = () => {
                                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                               (item.label === 'Savings' && location.pathname === '/savings') ||
                                (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:466',message:'handleNavClick called',data:{itemLabel:item.label,currentPath:location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
                 } else if (item.label === 'My Escrow') {
@@ -370,6 +654,14 @@ const Dispute = () => {
                   navigate('/transactions');
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
+                } else if (item.label === 'Savings') {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:476',message:'Savings navigation triggered',data:{itemLabel:item.label,beforePath:location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                  // #endregion
+                  navigate('/savings');
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:479',message:'navigate called for Savings',data:{targetPath:'/savings'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                  // #endregion
                 } else if (item.label === 'Trusticard') {
                   navigate('/trusticard');
                 }
@@ -379,7 +671,12 @@ const Dispute = () => {
                   key={item.label}
                   type="button"
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={handleNavClick}
+                  onClick={(e) => {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:495',message:'Button onClick fired',data:{itemLabel:item.label,buttonType:e.type,currentPath:location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
+                    handleNavClick();
+                  }}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -482,6 +779,14 @@ const Dispute = () => {
             <span className="breadcrumb-current">Dashboard</span>
           </div>
 
+          {/* Header Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            <button type="button" className="create-escrow-btn" onClick={() => setShowCreateDisputeModal(true)}>
+              <Plus size={18} />
+              Create Dispute
+            </button>
+          </div>
+
           {/* Summary Cards */}
           <div className="dispute-summary-cards">
             <div className="dispute-summary-card">
@@ -491,10 +796,10 @@ const Dispute = () => {
                   <span className="dispute-card-title">Total Dispute</span>
                   <div className="dispute-card-change-badge positive">
                     <TrendingUp size={12} />
-                    <span>+2.4%</span>
+                    <span>{formatPercent(summaryMetrics.totalChangePercent)}</span>
                   </div>
                 </div>
-                <div className="dispute-card-value">32</div>
+                <div className="dispute-card-value">{summaryMetrics.totalDisputes ?? 'N/A'}</div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -509,10 +814,10 @@ const Dispute = () => {
                   <span className="dispute-card-title">Active Dispute</span>
                   <div className="dispute-card-change-badge positive">
                     <TrendingUp size={12} />
-                    <span>+2.4%</span>
+                    <span>{formatPercent(summaryMetrics.activeChangePercent)}</span>
                   </div>
                 </div>
-                <div className="dispute-card-value">32</div>
+                <div className="dispute-card-value">{summaryMetrics.activeDisputes ?? 'N/A'}</div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -527,10 +832,10 @@ const Dispute = () => {
                   <span className="dispute-card-title">Resolved Dispute</span>
                   <div className="dispute-card-change-badge positive">
                     <TrendingUp size={12} />
-                    <span>+2.4%</span>
+                    <span>{formatPercent(summaryMetrics.resolvedChangePercent)}</span>
                   </div>
                 </div>
-                <div className="dispute-card-value">32</div>
+                <div className="dispute-card-value">{summaryMetrics.resolvedDisputes ?? 'N/A'}</div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -544,7 +849,7 @@ const Dispute = () => {
                 <div className="dispute-card-title-row">
                   <span className="dispute-card-title">Avg Resolution Time</span>
                 </div>
-                <div className="dispute-card-value">3.2 Sec</div>
+                <div className="dispute-card-value">{formatDurationSeconds(summaryMetrics.avgResolutionTimeSeconds)}</div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -583,31 +888,37 @@ const Dispute = () => {
             </div>
 
             <div className="mobile-dispute-history-cards">
-              {disputeData.map((dispute, index) => (
-                <div 
-                  key={index} 
-                  className="mobile-dispute-history-card"
-                  onClick={() => navigate(`/dispute/${dispute.id.replace('DSP-2024-', '')}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="mobile-dispute-history-row">
-                    <div className="mobile-dispute-history-parties">
-                      <span className="mobile-dispute-party-from">{dispute.parties.from}</span>
-                      <ArrowRight size={14} className="mobile-dispute-party-arrow" />
-                      <span className="mobile-dispute-party-to">{dispute.parties.to}</span>
+              {Array.isArray(disputeData) && disputeData.length > 0 ? (
+                disputeData.map((dispute, index) => (
+                  <div 
+                    key={index} 
+                    className="mobile-dispute-history-card"
+                    onClick={() => navigate(`/dispute/${dispute.apiId || dispute.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="mobile-dispute-history-row">
+                      <div className="mobile-dispute-history-parties">
+                        <span className="mobile-dispute-party-from">{dispute.parties.from}</span>
+                        <ArrowRight size={14} className="mobile-dispute-party-arrow" />
+                        <span className="mobile-dispute-party-to">{dispute.parties.to}</span>
+                      </div>
+                      <div className="mobile-dispute-history-amount">
+                        {dispute.amount.xrp} XRP ≈ {dispute.amount.usd}
+                      </div>
                     </div>
-                    <div className="mobile-dispute-history-amount">
-                      {dispute.amount.xrp} XRP ≈ {dispute.amount.usd}
+                    <div className="mobile-dispute-history-row">
+                      <div className="mobile-dispute-history-reason">{dispute.reason}</div>
+                      <span className={`mobile-dispute-status mobile-dispute-status-${dispute.status.toLowerCase()}`}>
+                        {dispute.status}
+                      </span>
                     </div>
                   </div>
-                  <div className="mobile-dispute-history-row">
-                    <div className="mobile-dispute-history-reason">{dispute.reason}</div>
-                    <span className={`mobile-dispute-status mobile-dispute-status-${dispute.status.toLowerCase()}`}>
-                      {dispute.status}
-                    </span>
-                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  N/A
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -623,34 +934,40 @@ const Dispute = () => {
               <div className="dispute-table-cell">Duration</div>
             </div>
             {/* Data Rows */}
-            {disputeData.map((dispute, index) => (
-              <div key={index} className="dispute-table-row">
-                <div className="dispute-table-cell dispute-case-id">#{dispute.id}</div>
-                <div className="dispute-table-cell dispute-parties">
-                  <span className="party-link">{dispute.parties.from}</span>
-                  <ArrowRight size={14} className="party-arrow" />
-                  <span>{dispute.parties.to}</span>
+            {Array.isArray(disputeData) && disputeData.length > 0 ? (
+              disputeData.map((dispute, index) => (
+                <div key={index} className="dispute-table-row">
+                  <div className="dispute-table-cell dispute-case-id">#{dispute.id}</div>
+                  <div className="dispute-table-cell dispute-parties">
+                    <span className="party-link">{dispute.parties.from}</span>
+                    <ArrowRight size={14} className="party-arrow" />
+                    <span>{dispute.parties.to}</span>
+                  </div>
+                  <div className="dispute-table-cell dispute-amount">
+                    <div className="amount-primary">{dispute.amount.xrp} XRP</div>
+                    <div className="amount-secondary">≈ {dispute.amount.usd}</div>
+                  </div>
+                  <div className="dispute-table-cell">
+                    <span className="dispute-status pending">{dispute.status}</span>
+                  </div>
+                  <div className="dispute-table-cell dispute-reason">{dispute.reason}</div>
+                  <div className="dispute-table-cell dispute-duration">
+                    <span>{dispute.duration}</span>
+                    <button 
+                      type="button" 
+                      className="dispute-action-btn"
+                      onClick={() => navigate(`/dispute/${dispute.apiId || dispute.id}`)}
+                    >
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="dispute-table-cell dispute-amount">
-                  <div className="amount-primary">{dispute.amount.xrp} XRP</div>
-                  <div className="amount-secondary">≈ {dispute.amount.usd}</div>
-                </div>
-                <div className="dispute-table-cell">
-                  <span className="dispute-status pending">{dispute.status}</span>
-                </div>
-                <div className="dispute-table-cell dispute-reason">{dispute.reason}</div>
-                <div className="dispute-table-cell dispute-duration">
-                  <span>{dispute.duration}</span>
-                  <button 
-                    type="button" 
-                    className="dispute-action-btn"
-                    onClick={() => navigate(`/dispute/${dispute.id.replace('#', '')}`)}
-                  >
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                N/A
               </div>
-            ))}
+            )}
           </div>
 
           {/* Pagination */}
@@ -705,6 +1022,603 @@ const Dispute = () => {
         </div>
       </main>
     </div>
+
+      {/* Create Dispute Modal */}
+      {showCreateDisputeModal && (
+        <div className="create-escrow-modal-overlay" onClick={() => setShowCreateDisputeModal(false)}>
+          <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header - Mobile with back icon */}
+            <div className="create-escrow-modal-header">
+              <div className="modal-header-back-icon"></div>
+              <h2>Create Dispute</h2>
+              <button type="button" className="modal-close-btn" onClick={() => setShowCreateDisputeModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Step Indicator - Mobile Card Style */}
+            <div className="create-escrow-steps-mobile">
+              {disputeCurrentStep === 1 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <CreditCard size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 1/3</span>
+                    <span className="step-title-mobile">Type/ Counterparty</span>
+                  </div>
+                </div>
+              )}
+              {disputeCurrentStep === 2 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <FileText size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 2/3</span>
+                    <span className="step-title-mobile">Terms</span>
+                  </div>
+                </div>
+              )}
+              {disputeCurrentStep === 3 && (
+                <div className="step-indicator-mobile active">
+                  <div className="step-icon-mobile">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div className="step-content-mobile">
+                    <span className="step-number-mobile">Step 3/3</span>
+                    <span className="step-title-mobile">Confirmation</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step Indicator - Desktop with vertical divider */}
+            <div className="create-escrow-steps">
+              <div className={`step-indicator ${disputeCurrentStep === 1 ? 'active' : disputeCurrentStep > 1 ? 'completed' : ''}`}>
+                <div className="step-icon">
+                  {disputeCurrentStep > 1 ? <CheckCircle size={20} /> : <CreditCard size={20} />}
+                </div>
+                <div className="step-content">
+                  <span className="step-number">Step 1/3</span>
+                  <span className="step-title">Type/ Counterparty</span>
+                </div>
+              </div>
+              <div className="step-divider"></div>
+              <div className={`step-indicator ${disputeCurrentStep === 2 ? 'active' : disputeCurrentStep > 2 ? 'completed' : ''}`}>
+                <div className="step-icon">
+                  {disputeCurrentStep > 2 ? <CheckCircle size={20} /> : <FileText size={20} />}
+                </div>
+                <div className="step-content">
+                  <span className="step-number">Step 2/3</span>
+                  <span className="step-title">Terms</span>
+                </div>
+              </div>
+              <div className="step-divider"></div>
+              <div className={`step-indicator ${disputeCurrentStep === 3 ? 'active' : ''}`}>
+                <div className="step-icon">
+                  <CheckCircle size={20} />
+                </div>
+                <div className="step-content">
+                  <span className="step-number">Step 3/3</span>
+                  <span className="step-title">Confirmation</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="create-escrow-modal-content">
+              {disputeCurrentStep === 1 && (
+                <>
+                  {/* Dispute Type Section - Horizontal buttons */}
+                  <div className="escrow-form-section">
+                    <h3 className="section-title">Dispute Type</h3>
+                    <div className="escrow-type-buttons">
+                      <button
+                        type="button"
+                        className={`escrow-type-btn ${selectedDisputeType === 'Freelancing' ? 'active' : ''}`}
+                        onClick={() => setSelectedDisputeType('Freelancing')}
+                      >
+                        {selectedDisputeType === 'Freelancing' && <CheckCircle size={18} />}
+                        {selectedDisputeType !== 'Freelancing' && <Plus size={18} />}
+                        Freelancing
+                      </button>
+                      <button
+                        type="button"
+                        className={`escrow-type-btn ${selectedDisputeType === 'Real Estate' ? 'active' : ''}`}
+                        onClick={() => setSelectedDisputeType('Real Estate')}
+                      >
+                        {selectedDisputeType === 'Real Estate' ? <CheckCircle size={18} /> : <Plus size={18} />}
+                        Real Estate
+                      </button>
+                      <button
+                        type="button"
+                        className={`escrow-type-btn ${selectedDisputeType === 'Product purchase' ? 'active' : ''}`}
+                        onClick={() => setSelectedDisputeType('Product purchase')}
+                      >
+                        {selectedDisputeType === 'Product purchase' ? <CheckCircle size={18} /> : <Plus size={18} />}
+                        Product purchase
+                      </button>
+                      <button
+                        type="button"
+                        className={`escrow-type-btn ${selectedDisputeType === 'Custom' ? 'active' : ''}`}
+                        onClick={() => setSelectedDisputeType('Custom')}
+                      >
+                        {selectedDisputeType === 'Custom' ? <CheckCircle size={18} /> : <Plus size={18} />}
+                        Custom
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Dispute Counterparty Section */}
+                  <div className="escrow-form-section">
+                    <h3 className="section-title">Dispute Counterparty</h3>
+                    <div className="counterparty-form-grid">
+                      {/* Left Column - Payer's Information */}
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Payers (You) XRP Wallet Address <span className="required">*</span></label>
+                          <input
+                            type="text"
+                            placeholder="••••••••••••••••"
+                            value={disputeFormData.payerWallet}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerWallet: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Your Email</label>
+                          <input
+                            type="email"
+                            placeholder="Enter your Email"
+                            value={disputeFormData.payerEmail}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerEmail: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Counterparty XRP Wallet Address <span className="required">*</span></label>
+                          <input
+                            type="text"
+                            placeholder="••••••••••••••••"
+                            value={disputeFormData.counterpartyWallet}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyWallet: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Email</label>
+                          <input
+                            type="email"
+                            placeholder="Enter your Email"
+                            value={disputeFormData.counterpartyEmail}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyEmail: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Right Column - Names and Phone Numbers */}
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Your Name</label>
+                          <input
+                            type="text"
+                            placeholder="Enter your name"
+                            value={disputeFormData.payerName}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerName: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Your Phone Number</label>
+                          <input
+                            type="tel"
+                            placeholder="Enter your Number"
+                            value={disputeFormData.payerPhone}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerPhone: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Name</label>
+                          <input
+                            type="text"
+                            placeholder="Enter your name"
+                            value={disputeFormData.counterpartyName}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyName: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Phone Number</label>
+                          <input
+                            type="tel"
+                            placeholder="Enter your Number"
+                            value={disputeFormData.counterpartyPhone}
+                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyPhone: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {disputeCurrentStep === 2 && (
+                <>
+                  {/* Dispute Details Section */}
+                  <div className="escrow-form-section">
+                    <h3 className="section-title">Dispute Details</h3>
+                    
+                    {/* Dispute Category Buttons */}
+                    <div className="release-type-buttons">
+                      <button
+                        type="button"
+                        className={`release-type-btn ${disputeTermsData.disputeCategory === 'Quality Issue' ? 'active' : ''}`}
+                        onClick={() => setDisputeTermsData({ ...disputeTermsData, disputeCategory: 'Quality Issue' })}
+                      >
+                        <FileCheck size={18} />
+                        Quality Issue
+                      </button>
+                      <button
+                        type="button"
+                        className={`release-type-btn ${disputeTermsData.disputeCategory === 'Delivery Delay' ? 'active' : ''}`}
+                        onClick={() => setDisputeTermsData({ ...disputeTermsData, disputeCategory: 'Delivery Delay' })}
+                      >
+                        <Clock size={18} />
+                        Delivery Delay
+                      </button>
+                      <button
+                        type="button"
+                        className={`release-type-btn ${disputeTermsData.disputeCategory === 'Payment Dispute' ? 'active' : ''}`}
+                        onClick={() => setDisputeTermsData({ ...disputeTermsData, disputeCategory: 'Payment Dispute' })}
+                      >
+                        <DollarSign size={18} />
+                        Payment Dispute
+                      </button>
+                    </div>
+
+                    {/* Dispute Form Fields */}
+                    <div className="terms-form-grid">
+                      <div className="form-group">
+                        <label>Dispute Reason <span className="required">*</span></label>
+                        <input
+                          type="text"
+                          placeholder="Enter dispute reason"
+                          value={disputeTermsData.disputeReason}
+                          onChange={(e) => setDisputeTermsData({ ...disputeTermsData, disputeReason: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Amount in Dispute <span className="required">*</span></label>
+                        <input
+                          type="text"
+                          placeholder="Enter amount"
+                          value={disputeTermsData.amountInDispute}
+                          onChange={(e) => setDisputeTermsData({ ...disputeTermsData, amountInDispute: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Dispute Resolution Period</label>
+                        <div className="select-input-wrapper">
+                          <select
+                            value={disputeTermsData.disputeResolutionPeriod}
+                            onChange={(e) => setDisputeTermsData({ ...disputeTermsData, disputeResolutionPeriod: e.target.value })}
+                          >
+                            <option value="">Select</option>
+                            <option value="7">7 days</option>
+                            <option value="14">14 days</option>
+                            <option value="30">30 days</option>
+                          </select>
+                          <ChevronDown size={16} className="input-icon" />
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Expected Resolution Date</label>
+                        <div className="date-input-wrapper">
+                          <input
+                            type="text"
+                            placeholder="Add Date"
+                            value={disputeTermsData.expectedResolutionDate}
+                            onChange={(e) => setDisputeTermsData({ ...disputeTermsData, expectedResolutionDate: e.target.value })}
+                          />
+                          <Calendar size={18} className="input-icon" />
+                        </div>
+                      </div>
+
+                      <div className="form-group form-group-full">
+                        <label>Dispute Description <span className="required">*</span></label>
+                        <textarea
+                          placeholder="Describe the dispute in detail"
+                          value={disputeTermsData.disputeDescription}
+                          onChange={(e) => setDisputeTermsData({ ...disputeTermsData, disputeDescription: e.target.value })}
+                          rows={4}
+                        ></textarea>
+                      </div>
+
+                      <div className="form-group form-group-full">
+                        <label>Evidence/Supporting Documents</label>
+                        <div 
+                          className={`evidence-upload-area ${isDragging ? 'dragging' : ''}`}
+                          onClick={() => document.getElementById('evidence-upload-input').click()}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                        >
+                          <Upload size={32} className="upload-icon" />
+                          <p className="upload-placeholder">Drop or import your img here...</p>
+                          <input
+                            type="file"
+                            id="evidence-upload-input"
+                            accept="image/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={handleFileInputChange}
+                          />
+                        </div>
+                        {evidenceImages.length > 0 && (
+                          <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            {evidenceImages.map((image, index) => (
+                              <div key={index} style={{ position: 'relative', width: '100px', height: '100px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                <img 
+                                  src={image.preview} 
+                                  alt={image.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeEvidenceImage(index);
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '4px',
+                                    right: '4px',
+                                    background: 'rgba(0, 0, 0, 0.6)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    color: 'white'
+                                  }}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {disputeCurrentStep === 3 && (
+                <>
+                  {/* Dispute Type and Category Section - Side by Side */}
+                  <div className="escrow-form-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    {/* Dispute Type Section */}
+                    <div>
+                      <h3 className="section-title">Dispute Type</h3>
+                      <div className="escrow-type-buttons">
+                        <button
+                          type="button"
+                          className="escrow-type-btn active"
+                          disabled
+                        >
+                          <CheckCircle size={18} />
+                          {selectedDisputeType}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dispute Category Section */}
+                    <div>
+                      <h3 className="section-title">Dispute Category</h3>
+                      <div className="release-type-buttons">
+                        <button
+                          type="button"
+                          className="release-type-btn active"
+                          disabled
+                        >
+                        {disputeTermsData.disputeCategory === 'Quality Issue' && <FileCheck size={18} />}
+                        {disputeTermsData.disputeCategory === 'Delivery Delay' && <Clock size={18} />}
+                        {disputeTermsData.disputeCategory === 'Payment Dispute' && <DollarSign size={18} />}
+                        {disputeTermsData.disputeCategory}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                  {/* Dispute Counterparty Section */}
+                  <div className="escrow-form-section" style={{ marginTop: 0 }}>
+                    <h3 className="section-title">Dispute Counterparty</h3>
+                    <div className="counterparty-form-grid">
+                      {/* Left Column - Counterparty Information */}
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Counterparty XRP Wallet Address <span className="required">*</span></label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {disputeFormData.counterpartyWallet || '—'}
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Email</label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {disputeFormData.counterpartyEmail || '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Column - Names and Phone Numbers */}
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Name</label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {disputeFormData.counterpartyName || '—'}
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Phone Number</label>
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            {disputeFormData.counterpartyPhone || '—'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dispute Details Section */}
+                  <div className="escrow-form-section">
+                    <h3 className="section-title">Dispute Details</h3>
+                    <div className="terms-form-grid">
+                      <div className="form-group">
+                        <label>Dispute Reason</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {disputeTermsData.disputeReason || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Amount in Dispute</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {disputeTermsData.amountInDispute ? `${disputeTermsData.amountInDispute} XRP` : '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Dispute Resolution Period</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {disputeTermsData.disputeResolutionPeriod ? `${disputeTermsData.disputeResolutionPeriod} days` : '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Expected Resolution Date</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {disputeTermsData.expectedResolutionDate || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group form-group-full">
+                        <label>Dispute Description</label>
+                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                          {disputeTermsData.disputeDescription || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group form-group-full">
+                        <label>Evidence/Supporting Documents</label>
+                        {evidenceImages.length > 0 ? (
+                          <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            {evidenceImages.map((image, index) => (
+                              <div key={index} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                <img 
+                                  src={image.preview} 
+                                  alt={image.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                            No images uploaded
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            {disputeCurrentStep === 1 && (
+              <div className="create-escrow-modal-footer">
+                <button
+                  type="button"
+                  className="submit-next-btn"
+                  onClick={() => setDisputeCurrentStep(2)}
+                >
+                  <div className="submit-btn-icon-circle">
+                    <ArrowRight size={16} />
+                  </div>
+                  <span>Submit and Next</span>
+                </button>
+              </div>
+            )}
+
+            {disputeCurrentStep === 2 && (
+              <div className="create-escrow-modal-footer">
+                <button
+                  type="button"
+                  className="previous-btn"
+                  onClick={() => setDisputeCurrentStep(1)}
+                >
+                  <div className="previous-btn-icon-circle">
+                    <ArrowLeft size={16} />
+                  </div>
+                  <span>Previous</span>
+                </button>
+                <button
+                  type="button"
+                  className="submit-next-btn"
+                  onClick={() => setDisputeCurrentStep(3)}
+                >
+                  <div className="submit-btn-icon-circle">
+                    <ArrowRight size={16} />
+                  </div>
+                  <span>Submit and Next</span>
+                </button>
+              </div>
+            )}
+
+            {disputeCurrentStep === 3 && (
+              <div className="create-escrow-modal-footer">
+                <button
+                  type="button"
+                  className="previous-btn"
+                  onClick={() => setDisputeCurrentStep(2)}
+                >
+                  <div className="previous-btn-icon-circle">
+                    <ArrowLeft size={16} />
+                  </div>
+                  <span>Previous</span>
+                </button>
+                <button
+                  type="button"
+                  className="submit-next-btn"
+                  onClick={() => {
+                    // Handle create dispute logic here
+                    setIsCreatingDispute(true);
+                    // TODO: Add API call to create dispute
+                    setTimeout(() => {
+                      setIsCreatingDispute(false);
+                      setShowCreateDisputeModal(false);
+                      setDisputeCurrentStep(1);
+                      toast.success('Dispute created successfully');
+                    }, 1000);
+                  }}
+                  disabled={isCreatingDispute}
+                >
+                  <div className="submit-btn-icon-circle">
+                    {isCreatingDispute ? (
+                      <div className="loading-spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }}></div>
+                    ) : (
+                      <CheckCircle size={16} />
+                    )}
+                  </div>
+                  <span>{isCreatingDispute ? 'Creating...' : 'Confirm'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
