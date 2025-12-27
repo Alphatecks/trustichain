@@ -900,7 +900,7 @@ const MyEscrow = () => {
       setIsCreatingEscrow(true);
       
       // Validate required fields
-      if (!formData.payerWallet || !formData.counterpartyWallet) {
+      if (!formData.counterpartyWallet) {
         toast.error('Please fill in all required fields');
         setIsCreatingEscrow(false);
         return;
@@ -944,7 +944,6 @@ const MyEscrow = () => {
 
       // Build base payload with common fields
       const payload = {
-        payerXrpWalletAddress: formData.payerWallet,
         counterpartyXrpWalletAddress: formData.counterpartyWallet,
         amount: parseFloat(termsData.totalAmount),
         currency: 'XRP',
@@ -1596,9 +1595,9 @@ const MyEscrow = () => {
           </div>
         )}
         {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow, index) => {
-          // Format escrow ID
-          const escrowId = escrow.id || escrow.xrplEscrowId || '';
-          const formattedId = escrowId ? `#${escrowId.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
+          // Use id from API response (UUID), fallback to escrowId or xrplEscrowId
+          const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
+          const formattedId = escrowId || '#ESC-N/A';
           
           // Get parties
           const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
@@ -1669,9 +1668,9 @@ const MyEscrow = () => {
               </tr>
             )}
             {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow, index) => {
-              // Format escrow ID
-              const escrowId = escrow.id || escrow.xrplEscrowId || '';
-              const formattedId = escrowId ? `#${escrowId.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
+              // Use id from API response (UUID), fallback to escrowId or xrplEscrowId
+              const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
+              const formattedId = escrowId || '#ESC-N/A';
               
               // Get parties
               const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
@@ -2002,15 +2001,6 @@ const MyEscrow = () => {
                     <div className="counterparty-form-grid">
                       {/* Left Column - Payer's Information */}
                       <div className="form-column">
-                        <div className="form-group">
-                          <label>Payers (You) XRP Wallet Address <span className="required">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="••••••••••••••••"
-                            value={formData.payerWallet}
-                            onChange={(e) => setFormData({ ...formData, payerWallet: e.target.value })}
-                          />
-                        </div>
                         <div className="form-group">
                           <label>Your Email</label>
                           <input
@@ -2826,9 +2816,9 @@ const MyEscrow = () => {
                     </tr>
                   )}
                   {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow, index) => {
-                    // Format escrow ID
-                    const escrowId = escrow.id || escrow.xrplEscrowId || '';
-                    const formattedId = escrowId ? `#${escrowId.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
+                    // Use id from API response (UUID), fallback to escrowId or xrplEscrowId
+                    const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
+                    const formattedId = escrowId || '#ESC-N/A';
                     
                     // Get parties
                     const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
@@ -3156,15 +3146,6 @@ const MyEscrow = () => {
                     <div className="counterparty-form-grid">
                       {/* Left Column - Payer's Information */}
                       <div className="form-column">
-                        <div className="form-group">
-                          <label>Payers (You) XRP Wallet Address <span className="required">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="••••••••••••••••"
-                            value={formData.payerWallet}
-                            onChange={(e) => setFormData({ ...formData, payerWallet: e.target.value })}
-                          />
-                        </div>
                         <div className="form-group">
                           <label>Your Email</label>
                           <input

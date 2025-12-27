@@ -19,19 +19,75 @@ export const Web3Provider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [chainId, setChainId] = useState(null);
 
-  const connectWallet = async () => {
+  const connectWallet = async (walletType = 'metamask') => {
     try {
-      if (!window.ethereum) {
-        toast.error('Please install MetaMask!');
+      let ethereumProvider = null;
+      let walletName = 'Wallet';
+
+      // Determine which provider to use based on wallet type
+      if (walletType === 'walletconnect') {
+        // WalletConnect would require additional setup
+        // For now, fall back to injected if available
+        if (window.ethereum) {
+          ethereumProvider = window.ethereum;
+          walletName = 'WalletConnect';
+        } else {
+          toast.error('WalletConnect requires a browser wallet. Please install a wallet extension.');
+          return;
+        }
+      } else if (walletType === 'coinbase') {
+        if (window.ethereum && window.ethereum.isCoinbaseWallet) {
+          ethereumProvider = window.ethereum;
+          walletName = 'Coinbase Wallet';
+        } else if (window.coinbaseWalletExtension) {
+          ethereumProvider = window.coinbaseWalletExtension;
+          walletName = 'Coinbase Wallet';
+        } else {
+          toast.error('Please install Coinbase Wallet extension!');
+          return;
+        }
+      } else if (walletType === 'trust') {
+        if (window.ethereum && window.ethereum.isTrust) {
+          ethereumProvider = window.ethereum;
+          walletName = 'Trust Wallet';
+        } else {
+          toast.error('Please install Trust Wallet extension!');
+          return;
+        }
+      } else if (walletType === 'metamask') {
+        if (window.ethereum && window.ethereum.isMetaMask) {
+          ethereumProvider = window.ethereum;
+          walletName = 'MetaMask';
+        } else if (window.ethereum) {
+          // Fallback to generic injected if MetaMask not detected but ethereum exists
+          ethereumProvider = window.ethereum;
+          walletName = 'Browser Wallet';
+        } else {
+          toast.error('Please install MetaMask!');
+          return;
+        }
+      } else if (walletType === 'injected') {
+        // Generic injected wallet
+        if (window.ethereum) {
+          ethereumProvider = window.ethereum;
+          walletName = 'Browser Wallet';
+        } else {
+          toast.error('No wallet extension detected!');
+          return;
+        }
+      }
+
+      if (!ethereumProvider) {
+        toast.error('No wallet provider found!');
         return;
       }
 
-      const accounts = await window.ethereum.request({
+      const accounts = await ethereumProvider.request({
         method: 'eth_requestAccounts',
       });
 
       if (accounts.length > 0) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const provider = new ethers.providers.Web3Provider(ethereumProvider);
         const signer = provider.getSigner();
         const network = await provider.getNetwork();
 
@@ -41,11 +97,15 @@ export const Web3Provider = ({ children }) => {
         setIsConnected(true);
         setChainId(network.chainId);
 
-        toast.success('Wallet connected successfully!');
+        toast.success(`${walletName} connected successfully!`);
       }
     } catch (error) {
       console.error('Error connecting wallet:', error);
-      toast.error('Failed to connect wallet');
+      if (error.code === 4001) {
+        toast.error('Connection rejected by user');
+      } else {
+        toast.error('Failed to connect wallet');
+      }
     }
   };
 

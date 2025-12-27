@@ -7,3 +7,17 @@
 .main-content {
   flex: 1;
 }
+
+/* Grayscale loading state for sections waiting for API data */
+.section-loading {
+  filter: grayscale(100%);
+  opacity: 0.6;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.section-loaded {
+  filter: grayscale(0%);
+  opacity: 1;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}

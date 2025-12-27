@@ -188,6 +188,7 @@ const Dispute = () => {
   const [disputeCurrentStep, setDisputeCurrentStep] = useState(1);
   const [selectedDisputeType, setSelectedDisputeType] = useState('Freelancing');
   const [disputeFormData, setDisputeFormData] = useState({
+    escrowId: '',
     payerWallet: '',
     payerEmail: '',
     payerName: '',
@@ -203,6 +204,7 @@ const Dispute = () => {
     disputeReason: '',
     disputeDescription: '',
     amountInDispute: '',
+    currency: 'XRP',
     disputeResolutionPeriod: '',
     evidenceDescription: '',
     expectedResolutionDate: ''
@@ -214,15 +216,15 @@ const Dispute = () => {
 
   const handleEvidenceUpload = (files) => {
     const fileArray = Array.isArray(files) ? files : Array.from(files);
-    const imageFiles = fileArray.filter(file => file.type.startsWith('image/'));
     
-    if (imageFiles.length > 0) {
-      const newImages = imageFiles.map(file => ({
+    if (fileArray.length > 0) {
+      const newFiles = fileArray.map(file => ({
         file,
-        preview: URL.createObjectURL(file),
-        name: file.name
+        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+        name: file.name,
+        type: file.type
       }));
-      setEvidenceImages([...evidenceImages, ...newImages]);
+      setEvidenceImages([...evidenceImages, ...newFiles]);
     }
   };
 
@@ -252,8 +254,73 @@ const Dispute = () => {
   const removeEvidenceImage = (index) => {
     const newImages = evidenceImages.filter((_, i) => i !== index);
     // Revoke object URLs to prevent memory leaks
-    URL.revokeObjectURL(evidenceImages[index].preview);
+    if (evidenceImages[index]?.preview) {
+      URL.revokeObjectURL(evidenceImages[index].preview);
+    }
     setEvidenceImages(newImages);
+  };
+
+  // Field mapping functions for API
+  const mapDisputeCategory = (uiValue) => {
+    const mapping = {
+      'Freelancing': 'freelancing',
+      'Real Estate': 'real_estate',
+      'Product purchase': 'product_purchase',
+      'Custom': 'custom'
+    };
+    return mapping[uiValue] || 'custom';
+  };
+
+  const mapDisputeReasonType = (uiValue) => {
+    const mapping = {
+      'Quality Issue': 'quality_issue',
+      'Delivery Delay': 'delivery_delay',
+      'Payment Dispute': 'payment_dispute'
+    };
+    return mapping[uiValue] || 'quality_issue';
+  };
+
+  const formatResolutionPeriod = (value) => {
+    if (!value) return undefined;
+    return `${value} days`;
+  };
+
+  // File upload utility
+  const uploadEvidenceFile = async (file) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(getApiUrl('api/disputes/evidence/upload'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || result.error || 'Failed to upload file');
+      }
+
+      // Return the file data in the format expected by the API
+      return {
+        fileUrl: result.data?.fileUrl || result.data?.url || result.fileUrl,
+        fileName: result.data?.fileName || file.name,
+        fileType: result.data?.fileType || file.type,
+        fileSize: result.data?.fileSize || file.size
+      };
+    } catch (error) {
+      console.error('Error uploading evidence file:', error);
+      throw error;
+    }
   };
 
   // Real-time date formatting - updates every minute
@@ -286,10 +353,81 @@ const Dispute = () => {
     };
   }, [evidenceImages]);
 
+  // Validation functions
+  const validateStep1 = () => {
+    if (!disputeFormData.escrowId || disputeFormData.escrowId.trim() === '') {
+      toast.error('Escrow ID is required');
+      return false;
+    }
+    if (!disputeFormData.payerWallet || disputeFormData.payerWallet.trim() === '') {
+      toast.error('Payer XRP Wallet Address is required');
+      return false;
+    }
+    if (!disputeFormData.counterpartyWallet || disputeFormData.counterpartyWallet.trim() === '') {
+      toast.error('Counterparty XRP Wallet Address is required');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!disputeTermsData.disputeReason || disputeTermsData.disputeReason.trim() === '') {
+      toast.error('Dispute Reason is required');
+      return false;
+    }
+    if (!disputeTermsData.amountInDispute || parseFloat(disputeTermsData.amountInDispute) <= 0) {
+      toast.error('Amount in Dispute must be greater than 0');
+      return false;
+    }
+    if (!disputeTermsData.disputeDescription || disputeTermsData.disputeDescription.trim() === '') {
+      toast.error('Dispute Description is required');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = () => {
+    // Final validation - check all required fields
+    if (!validateStep1() || !validateStep2()) {
+      return false;
+    }
+    return true;
+  };
+
+
   // Reset form when modal closes
   useEffect(() => {
     if (!showCreateDisputeModal) {
       setDisputeCurrentStep(1);
+      setSelectedDisputeType('Freelancing');
+      setDisputeFormData({
+        escrowId: '',
+        payerWallet: '',
+        payerEmail: '',
+        payerName: '',
+        payerPhone: '',
+        counterpartyWallet: '',
+        counterpartyEmail: '',
+        counterpartyName: '',
+        counterpartyPhone: ''
+      });
+      setDisputeTermsData({
+        disputeCategory: 'Quality Issue',
+        disputeReason: '',
+        disputeDescription: '',
+        amountInDispute: '',
+        currency: 'XRP',
+        disputeResolutionPeriod: '',
+        evidenceDescription: '',
+        expectedResolutionDate: ''
+      });
+      // Cleanup evidence images
+      setEvidenceImages(prevImages => {
+        prevImages.forEach(image => {
+          URL.revokeObjectURL(image.preview);
+        });
+        return [];
+      });
     }
   }, [showCreateDisputeModal]);
 
@@ -1150,6 +1288,20 @@ const Dispute = () => {
                     </div>
                   </div>
 
+                  {/* Escrow ID Section */}
+                  <div className="escrow-form-section">
+                    <h3 className="section-title">Escrow ID</h3>
+                    <div className="form-group">
+                      <label>Escrow ID <span className="required">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="Enter escrow ID"
+                        value={disputeFormData.escrowId}
+                        onChange={(e) => setDisputeFormData({ ...disputeFormData, escrowId: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
                   {/* Dispute Counterparty Section */}
                   <div className="escrow-form-section">
                     <h3 className="section-title">Dispute Counterparty</h3>
@@ -1343,11 +1495,11 @@ const Dispute = () => {
                           onDrop={handleDrop}
                         >
                           <Upload size={32} className="upload-icon" />
-                          <p className="upload-placeholder">Drop or import your img here...</p>
+                          <p className="upload-placeholder">Drop or import your files here...</p>
                           <input
                             type="file"
                             id="evidence-upload-input"
-                            accept="image/*"
+                            accept="*/*"
                             multiple
                             style={{ display: 'none' }}
                             onChange={handleFileInputChange}
@@ -1356,12 +1508,21 @@ const Dispute = () => {
                         {evidenceImages.length > 0 && (
                           <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                             {evidenceImages.map((image, index) => (
-                              <div key={index} style={{ position: 'relative', width: '100px', height: '100px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                <img 
-                                  src={image.preview} 
-                                  alt={image.name}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
+                              <div key={index} style={{ position: 'relative', width: '100px', height: '100px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gray-50, #f9fafb)' }}>
+                                {image.preview ? (
+                                  <img 
+                                    src={image.preview} 
+                                    alt={image.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  />
+                                ) : (
+                                  <div style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                    <FileText size={24} color="var(--text-muted, #666)" />
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)', marginTop: '0.25rem', wordBreak: 'break-word' }}>
+                                      {image.name.length > 15 ? image.name.substring(0, 12) + '...' : image.name}
+                                    </div>
+                                  </div>
+                                )}
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -1515,18 +1676,27 @@ const Dispute = () => {
                         {evidenceImages.length > 0 ? (
                           <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                             {evidenceImages.map((image, index) => (
-                              <div key={index} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                <img 
-                                  src={image.preview} 
-                                  alt={image.name}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
+                              <div key={index} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gray-50, #f9fafb)' }}>
+                                {image.preview ? (
+                                  <img 
+                                    src={image.preview} 
+                                    alt={image.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  />
+                                ) : (
+                                  <div style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                    <FileText size={20} color="var(--text-muted, #666)" />
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted, #666)', marginTop: '0.25rem', wordBreak: 'break-word' }}>
+                                      {image.name.length > 12 ? image.name.substring(0, 10) + '...' : image.name}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         ) : (
                           <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                            No images uploaded
+                            No files uploaded
                           </div>
                         )}
                       </div>
@@ -1542,7 +1712,11 @@ const Dispute = () => {
                 <button
                   type="button"
                   className="submit-next-btn"
-                  onClick={() => setDisputeCurrentStep(2)}
+                  onClick={() => {
+                    if (validateStep1()) {
+                      setDisputeCurrentStep(2);
+                    }
+                  }}
                 >
                   <div className="submit-btn-icon-circle">
                     <ArrowRight size={16} />
@@ -1567,7 +1741,11 @@ const Dispute = () => {
                 <button
                   type="button"
                   className="submit-next-btn"
-                  onClick={() => setDisputeCurrentStep(3)}
+                  onClick={() => {
+                    if (validateStep2()) {
+                      setDisputeCurrentStep(3);
+                    }
+                  }}
                 >
                   <div className="submit-btn-icon-circle">
                     <ArrowRight size={16} />
@@ -1592,16 +1770,155 @@ const Dispute = () => {
                 <button
                   type="button"
                   className="submit-next-btn"
-                  onClick={() => {
-                    // Handle create dispute logic here
+                  onClick={async () => {
+                    console.log('Create dispute button clicked');
+                    
+                    if (!validateStep3()) {
+                      console.log('Step 3 validation failed');
+                      return;
+                    }
+
+                    console.log('Starting dispute creation process');
                     setIsCreatingDispute(true);
-                    // TODO: Add API call to create dispute
-                    setTimeout(() => {
+                    const token = localStorage.getItem('token');
+
+                    if (!token) {
+                      toast.error('Please login to create a dispute');
                       setIsCreatingDispute(false);
+                      return;
+                    }
+
+                    try {
+                      // Upload all evidence files first
+                      const evidenceArray = [];
+                      if (evidenceImages.length > 0) {
+                        toast.loading('Uploading evidence files...', { id: 'upload-evidence' });
+                        for (const image of evidenceImages) {
+                          try {
+                            const uploadedFile = await uploadEvidenceFile(image.file);
+                            evidenceArray.push(uploadedFile);
+                          } catch (error) {
+                            console.error('Error uploading file:', error);
+                            toast.error(`Failed to upload ${image.name}: ${error.message}`, { id: 'upload-evidence' });
+                            setIsCreatingDispute(false);
+                            return;
+                          }
+                        }
+                        toast.success('Evidence files uploaded successfully', { id: 'upload-evidence' });
+                      }
+
+                      // Format expected resolution date if provided
+                      let formattedExpectedDate = undefined;
+                      if (disputeTermsData.expectedResolutionDate && disputeTermsData.expectedResolutionDate.trim() !== '') {
+                        try {
+                          // Try to parse the date - handles various formats
+                          const date = new Date(disputeTermsData.expectedResolutionDate);
+                          if (!isNaN(date.getTime())) {
+                            // Convert to ISO 8601 format
+                            formattedExpectedDate = date.toISOString();
+                          } else {
+                            console.warn('Invalid date format, skipping expectedResolutionDate');
+                          }
+                        } catch (error) {
+                          console.warn('Error parsing date, skipping expectedResolutionDate:', error);
+                        }
+                      }
+
+                      // Build API request body
+                      const requestBody = {
+                        escrowId: disputeFormData.escrowId.trim(),
+                        disputeCategory: mapDisputeCategory(selectedDisputeType),
+                        disputeReasonType: mapDisputeReasonType(disputeTermsData.disputeCategory),
+                        payerXrpWalletAddress: disputeFormData.payerWallet.trim(),
+                        payerName: disputeFormData.payerName?.trim() || undefined,
+                        payerEmail: disputeFormData.payerEmail?.trim() || undefined,
+                        payerPhone: disputeFormData.payerPhone?.trim() || undefined,
+                        respondentXrpWalletAddress: disputeFormData.counterpartyWallet.trim(),
+                        respondentName: disputeFormData.counterpartyName?.trim() || undefined,
+                        respondentEmail: disputeFormData.counterpartyEmail?.trim() || undefined,
+                        respondentPhone: disputeFormData.counterpartyPhone?.trim() || undefined,
+                        disputeReason: disputeTermsData.disputeReason.trim(),
+                        amount: parseFloat(disputeTermsData.amountInDispute),
+                        currency: disputeTermsData.currency || 'XRP',
+                        resolutionPeriod: formatResolutionPeriod(disputeTermsData.disputeResolutionPeriod),
+                        expectedResolutionDate: formattedExpectedDate,
+                        description: disputeTermsData.disputeDescription.trim(),
+                        evidence: evidenceArray.length > 0 ? evidenceArray : undefined
+                      };
+
+                      // Remove undefined fields
+                      Object.keys(requestBody).forEach(key => {
+                        if (requestBody[key] === undefined) {
+                          delete requestBody[key];
+                        }
+                      });
+
+                      toast.loading('Creating dispute...', { id: 'create-dispute' });
+
+                      console.log('Creating dispute with request body:', requestBody);
+                      console.log('API URL:', getApiUrl('api/disputes'));
+
+                      // Make API call
+                      const response = await fetch(getApiUrl('api/disputes'), {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                      });
+
+                      console.log('API Response status:', response.status);
+                      const result = await response.json();
+                      console.log('API Response body:', result);
+
+                      if (!response.ok || !result.success) {
+                        const errorMessage = result.message || result.error || 'Failed to create dispute';
+                        
+                        // Handle specific error cases
+                        if (response.status === 400) {
+                          if (errorMessage.includes('wallet not found') || errorMessage.includes('Wallet not found')) {
+                            toast.error('Respondent wallet not found. The respondent must have a registered wallet.', { id: 'create-dispute' });
+                          } else if (errorMessage.includes('access') || errorMessage.includes('Access denied')) {
+                            toast.error('You do not have access to this escrow', { id: 'create-dispute' });
+                          } else if (errorMessage.includes('required') || errorMessage.includes('Required')) {
+                            toast.error(errorMessage, { id: 'create-dispute' });
+                          } else {
+                            toast.error(errorMessage, { id: 'create-dispute' });
+                          }
+                        } else if (response.status === 401) {
+                          toast.error('Authentication required. Please login again.', { id: 'create-dispute' });
+                          // Optionally redirect to login
+                        } else {
+                          toast.error(errorMessage, { id: 'create-dispute' });
+                        }
+                        
+                        setIsCreatingDispute(false);
+                        return;
+                      }
+
+                      // Success
+                      console.log('Create dispute response:', result);
+                      toast.success('Dispute created successfully', { id: 'create-dispute' });
+                      
+                      // Close modal and reset form
                       setShowCreateDisputeModal(false);
-                      setDisputeCurrentStep(1);
-                      toast.success('Dispute created successfully');
-                    }, 1000);
+                      
+                      // Navigate to dispute detail if caseId is returned
+                      if (result.data?.disputeId || result.data?.caseId) {
+                        const disputeId = result.data.disputeId || result.data.caseId;
+                        setTimeout(() => {
+                          navigate(`/dispute/${disputeId}`);
+                        }, 500);
+                      } else {
+                        // Refresh disputes list
+                        window.location.reload();
+                      }
+                    } catch (error) {
+                      console.error('Error creating dispute:', error);
+                      toast.error(error.message || 'An error occurred while creating the dispute. Please try again.', { id: 'create-dispute' });
+                      setIsCreatingDispute(false);
+                    }
                   }}
                   disabled={isCreatingDispute}
                 >

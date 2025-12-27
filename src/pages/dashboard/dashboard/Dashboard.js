@@ -58,6 +58,7 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
+import ConnectWalletModal from '../../../components/ConnectWalletModal';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -306,7 +307,9 @@ const Dashboard = () => {
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
+  const [showFundMethodModal, setShowFundMethodModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
+  const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [fundWalletForm, setFundWalletForm] = useState({
     amount: '',
     currency: 'XRP'
@@ -2435,7 +2438,7 @@ const Dashboard = () => {
               <button 
                 type="button" 
                 className="mobile-fund-btn"
-                onClick={() => setShowFundWalletModal(true)}
+                onClick={() => setShowFundMethodModal(true)}
               >
                 <Plus size={16} />
                 Fund Wallet
@@ -2961,7 +2964,7 @@ const Dashboard = () => {
               <button 
                 type="button" 
                 className="summary-card-btn primary"
-                onClick={() => setShowFundWalletModal(true)}
+                onClick={() => setShowFundMethodModal(true)}
               >
                 + Fund Wallet
               </button>
@@ -4265,6 +4268,140 @@ const Dashboard = () => {
           // After creating an escrow, refresh high-level dashboard summary.
           fetchDashboardSummary();
         }}
+      />
+
+      {/* Fund Method Selection Modal */}
+      {showFundMethodModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowFundMethodModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Fund Wallet</h2>
+              </div>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => setShowFundMethodModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '2rem' }}>
+              <p style={{ marginBottom: '1.5rem', color: '#666', fontSize: '0.95rem' }}>
+                Choose how you want to fund your wallet
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFundMethodModal(false);
+                    setShowConnectWalletModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = '#0066ff';
+                    e.target.style.background = '#f0f7ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = '#e0e0e0';
+                    e.target.style.background = '#ffffff';
+                  }}
+                >
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    flexShrink: 0
+                  }}>
+                    <Wallet size={24} color="#0066ff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
+                      Fund with Wallet
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                      Connect your crypto wallet to fund
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFundMethodModal(false);
+                    setShowFundWalletModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = '#0066ff';
+                    e.target.style.background = '#f0f7ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = '#e0e0e0';
+                    e.target.style.background = '#ffffff';
+                  }}
+                >
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    flexShrink: 0
+                  }}>
+                    <QrCode size={24} color="#0066ff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
+                      Fund with Address
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                      Send funds to your wallet address
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connect Wallet Modal */}
+      <ConnectWalletModal 
+        isOpen={showConnectWalletModal} 
+        onClose={() => setShowConnectWalletModal(false)} 
       />
 
       {/* Fund Wallet Modal */}

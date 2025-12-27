@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -57,6 +57,7 @@ import { getNotifications, markAllNotificationsRead, markNotificationRead } from
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import ConnectWalletModal from '../../../components/ConnectWalletModal';
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -121,6 +122,7 @@ const Transactions = () => {
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState(location.state?.accountType || 'Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [notifications, setNotifications] = useState([]);
   const [, setNotificationsTotal] = useState(0);
@@ -233,12 +235,15 @@ const Transactions = () => {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [isLoadingBeneficiaries, setIsLoadingBeneficiaries] = useState(true);
+  const [showTransactionDetailsModal, setShowTransactionDetailsModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [linkedAccounts, setLinkedAccounts] = useState(null);
   const [isLoadingLinkedAccounts, setIsLoadingLinkedAccounts] = useState(true);
   const [transactionFilter, setTransactionFilter] = useState('All');
   const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [showFundMethodModal, setShowFundMethodModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [fundWalletForm, setFundWalletForm] = useState({
     amount: '',
@@ -270,6 +275,9 @@ const Transactions = () => {
   });
   const [isWithdrawingWallet, setIsWithdrawingWallet] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showSwapPreviewModal, setShowSwapPreviewModal] = useState(false);
+  const [showSwapSummaryModal, setShowSwapSummaryModal] = useState(false);
+  const [swapPreviewData, setSwapPreviewData] = useState(null);
   const [swapForm, setSwapForm] = useState({
     fromCurrency: 'XRP',
     toCurrency: 'USDT',
@@ -277,6 +285,10 @@ const Transactions = () => {
     toAmount: ''
   });
   const [isSwapping, setIsSwapping] = useState(false);
+  const [isFetchingSwapQuote, setIsFetchingSwapQuote] = useState(false);
+  const [useDEX, setUseDEX] = useState(false);
+  const [slippageTolerance, setSlippageTolerance] = useState(5);
+  const swapQuoteTimeoutRef = useRef(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSendPage, setShowSendPage] = useState(false);
   const [showTransactionSummaryModal, setShowTransactionSummaryModal] = useState(false);
@@ -823,48 +835,49 @@ const Transactions = () => {
     fetchExchangeRates();
   }, []);
 
-  // Fetch wallet balances
-  useEffect(() => {
-    const fetchWalletBalances = async () => {
-      try {
-        if (isSessionExpired) {
-          setIsLoadingWalletBalances(false);
-          return;
-        }
+  // Fetch wallet balances function
+  const fetchWalletBalances = async () => {
+    try {
+      if (isSessionExpired) {
+        setIsLoadingWalletBalances(false);
+        return;
+      }
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setIsLoadingWalletBalances(false);
-          return;
-        }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setIsLoadingWalletBalances(false);
+        return;
+      }
 
-        const apiUrl = getApiUrl('api/wallet/balance');
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+      const apiUrl = getApiUrl('api/wallet/balance');
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result?.success && result?.data?.balance) {
-            setWalletBalances(result.data.balance);
-          } else {
-            setWalletBalances(null);
-          }
+      if (response.ok) {
+        const result = await response.json();
+        if (result?.success && result?.data?.balance) {
+          setWalletBalances(result.data.balance);
         } else {
           setWalletBalances(null);
         }
-      } catch (error) {
-        console.error('Error fetching wallet balances:', error);
+      } else {
         setWalletBalances(null);
-      } finally {
-        setIsLoadingWalletBalances(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+      setWalletBalances(null);
+    } finally {
+      setIsLoadingWalletBalances(false);
+    }
+  };
 
+  // Fetch wallet balances on mount and when session changes
+  useEffect(() => {
     fetchWalletBalances();
   }, [isSessionExpired]);
 
@@ -1629,7 +1642,8 @@ const Transactions = () => {
       const updated = { ...prev, [field]: value };
       
       if (field === 'fromAmount') {
-        updated.toAmount = calculateToAmount(value, updated.fromCurrency, updated.toCurrency);
+        // Don't calculate locally - let the API handle it via useEffect
+        // The useEffect will trigger and fetch the quote
       } else if (field === 'toAmount') {
         // Calculate fromAmount based on toAmount (reverse calculation)
         const rate = getExchangeRate(updated.toCurrency, updated.fromCurrency);
@@ -1660,6 +1674,101 @@ const Transactions = () => {
     });
   };
 
+  // Function to fetch swap quote from API
+  const fetchSwapQuote = async (amount, fromCurrency, toCurrency) => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setSwapForm(prev => ({ ...prev, toAmount: '' }));
+      setIsFetchingSwapQuote(false);
+      return;
+    }
+
+    if (fromCurrency === toCurrency) {
+      setSwapForm(prev => ({ ...prev, toAmount: '' }));
+      setIsFetchingSwapQuote(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsFetchingSwapQuote(false);
+      return;
+    }
+
+    setIsFetchingSwapQuote(true);
+
+    try {
+      const apiUrl = getApiUrl('api/wallet/swap/quote');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          fromCurrency: fromCurrency,
+          toCurrency: toCurrency,
+          useDEX: useDEX
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        // Silently fail for real-time updates (don't show toast for every keystroke)
+        setSwapForm(prev => ({ ...prev, toAmount: '' }));
+        setIsFetchingSwapQuote(false);
+        return;
+      }
+
+      // Update toAmount with API response
+      setSwapForm(prev => ({
+        ...prev,
+        toAmount: result.data.toAmount ? result.data.toAmount.toFixed(6) : ''
+      }));
+      setIsFetchingSwapQuote(false);
+    } catch (error) {
+      console.error('Error fetching swap quote:', error);
+      setSwapForm(prev => ({ ...prev, toAmount: '' }));
+      setIsFetchingSwapQuote(false);
+    }
+  };
+
+  // Real-time swap quote fetching with debouncing
+  useEffect(() => {
+    if (!showSwapModal) {
+      // Clean up when modal closes
+      if (swapQuoteTimeoutRef.current) {
+        clearTimeout(swapQuoteTimeoutRef.current);
+      }
+      setIsFetchingSwapQuote(false);
+      return;
+    }
+
+    // Clear existing timeout
+    if (swapQuoteTimeoutRef.current) {
+      clearTimeout(swapQuoteTimeoutRef.current);
+    }
+
+    // Only fetch if fromAmount is valid
+    if (swapForm.fromAmount && parseFloat(swapForm.fromAmount) > 0) {
+      // Debounce API call by 500ms
+      swapQuoteTimeoutRef.current = setTimeout(() => {
+        fetchSwapQuote(swapForm.fromAmount, swapForm.fromCurrency, swapForm.toCurrency);
+      }, 500);
+    } else {
+      setSwapForm(prev => ({ ...prev, toAmount: '' }));
+      setIsFetchingSwapQuote(false);
+    }
+
+    // Cleanup timeout on unmount or when dependencies change
+    return () => {
+      if (swapQuoteTimeoutRef.current) {
+        clearTimeout(swapQuoteTimeoutRef.current);
+      }
+    };
+  }, [swapForm.fromAmount, swapForm.fromCurrency, swapForm.toCurrency, showSwapModal, useDEX]);
+
   const handlePreviewSwap = async (e) => {
     e.preventDefault();
 
@@ -1674,72 +1783,235 @@ const Transactions = () => {
       return;
     }
 
-    const balance = getCurrencyBalance(swapForm.fromCurrency);
-    if (parseFloat(swapForm.fromAmount) > balance) {
-      toast.error('Insufficient balance');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please log in to continue');
       return;
     }
 
     setIsSwapping(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login to perform swap');
+      const apiUrl = getApiUrl('api/wallet/swap/quote');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: parseFloat(swapForm.fromAmount),
+          fromCurrency: swapForm.fromCurrency,
+          toCurrency: swapForm.toCurrency,
+          useDEX: useDEX
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        // Handle error responses
+        const errorMessage = result.message || 'Failed to get swap quote';
+        toast.error(errorMessage);
         setIsSwapping(false);
         return;
       }
 
+      // Update swapPreviewData with API response
+      setSwapPreviewData({
+        fromCurrency: result.data.fromCurrency,
+        toCurrency: result.data.toCurrency,
+        fromAmount: result.data.fromAmount,
+        toAmount: result.data.toAmount,
+        rate: result.data.rate,
+        usdValue: result.data.usdValue,
+        feeUsd: result.data.feeUsd
+      });
+      setShowSwapModal(false);
+      setShowSwapPreviewModal(true);
+      setIsSwapping(false);
+    } catch (error) {
+      console.error('Error fetching swap quote:', error);
+      toast.error('Failed to get swap quote. Please try again.');
+      setIsSwapping(false);
+    }
+  };
+
+  const handleConfirmSwap = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1831',message:'handleConfirmSwap called',data:{swapPreviewData:swapPreviewData?{fromAmount:swapPreviewData.fromAmount,fromCurrency:swapPreviewData.fromCurrency,toCurrency:swapPreviewData.toCurrency}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+
+    if (!swapPreviewData) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1834',message:'Early return: swapPreviewData is null',data:{swapPreviewData:swapPreviewData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      setShowSwapPreviewModal(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1838',message:'Token check',data:{tokenExists:!!token,tokenLength:token?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+
+    if (!token) {
+      toast.error('Please log in to continue');
+      return;
+    }
+
+    setIsSwapping(true);
+
+    try {
       const apiUrl = getApiUrl('api/wallet/swap');
+      const requestBody = {
+        amount: swapPreviewData.fromAmount,
+        fromCurrency: swapPreviewData.fromCurrency,
+        toCurrency: swapPreviewData.toCurrency,
+        ...(useDEX && {
+          swapType: "onchain",
+          slippageTolerance: slippageTolerance
+        })
+      };
+      
+      console.log('🔄 Swap API Call:', {
+        url: apiUrl,
+        method: 'POST',
+        body: requestBody
+      });
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1846',message:'API URL constructed',data:{apiUrl:apiUrl,requestBody:requestBody},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          fromCurrency: swapForm.fromCurrency,
-          toCurrency: swapForm.toCurrency,
-          amount: parseFloat(swapForm.fromAmount),
-        }),
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('📡 Swap API Response Status:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
-      const result = await response.json().catch(() => ({}));
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1860',message:'Fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok,headers:Object.fromEntries(response.headers.entries())},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
 
-      if (response.ok && result.success) {
-        toast.success('Swap completed successfully!');
-        setShowSwapModal(false);
-        setSwapForm({
-          fromCurrency: 'XRP',
-          toCurrency: 'USDT',
-          fromAmount: '',
-          toAmount: ''
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Swap API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
         });
-        await fetchDashboardSummary();
-        // Also refresh wallet balances
-        const walletApiUrl = getApiUrl('api/wallet/balance');
-        const walletResponse = await fetch(walletApiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        if (walletResponse.ok) {
-          const walletResult = await walletResponse.json();
-          if (walletResult?.success && walletResult?.data?.balance) {
-            setWalletBalances(walletResult.data.balance);
-          }
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { message: errorText };
         }
-      } else {
-        toast.error(result.message || 'Failed to complete swap. Please try again.');
+        const errorMessage = errorData.message || `Swap failed with status ${response.status}`;
+        toast.error(errorMessage);
+        setIsSwapping(false);
+        return;
       }
+
+      const result = await response.json();
+      console.log('✅ Swap API Success Response:', result);
+      console.log('📊 Swap API Response Data:', result.data);
+      console.log('🔑 Swap API Response Keys:', Object.keys(result));
+      console.log('📋 Swap API Response Data Keys:', result.data ? Object.keys(result.data) : 'No data');
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1882',message:'Response parsed',data:{success:result.success,message:result.message,hasData:!!result.data,dataKeys:result.data?Object.keys(result.data):null,fullData:result.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+
+      if (!result.success) {
+        console.error('❌ Swap API Returned Error:', result);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1863',message:'API returned error',data:{result:result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        // #endregion
+        // Handle error responses with specific error messages
+        const errorMessage = result.message || 'Failed to execute swap';
+        toast.error(errorMessage);
+        setIsSwapping(false);
+        return;
+      }
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1895',message:'Swap success - full response data',data:{fullResult:result,dataKeys:result.data?Object.keys(result.data):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+      // #endregion
+
+      // Swap executed successfully - update swapPreviewData with transaction details
+      console.log('🔄 Updating swapPreviewData with transaction details:', result.data);
+      
+      const updatedPreviewData = {
+        ...swapPreviewData,
+        transactionId: result.data.transactionId,
+        status: result.data.status,
+        toAmount: result.data.toAmount,
+        rate: result.data.rate,
+        usdValue: result.data.usdValue,
+        feeUsd: result.data.feeUsd,
+        ...(result.data.xrplTxHash && { xrplTxHash: result.data.xrplTxHash }),
+        ...(result.data.swapType && { swapType: result.data.swapType })
+      };
+      
+      console.log('📝 Updated Preview Data:', updatedPreviewData);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1908',message:'Before state updates',data:{updatedPreviewData:updatedPreviewData,currentShowSwapPreviewModal:showSwapPreviewModal,currentShowSwapSummaryModal:showSwapSummaryModal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+      // #endregion
+
+      console.log('🎯 Setting state updates...');
+      setSwapPreviewData(updatedPreviewData);
+      setShowSwapPreviewModal(false);
+      setShowSwapSummaryModal(true);
+      setIsSwapping(false);
+      
+      console.log('✅ State updates completed. Showing success toast.');
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1915',message:'After state updates - calling toast and fetchWalletBalances',data:{message:result.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'K'})}).catch(()=>{});
+      // #endregion
+
+      toast.success(result.message || 'Swap completed successfully!');
+      
+      // Refresh wallet balances after successful swap
+      console.log('🔄 Refreshing wallet balances...');
+      fetchWalletBalances();
     } catch (error) {
-      console.error('Error performing swap:', error);
-      toast.error('An error occurred while processing your swap. Please try again.');
-    } finally {
+      console.error('❌ Exception caught in handleConfirmSwap:', error);
+      console.error('❌ Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1889',message:'Exception caught',data:{errorName:error?.name,errorMessage:error?.message,errorStack:error?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
+      toast.error('Failed to execute swap. Please try again.');
       setIsSwapping(false);
     }
+  };
+
+  const handleCloseSwapSummary = () => {
+    setShowSwapSummaryModal(false);
+    setShowSwapModal(false);
+    setSwapForm({
+      fromCurrency: 'XRP',
+      toCurrency: 'USDT',
+      fromAmount: '',
+      toAmount: ''
+    });
+    setSwapPreviewData(null);
   };
 
   // Add body class to hide navbar on transactions page (backup)
@@ -3019,9 +3291,16 @@ const Transactions = () => {
                     </thead>
                     <tbody>
                       {savingHistoryForRender.map((transaction, index) => (
-                        <tr key={index}>
+                        <tr 
+                          key={index}
+                          onClick={() => {
+                            setSelectedTransaction(transaction);
+                            setShowTransactionDetailsModal(true);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td>
-                            <input type="checkbox" />
+                            <input type="checkbox" onClick={(e) => e.stopPropagation()} />
                           </td>
                           <td>
                             <div className="desktop-savings-transaction-type">
@@ -3059,7 +3338,15 @@ const Transactions = () => {
                     const usdValue = hasAmount ? numericAmount.toFixed(2) : 'N/A';
                     
                     return (
-                      <div key={index} className="mobile-savings-history-card">
+                      <div 
+                        key={index} 
+                        className="mobile-savings-history-card"
+                        onClick={() => {
+                          setSelectedTransaction(transaction);
+                          setShowTransactionDetailsModal(true);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="mobile-savings-history-left">
                           <div className="mobile-savings-history-icon">
                             {transaction.direction === 'spent' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
@@ -4295,7 +4582,7 @@ const Transactions = () => {
                     if (window.innerWidth <= 768) {
                       setShowFundWalletPage(true);
                     } else {
-                      setShowFundWalletModal(true);
+                      setShowFundMethodModal(true);
                     }
                   }}
                 >
@@ -4468,7 +4755,32 @@ const Transactions = () => {
                       </div>
                       <div className="detail-info detail-info-horizontal">
                         <span className="detail-label">Linked bank account</span>
-                        <span className="detail-value">{linkedAccounts?.bankAccount || '9832547364'}</span>
+                        {linkedAccounts?.bankAccount ? (
+                          <span className="detail-value">{linkedAccounts.bankAccount}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="link-bank-account-btn"
+                            onClick={() => {
+                              // TODO: Implement bank account linking logic
+                              toast('Bank account linking coming soon');
+                            }}
+                            style={{
+                              background: '#2F74FF',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              fontFamily: 'Satoshi, Inter, sans-serif',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Link Bank Account
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="detail-divider"></div>
@@ -4478,7 +4790,31 @@ const Transactions = () => {
                       </div>
                       <div className="detail-info detail-info-horizontal">
                         <span className="detail-label">Linked Web3 Wallet</span>
-                        <span className="detail-value">{linkedAccounts?.web3Wallet || 'XUMM (Connected)'}</span>
+                        {linkedAccounts?.web3Wallet ? (
+                          <span className="detail-value">{linkedAccounts.web3Wallet}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="connect-wallet-btn"
+                            onClick={() => {
+                              setShowConnectWalletModal(true);
+                            }}
+                            style={{
+                              background: '#2F74FF',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              fontFamily: 'Satoshi, Inter, sans-serif',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Connect Wallet
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -4738,7 +5074,15 @@ const Transactions = () => {
                       const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit';
 
                       return (
-                        <div key={transaction.id || globalIndex} className="mobile-transaction-card">
+                        <div 
+                          key={transaction.id || globalIndex} 
+                          className="mobile-transaction-card"
+                          onClick={() => {
+                            setSelectedTransaction(transaction);
+                            setShowTransactionDetailsModal(true);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <div className="mobile-transaction-left">
                             <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`}>
                               {isReceived ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
@@ -4800,9 +5144,16 @@ const Transactions = () => {
                           const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit';
 
                           return (
-                            <tr key={transaction.id || globalIndex}>
+                            <tr 
+                              key={transaction.id || globalIndex}
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setShowTransactionDetailsModal(true);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
                               <td>
-                                <input type="checkbox" />
+                                <input type="checkbox" onClick={(e) => e.stopPropagation()} />
                               </td>
                               <td>
                                 <div className="transaction-id-with-type">
@@ -5219,7 +5570,7 @@ const Transactions = () => {
 
       {/* Swap Modal */}
       {showSwapModal && (
-        <div className="notification-modal-overlay" onClick={() => {
+        <div className="notification-modal-overlay swap-modal-overlay" onClick={() => {
           if (!isSwapping) {
             setShowSwapModal(false);
             setSwapForm({
@@ -5376,10 +5727,10 @@ const Transactions = () => {
                     step="0.000001"
                     min="0"
                     className="swap-amount-input"
-                    placeholder="0.00"
+                    placeholder={isFetchingSwapQuote ? "Calculating..." : "0.00"}
                     value={swapForm.toAmount}
                     onChange={(e) => handleSwapAmountChange('toAmount', e.target.value)}
-                    disabled={isSwapping}
+                    disabled={isSwapping || isFetchingSwapQuote}
                   />
                   <div className="swap-balance-text">
                     Balance: {isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : `${Number(getCurrencyBalance(swapForm.toCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.toCurrency}`}
@@ -5387,7 +5738,7 @@ const Transactions = () => {
                 </div>
               </div>
 
-              {/* Exchange Rate */}
+              {/* Exchange Rate - Hidden on mobile, shown below button via CSS */}
               {(() => {
                 const rate = getExchangeRate(swapForm.fromCurrency, swapForm.toCurrency);
                 if (rate) {
@@ -5401,6 +5752,71 @@ const Transactions = () => {
                 return null;
               })()}
 
+              {/* DEX Toggle */}
+              <div className="swap-dex-toggle" style={{ marginTop: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  id="use-dex-checkbox"
+                  checked={useDEX}
+                  onChange={(e) => setUseDEX(e.target.checked)}
+                  disabled={isSwapping}
+                  style={{ cursor: isSwapping ? 'not-allowed' : 'pointer' }}
+                />
+                <label 
+                  htmlFor="use-dex-checkbox" 
+                  style={{ 
+                    cursor: isSwapping ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    color: 'var(--text-primary, #333)',
+                    userSelect: 'none'
+                  }}
+                >
+                  Use DEX (On-chain)
+                </label>
+              </div>
+
+              {/* Slippage Tolerance Input - Only visible when DEX is enabled */}
+              {useDEX && (
+                <div className="swap-slippage-input" style={{ marginTop: '12px', marginBottom: '16px' }}>
+                  <label 
+                    htmlFor="slippage-tolerance-input" 
+                    style={{ 
+                      display: 'block',
+                      fontSize: '14px',
+                      color: 'var(--text-primary, #333)',
+                      marginBottom: '8px',
+                      fontWeight: 500
+                    }}
+                  >
+                    Slippage Tolerance (%)
+                  </label>
+                  <input
+                    type="number"
+                    id="slippage-tolerance-input"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={slippageTolerance}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value) && value >= 0 && value <= 100) {
+                        setSlippageTolerance(value);
+                      }
+                    }}
+                    disabled={isSwapping}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      cursor: isSwapping ? 'not-allowed' : 'text',
+                      backgroundColor: isSwapping ? '#f5f5f5' : 'white'
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Preview Swap Button */}
               <div className="swap-actions">
                 <button
@@ -5412,6 +5828,283 @@ const Transactions = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Swap Preview Modal */}
+      {showSwapPreviewModal && swapPreviewData && (
+        <div
+          className="notification-modal-overlay swap-preview-overlay"
+          onClick={() => {
+            if (!isSwapping) {
+              setShowSwapPreviewModal(false);
+            }
+          }}
+        >
+          <div 
+            className="notification-modal swap-preview-modal swap-preview-modal-overlay" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '900px', width: '90%' }}
+          >
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Swap</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={() => setShowSwapPreviewModal(false)}
+                disabled={isSwapping}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="send-modal-content swap-preview-content">
+              {/* Transfer Details Section */}
+              <div className="send-transfer-section swap-preview-transfer-section">
+                <div className="send-from-section swap-preview-section">
+                  <label className="send-section-label">From</label>
+                  <div className="swap-preview-amount-row">
+                    <div className="send-amount-display swap-preview-amount">
+                      {Number(swapPreviewData.fromAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                    </div>
+                    <div className="send-wallet-selector swap-preview-currency-selector">
+                      <div className="send-currency-badge">
+                        {swapPreviewData.fromCurrency === 'XRP' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                            alt="XRP" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapPreviewData.fromCurrency === 'USDT' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                            alt="USDT" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapPreviewData.fromCurrency === 'USDC' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                            alt="USDC" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : null}
+                      </div>
+                      <span className="send-wallet-text">{swapPreviewData.fromCurrency} {getCurrencyDisplayName(swapPreviewData.fromCurrency)}</span>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                  <div className="send-balance-text">
+                    Balance: {isLoadingWalletBalances ? '—' : `${Number(getCurrencyBalance(swapPreviewData.fromCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapPreviewData.fromCurrency}`}
+                  </div>
+                </div>
+
+                <div className="send-transfer-arrow">
+                  <button type="button" className="send-arrow-btn" disabled>
+                    <ArrowUpDown size={20} />
+                  </button>
+                </div>
+
+                <div className="send-to-section swap-preview-section">
+                  <label className="send-section-label">To</label>
+                  <div className="swap-preview-amount-row">
+                    <div className="send-amount-display swap-preview-amount">
+                      {Number(swapPreviewData.toAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                    </div>
+                    <div className="send-wallet-selector swap-preview-currency-selector">
+                      <div className="send-currency-badge">
+                        {swapPreviewData.toCurrency === 'XRP' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
+                            alt="XRP" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapPreviewData.toCurrency === 'USDT' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
+                            alt="USDT" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : swapPreviewData.toCurrency === 'USDC' ? (
+                          <img 
+                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
+                            alt="USDC" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : null}
+                      </div>
+                      <span className="send-wallet-text">{swapPreviewData.toCurrency} {getCurrencyDisplayName(swapPreviewData.toCurrency)}</span>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                  <div className="send-balance-text">
+                    Balance: {isLoadingWalletBalances ? '—' : `${Number(getCurrencyBalance(swapPreviewData.toCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapPreviewData.toCurrency}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction Details Section */}
+              <div style={{ border: '1px solid var(--border)', borderRadius: '18px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.875rem', marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Price</span>
+                  <span style={{ color: 'var(--text-dark)', fontFamily: 'Satoshi, Inter, sans-serif' }}>
+                    {swapPreviewData.rate
+                      ? `1 ${swapPreviewData.fromCurrency} = ${swapPreviewData.rate.toFixed(6)} ${swapPreviewData.toCurrency}`
+                      : '—'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Network fee</span>
+                  <span style={{ color: 'var(--text-dark)', fontFamily: 'Satoshi, Inter, sans-serif' }}>
+                    ${(swapPreviewData.feeUsd || 0).toFixed(2)} USD
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Price impact</span>
+                  <span style={{ color: 'var(--text-dark)', fontFamily: 'Satoshi, Inter, sans-serif' }}>0.05%</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Total Amount</span>
+                  <span style={{ color: 'var(--text-dark)', fontFamily: 'Satoshi, Inter, sans-serif' }}>
+                    ${(swapPreviewData.usdValue || 0).toFixed(2)} USD
+                  </span>
+                </div>
+              </div>
+
+              {/* Confirm Swap Button */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleConfirmSwap}
+                  disabled={isSwapping}
+                  style={{
+                    background: '#2F74FF',
+                    color: 'var(--white)',
+                    border: 'none',
+                    borderRadius: '999px',
+                    padding: '0.875rem 3rem',
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    cursor: isSwapping ? 'not-allowed' : 'pointer',
+                    opacity: isSwapping ? 0.6 : 1,
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'opacity 0.2s'
+                  }}
+                >
+                  {isSwapping ? 'Processing...' : 'Confirm Swap'}
+                </button>
+              </div>
+
+              {/* Information Message */}
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '1rem' }}>
+                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <p style={{ margin: 0, fontFamily: 'Satoshi, Inter, sans-serif' }}>
+                  You'll receive at least {Number(swapPreviewData.toAmount || swapPreviewData.fromAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {swapPreviewData.toCurrency} (${Number(swapPreviewData.toAmount || swapPreviewData.fromAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}) or the transaction will be refunded.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Swap Summary Modal */}
+      {showSwapSummaryModal && swapPreviewData && (
+        <div className="notification-modal-overlay swap-summary-overlay" onClick={handleCloseSwapSummary}>
+          <div className="notification-modal transaction-summary-modal swap-summary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="transaction-summary-header">
+              <h2>Swap Summary</h2>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={handleCloseSwapSummary}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="transaction-summary-content">
+              <div className="transaction-details-list">
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">From:</span>
+                  <span className="transaction-detail-value">
+                    {Number(swapPreviewData.fromAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} {swapPreviewData.fromCurrency}
+                  </span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">To:</span>
+                  <span className="transaction-detail-value">
+                    {Number(swapPreviewData.toAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} {swapPreviewData.toCurrency}
+                  </span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Exchange Rate:</span>
+                  <span className="transaction-detail-value">
+                    {swapPreviewData.rate
+                      ? `1 ${swapPreviewData.fromCurrency} = ${swapPreviewData.rate.toFixed(2)}${getCurrencyBadge(swapPreviewData.toCurrency)}${swapPreviewData.usdRate ? ` (${swapPreviewData.usdRate.toFixed(2)}USD)` : ''}`
+                      : '—'}
+                  </span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Network Fee:</span>
+                  <span className="transaction-detail-value">
+                    ${(swapPreviewData.feeUsd || 0).toFixed(2)} USD
+                  </span>
+                </div>
+                {swapPreviewData.transactionId && (
+                  <div className="transaction-detail-item">
+                    <span className="transaction-detail-label">Transaction ID:</span>
+                    <span className="transaction-detail-value" style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                      {swapPreviewData.transactionId}
+                    </span>
+                  </div>
+                )}
+                {swapPreviewData.xrplTxHash && (
+                  <div className="transaction-detail-item">
+                    <span className="transaction-detail-label">XRPL Transaction Hash:</span>
+                    <span className="transaction-detail-value" style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                      {swapPreviewData.xrplTxHash}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="transaction-divider"></div>
+
+              <div className="transaction-recipient-details">
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label recipient-label">You Received:</span>
+                  <span className="transaction-detail-value">
+                    {Number(swapPreviewData.toAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} {swapPreviewData.toCurrency}
+                  </span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Status:</span>
+                  <span className="transaction-detail-value" style={{ color: '#10b981', fontWeight: 600 }}>
+                    {swapPreviewData.status ? swapPreviewData.status.charAt(0).toUpperCase() + swapPreviewData.status.slice(1) : 'Completed'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="transaction-summary-actions">
+                <button 
+                  type="button" 
+                  className="transaction-transfer-btn"
+                  onClick={handleCloseSwapSummary}
+                >
+                  Done
+                </button>
+              </div>
+
+              <div className="transaction-summary-disclaimer">
+                <div className="transaction-info-icon">
+                  <CheckCircle size={16} />
+                </div>
+                <span>Swap completed successfully. You received {Number(swapPreviewData.toAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {swapPreviewData.toCurrency} (${Number(swapPreviewData.toAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -5810,6 +6503,324 @@ const Transactions = () => {
         </div>
       )}
       </div>
+      
+      {/* Fund Method Selection Modal */}
+      {showFundMethodModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowFundMethodModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Fund Wallet</h2>
+              </div>
+              <button 
+                type="button" 
+                className="notification-close-btn" 
+                onClick={() => setShowFundMethodModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '2rem' }}>
+              <p style={{ marginBottom: '1.5rem', color: '#666', fontSize: '0.95rem' }}>
+                Choose how you want to fund your wallet
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFundMethodModal(false);
+                    setShowConnectWalletModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = '#0066ff';
+                    e.target.style.background = '#f0f7ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = '#e0e0e0';
+                    e.target.style.background = '#ffffff';
+                  }}
+                >
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    flexShrink: 0
+                  }}>
+                    <Wallet size={24} color="#0066ff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
+                      Fund with Wallet
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                      Connect your crypto wallet to fund
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFundMethodModal(false);
+                    setShowFundWalletModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = '#0066ff';
+                    e.target.style.background = '#f0f7ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = '#e0e0e0';
+                    e.target.style.background = '#ffffff';
+                  }}
+                >
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    flexShrink: 0
+                  }}>
+                    <QrCode size={24} color="#0066ff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
+                      Fund with Address
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                      Send funds to your wallet address
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Details Modal */}
+      {showTransactionDetailsModal && selectedTransaction && (
+        <div className="notification-modal-overlay transaction-details-modal-overlay" onClick={() => setShowTransactionDetailsModal(false)}>
+          <div className="notification-modal transaction-summary-modal transaction-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="transaction-summary-header">
+              <h2>Transaction Details</h2>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                onClick={() => setShowTransactionDetailsModal(false)}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="transaction-summary-content" style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+              {(() => {
+                // Extract transaction data
+                const transactionId = selectedTransaction.id || selectedTransaction.transactionId || 'N/A';
+                const type = selectedTransaction.type || selectedTransaction.transactionType || 'N/A';
+                const amountXrp = selectedTransaction.amount?.xrp || selectedTransaction.amountXrp || selectedTransaction.amount || 0;
+                const amountUsd = selectedTransaction.amount?.usd || selectedTransaction.amountUsd || (amountXrp * 0.5);
+                const status = selectedTransaction.status || 'N/A';
+                const date = selectedTransaction.date || selectedTransaction.createdAt || selectedTransaction.timestamp || 'N/A';
+                const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit' || selectedTransaction.direction === 'received';
+                const direction = selectedTransaction.direction || (isReceived ? 'received' : 'sent');
+                
+                // Additional fields that might be available
+                const fromAddress = selectedTransaction.from || selectedTransaction.fromAddress || selectedTransaction.sender || 'N/A';
+                const toAddress = selectedTransaction.to || selectedTransaction.toAddress || selectedTransaction.recipient || 'N/A';
+                const description = selectedTransaction.description || selectedTransaction.reason || selectedTransaction.note || 'N/A';
+                const fee = selectedTransaction.fee || selectedTransaction.transactionFee || 'N/A';
+                const network = selectedTransaction.network || selectedTransaction.blockchain || 'XRP Ledger';
+                const hash = selectedTransaction.hash || selectedTransaction.txHash || selectedTransaction.transactionHash || 'N/A';
+                const blockNumber = selectedTransaction.blockNumber || selectedTransaction.block || 'N/A';
+                const confirmations = selectedTransaction.confirmations || 'N/A';
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* Transaction Type and Status */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`} style={{ width: '48px', height: '48px' }}>
+                          {isReceived ? <ArrowDown size={24} /> : <ArrowUp size={24} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#000' }}>{type}</div>
+                          <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+                            {direction === 'received' ? 'Received' : direction === 'spent' ? 'Sent' : 'Transaction'}
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`status-badge ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
+                        {status}
+                      </span>
+                    </div>
+
+                    {/* Amount */}
+                    <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>Amount</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 600, color: isReceived ? '#10b981' : '#ef4444' }}>
+                        {isReceived ? '+' : '-'}{Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP
+                      </div>
+                      <div style={{ fontSize: '1rem', color: '#666', marginTop: '0.25rem' }}>
+                        ≈ ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                      </div>
+                    </div>
+
+                    {/* Transaction Information */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.5rem' }}>Transaction Information</div>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#666' }}>Transaction ID</span>
+                        <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
+                          {formatTransactionId(transactionId)}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#666' }}>Date</span>
+                        <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
+                          {formatDate(date)}
+                        </span>
+                      </div>
+
+                      {fromAddress !== 'N/A' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>From</span>
+                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
+                            {fromAddress}
+                          </span>
+                        </div>
+                      )}
+
+                      {toAddress !== 'N/A' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>To</span>
+                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
+                            {toAddress}
+                          </span>
+                        </div>
+                      )}
+
+                      {description !== 'N/A' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Description</span>
+                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
+                            {description}
+                          </span>
+                        </div>
+                      )}
+
+                      {fee !== 'N/A' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Transaction Fee</span>
+                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
+                            {typeof fee === 'number' ? `${fee} XRP` : fee}
+                          </span>
+                        </div>
+                      )}
+
+                      {hash !== 'N/A' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Transaction Hash</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                              {hash}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(hash);
+                                toast.success('Transaction hash copied to clipboard');
+                              }}
+                              style={{ 
+                                padding: '0.25rem 0.5rem', 
+                                background: '#f3f4f6', 
+                                border: 'none', 
+                                borderRadius: '0.25rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}
+                            >
+                              <Copy size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#666' }}>Network</span>
+                        <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
+                          {network}
+                        </span>
+                      </div>
+
+                      {blockNumber !== 'N/A' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Block Number</span>
+                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
+                            {blockNumber}
+                          </span>
+                        </div>
+                      )}
+
+                      {confirmations !== 'N/A' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Confirmations</span>
+                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
+                            {confirmations}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connect Wallet Modal */}
+      <ConnectWalletModal 
+        isOpen={showConnectWalletModal} 
+        onClose={() => setShowConnectWalletModal(false)} 
+      />
     </>
   );
 };

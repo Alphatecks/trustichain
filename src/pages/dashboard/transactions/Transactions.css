@@ -138,16 +138,18 @@ body.transactions-page-active .landing-navbar {
 }
 
 .detail-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px 1fr;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .detail-divider {
   height: 1px;
   background: rgba(12, 100, 255, 0.15);
   margin: 0.5rem 0;
-  margin-left: 0.5rem;
+  margin-left: calc(40px + 0.75rem);
 }
 
 .detail-icon {
@@ -160,19 +162,67 @@ body.transactions-page-active .landing-navbar {
   justify-content: center;
   color: var(--blue-600);
   flex-shrink: 0;
+  grid-column: 1;
 }
 
 .detail-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  flex: 1;
+  grid-column: 2;
+  min-width: 0;
+  width: 100%;
 }
 
 .detail-info-horizontal {
+  display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+}
+
+.detail-info-horizontal .detail-label {
+  flex-shrink: 0;
+  margin-right: auto;
+}
+
+.detail-info-horizontal .detail-value {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.detail-info-horizontal .link-bank-account-btn,
+.detail-info-horizontal .connect-wallet-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Mobile: Stack buttons under text */
+@media (max-width: 768px) {
+  .detail-info-horizontal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .detail-info-horizontal .detail-label {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .detail-info-horizontal .detail-value {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .detail-info-horizontal .link-bank-account-btn,
+  .detail-info-horizontal .connect-wallet-btn {
+    margin-left: 0;
+    width: 100%;
+    align-self: stretch;
+  }
 }
 
 .detail-label {
@@ -859,6 +909,14 @@ body.transactions-page-active .landing-navbar {
   .transaction-table td {
     padding: 0.75rem 0.5rem;
   }
+
+  /* Mobile button styles to prevent text wrapping */
+  .link-bank-account-btn,
+  .connect-wallet-btn {
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.75rem !important;
+    white-space: nowrap !important;
+  }
 }
 
 /* Swap Modal Styles */
@@ -1094,19 +1152,255 @@ body.transactions-page-active .landing-navbar {
 
 /* Responsive adjustments for swap modal */
 @media (max-width: 768px) {
-  .swap-container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .swap-icon-button {
-    margin-top: 0;
-    align-self: center;
+  /* Make overlay full screen on mobile - remove dialog styling */
+  .swap-modal-overlay {
+    position: fixed;
+    inset: 0;
+    padding: 0 !important;
+    background: var(--white) !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    z-index: 1000;
   }
 
   .swap-modal {
-    width: 95%;
+    width: 100%;
     max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* Update header for full-screen mobile view */
+  .swap-modal .notification-modal-header {
+    background: var(--white);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .swap-form {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .swap-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    order: 0; /* Keep container first */
+  }
+
+  .swap-section {
+    gap: 1rem;
+  }
+
+  .swap-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .swap-section-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .swap-currency-selector-wrapper {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .swap-currency-selector {
+    border: 2px solid var(--blue-600);
+    border-radius: 2rem;
+    background: var(--white);
+    padding: 0.75rem 1rem;
+  }
+
+  .swap-currency-badge {
+    width: 32px;
+    height: 32px;
+  }
+
+  .swap-currency-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .swap-amount-input {
+    font-size: 1.75rem;
+    font-weight: 600;
+    padding: 0.5rem 0;
+    border-bottom: none;
+    color: #000000;
+  }
+
+  .swap-balance-text {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .swap-icon-button {
+    margin: 0.5rem 0;
+    align-self: center;
+    width: 48px;
+    height: 48px;
+    background: var(--blue-600);
+    box-shadow: 0 2px 8px rgba(47, 116, 255, 0.3);
+  }
+
+  .swap-actions {
+    margin-top: 0;
+    justify-content: center;
+    order: 9; /* Ensure button comes before exchange rate */
+  }
+
+  .swap-preview-btn {
+    width: 100%;
+    border-radius: 0.75rem;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Move exchange rate below button on mobile and style it */
+  .swap-exchange-rate {
+    order: 10; /* Move after button */
+    background: transparent;
+    padding: 0.5rem 0;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .swap-exchange-rate svg {
+    color: var(--text-muted);
+  }
+
+  .swap-exchange-rate span {
+    color: var(--text-dark);
+    font-size: 0.875rem;
+  }
+
+  .swap-actions {
+    order: 9; /* Ensure button comes before exchange rate */
+  }
+
+  .swap-container {
+    order: 0; /* Keep container first */
+  }
+
+  /* Swap Preview Modal - Full Screen on Mobile */
+  .swap-preview-overlay {
+    padding: 0 !important;
+    background: var(--white) !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  .swap-preview-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .swap-preview-modal .notification-modal-header {
+    background: var(--white);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .swap-preview-content {
+    padding: 1rem !important;
+    gap: 1.5rem !important;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .swap-preview-transfer-section {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .swap-preview-section {
+    gap: 0.75rem !important;
+  }
+
+  .swap-preview-amount-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .swap-preview-amount {
+    font-size: 1.75rem !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+    line-height: 1.2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .swap-preview-currency-selector {
+    flex-shrink: 0;
+    border: 1px solid var(--border) !important;
+    border-radius: 2rem !important;
+    background: var(--white) !important;
+    padding: 0.5rem 0.75rem !important;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .send-transfer-arrow {
+    margin: 0.5rem 0 !important;
+  }
+
+  .send-arrow-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    color: var(--white);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Transaction details on mobile */
+  .swap-preview-content > div[style*="border"] {
+    margin-top: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  /* Confirm Swap button on mobile */
+  .swap-preview-content > div[style*="justify-content: center"] {
+    margin-top: 1.5rem !important;
+  }
+
+  .swap-preview-content > div[style*="justify-content: center"] button {
+    width: 100% !important;
+    border-radius: 0.75rem !important;
+    padding: 1rem 2rem !important;
+  }
+
+  /* Info message on mobile */
+  .swap-preview-content > div[style*="flex"][style*="Info"] {
+    margin-top: 1rem !important;
+    font-size: 0.875rem !important;
   }
 }
 
@@ -1561,6 +1855,70 @@ body.transactions-page-active .landing-navbar {
   .transaction-summary-modal {
     width: 95%;
     max-width: 100%;
+  }
+
+  /* Transaction Details Modal - Full Screen on Mobile */
+  .transaction-details-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-start !important;
+  }
+
+  .transaction-details-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .transaction-details-modal .transaction-summary-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .transaction-details-modal .transaction-summary-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 1.5rem !important;
+  }
+
+  /* Swap Summary Modal - Full Screen on Mobile */
+  .swap-summary-overlay {
+    padding: 0 !important;
+    background: var(--white) !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  .swap-summary-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .swap-summary-modal .transaction-summary-header {
+    background: var(--white);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .swap-summary-modal .transaction-summary-content {
+    padding: 1rem !important;
+    flex: 1;
+    overflow-y: auto;
   }
 }
 

@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Shield, Wallet, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useWeb3 } from '../context/Web3Context';
 import { useTheme } from '../context/ThemeContext';
+import ConnectWalletModal from './ConnectWalletModal';
 import './Navbar.css';
 
 const Navbar = () => {
-  const { account, isConnected, connectWallet, disconnectWallet } = useWeb3();
+  const { account, isConnected, disconnectWallet } = useWeb3();
   const { toggleTheme, isDark } = useTheme();
   const location = useLocation();
+  const [showWalletModal, setShowWalletModal] = useState(false);
 
   const formatAddress = (address) => {
     if (!address) return '';
@@ -64,7 +66,7 @@ const Navbar = () => {
             </div>
           ) : (
             <button 
-              onClick={connectWallet}
+              onClick={() => setShowWalletModal(true)}
               className="connect-wallet-btn"
             >
               <Wallet className="wallet-icon" />
@@ -80,6 +82,10 @@ const Navbar = () => {
           </button>
         </div>
       </div>
+      <ConnectWalletModal 
+        isOpen={showWalletModal} 
+        onClose={() => setShowWalletModal(false)} 
+      />
     </nav>
   );
 };

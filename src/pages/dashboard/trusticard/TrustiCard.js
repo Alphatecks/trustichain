@@ -32,7 +32,10 @@ import {
   Code,
   Box,
   Link,
-  PiggyBank
+  PiggyBank,
+  CheckCircle,
+  Package,
+  AlertTriangle
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './TrustiCard.css';
