@@ -59,6 +59,7 @@ import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
+import BusinessSuitePinModal from '../../../components/BusinessSuitePinModal';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -148,6 +149,8 @@ const Dashboard = () => {
     return 'Personal';
   });
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showBusinessSuitePinModal, setShowBusinessSuitePinModal] = useState(false);
+  const [pendingAccountSwitch, setPendingAccountSwitch] = useState(false);
   
   // Update account type from navigation state if provided
   useEffect(() => {
@@ -252,6 +255,53 @@ const Dashboard = () => {
 
   const [isSwitchingAccountType, setIsSwitchingAccountType] = useState(false);
   const [switchMessage, setSwitchMessage] = useState('');
+
+  // Handle Business Suite PIN verification
+  const handleBusinessSuitePinVerify = (pin) => {
+    // TODO: Replace with actual API call to verify PIN
+    // For now, using a simple check (can be stored in localStorage or verified via API)
+    const validPin = localStorage.getItem('businessSuitePin') || '1234'; // Default PIN for demo
+    
+    // Ensure both are strings for comparison
+    const enteredPin = String(pin).trim();
+    const expectedPin = String(validPin).trim();
+    
+    console.log('PIN Verification:', { enteredPin, expectedPin, match: enteredPin === expectedPin });
+    
+    if (enteredPin === expectedPin) {
+      // PIN is correct, complete the account switch
+      setAccountType('Business Suite');
+      setPendingAccountSwitch(false);
+      setShowBusinessSuitePinModal(false);
+      return true;
+    }
+    return false;
+  };
+
+  // Handle switch to Business Suite - show animation first, then PIN modal
+  const handleSwitchToBusinessSuite = () => {
+    setPendingAccountSwitch(true);
+    setSwitchMessage('switching to business suite');
+    setIsSwitchingAccountType(true);
+    
+    // After animation completes, show PIN modal
+    setTimeout(() => {
+      setIsSwitchingAccountType(false);
+      setSwitchMessage('');
+      setShowBusinessSuitePinModal(true);
+    }, 2000);
+  };
+
+  // Handle closing PIN modal without verification
+  const handleClosePinModal = () => {
+    setShowBusinessSuitePinModal(false);
+    // If PIN modal is closed without verification (cancel button or clicking outside), revert to Personal account
+    if (pendingAccountSwitch) {
+      setAccountType('Personal');
+      setPendingAccountSwitch(false);
+    }
+  };
+
   const [kycForm, setKycForm] = useState({
     firstName: '',
     lastName: '',
@@ -2204,13 +2254,7 @@ const Dashboard = () => {
                         setSwitchMessage('');
                       }, 2000);
                     } else {
-                      setSwitchMessage('switching to business suite');
-                      setIsSwitchingAccountType(true);
-                      setTimeout(() => {
-                        setAccountType('Business Suite');
-                        setIsSwitchingAccountType(false);
-                        setSwitchMessage('');
-                      }, 2000);
+                      handleSwitchToBusinessSuite();
                     }
                   }}
                 >
@@ -4032,13 +4076,7 @@ const Dashboard = () => {
                     className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
                     onClick={() => {
                       if (accountType !== 'Business Suite') {
-                        setSwitchMessage('switching to business suite');
-                        setIsSwitchingAccountType(true);
-                        setTimeout(() => {
-                          setAccountType('Business Suite');
-                          setIsSwitchingAccountType(false);
-                          setSwitchMessage('');
-                        }, 2000);
+                        handleSwitchToBusinessSuite();
                       }
                     }}
                   >
@@ -4402,6 +4440,13 @@ const Dashboard = () => {
       <ConnectWalletModal 
         isOpen={showConnectWalletModal} 
         onClose={() => setShowConnectWalletModal(false)} 
+      />
+
+      {/* Business Suite PIN Modal */}
+      <BusinessSuitePinModal
+        isOpen={showBusinessSuitePinModal}
+        onClose={handleClosePinModal}
+        onVerify={handleBusinessSuitePinVerify}
       />
 
       {/* Fund Wallet Modal */}

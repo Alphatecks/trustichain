@@ -1535,6 +1535,24 @@ body.transactions-page-active .landing-navbar {
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
+.send-amount-input {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: #000000;
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+  outline: none;
+}
+
+.send-amount-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
 .send-balance-text,
 .send-exchange-rate {
   font-size: 0.875rem;
@@ -3459,6 +3477,24 @@ body.transactions-page-active .landing-navbar {
   color: var(--text-dark);
   line-height: 1.2;
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-amount-input {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+  outline: none;
+}
+
+.mobile-send-amount-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .mobile-send-balance-text {

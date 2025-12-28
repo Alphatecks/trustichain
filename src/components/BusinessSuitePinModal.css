@@ -1,0 +1,237 @@
+/* Business Suite PIN Modal Styles */
+.create-escrow-modal.business-suite-pin-modal {
+  max-width: 380px !important;
+}
+
+.create-escrow-modal.business-suite-pin-modal .create-escrow-modal-header h2 {
+  color: var(--blue-600, #0066ff);
+}
+
+.business-suite-pin-content {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.business-suite-pin-description {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-dark, #000);
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* PIN Dots Display */
+.business-suite-pin-dots-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border, #e0e0e0);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.pin-dot.filled {
+  background: var(--blue-600, #0066ff);
+  border-color: var(--blue-600, #0066ff);
+}
+
+.business-suite-pin-error {
+  font-size: 0.875rem;
+  color: #ef4444;
+  text-align: center;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  min-height: 1.25rem;
+}
+
+/* Number Pad */
+.business-suite-pin-numberpad {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.pin-numberpad-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.pin-numberpad-key {
+  flex: 1;
+  aspect-ratio: 1;
+  max-width: 80px;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 0.75rem;
+  background: var(--white, #ffffff);
+  color: var(--blue-600, #0066ff);
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pin-numberpad-key:hover:not(:disabled) {
+  background: var(--blue-50, #f0f7ff);
+  border-color: var(--blue-600, #0066ff);
+  transform: scale(0.95);
+}
+
+.pin-numberpad-key:active:not(:disabled) {
+  background: var(--blue-100, #e0f2fe);
+  transform: scale(0.9);
+}
+
+.pin-numberpad-key:disabled {
+  cursor: not-allowed;
+  opacity: 0;
+}
+
+.pin-numberpad-key-empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.pin-numberpad-key-delete {
+  color: var(--text-muted, #666);
+}
+
+.pin-numberpad-key-delete:hover:not(:disabled) {
+  background: var(--gray-100, #f3f4f6);
+  border-color: var(--text-muted, #999);
+  color: var(--text-dark, #000);
+}
+
+.business-suite-pin-actions {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.business-suite-pin-cancel-btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  border: none;
+  background: var(--gray-100, #f3f4f6);
+  color: var(--text-dark, #000);
+}
+
+.business-suite-pin-cancel-btn:hover {
+  background: var(--gray-200, #e5e7eb);
+}
+
+/* Dark theme support */
+[data-theme="dark"] .business-suite-pin-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .pin-dot {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .pin-dot.filled {
+  background: rgba(0, 102, 255, 0.9);
+  border-color: rgba(0, 102, 255, 0.9);
+}
+
+[data-theme="dark"] .pin-numberpad-key {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(0, 102, 255, 0.9);
+}
+
+[data-theme="dark"] .create-escrow-modal.business-suite-pin-modal .create-escrow-modal-header h2 {
+  color: rgba(0, 102, 255, 0.9);
+}
+
+[data-theme="dark"] .pin-numberpad-key:hover:not(:disabled) {
+  background: rgba(0, 102, 255, 0.2);
+  border-color: rgba(0, 102, 255, 0.5);
+}
+
+[data-theme="dark"] .pin-numberpad-key:active:not(:disabled) {
+  background: rgba(0, 102, 255, 0.3);
+}
+
+[data-theme="dark"] .pin-numberpad-key-delete {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .pin-numberpad-key-delete:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .business-suite-pin-cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .business-suite-pin-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .create-escrow-modal.business-suite-pin-modal {
+    max-width: 95% !important;
+    width: 95%;
+  }
+
+  .business-suite-pin-content {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .business-suite-pin-dots-container {
+    gap: 0.75rem;
+  }
+
+  .pin-dot {
+    width: 14px;
+    height: 14px;
+  }
+
+  .pin-numberpad-row {
+    gap: 0.5rem;
+  }
+
+  .pin-numberpad-key {
+    max-width: 70px;
+    font-size: 1.25rem;
+    border-radius: 0.5rem;
+  }
+
+  .business-suite-pin-cancel-btn {
+    width: 100%;
+  }
+}
+

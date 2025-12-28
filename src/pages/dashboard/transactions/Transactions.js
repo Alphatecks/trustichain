@@ -305,9 +305,9 @@ const Transactions = () => {
   const [fundWalletAmount, setFundWalletAmount] = useState('');
   const [sendForm, setSendForm] = useState({
     fromWallet: 'XRP',
-    fromAmount: '24,567.89',
+    fromAmount: '',
     toCurrency: 'EUR',
-    toAmount: '24,567.89',
+    toAmount: '',
     fullName: '',
     phoneNumber: '',
     walletAddress: '',
@@ -2261,7 +2261,20 @@ const Transactions = () => {
               <span className="mobile-send-wallet-text">XRP wallet</span>
               <ChevronDown size={16} />
             </div>
-            <div className="mobile-send-amount-display">$24,567.89</div>
+            <input
+              type="text"
+              className="mobile-send-amount-input"
+              placeholder="$0.00"
+              value={sendForm.fromAmount ? `$${sendForm.fromAmount}` : ''}
+              onChange={(e) => {
+                let value = e.target.value;
+                // Remove $ sign if present
+                value = value.replace(/\$/g, '');
+                // Keep only numbers and decimal point
+                value = value.replace(/[^0-9.]/g, '');
+                setSendForm(prev => ({ ...prev, fromAmount: value }));
+              }}
+            />
             <div className="mobile-send-balance-text">Balance: 24,567.89 USDT</div>
           </div>
 
@@ -2282,7 +2295,20 @@ const Transactions = () => {
               <span className="mobile-send-wallet-text">EUR</span>
               <ChevronDown size={16} />
             </div>
-            <div className="mobile-send-amount-display">$24,567.89</div>
+            <input
+              type="text"
+              className="mobile-send-amount-input"
+              placeholder="$0.00"
+              value={sendForm.toAmount ? `$${sendForm.toAmount}` : ''}
+              onChange={(e) => {
+                let value = e.target.value;
+                // Remove $ sign if present
+                value = value.replace(/\$/g, '');
+                // Keep only numbers and decimal point
+                value = value.replace(/[^0-9.]/g, '');
+                setSendForm(prev => ({ ...prev, toAmount: value }));
+              }}
+            />
             <div className="mobile-send-balance-text">Balance: 24,567.89 USDT</div>
           </div>
 
@@ -6140,7 +6166,20 @@ const Transactions = () => {
                     <span className="send-wallet-text">XRP wallet</span>
                     <ChevronDown size={16} />
                   </div>
-                  <div className="send-amount-display">$24,567.89</div>
+                  <input
+                    type="text"
+                    className="send-amount-input"
+                    placeholder="$0.00"
+                    value={sendForm.fromAmount ? `$${sendForm.fromAmount}` : ''}
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      // Remove $ sign if present
+                      value = value.replace(/\$/g, '');
+                      // Keep only numbers and decimal point
+                      value = value.replace(/[^0-9.]/g, '');
+                      setSendForm(prev => ({ ...prev, fromAmount: value }));
+                    }}
+                  />
                   <div className="send-balance-text">Balance: 24,567.89 USDT</div>
                 </div>
 
@@ -6159,7 +6198,16 @@ const Transactions = () => {
                     <span className="send-wallet-text">EUR</span>
                     <ChevronDown size={16} />
                   </div>
-                  <div className="send-amount-display">$24,567.89</div>
+                  <input
+                    type="text"
+                    className="send-amount-input"
+                    placeholder="$0.00"
+                    value={sendForm.toAmount ? `$${sendForm.toAmount}` : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setSendForm(prev => ({ ...prev, toAmount: value }));
+                    }}
+                  />
                   <div className="send-exchange-rate">1 XRP = $0.5430 USD</div>
                 </div>
               </div>

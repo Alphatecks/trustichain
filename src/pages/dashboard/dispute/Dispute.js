@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -92,6 +92,20 @@ const MONTH_LABEL_TO_NUMBER = {
   december: 12
 };
 
+const MONTH_OPTIONS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
+];
 const toNumberOrNull = (value) => {
   const num = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(num) ? num : null;
@@ -159,6 +173,10 @@ const Dispute = () => {
   const [itemsPerPage] = useState(10);
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState('November');
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isMobileMonthDropdownOpen, setIsMobileMonthDropdownOpen] = useState(false);
+  const monthDropdownRef = useRef(null);
+  const mobileMonthDropdownRef = useRef(null);
 
   const [summaryMetrics, setSummaryMetrics] = useState({
     totalDisputes: null,
@@ -181,7 +199,48 @@ const Dispute = () => {
     return 'all';
   }, [selectedFilter]);
 
+  const handleMonthSelect = (month) => {
+    setSelectedMonth(month);
+    setCurrentPage(1);
+    setIsMonthDropdownOpen(false);
+    setIsMobileMonthDropdownOpen(false);
+  };
+
+  const toggleMonthDropdown = () => {
+    setIsMonthDropdownOpen((prev) => !prev);
+  };
+
+  const toggleMobileMonthDropdown = () => {
+    setIsMobileMonthDropdownOpen((prev) => !prev);
+  };
+
   const [formattedToday, setFormattedToday] = useState('');
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target)) {
+        setIsMonthDropdownOpen(false);
+      }
+      if (mobileMonthDropdownRef.current && !mobileMonthDropdownRef.current.contains(event.target)) {
+        setIsMobileMonthDropdownOpen(false);
+      }
+    };
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setIsMonthDropdownOpen(false);
+        setIsMobileMonthDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
 
   // Dispute creation modal state
   const [showCreateDisputeModal, setShowCreateDisputeModal] = useState(false);
@@ -1002,9 +1061,35 @@ const Dispute = () => {
               <span>{selectedFilter}</span>
               <ChevronDown size={16} />
             </div>
-            <div className="dispute-month-filter">
-              <Calendar size={16} />
-              <span>{selectedMonth}</span>
+            <div className="dispute-month-filter-wrapper" ref={monthDropdownRef}>
+              <button
+                type="button"
+                className={`dispute-month-filter ${isMonthDropdownOpen ? 'open' : ''}`}
+                onClick={toggleMonthDropdown}
+                aria-haspopup="listbox"
+                aria-expanded={isMonthDropdownOpen}
+              >
+                <Calendar size={16} />
+                <span>{selectedMonth}</span>
+                <ChevronDown size={14} className={`month-filter-chevron ${isMonthDropdownOpen ? 'rotated' : ''}`} />
+              </button>
+              {isMonthDropdownOpen && (
+                <div className="dispute-month-dropdown" role="listbox">
+                  {MONTH_OPTIONS.map((month) => (
+                    <button
+                      key={month}
+                      type="button"
+                      className={`dispute-month-dropdown-item ${selectedMonth === month ? 'active' : ''}`}
+                      onClick={() => handleMonthSelect(month)}
+                      role="option"
+                      aria-selected={selectedMonth === month}
+                    >
+                      <span>{month}</span>
+                      {selectedMonth === month && <CheckCircle size={14} />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1019,9 +1104,34 @@ const Dispute = () => {
                 <button type="button" className="mobile-dispute-history-icon-btn">
                   <ChevronDown size={18} />
                 </button>
-                <button type="button" className="mobile-dispute-history-icon-btn">
-                  <Calendar size={18} />
-                </button>
+                <div className="mobile-month-filter-wrapper" ref={mobileMonthDropdownRef}>
+                  <button 
+                    type="button" 
+                    className={`mobile-dispute-history-icon-btn ${isMobileMonthDropdownOpen ? 'active' : ''}`}
+                    onClick={toggleMobileMonthDropdown}
+                    aria-haspopup="listbox"
+                    aria-expanded={isMobileMonthDropdownOpen}
+                  >
+                    <Calendar size={18} />
+                  </button>
+                  {isMobileMonthDropdownOpen && (
+                    <div className="mobile-dispute-month-dropdown" role="listbox">
+                      {MONTH_OPTIONS.map((month) => (
+                        <button
+                          key={month}
+                          type="button"
+                          className={`mobile-dispute-month-dropdown-item ${selectedMonth === month ? 'active' : ''}`}
+                          onClick={() => handleMonthSelect(month)}
+                          role="option"
+                          aria-selected={selectedMonth === month}
+                        >
+                          <span>{month}</span>
+                          {selectedMonth === month && <CheckCircle size={14} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

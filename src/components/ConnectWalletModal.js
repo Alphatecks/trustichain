@@ -18,6 +18,7 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       icon: metamaskLogo,
       description: 'Connect using MetaMask browser extension',
       isInstalled: typeof window !== 'undefined' && window.ethereum && window.ethereum.isMetaMask,
+      comingSoon: false,
       connect: async () => {
         if (!window.ethereum) {
           window.open('https://metamask.io/download/', '_blank');
@@ -32,6 +33,7 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       icon: walletConnectLogo,
       description: 'Scan QR code with your mobile wallet',
       isInstalled: true,
+      comingSoon: true,
       connect: async () => {
         await connectWallet('walletconnect');
       }
@@ -42,6 +44,7 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       icon: coinbaseLogo,
       description: 'Connect using Coinbase Wallet extension',
       isInstalled: typeof window !== 'undefined' && window.ethereum && window.ethereum.isCoinbaseWallet,
+      comingSoon: true,
       connect: async () => {
         if (!window.ethereum) {
           window.open('https://www.coinbase.com/wallet', '_blank');
@@ -56,6 +59,7 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       icon: 'https://trustwallet.com/assets/images/media/assets/TWT.png',
       description: 'Connect using Trust Wallet browser extension',
       isInstalled: typeof window !== 'undefined' && window.ethereum && window.ethereum.isTrust,
+      comingSoon: false,
       connect: async () => {
         if (!window.ethereum) {
           window.open('https://trustwallet.com/browser-extension', '_blank');
@@ -70,6 +74,7 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/ethereum.svg',
       description: 'Connect using your browser wallet',
       isInstalled: typeof window !== 'undefined' && window.ethereum,
+      comingSoon: true,
       connect: async () => {
         if (!window.ethereum) {
           return;
@@ -135,9 +140,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
                 <button
                   key={wallet.id}
                   type="button"
-                  className={`connect-wallet-item ${isConnectingThis ? 'connecting' : ''} ${!wallet.isInstalled ? 'not-installed' : ''}`}
-                  onClick={() => handleWalletConnect(wallet)}
-                  disabled={isDisabled || isConnectingThis}
+                  className={`connect-wallet-item ${isConnectingThis ? 'connecting' : ''} ${!wallet.isInstalled ? 'not-installed' : ''} ${wallet.comingSoon ? 'coming-soon' : ''}`}
+                  onClick={() => !wallet.comingSoon && handleWalletConnect(wallet)}
+                  disabled={isDisabled || isConnectingThis || wallet.comingSoon}
                 >
                   <div className="connect-wallet-item-content">
                     <div className="connect-wallet-icon">
@@ -150,7 +155,10 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
                     <div className="connect-wallet-info">
                       <div className="connect-wallet-name">
                         {wallet.name}
-                        {!wallet.isInstalled && (
+                        {wallet.comingSoon && (
+                          <span className="coming-soon-badge">Coming Soon</span>
+                        )}
+                        {!wallet.isInstalled && !wallet.comingSoon && (
                           <ExternalLink size={14} className="external-link-icon" />
                         )}
                       </div>
