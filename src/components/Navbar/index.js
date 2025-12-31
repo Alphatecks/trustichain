@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Shield, Wallet, User, LogOut, Sun, Moon } from 'lucide-react';
-import { useWeb3 } from '../context/Web3Context';
-import { useTheme } from '../context/ThemeContext';
-import ConnectWalletModal from './ConnectWalletModal';
-import './Navbar.css';
+import { useWeb3 } from '../../context/Web3Context';
+import { useTheme } from '../../context/ThemeContext';
+import ConnectWalletModal from '../ConnectWalletModal';
+import './index.css';
 
 const Navbar = () => {
   const { account, isConnected, disconnectWallet } = useWeb3();

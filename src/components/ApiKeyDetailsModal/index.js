@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, Copy } from 'lucide-react';
-import './LoadingIndicator.css';
-import './ApiKeyDetailsModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const ApiKeyDetailsModal = ({ isOpen, onClose, keyData }) => {
   // Placeholder state - matching the design

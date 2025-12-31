@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, Info } from 'lucide-react';
-import './LoadingIndicator.css';
-import './FundSupplyAccountModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const FundSupplyAccountModal = ({ isOpen, onCancel, onSuccess }) => {
   const [amount, setAmount] = useState('24,567.89');

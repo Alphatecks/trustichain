@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Delete } from 'lucide-react';
-import './BusinessSuitePinModal.css';
+import './index.css';
 
 const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
   const [pin, setPin] = useState('');

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Info } from 'lucide-react';
-import './LoadingIndicator.css';
-import './ChangeReleaseDateModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const ChangeReleaseDateModal = ({ isOpen, onCancel, onSuccess, currentReleaseDate = '31st Nov', currentReleasePeriod = '30 Days' }) => {
   const [newReleasePeriod, setNewReleasePeriod] = useState('20 Days');

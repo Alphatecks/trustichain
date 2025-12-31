@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, Copy } from 'lucide-react';
-import './LoadingIndicator.css';
-import './CreateSandboxKeyModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const CreateSandboxKeyModal = ({ isOpen, onCancel, onSuccess }) => {
   const [environmentName, setEnvironmentName] = useState('Angelo Group');

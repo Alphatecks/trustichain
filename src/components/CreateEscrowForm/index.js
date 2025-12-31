@@ -13,9 +13,9 @@ import {
   ArrowLeft,
   X,
 } from 'lucide-react';
-import { getApiUrl } from '../utils/config';
+import { getApiUrl } from '../../utils/config';
 import toast from 'react-hot-toast';
-import './LoadingIndicator.css';
+import '../LoadingIndicator/index.css';
 
 /**
  * Reusable Create Escrow multi-step form used in Dashboard and My Escrow.

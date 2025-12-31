@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Info, Download, Clock, ChevronDown } from 'lucide-react';
-import './LoadingIndicator.css';
-import './CreateNewSupplierModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
   const [step, setStep] = useState(1);

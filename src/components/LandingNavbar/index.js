@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Sun, Moon } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import './LandingNavbar.css';
+import { useTheme } from '../../context/ThemeContext';
+import './index.css';
 
 const LandingNavbar = () => {
   const location = useLocation();
@@ -42,7 +42,7 @@ const LandingNavbar = () => {
     <nav className={`landing-navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="landing-navbar-container">
         <Link to="/" className="landing-navbar-brand">
-          <img src={require('../assets/images/logo/logo.png')} alt="TrustiChain" className="brand-logo" />
+          <img src={require('../../assets/images/logo/logo.png')} alt="TrustiChain" className="brand-logo" />
         </Link>
 
         <div className="landing-navbar-menu">

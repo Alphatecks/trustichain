@@ -12,7 +12,7 @@ import {
   Download,
   Clock
 } from 'lucide-react';
-import './LoadingIndicator.css';
+import '../LoadingIndicator/index.css';
 
 const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);

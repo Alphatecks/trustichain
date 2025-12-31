@@ -10,7 +10,7 @@ import {
   Calendar,
   ChevronDown
 } from 'lucide-react';
-import './LoadingIndicator.css';
+import '../LoadingIndicator/index.css';
 
 const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);

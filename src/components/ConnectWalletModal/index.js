@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { X, Wallet, ExternalLink } from 'lucide-react';
-import { useWeb3 } from '../context/Web3Context';
-import './ConnectWalletModal.css';
-import metamaskLogo from '../assets/images/icons/wallets/metamask.png';
-import walletConnectLogo from '../assets/images/icons/wallets/walletconnect.jpeg';
-import coinbaseLogo from '../assets/images/icons/wallets/coinbase.png';
+import { useWeb3 } from '../../context/Web3Context';
+import './index.css';
+import metamaskLogo from '../../assets/images/icons/wallets/metamask.png';
+import walletConnectLogo from '../../assets/images/icons/wallets/walletconnect.jpeg';
+import coinbaseLogo from '../../assets/images/icons/wallets/coinbase.png';
 
 const ConnectWalletModal = ({ isOpen, onClose }) => {
   const { connectWallet } = useWeb3();

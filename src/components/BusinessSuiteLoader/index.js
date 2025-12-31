@@ -1,7 +1,7 @@
 import React from 'react';
 import { CircleLoader } from 'react-spinners';
-import logo from '../assets/images/icons/logo.png';
-import './BusinessSuiteLoader.css';
+import logo from '../../assets/images/icons/logo.png';
+import './index.css';
 
 const BusinessSuiteLoader = ({ message = 'switching to business suite' }) => {
   return (

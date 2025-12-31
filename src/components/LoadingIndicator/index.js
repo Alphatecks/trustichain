@@ -1,5 +1,5 @@
 import React from 'react';
-import './LoadingIndicator.css';
+import './index.css';
 
 const LoadingIndicator = ({ size = 'md' }) => {
   // #region agent log

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, ArrowRight } from 'lucide-react';
-import './LoadingIndicator.css';
-import './CreateApiKeyModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const CreateApiKeyModal = ({ isOpen, onCancel, onSuccess }) => {
   const [keyLabel, setKeyLabel] = useState('Angelo Group');

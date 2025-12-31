@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, Calendar } from 'lucide-react';
-import './LoadingIndicator.css';
-import './CreateWebhookModal.css';
+import '../LoadingIndicator/index.css';
+import './index.css';
 
 const CreateWebhookModal = ({ isOpen, onCancel, onSuccess }) => {
   const [webhookName, setWebhookName] = useState('');
