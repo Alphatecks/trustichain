@@ -3962,13 +3962,16 @@ const Dashboard = () => {
         <div className="sidebar-section">
           <p className="sidebar-section-label">Wallet</p>
           <div className="sidebar-wallet" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div className="wallet-address" style={{ cursor: 'pointer' }} onClick={() => setShowConnectedWalletModal(true)}>
-              <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-              <span style={{ marginLeft: '0.5rem' }}>{account ? `${account.slice(0,6)}...${account.slice(-4)}` : 'Connect Wallet'}</span>
-            </div>
-
-            {isConnected && (
-              <button className="disconnect-btn" onClick={() => setShowConnectedWalletModal(true)} aria-label="Open wallet menu">Disconnect</button>
+            {isConnected ? (
+              <button className="sidebar-wallet-btn" onClick={() => setShowConnectedWalletModal(true)} aria-label="View wallet">
+                <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
+              </button>
+            ) : (
+              <button className="sidebar-wallet-btn" onClick={() => setShowConnectWalletModal(true)} aria-label="Connect wallet">
+                <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                <span style={{ marginLeft: '0.5rem' }}>Connect Wallet</span>
+              </button>
             )}
           </div>
         </div>
