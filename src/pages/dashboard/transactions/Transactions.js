@@ -60,6 +60,7 @@ import { useSession } from '../../../context/SessionContext';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
+import TransactionSummaryModal from '../../../components/TransactionSummaryModal';
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -240,6 +241,9 @@ const Transactions = () => {
   const [isLoadingBeneficiaries, setIsLoadingBeneficiaries] = useState(true);
   const [showTransactionDetailsModal, setShowTransactionDetailsModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+  // Add state for TransactionSummaryModal
+
   const [linkedAccounts, setLinkedAccounts] = useState(null);
   const [isLoadingLinkedAccounts, setIsLoadingLinkedAccounts] = useState(true);
   const [transactionFilter, setTransactionFilter] = useState('All');
@@ -922,42 +926,32 @@ const Transactions = () => {
           return;
         }
 
-        // Try different possible endpoints
-        const endpoints = ['api/transactions', 'api/transactions/list', 'api/wallet/transactions'];
-        let transactionsData = [];
-
-        for (const endpoint of endpoints) {
-          try {
-            const apiUrl = getApiUrl(endpoint);
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            });
-            if (response.ok) {
-              const result = await response.json();
-              const existingAddress = result?.data?.xrplAddress;
-              if (existingAddress && typeof existingAddress === 'string' && existingAddress.trim().length > 0) {
-                setWalletAddress(prev => prev || existingAddress);
-              }
-              // Log user details and balance to console
-              console.log('User Details:', {
-                fullName: userFullName,
-                initials: userInitials,
-                role: userRole,
-                avatar: userAvatar,
-                balance: result?.data?.balance,
-                xrplAddress: result?.data?.xrplAddress
-              });
+        // Use the correct API endpoint for transaction history
+        try {
+          const apiUrl = getApiUrl('api/transactions?limit=50&offset=0');
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result?.success && Array.isArray(result?.data?.transactions)) {
+              setTransactions(result.data.transactions);
+            } else if (Array.isArray(result?.data)) {
+              setTransactions(result.data);
+            } else {
+              setTransactions([]);
             }
-          } catch (error) {
-            console.error(`Error fetching from ${endpoint}:`, error);
+          } else {
+            setTransactions([]);
           }
+        } catch (error) {
+          console.error('Error fetching transaction history:', error);
+          setTransactions([]);
         }
-
-        setTransactions(transactionsData);
       } catch (error) {
         console.error('Error fetching transactions:', error);
       } finally {
@@ -1529,6 +1523,8 @@ const Transactions = () => {
       });
 
       const result = await response.json().catch(() => ({}));
+      // Log the withdrawal response to the console
+      console.log('Withdraw API response:', result);
 
       if (response.ok && result.success) {
         toast.success('Withdrawal request submitted successfully!');
@@ -7040,6 +7036,13 @@ const Transactions = () => {
       <ConnectWalletModal 
         isOpen={showConnectWalletModal && !isWalletConnectedViaAPI} 
         onClose={() => setShowConnectWalletModal(false)} 
+      />
+
+      {/* TransactionSummaryModal integration */}
+      <TransactionSummaryModal
+        open={showTransactionSummaryModal}
+        onClose={() => setShowTransactionSummaryModal(false)}
+        transaction={selectedTransaction}
       />
     </>
   );
