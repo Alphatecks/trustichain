@@ -134,6 +134,41 @@ const getNotificationIconConfig = (type) => {
 };
 
 const Dashboard = () => {
+      // Loading state for View Wallet button
+      const [isLoadingWalletAddress, setIsLoadingWalletAddress] = useState(false);
+    // On mount, check if user has a wallet
+    useEffect(() => {
+      const fetchWallets = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            setHasWallet(false);
+            setWalletAddress("");
+            return;
+          }
+          const res = await fetch(`${getApiUrl('api/wallet/all')}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const result = await res.json();
+          // If result is empty array or no wallet, show Create Wallet
+          if (Array.isArray(result.data) && result.data.length > 0 && result.data[0].xrpl_address) {
+            setHasWallet(true);
+            setWalletAddress(result.data[0].xrpl_address);
+          } else {
+            setHasWallet(false);
+            setWalletAddress("");
+          }
+        } catch (err) {
+          setHasWallet(false);
+          setWalletAddress("");
+        }
+      };
+      fetchWallets();
+    }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
@@ -670,9 +705,9 @@ const Dashboard = () => {
         return;
       }
 
-      const apiUrl = getApiUrl('api/wallet/balance');
+      const apiUrl = getApiUrl('api/wallet/create');
       const response = await fetch(apiUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -685,9 +720,11 @@ const Dashboard = () => {
       }
 
       const result = await response.json();
+      console.log('Create Wallet API response:', result);
 
       if (result?.success) {
-        const xrplAddress = result?.data?.xrplAddress;
+        // Use the new API response format: result.data.xrpl_address
+        const xrplAddress = result?.data?.xrpl_address;
         if (xrplAddress) {
           setWalletAddress(xrplAddress);
           setHasWallet(true);
@@ -3962,15 +3999,15 @@ const Dashboard = () => {
         <div className="sidebar-section">
           <p className="sidebar-section-label">Wallet</p>
           <div className="sidebar-wallet" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {isConnected ? (
+            {hasWallet ? (
               <button className="sidebar-wallet-btn" onClick={() => setShowConnectedWalletModal(true)} aria-label="View wallet">
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
                 <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
               </button>
             ) : (
-              <button className="sidebar-wallet-btn" onClick={() => setShowConnectWalletModal(true)} aria-label="Connect wallet">
+              <button className="sidebar-wallet-btn" onClick={handleCreateWallet} aria-label="Create wallet">
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-                <span style={{ marginLeft: '0.5rem' }}>Connect Wallet</span>
+                <span style={{ marginLeft: '0.5rem' }}>Create Wallet</span>
               </button>
             )}
           </div>
@@ -4111,15 +4148,38 @@ const Dashboard = () => {
                   <button 
                     type="button" 
                     className="create-wallet-btn"
-                    onClick={() => {
-                      if (hasWallet) {
-                        setShowWalletModal(true);
-                      } else {
-                        handleCreateWallet();
+                    onClick={async () => {
+                      setIsLoadingWalletAddress(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        if (!token) {
+                          toast.error('No authentication token found.');
+                          setIsLoadingWalletAddress(false);
+                          return;
+                        }
+                        const res = await fetch('https://trustichain-backend.onrender.com/api/wallet/balance', {
+                          method: 'GET',
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                          },
+                        });
+                        const result = await res.json();
+                        if (result?.success && result?.data?.xrplAddress) {
+                          setWalletAddress(result.data.xrplAddress);
+                          setShowWalletModal(true);
+                        } else {
+                          toast.error(result?.message || 'Failed to fetch wallet address.');
+                        }
+                      } catch (err) {
+                        toast.error('Failed to fetch wallet address.');
+                        console.error(err);
+                      } finally {
+                        setIsLoadingWalletAddress(false);
                       }
                     }}
                   >
-                    {hasWallet ? 'View Wallet' : 'Create Wallet'}
+                    {isLoadingWalletAddress ? <LoadingIndicator size="sm" /> : 'View Wallet'}
                   </button>
                 )}
               </>

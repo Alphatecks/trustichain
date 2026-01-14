@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ConnectedWalletModal from './index';
 
 jest.mock('../../context/Web3Context', () => ({
@@ -24,9 +24,20 @@ describe('ConnectedWalletModal', () => {
     expect(screen.getByText(/Disconnect wallet\?/i)).toBeInTheDocument();
 
     const confirmBtn = screen.getAllByText(/Disconnect/i).pop();
+
+    // mock the API response
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        message: 'Wallet disconnected successfully',
+        data: { previousAddress: 'rOLDADDRESS' }
+      }),
+    });
+
     fireEvent.click(confirmBtn);
 
     // onClose should have been called after disconnect
-    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 });

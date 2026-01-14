@@ -1,108 +1,128 @@
-import React, { useState } from 'react';
-import { X, Wallet, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Wallet, ExternalLink, CheckCircle, Loader } from 'lucide-react';
 import { useWeb3 } from '../../context/Web3Context';
 import './index.css';
-import metamaskLogo from '../../assets/images/icons/wallets/metamask.png';
-import walletConnectLogo from '../../assets/images/icons/wallets/walletconnect.jpeg';
-import coinbaseLogo from '../../assets/images/icons/wallets/coinbase.png';
 
 const ConnectWalletModal = ({ isOpen, onClose }) => {
-  const { connectWallet } = useWeb3();
+  const { 
+    connectWallet, 
+    account, 
+    isConnected, 
+    isWalletConnectedViaAPI,
+    startXamanPolling,
+    stopXamanPolling,
+    xamanConnectionData,
+    setXamanConnectionData,
+  } = useWeb3();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState(null);
+  const [xamanStatus, setXamanStatus] = useState('pending'); // pending, connected, cancelled
 
   const wallets = [
     {
-      id: 'metamask',
-      name: 'MetaMask',
-      icon: metamaskLogo,
-      description: 'Connect using MetaMask browser extension',
-      isInstalled: typeof window !== 'undefined' && window.ethereum && window.ethereum.isMetaMask,
-      comingSoon: false,
-      connect: async () => {
-        if (!window.ethereum) {
-          window.open('https://metamask.io/download/', '_blank');
-          return;
-        }
-        await connectWallet('metamask');
-      }
-    },
-    {
-      id: 'walletconnect',
-      name: 'WalletConnect',
-      icon: walletConnectLogo,
-      description: 'Scan QR code with your mobile wallet',
+      id: 'xaman',
+      name: 'XAMAN',
+      icon: 'https://xaman.app/logo.svg',
+      description: isWalletConnectedViaAPI && isConnected && account 
+        ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+        : 'Connect using XAMAN mobile wallet',
       isInstalled: true,
-      comingSoon: true,
-      connect: async () => {
-        await connectWallet('walletconnect');
-      }
-    },
-    {
-      id: 'coinbase',
-      name: 'Coinbase Wallet',
-      icon: coinbaseLogo,
-      description: 'Connect using Coinbase Wallet extension',
-      isInstalled: typeof window !== 'undefined' && window.ethereum && window.ethereum.isCoinbaseWallet,
-      comingSoon: true,
-      connect: async () => {
-        if (!window.ethereum) {
-          window.open('https://www.coinbase.com/wallet', '_blank');
-          return;
-        }
-        await connectWallet('coinbase');
-      }
-    },
-    {
-      id: 'trust',
-      name: 'Trust Wallet',
-      icon: 'https://trustwallet.com/assets/images/media/assets/TWT.png',
-      description: 'Connect using Trust Wallet browser extension',
-      isInstalled: typeof window !== 'undefined' && window.ethereum && window.ethereum.isTrust,
       comingSoon: false,
+      isConnected: isWalletConnectedViaAPI && isConnected,
       connect: async () => {
-        if (!window.ethereum) {
-          window.open('https://trustwallet.com/browser-extension', '_blank');
-          return;
-        }
-        await connectWallet('trust');
-      }
-    },
-    {
-      id: 'injected',
-      name: 'Browser Wallet',
-      icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/ethereum.svg',
-      description: 'Connect using your browser wallet',
-      isInstalled: typeof window !== 'undefined' && window.ethereum,
-      comingSoon: true,
-      connect: async () => {
-        if (!window.ethereum) {
-          return;
-        }
-        await connectWallet('injected');
+        await connectWallet('xaman');
       }
     }
   ];
 
   const handleWalletConnect = async (wallet) => {
-    setIsConnecting(true);
-    setConnectingWallet(wallet.id);
-    try {
-      await wallet.connect();
-      onClose();
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-    } finally {
-      setIsConnecting(false);
-      setConnectingWallet(null);
+    if (wallet.id === 'xaman') {
+      setIsConnecting(true);
+      setConnectingWallet(wallet.id);
+      setXamanStatus('pending');
+      
+      try {
+        const result = await connectWallet('xaman');
+        console.log('ConnectWalletModal: connectWallet API response:', result);
+        if (result && result.type === 'xaman' && result.connectionData) {
+          // Store connection data
+          setXamanConnectionData(result.connectionData);
+          
+          // Start polling for connection status
+          startXamanPolling(
+            result.connectionData.xummUuid,
+            (walletAddress) => {
+              // Connected successfully
+              setXamanStatus('connected');
+              setIsConnecting(false);
+              setConnectingWallet(null);
+              setTimeout(() => {
+                onClose();
+                setXamanConnectionData(null);
+                setXamanStatus('pending');
+              }, 1500);
+            },
+            () => {
+              // Cancelled
+              setXamanStatus('cancelled');
+              setIsConnecting(false);
+              setConnectingWallet(null);
+            }
+          );
+        } else {
+          setIsConnecting(false);
+          setConnectingWallet(null);
+        }
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
+        setIsConnecting(false);
+        setConnectingWallet(null);
+        setXamanConnectionData(null);
+      }
+    } else {
+      setIsConnecting(true);
+      setConnectingWallet(wallet.id);
+      try {
+        const result = await wallet.connect();
+        console.log('ConnectWalletModal: wallet.connect() API response:', result);
+        onClose();
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
+      } finally {
+        setIsConnecting(false);
+        setConnectingWallet(null);
+      }
     }
   };
 
   const handleCloseModal = () => {
     if (!isConnecting) {
+      // Stop polling if active
+      if (xamanConnectionData) {
+        stopXamanPolling();
+        setXamanConnectionData(null);
+        setXamanStatus('pending');
+      }
       onClose();
     }
   };
+
+  const handleCancelXaman = () => {
+    stopXamanPolling();
+    setXamanConnectionData(null);
+    setXamanStatus('pending');
+    setIsConnecting(false);
+    setConnectingWallet(null);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (xamanConnectionData) {
+        stopXamanPolling();
+      }
+    };
+  }, [xamanConnectionData, stopXamanPolling]);
 
   if (!isOpen) {
     return null;
@@ -127,11 +147,105 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
 
         {/* Modal Content */}
         <div className="create-escrow-modal-content connect-wallet-content">
-          <p className="connect-wallet-description">
-            Connect your wallet to continue. If you don't have a wallet, you can select one to get started.
-          </p>
+          {xamanConnectionData ? (
+            // Show QR code and connection status
+            <div className="xaman-connection-view">
+              <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Connect with XAMAN</h3>
+              
+              {xamanConnectionData.instructions && (
+                <p className="connect-wallet-description" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                  {xamanConnectionData.instructions}
+                </p>
+              )}
+              
+              {xamanConnectionData.qrCode && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                  <img 
+                    src={xamanConnectionData.qrCode} 
+                    alt="XAMAN QR Code" 
+                    style={{ 
+                      maxWidth: '300px', 
+                      width: '100%', 
+                      height: 'auto',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      backgroundColor: '#fff'
+                    }} 
+                  />
+                </div>
+              )}
+              
+              {xamanConnectionData.xummUrl && (
+                <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                  <a 
+                    href={xamanConnectionData.xummUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ 
+                      color: '#2F74FF', 
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    Open in XAMAN <ExternalLink size={14} />
+                  </a>
+                </div>
+              )}
+              
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+                color: xamanStatus === 'connected' ? '#10b981' : xamanStatus === 'cancelled' ? '#ef4444' : '#6b7280'
+              }}>
+                {xamanStatus === 'pending' && (
+                  <>
+                    <Loader size={16} className="spinning" />
+                    <span>Waiting for connection...</span>
+                  </>
+                )}
+                {xamanStatus === 'connected' && (
+                  <>
+                    <CheckCircle size={16} />
+                    <span>Connected successfully!</span>
+                  </>
+                )}
+                {xamanStatus === 'cancelled' && (
+                  <span>Connection cancelled</span>
+                )}
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCancelXaman}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="connect-wallet-description">
+                Connect your wallet to continue. If you don't have a wallet, you can select one to get started.
+              </p>
 
-          <div className="connect-wallet-list">
+              <div className="connect-wallet-list">
             {wallets.map((wallet) => {
               const isConnectingThis = connectingWallet === wallet.id;
               const isDisabled = isConnecting && !isConnectingThis;
@@ -140,9 +254,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
                 <button
                   key={wallet.id}
                   type="button"
-                  className={`connect-wallet-item ${isConnectingThis ? 'connecting' : ''} ${!wallet.isInstalled ? 'not-installed' : ''} ${wallet.comingSoon ? 'coming-soon' : ''}`}
-                  onClick={() => !wallet.comingSoon && handleWalletConnect(wallet)}
-                  disabled={isDisabled || isConnectingThis || wallet.comingSoon}
+                  className={`connect-wallet-item ${isConnectingThis ? 'connecting' : ''} ${!wallet.isInstalled ? 'not-installed' : ''} ${wallet.comingSoon ? 'coming-soon' : ''} ${wallet.isConnected ? 'connected' : ''}`}
+                  onClick={() => !wallet.comingSoon && !wallet.isConnected && handleWalletConnect(wallet)}
+                  disabled={isDisabled || isConnectingThis || wallet.comingSoon || wallet.isConnected}
                 >
                   <div className="connect-wallet-item-content">
                     <div className="connect-wallet-icon">
@@ -155,10 +269,13 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
                     <div className="connect-wallet-info">
                       <div className="connect-wallet-name">
                         {wallet.name}
+                        {wallet.isConnected && (
+                          <CheckCircle size={16} color="#2F74FF" style={{ marginLeft: '0.5rem' }} />
+                        )}
                         {wallet.comingSoon && (
                           <span className="coming-soon-badge">Coming Soon</span>
                         )}
-                        {!wallet.isInstalled && !wallet.comingSoon && (
+                        {!wallet.isInstalled && !wallet.comingSoon && !wallet.isConnected && (
                           <ExternalLink size={14} className="external-link-icon" />
                         )}
                       </div>
@@ -179,17 +296,19 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
 
           <div className="connect-wallet-footer">
             <p className="connect-wallet-help-text">
-              New to Ethereum wallets?{' '}
+              New to XAMAN wallet?{' '}
               <a 
-                href="https://ethereum.org/en/wallets/" 
-                target="_blank" 
+                href="https://xaman.app/" 
+                target="_blank"
                 rel="noopener noreferrer"
                 className="connect-wallet-help-link"
               >
-                Learn more about wallets
+                Learn more about XAMAN
               </a>
             </p>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

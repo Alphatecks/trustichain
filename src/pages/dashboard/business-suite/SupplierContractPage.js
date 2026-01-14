@@ -129,8 +129,28 @@ const SupplierContractPage = () => {
   };
 
   const handleCreateWallet = async () => {
-    // Placeholder for wallet creation logic
-    setHasWallet(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+      const apiUrl = getApiUrl('api/wallet/create');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      console.log('Create Wallet API response:', data);
+      if (response.ok && data.success) {
+        setHasWallet(true);
+      }
+    } catch (error) {
+      console.error('Error creating wallet:', error);
+    }
   };
 
   useEffect(() => {

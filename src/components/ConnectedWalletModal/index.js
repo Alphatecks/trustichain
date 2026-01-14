@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, LogOut } from 'lucide-react';
 import { useWeb3 } from '../../context/Web3Context';
 import toast from 'react-hot-toast';
+import { getApiUrl } from '../../utils/config';
 import './index.css';
 
 const formatAddress = (address) => {
@@ -54,11 +55,36 @@ const ConnectedWalletModal = ({ isOpen, onClose }) => {
                     <button className="btn" onClick={() => setConfirming(false)}>Cancel</button>
                     <button
                       className="btn btn-danger"
-                      onClick={() => {
-                        disconnectWallet();
-                        toast.success('Wallet disconnected');
-                        setConfirming(false);
-                        onClose();
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('token');
+                          const response = await fetch(getApiUrl('api/wallet/disconnect'), {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json',
+                            },
+                          });
+
+                          const data = await response.json();
+                          console.log('Wallet disconnect response:', data);
+                          console.log('Wallet disconnect response status:', response.status, response.statusText);
+
+                          if (response.ok && data.success) {
+                            console.log('Wallet disconnect successful:', data);
+                            // call client-side disconnect but suppress duplicate toast
+                            disconnectWallet({ suppressToast: true });
+                            toast.success(data.message || 'Wallet disconnected');
+                            setConfirming(false);
+                            onClose();
+                          } else {
+                            console.error('Wallet disconnect failed:', data);
+                            toast.error(data.message || 'Failed to disconnect wallet');
+                          }
+                        } catch (err) {
+                          console.error('Error disconnecting wallet:', err);
+                          toast.error('Failed to disconnect wallet');
+                        }
                       }}
                     >
                       Disconnect
