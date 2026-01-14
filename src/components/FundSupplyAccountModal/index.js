@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, Info } from 'lucide-react';
+import { X, ChevronDown, Info, CheckCircle } from 'lucide-react';
+import { useWeb3 } from '../../context/Web3Context';
 import '../LoadingIndicator/index.css';
 import './index.css';
 
 const FundSupplyAccountModal = ({ isOpen, onCancel, onSuccess }) => {
+  const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
   const [amount, setAmount] = useState('24,567.89');
   const [selectedWallet, setSelectedWallet] = useState('XRP wallet');
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
@@ -41,6 +43,36 @@ const FundSupplyAccountModal = ({ isOpen, onCancel, onSuccess }) => {
 
         {/* Modal Content */}
         <div className="create-escrow-modal-content" style={{ padding: '2rem' }}>
+          {/* Wallet Connection Status */}
+          {isWalletConnectedViaAPI && isConnected && account && (() => {
+            const isXamanConnected = localStorage.getItem('xamanWalletConnected') === 'true';
+            const isMetamaskConnected = localStorage.getItem('metamaskWalletConnected') === 'true';
+            const walletName = isXamanConnected ? 'XAMAN' : isMetamaskConnected ? 'MetaMask' : 'Wallet';
+            
+            return (
+              <div style={{
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                background: '#f0f9ff',
+                border: '1px solid #2F74FF',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <CheckCircle size={20} color="#2F74FF" />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2F74FF', marginBottom: '0.25rem' }}>
+                    {walletName} Connected
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
+                    {account.slice(0, 6)}...{account.slice(-4)}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="fund-supply-section">
             <div className="fund-supply-header">
               <label className="fund-supply-label">Amount</label>

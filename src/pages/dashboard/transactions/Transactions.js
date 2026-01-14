@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import QRCode from 'react-qr-code';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -56,6 +57,7 @@ import { getApiUrl } from '../../../utils/config';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
 
@@ -119,6 +121,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState(location.state?.accountType || 'Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -252,6 +255,8 @@ const Transactions = () => {
   const [isFundingWallet, setIsFundingWallet] = useState(false);
   const [fundingStep, setFundingStep] = useState('idle');
   const [transactionData, setTransactionData] = useState(null);
+  const [fundViaAddress, setFundViaAddress] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
   const [showSavingsWithdrawModal, setShowSavingsWithdrawModal] = useState(false);
   const [showSavingsWithdrawConfirmModal, setShowSavingsWithdrawConfirmModal] = useState(false);
@@ -860,6 +865,17 @@ const Transactions = () => {
 
       if (response.ok) {
         const result = await response.json();
+        
+        // Extract XRPL address if available
+        const existingAddress = result?.data?.xrplAddress;
+        if (
+          existingAddress &&
+          typeof existingAddress === 'string' &&
+          existingAddress.trim().length > 0
+        ) {
+          setWalletAddress(prev => prev || existingAddress);
+        }
+        
         if (result?.success && result?.data?.balance) {
           setWalletBalances(result.data.balance);
         } else {
@@ -920,17 +936,21 @@ const Transactions = () => {
                 'Content-Type': 'application/json',
               },
             });
-
             if (response.ok) {
               const result = await response.json();
-              if (result?.success) {
-                if (Array.isArray(result.data)) {
-                  transactionsData = result.data;
-                } else if (Array.isArray(result.data?.transactions)) {
-                  transactionsData = result.data.transactions;
-                }
-                break;
+              const existingAddress = result?.data?.xrplAddress;
+              if (existingAddress && typeof existingAddress === 'string' && existingAddress.trim().length > 0) {
+                setWalletAddress(prev => prev || existingAddress);
               }
+              // Log user details and balance to console
+              console.log('User Details:', {
+                fullName: userFullName,
+                initials: userInitials,
+                role: userRole,
+                avatar: userAvatar,
+                balance: result?.data?.balance,
+                xrplAddress: result?.data?.xrplAddress
+              });
             }
           } catch (error) {
             console.error(`Error fetching from ${endpoint}:`, error);
@@ -4818,13 +4838,42 @@ const Transactions = () => {
                         <span className="detail-label">Linked Web3 Wallet</span>
                         {linkedAccounts?.web3Wallet ? (
                           <span className="detail-value">{linkedAccounts.web3Wallet}</span>
+                        ) : isWalletConnectedViaAPI && isConnected && account ? (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            background: '#f0f9ff',
+                            border: '1px solid #2F74FF',
+                            borderRadius: '8px',
+                            fontFamily: 'Satoshi, Inter, sans-serif'
+                          }}>
+                            <CheckCircle size={16} color="#2F74FF" />
+                            <span style={{
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              color: '#2F74FF'
+                            }}>
+                              Connected
+                            </span>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: '#666',
+                              fontFamily: 'monospace'
+                            }}>
+                              {account.slice(0, 6)}...{account.slice(-4)}
+                            </span>
+                          </div>
                         ) : (
                           <button
                             type="button"
                             className="connect-wallet-btn"
-                            onClick={() => {
-                              setShowConnectWalletModal(true);
-                            }}
+                  onClick={() => {
+                    if (!isWalletConnectedViaAPI) {
+                      setShowConnectWalletModal(true);
+                    }
+                  }}
                             style={{
                               background: '#2F74FF',
                               color: 'white',
@@ -5363,9 +5412,10 @@ const Transactions = () => {
             setTransactionData(null);
             setFundingStep('idle');
             setIsFundingWallet(false);
+            setFundViaAddress(false);
           }
         }}>
-          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="notification-modal fund-wallet-modal" onClick={(e) => e.stopPropagation()}>
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
@@ -5380,6 +5430,7 @@ const Transactions = () => {
                   setTransactionData(null);
                   setFundingStep('idle');
                   setIsFundingWallet(false);
+                  setFundViaAddress(false);
                 }}
                 disabled={isFundingWallet && fundingStep !== 'idle'}
               >
@@ -5457,31 +5508,151 @@ const Transactions = () => {
               </div>
 
               <div className="fund-wallet-actions">
-                <button
-                  type="button"
-                  className="fund-wallet-btn cancel"
-                  onClick={() => {
-                    setShowFundWalletModal(false);
-                    setFundWalletForm({ amount: '', currency: 'XRP' });
-                    setTransactionData(null);
-                    setFundingStep('idle');
-                    setIsFundingWallet(false);
-                  }}
-                  disabled={isFundingWallet && fundingStep !== 'idle'}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="fund-wallet-btn primary"
-                  disabled={isFundingWallet}
-                >
-                  {fundingStep === 'preparing' && 'Preparing...'}
-                  {fundingStep === 'signing' && 'Waiting for signature...'}
-                  {fundingStep === 'completing' && 'Completing...'}
-                  {!isFundingWallet && 'Fund Wallet'}
-                  {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
-                </button>
+                {fundViaAddress ? (
+                  walletAddress ? (
+                    <>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0',
+                          width: '100%'
+                        }}>
+                          <p style={{
+                            fontSize: '0.95rem',
+                            color: '#666',
+                            textAlign: 'center',
+                            margin: 0
+                          }}>
+                            Scan this QR code to send funds to your XRP wallet address
+                          </p>
+                        
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          padding: '1.5rem',
+                          background: '#ffffff',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '0.75rem',
+                          minHeight: '256px',
+                          width: '100%',
+                          maxWidth: '300px'
+                        }}>
+                          <QRCode
+                            value={walletAddress}
+                            size={256}
+                            style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                            viewBox="0 0 256 256"
+                          />
+                        </div>
+
+                        <div style={{
+                          padding: '1rem',
+                          background: '#f9fafb',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '0.75rem',
+                          wordBreak: 'break-all',
+                          fontFamily: 'monospace',
+                          fontSize: '0.875rem',
+                          color: '#374151',
+                          textAlign: 'left',
+                          width: '100%',
+                          maxWidth: '300px'
+                        }}>
+                          {walletAddress}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(walletAddress);
+                              toast.success('Wallet address copied to clipboard');
+                            } catch (err) {
+                              console.error('Failed to copy wallet address:', err);
+                              toast.error('Failed to copy wallet address');
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            maxWidth: '300px',
+                            padding: '0.75rem 1.5rem',
+                            background: '#2F74FF',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            fontFamily: 'Satoshi, Inter, sans-serif',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#2563eb';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = '#2F74FF';
+                          }}
+                        >
+                          <Copy size={16} />
+                          Copy Address
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      padding: '2rem',
+                      textAlign: 'center'
+                    }}>
+                      <p style={{
+                        fontSize: '0.95rem',
+                        color: '#666',
+                        margin: 0
+                      }}>
+                        No wallet address found. Please create a wallet first.
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="fund-wallet-btn cancel"
+                      onClick={() => {
+                        setShowFundWalletModal(false);
+                        setFundWalletForm({ amount: '', currency: 'XRP' });
+                        setTransactionData(null);
+                        setFundingStep('idle');
+                        setIsFundingWallet(false);
+                        setFundViaAddress(false);
+                      }}
+                      disabled={isFundingWallet && fundingStep !== 'idle'}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="fund-wallet-btn primary"
+                      disabled={isFundingWallet}
+                    >
+                      {fundingStep === 'preparing' && 'Preparing...'}
+                      {fundingStep === 'signing' && 'Waiting for signature...'}
+                      {fundingStep === 'completing' && 'Completing...'}
+                      {!isFundingWallet && 'Fund Wallet'}
+                      {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           </div>
@@ -6628,6 +6799,7 @@ const Transactions = () => {
                   type="button"
                   onClick={() => {
                     setShowFundMethodModal(false);
+                    setFundViaAddress(true);
                     setShowFundWalletModal(true);
                   }}
                   style={{
@@ -6866,7 +7038,7 @@ const Transactions = () => {
 
       {/* Connect Wallet Modal */}
       <ConnectWalletModal 
-        isOpen={showConnectWalletModal} 
+        isOpen={showConnectWalletModal && !isWalletConnectedViaAPI} 
         onClose={() => setShowConnectWalletModal(false)} 
       />
     </>
