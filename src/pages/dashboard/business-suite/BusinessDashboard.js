@@ -37,22 +37,22 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 import { handleLogout } from '../../../utils/logout';
 
 const businessSuiteNav = [
-  { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
-  { label: 'Payroll', icon: DollarSign, badge: null },
-  { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transaction', icon: Repeat, badge: null }
+  { label: 'Dashboard', icon: LayoutDashboard, badge: null, path: '/dashboard' },
+  { label: 'Payroll', icon: DollarSign, badge: null, path: '/payroll' },
+  { label: 'Supplier Contract', icon: Building2, badge: null, path: '/supplier-contract' },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' }, // placeholder route (not currently wired)
+  { label: 'Transaction', icon: Repeat, badge: null, path: '/transactions' }
 ];
 
 const developersNav = [
-  { label: 'Api Keys', icon: Code, badge: null },
-  { label: 'Sand box enviroment', icon: Box, badge: null },
-  { label: 'Web hook', icon: Link, badge: null }
+  { label: 'API Keys', icon: Code, badge: null, path: '/api-keys' },
+  { label: 'Sandbox Environment', icon: Box, badge: null, path: '/sandbox-environment' },
+  { label: 'Webhooks', icon: Link, badge: null, path: '/webhook' }
 ];
 
 const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
+  { label: 'Settings', icon: Settings, path: '/settings' },
+  { label: 'Security', icon: ShieldCheck, path: '/security' } // placeholder route (not currently wired)
 ];
 
 const BusinessDashboard = ({
@@ -95,6 +95,18 @@ const BusinessDashboard = ({
   getBalanceValue,
   getExchangeRate
 }) => {
+  const handleNavClick = (item) => {
+    if (!item?.path) return;
+    // Compliance/Security are placeholders in this repo; avoid navigating to dead routes.
+    if (item.path === '/compliance' || item.path === '/security') return;
+    navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+  };
+
+  const handleDevelopersNavClick = (item) => {
+    if (!item?.path) return;
+    navigate(item.path);
+  };
+
   return (
     <>
       {/* Mobile Dashboard */}
@@ -191,19 +203,12 @@ const BusinessDashboard = ({
                 {businessSuiteNav.map((item) => {
                   const Icon = item.icon;
                   const isDisabled = !businessKycComplete;
-                  const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                                   (item.label === 'Payroll' && location.pathname === '/payroll') ||
-                                   (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
+                  const isActive = item.path ? location.pathname === item.path : false;
                   const handleNavClick = () => {
                     if (isDisabled) return;
                     setIsMobileMenuOpen(false);
-                    if (item.label === 'Dashboard') {
-                      navigate('/dashboard');
-                    } else if (item.label === 'Payroll') {
-                      navigate('/payroll');
-                    } else if (item.label === 'Supplier Contract') {
-                      navigate('/supplier-contract');
-                    }
+                    if (item.path === '/compliance') return;
+                    navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
                   };
                   return (
                     <button
@@ -228,22 +233,17 @@ const BusinessDashboard = ({
                 {developersNav.map((item) => {
                   const Icon = item.icon;
                   const isDisabled = !businessKycComplete;
+                  const isActive = item.path ? location.pathname === item.path : false;
                   const handleDevelopersNavClick = () => {
                     if (isDisabled) return;
                     setIsMobileMenuOpen(false);
-                    if (item.label === 'Api Keys') {
-                      navigate('/api-keys');
-                    } else if (item.label === 'Sand box enviroment') {
-                      navigate('/sandbox-environment');
-                    } else if (item.label === 'Web hook') {
-                      navigate('/webhook');
-                    }
+                    navigate(item.path);
                   };
                   return (
                     <button 
                       key={item.label} 
                       type="button" 
-                      className={`mobile-sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
+                      className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
                       onClick={handleDevelopersNavClick}
                       disabled={isDisabled}
                     >
@@ -642,12 +642,120 @@ const BusinessDashboard = ({
 
       {/* Desktop Dashboard */}
       <div className="dashboard-content">
-        {/* Breadcrumb */}
-        <div className="card-breadcrumb">
-          <span className="breadcrumb-root">Business Suite</span>
-          <span className="breadcrumb-divider">›</span>
-          <span className="breadcrumb-current">Dashboard</span>
-        </div>
+        <div className="dashboard-layout">
+          {/* Sidebar */}
+          <aside className="dashboard-sidebar">
+            <div className="sidebar-branding">
+              <img src={logo} alt="TrustiChain" className="sidebar-logo" />
+              <div className="sidebar-branding-text">
+                <span className="sidebar-title">TrustiChain</span>
+                <span className="sidebar-tagline">Secure escrow platform</span>
+              </div>
+            </div>
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-label">Business Suite</p>
+              <nav className="sidebar-nav">
+                {businessSuiteNav.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.path ? location.pathname === item.path : false;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                      onClick={() => handleNavClick(item)}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                      {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-label">Developers Tool</p>
+              <nav className="sidebar-nav">
+                {developersNav.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.path ? location.pathname === item.path : false;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                      onClick={() => handleDevelopersNavClick(item)}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-label">Support</p>
+              <nav className="sidebar-nav">
+                {supportNav.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.path ? location.pathname === item.path : false;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        if (item.path === '/settings') {
+                          navigate('/settings');
+                        }
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Help Center Widget */}
+            <div className="sidebar-help-card">
+              <div className="help-icon-large">
+                <HelpCircle size={24} />
+              </div>
+              <h3>Help Center</h3>
+              <p>Having trouble in Trustichain? Please contact us</p>
+              <button type="button" className="help-cta">Contact us</button>
+            </div>
+
+            {/* Footer */}
+            <div className="sidebar-footer">
+              <div className="sidebar-trustiscore">
+                <span className="sidebar-trustiscore-label">Trustiscore</span>
+                <span className="sidebar-trustiscore-badge">
+                  {dashboardData?.trustiscore?.score !== undefined 
+                    ? dashboardData.trustiscore.score 
+                    : (isLoadingDashboard ? '...' : '97')}
+                </span>
+              </div>
+              <button type="button" className="sidebar-logout" onClick={handleLogout}>
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className="dashboard-main">
+            {/* Breadcrumb */}
+            <div className="card-breadcrumb">
+              <span className="breadcrumb-root">Business Suite</span>
+              <span className="breadcrumb-divider">›</span>
+              <span className="breadcrumb-current">Dashboard</span>
+            </div>
         {/* Summary Cards */}
         <div className="dashboard-summary-cards">
           <div className="summary-card total-balance-card">
@@ -956,6 +1064,8 @@ const BusinessDashboard = ({
 
         {/* Bottom Section */}
         <div className="dashboard-bottom">
+        </div>
+          </main>
         </div>
       </div>
     </>

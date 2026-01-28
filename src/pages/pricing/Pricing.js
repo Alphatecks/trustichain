@@ -488,7 +488,7 @@ const Pricing = () => {
               <div className="pricing-footer-column">
                 <h3 className="pricing-footer-column-title">Legal Links</h3>
                 <ul className="pricing-footer-links">
-                  <li><a href="#" className="pricing-footer-link">Privacy Policy</a></li>
+                  <li><Link to="/privacy-policy" className="pricing-footer-link">Privacy Policy</Link></li>
                   <li><a href="#" className="pricing-footer-link">Cookie Policy</a></li>
                   <li><a href="#" className="pricing-footer-link">Disclaimer</a></li>
                   <li><a href="#" className="pricing-footer-link">Copyright</a></li>

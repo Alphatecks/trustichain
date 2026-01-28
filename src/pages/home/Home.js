@@ -585,7 +585,7 @@ const Home = () => {
                 <div className="footer-column">
                   <h3 className="footer-column-title">Legal Links</h3>
                   <ul className="footer-links">
-                    <li><a href="#" className="footer-link">Privacy Policy</a></li>
+                    <li><Link to="/privacy-policy" className="footer-link">Privacy Policy</Link></li>
                     <li><a href="#" className="footer-link">Cookie Policy</a></li>
                     <li><a href="#" className="footer-link">Disclaimer</a></li>
                     <li><a href="#" className="footer-link">Copyright</a></li>

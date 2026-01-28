@@ -394,7 +394,7 @@ const LearnMore = () => {
               <div className="learnmore-footer-column">
                 <h3 className="learnmore-footer-column-title">Legal Links</h3>
                 <ul className="learnmore-footer-links">
-                  <li><a href="#" className="learnmore-footer-link">Privacy Policy</a></li>
+                  <li><Link to="/privacy-policy" className="learnmore-footer-link">Privacy Policy</Link></li>
                   <li><a href="#" className="learnmore-footer-link">Cookie Policy</a></li>
                   <li><a href="#" className="learnmore-footer-link">Disclaimer</a></li>
                   <li><a href="#" className="learnmore-footer-link">Copyright</a></li>

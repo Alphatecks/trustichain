@@ -11,6 +11,7 @@ import Features from './pages/features/Features';
 import Pricing from './pages/pricing/Pricing';
 import Waitlist from './pages/waitlist/Waitlist';
 import LearnMore from './pages/learn/LearnMore';
+import PrivacyPolicy from './pages/privacy/PrivacyPolicy';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -48,7 +49,7 @@ function AppContent() {
   // Hide navbar on auth pages
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/savings' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/trusticard' || location.pathname === '/payroll' || location.pathname.startsWith('/payroll/') || location.pathname === '/supplier-contract' || location.pathname === '/api-keys' || location.pathname === '/sandbox-environment' || location.pathname === '/webhook' || location.pathname === '/settings';
   // Use LandingNavbar for landing pages, Navbar for app pages
-  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more';
+  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more' || location.pathname === '/privacy-policy';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
 
   return (
@@ -61,6 +62,7 @@ function AppContent() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/learn-more" element={<LearnMore />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
