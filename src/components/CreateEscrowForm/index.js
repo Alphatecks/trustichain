@@ -822,15 +822,17 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       <label>Expected Completion Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
+                          type="date"
                           placeholder="Add Date"
-                          value={termsData.expectedCompletionDate}
-                          onChange={(e) =>
+                          value={termsData.expectedCompletionDate ? termsData.expectedCompletionDate.split('T')[0] : ''}
+                          onChange={(e) => {
+                            // Always store as ISO 8601 string (midnight UTC)
+                            const dateValue = e.target.value;
                             setTermsData({
                               ...termsData,
-                              expectedCompletionDate: e.target.value,
-                            })
-                          }
+                              expectedCompletionDate: dateValue ? new Date(dateValue + 'T00:00:00Z').toISOString() : '',
+                            });
+                          }}
                         />
                         <Calendar size={18} className="input-icon" />
                       </div>

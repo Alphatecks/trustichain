@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Rocket, Shield, Zap, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './Waitlist.css';
@@ -202,7 +203,7 @@ const Waitlist = () => {
               <div className="waitlist-footer-column">
                 <h3 className="waitlist-footer-column-title">Legal Links</h3>
                 <ul className="waitlist-footer-links">
-                  <li><a href="#" className="waitlist-footer-link">Privacy Policy</a></li>
+                  <li><Link to="/privacy-policy" className="waitlist-footer-link">Privacy Policy</Link></li>
                   <li><a href="#" className="waitlist-footer-link">Cookie Policy</a></li>
                   <li><a href="#" className="waitlist-footer-link">Disclaimer</a></li>
                   <li><a href="#" className="waitlist-footer-link">Copyright</a></li>

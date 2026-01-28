@@ -1,0 +1,82 @@
+.date-input-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  min-width: 180px;
+  background: #f8fafd;
+  display: flex;
+  align-items: center;
+}
+
+.date-input-with-icon {
+  width: 100%;
+  font-size: 1.12rem;
+  padding: 12px 48px 12px 18px;
+  box-sizing: border-box;
+  border: 2px solid #216ba5;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+  transition: border 0.2s;
+  min-width: 120px;
+}
+.date-input-with-icon:focus {
+  border: 2.5px solid #1a4e8a;
+}
+
+.date-input-calendar-icon, .date-input-wrapper .input-icon {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #216ba5;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  z-index: 2;
+}
+
+
+
+.date-input-icon-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  min-width: 180px;
+  background: #f8fafd;
+}
+
+.date-input-icon-wrapper .date-input-with-icon {
+  width: 100%;
+  font-size: 1.12rem;
+  padding: 12px 48px 12px 18px;
+  box-sizing: border-box;
+  border: 2px solid #216ba5;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+  transition: border 0.2s;
+  min-width: 120px;
+}
+.date-input-icon-wrapper .date-input-with-icon:focus {
+  border: 2.5px solid #1a4e8a;
+}
+
+.date-input-icon-wrapper .date-input-calendar-icon {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #216ba5;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  z-index: 2;
+}
+
+.date-input-wrapper {
+  display: flex;
+  align-items: center;
+}

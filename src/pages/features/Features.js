@@ -479,7 +479,7 @@ const Features = () => {
               <div className="features-footer-column">
                 <h3 className="features-footer-column-title">Legal Links</h3>
                 <ul className="features-footer-links">
-                  <li><a href="#" className="features-footer-link">Privacy Policy</a></li>
+                  <li><Link to="/privacy-policy" className="features-footer-link">Privacy Policy</Link></li>
                   <li><a href="#" className="features-footer-link">Cookie Policy</a></li>
                   <li><a href="#" className="features-footer-link">Disclaimer</a></li>
                   <li><a href="#" className="features-footer-link">Copyright</a></li>
