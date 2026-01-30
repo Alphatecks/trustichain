@@ -4149,6 +4149,15 @@ const Dashboard = () => {
                     type="button" 
                     className="create-wallet-btn"
                     onClick={async () => {
+                      // If walletAddress is already set, just open the modal
+                      if (walletAddress) {
+                        console.log('View Wallet clicked - Using existing walletAddress:', walletAddress);
+                        setShowWalletModal(true);
+                        return;
+                      }
+                      
+                      console.log('View Wallet clicked - Fetching wallet address from API...');
+                      
                       setIsLoadingWalletAddress(true);
                       try {
                         const token = localStorage.getItem('token');
@@ -4165,10 +4174,20 @@ const Dashboard = () => {
                           },
                         });
                         const result = await res.json();
-                        if (result?.success && result?.data?.xrplAddress) {
-                          setWalletAddress(result.data.xrplAddress);
+                        console.log('View Wallet API Response:', result);
+                        console.log('Response data:', result?.data);
+                        console.log('xrplAddress (root):', result?.xrplAddress);
+                        console.log('xrpl_address (root):', result?.xrpl_address);
+                        console.log('xrplAddress (data):', result?.data?.xrplAddress);
+                        console.log('xrpl_address (data):', result?.data?.xrpl_address);
+                        // Check for xrplAddress at root level first, then in data, with both naming variations
+                        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
+                        console.log('Extracted address:', address);
+                        if (result?.success && address) {
+                          setWalletAddress(address);
                           setShowWalletModal(true);
                         } else {
+                          console.error('Failed to get wallet address. Success:', result?.success, 'Address:', address);
                           toast.error(result?.message || 'Failed to fetch wallet address.');
                         }
                       } catch (err) {
