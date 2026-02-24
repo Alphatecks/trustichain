@@ -275,8 +275,10 @@ const Transactions = () => {
   const [addSavingsAccountForm, setAddSavingsAccountForm] = useState({
     name: '',
     category: 'My Goals',
-    duration: ''
+    duration: '',
+    amount: ''
   });
+  const [isCreatingSavingsAccount, setIsCreatingSavingsAccount] = useState(false);
   const [withdrawWalletForm, setWithdrawWalletForm] = useState({
     amount: '',
     currency: 'USD',
@@ -322,6 +324,23 @@ const Transactions = () => {
     walletAddress: '',
     reason: ''
   });
+  const [sendExchangeRate, setSendExchangeRate] = useState(null);
+  const [isLoadingSendRate, setIsLoadingSendRate] = useState(false);
+  const [showToCurrencyDropdown, setShowToCurrencyDropdown] = useState(false);
+  const [lastEditedField, setLastEditedField] = useState(null); // 'from' or 'to'
+  const [isProcessingTransfer, setIsProcessingTransfer] = useState(false);
+  
+  // Available currencies for the send modal
+  const availableCurrencies = [
+    { code: 'USD', name: 'USD', flag: 'us', symbol: '$' },
+    { code: 'EUR', name: 'EUR', flag: 'eu', symbol: '€' },
+    { code: 'GBP', name: 'GBP', flag: 'gb', symbol: '£' },
+    { code: 'JPY', name: 'JPY', flag: 'jp', symbol: '¥' },
+    { code: 'NGN', name: 'NGN', flag: 'ng', symbol: '₦' },
+    { code: 'CAD', name: 'CAD', flag: 'ca', symbol: 'C$' },
+    { code: 'AUD', name: 'AUD', flag: 'au', symbol: 'A$' },
+    { code: 'CNY', name: 'CNY', flag: 'cn', symbol: '¥' },
+  ];
 
   const formattedToday = useMemo(() => {
     const now = new Date();
@@ -844,6 +863,129 @@ const Transactions = () => {
     fetchExchangeRates();
   }, []);
 
+  // Fetch external exchange rate when send modal opens or currencies change
+  useEffect(() => {
+    if (showSendModal && sendForm.fromWallet && sendForm.toCurrency) {
+      fetchExternalExchangeRate(sendForm.fromWallet, sendForm.toCurrency);
+    } else if (!showSendModal) {
+      setSendExchangeRate(null);
+    }
+  }, [showSendModal, sendForm.fromWallet, sendForm.toCurrency]);
+
+  // Calculate toAmount when fromAmount changes (if fromAmount was last edited)
+  useEffect(() => {
+    if (lastEditedField === 'from' && sendForm.fromAmount && sendExchangeRate && parseFloat(sendForm.fromAmount) > 0) {
+      const calculated = parseFloat(sendForm.fromAmount) * sendExchangeRate;
+      setSendForm(prev => ({ ...prev, toAmount: calculated.toFixed(2) }));
+    } else if (lastEditedField === 'from' && (!sendForm.fromAmount || parseFloat(sendForm.fromAmount) === 0)) {
+      setSendForm(prev => ({ ...prev, toAmount: '' }));
+    }
+  }, [sendForm.fromAmount, sendExchangeRate, lastEditedField]);
+
+  // Handle currency change
+  const handleToCurrencyChange = (currencyCode) => {
+    setSendForm(prev => ({ ...prev, toCurrency: currencyCode }));
+    setShowToCurrencyDropdown(false);
+    setLastEditedField(null); // Reset edit tracking when currency changes
+  };
+
+  // Handle send transfer - call withdrawal API
+  const handleSendTransfer = async () => {
+    // Validation
+    if (!sendForm.fromAmount || parseFloat(sendForm.fromAmount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!sendForm.walletAddress || sendForm.walletAddress.trim().length < 10) {
+      toast.error('Please enter a valid wallet address or bank account');
+      return;
+    }
+
+    setIsProcessingTransfer(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to continue');
+        setIsProcessingTransfer(false);
+        return;
+      }
+
+      const apiUrl = getApiUrl('api/wallet/withdraw');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(sendForm.fromAmount),
+          currency: sendForm.fromWallet,
+          destinationAddress: sendForm.walletAddress.trim(),
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      console.log('Send Transfer API response:', result);
+
+      if (response.ok && result.success) {
+        toast.success('Transfer completed successfully!');
+        setShowTransactionSummaryModal(false);
+        // Reset form
+        setSendForm({
+          fromWallet: 'XRP',
+          fromAmount: '',
+          toCurrency: 'EUR',
+          toAmount: '',
+          fullName: '',
+          phoneNumber: '',
+          walletAddress: '',
+          reason: ''
+        });
+        // Refresh wallet balances
+        await fetchWalletBalances();
+        // Note: Transactions will refresh automatically via useEffect
+      } else {
+        toast.error(result.message || 'Failed to process transfer. Please try again.');
+      }
+      } catch (error) {
+      console.error('Error processing transfer:', error);
+      toast.error('An error occurred while processing your transfer. Please try again.');
+      } finally {
+      setIsProcessingTransfer(false);
+      }
+    };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showToCurrencyDropdown && !event.target.closest('.send-wallet-selector')) {
+        setShowToCurrencyDropdown(false);
+      }
+    };
+
+    if (showToCurrencyDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showToCurrencyDropdown]);
+
+  // Handle toAmount change (reverse calculation)
+  const handleToAmountChange = (value) => {
+    setLastEditedField('to');
+    const numericValue = value.replace(/[^0-9.]/g, '');
+    setSendForm(prev => ({ ...prev, toAmount: numericValue }));
+    
+    // Calculate fromAmount based on toAmount
+    if (numericValue && sendExchangeRate && parseFloat(numericValue) > 0) {
+      const calculated = parseFloat(numericValue) / sendExchangeRate;
+      setSendForm(prev => ({ ...prev, fromAmount: calculated.toFixed(6) }));
+    } else if (!numericValue || parseFloat(numericValue) === 0) {
+      setSendForm(prev => ({ ...prev, fromAmount: '' }));
+    }
+  };
+
   // Fetch wallet balances function
   const fetchWalletBalances = async () => {
     try {
@@ -900,6 +1042,13 @@ const Transactions = () => {
   useEffect(() => {
     fetchWalletBalances();
   }, [isSessionExpired]);
+
+  // Refresh wallet balances when Add Money modal opens
+  useEffect(() => {
+    if (showSavingsAddMoneyModal) {
+      fetchWalletBalances();
+    }
+  }, [showSavingsAddMoneyModal]);
 
   // Fetch transactions
   useEffect(() => {
@@ -1586,6 +1735,85 @@ const Transactions = () => {
     if (!walletBalances) return 0;
     const currencyKey = currency.toLowerCase();
     return walletBalances[currencyKey] || 0;
+  };
+
+  // Fetch exchange rate from external API for send modal
+  const fetchExternalExchangeRate = async (fromCurrency, toCurrency) => {
+    setIsLoadingSendRate(true);
+    try {
+      // For XRP to fiat, we need to get XRP/USD from CoinGecko, then convert via ExchangeRate-API
+      if (fromCurrency === 'XRP' && toCurrency !== 'XRP') {
+        // Fetch XRP to USD rate from CoinGecko
+        const xrpResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd');
+        const xrpData = await xrpResponse.json();
+        const xrpToUsd = xrpData?.ripple?.usd;
+        
+        if (!xrpToUsd) {
+          setSendExchangeRate(null);
+          setIsLoadingSendRate(false);
+          return;
+        }
+
+        // If target is USD, return directly
+        if (toCurrency === 'USD') {
+          setSendExchangeRate(xrpToUsd);
+          setIsLoadingSendRate(false);
+          return;
+        }
+
+        // For other fiat currencies, get USD to target currency rate
+        const fiatResponse = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
+        const fiatData = await fiatResponse.json();
+        const usdToTarget = fiatData?.rates?.[toCurrency];
+        
+        if (usdToTarget) {
+          // XRP to target = (XRP to USD) * (USD to target)
+          setSendExchangeRate(xrpToUsd * usdToTarget);
+        } else {
+          setSendExchangeRate(null);
+        }
+      } else if (fromCurrency !== 'XRP' && toCurrency === 'XRP') {
+        // Fiat to XRP: convert via USD
+        if (fromCurrency === 'USD') {
+          const xrpResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd');
+          const xrpData = await xrpResponse.json();
+          const xrpToUsd = xrpData?.ripple?.usd;
+          if (xrpToUsd) {
+            setSendExchangeRate(1 / xrpToUsd); // USD to XRP = 1 / (XRP to USD)
+          } else {
+            setSendExchangeRate(null);
+          }
+        } else {
+          // Convert fromCurrency to USD, then USD to XRP
+          const fiatResponse = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
+          const fiatData = await fiatResponse.json();
+          const fromToUsd = 1 / (fiatData?.rates?.[fromCurrency] || 1);
+          
+          const xrpResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd');
+          const xrpData = await xrpResponse.json();
+          const xrpToUsd = xrpData?.ripple?.usd;
+          
+          if (xrpToUsd) {
+            setSendExchangeRate(fromToUsd / xrpToUsd);
+          } else {
+            setSendExchangeRate(null);
+          }
+        }
+      } else if (fromCurrency !== 'XRP' && toCurrency !== 'XRP') {
+        // Fiat to fiat
+        const fiatResponse = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCurrency}`);
+        const fiatData = await fiatResponse.json();
+        const rate = fiatData?.rates?.[toCurrency];
+        setSendExchangeRate(rate || null);
+      } else {
+        setSendExchangeRate(null);
+      }
+    } catch (error) {
+      console.error('Error fetching external exchange rate:', error);
+      setSendExchangeRate(null);
+    } finally {
+      setIsLoadingSendRate(false);
+    }
   };
 
   // Helper function to get exchange rate
@@ -3673,17 +3901,52 @@ const Transactions = () => {
                     >
                       <div className="savings-add-money-wallet-icon">
                         <img
-                          src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                          alt="XRP"
+                          src={savingsAddMoneyForm.sourceWallet === 'XRP' 
+                            ? "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                            : "https://assets.coingecko.com/coins/images/325/small/Tether.png?1668148663"
+                          }
+                          alt={savingsAddMoneyForm.sourceWallet}
                           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                         />
                       </div>
-                      <span className="savings-add-money-wallet-name">XRP wallet</span>
+                      <span className="savings-add-money-wallet-name">
+                        {savingsAddMoneyForm.sourceWallet === 'XRP' ? 'XRP wallet' : 'USDT wallet'}
+                      </span>
                       <ChevronDown size={16} />
                     </button>
                   </div>
-                  <div className="savings-add-money-amount-display">$24,567.89</div>
-                  <div className="savings-add-money-balance-info">Balance: 24,567.89 USDT</div>
+                  <div className="savings-add-money-amount-display">
+                    <div className="savings-add-money-amount-input-wrapper">
+                      <span className="savings-add-money-amount-currency">$</span>
+                      <input
+                        type="text"
+                        className="savings-add-money-amount-input"
+                        value={savingsAddMoneyForm.amount}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Allow numbers, decimal point, and commas
+                          value = value.replace(/[^0-9.,]/g, '');
+                          setSavingsAddMoneyForm(prev => ({ ...prev, amount: value }));
+                        }}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div className="savings-add-money-balance-info">
+                    Balance: {isLoadingWalletBalances ? (
+                      <LoadingIndicator size="sm" />
+                    ) : (
+                      (() => {
+                        const currency = savingsAddMoneyForm.sourceWallet === 'XRP' ? 'XRP' : 'USDT';
+                        const balance = getCurrencyBalance(currency);
+                        const formattedBalance = Number(balance).toLocaleString('en-US', { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: currency === 'XRP' ? 6 : 2 
+                        });
+                        return `${formattedBalance} ${currency}`;
+                      })()
+                    )}
+                  </div>
                 </div>
 
                 <div className="savings-add-money-accounts-section">
@@ -3736,7 +3999,8 @@ const Transactions = () => {
           setAddSavingsAccountForm({
             name: '',
             category: 'My Goals',
-            duration: ''
+            duration: '',
+            amount: ''
           });
         }}>
           <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
@@ -3780,7 +4044,23 @@ const Transactions = () => {
                     <ChevronDown size={16} />
                   </button>
                 </div>
-                <div className="savings-add-account-amount-display">24,000 XRP</div>
+                <div className="savings-add-account-amount-display">
+                  <div className="savings-add-account-amount-input-wrapper">
+                    <input
+                      type="text"
+                      className="savings-add-account-amount-input"
+                      value={addSavingsAccountForm.amount}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Allow numbers, decimal point, and commas
+                        value = value.replace(/[^0-9.,]/g, '');
+                        setAddSavingsAccountForm(prev => ({ ...prev, amount: value }));
+                      }}
+                      placeholder="0.00"
+                    />
+                    <span className="savings-add-account-amount-currency">XRP</span>
+                  </div>
+                </div>
                 <div className="savings-add-account-exchange-rate">1XRP = 1.05 USD</div>
               </div>
 
@@ -3812,22 +4092,50 @@ const Transactions = () => {
 
                 <div className="savings-add-account-form-field">
                   <label className="savings-add-account-label">Duration</label>
-                  <button 
-                    type="button"
-                    className="savings-add-account-duration-selector"
-                    onClick={() => {
-                      // Handle duration selection
-                    }}
-                  >
-                    <span className="savings-add-account-duration-text">Add</span>
-                    <Calendar size={16} />
-                  </button>
+                  <div className="savings-add-account-duration-wrapper">
+                    <input
+                      type="date"
+                      className="savings-add-account-duration-input"
+                      value={addSavingsAccountForm.duration || ''}
+                      onChange={(e) => {
+                        setAddSavingsAccountForm({ ...addSavingsAccountForm, duration: e.target.value });
+                      }}
+                      onMouseDown={(e) => {
+                        // Open picker on mousedown (before default behavior)
+                        if (e.target.showPicker) {
+                          try {
+                            e.target.showPicker();
+                            e.preventDefault(); // Prevent default browser behavior
+                          } catch (err) {
+                            // Silently fail if showPicker is not available
+                          }
+                        }
+                      }}
+                    />
+                    <Calendar 
+                      size={16} 
+                      className="savings-add-account-duration-calendar-icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const input = e.target.closest('.savings-add-account-duration-wrapper')?.querySelector('input[type="date"]');
+                        if (input && input.showPicker) {
+                          try {
+                            input.showPicker();
+                          } catch (err) {
+                            // Fallback: trigger click on input
+                            input.click();
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
                 className="savings-add-account-create-btn"
+                disabled={isCreatingSavingsAccount}
                 onClick={async () => {
                   const name = String(addSavingsAccountForm.name || '').trim();
                   if (!name) {
@@ -3843,6 +4151,8 @@ const Transactions = () => {
 
                   const parsedTarget = Number(addSavingsAccountForm.duration);
                   const targetAmountUsd = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : 5000;
+
+                  setIsCreatingSavingsAccount(true);
 
                   try {
                     const apiUrl = getApiUrl('api/savings/wallets');
@@ -3865,7 +4175,8 @@ const Transactions = () => {
                       setAddSavingsAccountForm({
                         name: '',
                         category: 'My Goals',
-                        duration: ''
+                        duration: '',
+                        amount: ''
                       });
                     } else {
                       toast.error(result?.message || 'Failed to create savings wallet');
@@ -3873,10 +4184,19 @@ const Transactions = () => {
                   } catch (error) {
                     console.error('Error creating savings wallet:', error);
                     toast.error('Failed to create savings wallet');
+                  } finally {
+                    setIsCreatingSavingsAccount(false);
                   }
                 }}
               >
-                Create
+                {isCreatingSavingsAccount ? (
+                  <>
+                    <LoadingIndicator size="sm" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  'Create'
+                )}
               </button>
 
               <div className="savings-withdraw-info-message">
@@ -6336,14 +6656,13 @@ const Transactions = () => {
                   <input
                     type="text"
                     className="send-amount-input"
-                    placeholder="$0.00"
-                    value={sendForm.fromAmount ? `$${sendForm.fromAmount}` : ''}
+                    placeholder="0.00"
+                    value={sendForm.fromAmount || ''}
                     onChange={(e) => {
                       let value = e.target.value;
-                      // Remove $ sign if present
-                      value = value.replace(/\$/g, '');
                       // Keep only numbers and decimal point
                       value = value.replace(/[^0-9.]/g, '');
+                      setLastEditedField('from');
                       setSendForm(prev => ({ ...prev, fromAmount: value }));
                     }}
                   />
@@ -6358,24 +6677,98 @@ const Transactions = () => {
 
                 <div className="send-to-section">
                   <label className="send-section-label">To</label>
-                  <div className="send-wallet-selector">
-                    <div className="send-currency-flag">
-                      <img src="https://flagcdn.com/w40/gb.png" alt="EUR" />
-                    </div>
-                    <span className="send-wallet-text">EUR</span>
-                    <ChevronDown size={16} />
+                  <div className="send-wallet-selector" style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowToCurrencyDropdown(!showToCurrencyDropdown)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                                <div className="send-currency-flag">
+                                  <img 
+                          src={`https://flagcdn.com/w40/${availableCurrencies.find(c => c.code === sendForm.toCurrency)?.flag || 'us'}.png`} 
+                          alt={sendForm.toCurrency} 
+                                  />
+                                </div>
+                      <span className="send-wallet-text">{sendForm.toCurrency}</span>
+                            <ChevronDown size={16} />
+                    </button>
+                    {showToCurrencyDropdown && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: '#ffffff',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '0.75rem',
+                        marginTop: '0.5rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}>
+                        {availableCurrencies.map((currency) => (
+                          <button
+                            key={currency.code}
+                            type="button"
+                            onClick={() => handleToCurrencyChange(currency.code)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              width: '100%',
+                              padding: '0.75rem 1rem',
+                              background: sendForm.toCurrency === currency.code ? '#f0f7ff' : 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              fontFamily: 'Satoshi, Inter, sans-serif'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (sendForm.toCurrency !== currency.code) {
+                                e.target.style.background = '#f9fafb';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (sendForm.toCurrency !== currency.code) {
+                                e.target.style.background = 'transparent';
+                              }
+                            }}
+                          >
+                            <div className="send-currency-flag">
+                              <img src={`https://flagcdn.com/w40/${currency.flag}.png`} alt={currency.code} />
+                            </div>
+                            <span>{currency.code}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    className="send-amount-input"
-                    placeholder="$0.00"
-                    value={sendForm.toAmount ? `$${sendForm.toAmount}` : ''}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                      setSendForm(prev => ({ ...prev, toAmount: value }));
-                    }}
+                    <input
+                      type="text"
+                      className="send-amount-input"
+                      placeholder="0.00"
+                      value={sendForm.toAmount || ''}
+                    onChange={(e) => handleToAmountChange(e.target.value)}
                   />
-                  <div className="send-exchange-rate">1 XRP = $0.5430 USD</div>
+                  <div className="send-exchange-rate">
+                    {isLoadingSendRate ? (
+                      <LoadingIndicator size="sm" />
+                    ) : sendExchangeRate ? (
+                      `1 ${sendForm.fromWallet} = ${availableCurrencies.find(c => c.code === sendForm.toCurrency)?.symbol || ''}${sendExchangeRate.toFixed(4)} ${sendForm.toCurrency}`
+                    ) : (
+                      'Rate unavailable'
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -6436,7 +6829,13 @@ const Transactions = () => {
                   <div className="send-info-icon">
                     <Info size={16} />
                   </div>
-                  <span>You'll receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
+                  <span>
+                    {sendForm.fromAmount && sendExchangeRate ? (
+                      `You'll receive at least ${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency} or the transaction will be refunded`
+                    ) : (
+                      "You'll receive the amount based on the current exchange rate or the transaction will be refunded"
+                    )}
+                  </span>
                 </div>
                 <button 
                   type="button" 
@@ -6473,11 +6872,21 @@ const Transactions = () => {
               <div className="transaction-details-list">
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label">Send Amount:</span>
-                  <span className="transaction-detail-value">1,000 XRP</span>
+                  <span className="transaction-detail-value">
+                    {sendForm.fromAmount ? `${Number(sendForm.fromAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${sendForm.fromWallet}` : '0.00 XRP'}
+                  </span>
                 </div>
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label">Exchange Rate:</span>
-                  <span className="transaction-detail-value">1 XRP = $0.5430</span>
+                  <span className="transaction-detail-value">
+                    {isLoadingSendRate ? (
+                      'Calculating...'
+                    ) : sendExchangeRate ? (
+                      `1 ${sendForm.fromWallet} = ${sendForm.toCurrency === 'USD' ? '$' : ''}${sendExchangeRate.toFixed(4)} ${sendForm.toCurrency === 'USD' ? '' : sendForm.toCurrency}`
+                    ) : (
+                      'Rate unavailable'
+                    )}
+                  </span>
                 </div>
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label">Network Fee:</span>
@@ -6485,7 +6894,13 @@ const Transactions = () => {
                 </div>
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label">Service Fee:</span>
-                  <span className="transaction-detail-value">$2.50 (0.46%)</span>
+                  <span className="transaction-detail-value">
+                    {sendForm.fromAmount && sendExchangeRate ? (
+                      `$${((parseFloat(sendForm.fromAmount) * sendExchangeRate) * 0.0046).toFixed(2)} (0.46%)`
+                    ) : (
+                      '$0.00 (0.46%)'
+                    )}
+                  </span>
                 </div>
               </div>
 
@@ -6494,7 +6909,13 @@ const Transactions = () => {
               <div className="transaction-recipient-details">
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label recipient-label">Recipient Gets:</span>
-                  <span className="transaction-detail-value">$540.50 USD</span>
+                  <span className="transaction-detail-value">
+                    {sendForm.fromAmount && sendExchangeRate ? (
+                      `${sendForm.toCurrency === 'USD' ? '$' : ''}${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency === 'USD' ? '' : sendForm.toCurrency}`
+                    ) : (
+                      'Calculating...'
+                    )}
+                  </span>
                 </div>
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label">Estimated Arrival:</span>
@@ -6506,12 +6927,23 @@ const Transactions = () => {
                 <button 
                   type="button" 
                   className="transaction-transfer-btn"
-                  onClick={() => {
-                    setShowTransactionSummaryModal(false);
-                    setShowFundWalletTransferModal(true);
+                  onClick={handleSendTransfer}
+                  disabled={isProcessingTransfer}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
                   }}
                 >
-                  Transfer
+                  {isProcessingTransfer ? (
+                    <>
+                      <LoadingIndicator size="sm" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    'Transfer'
+                  )}
                 </button>
               </div>
 
@@ -6519,7 +6951,13 @@ const Transactions = () => {
                 <div className="transaction-info-icon">
                   <Info size={16} />
                 </div>
-                <span>Recipient will receive at least 24,567 USDT ($24,567) or the transaction will be refunded</span>
+                <span>
+                  {sendForm.fromAmount && sendExchangeRate ? (
+                    `Recipient will receive at least ${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency} or the transaction will be refunded`
+                  ) : (
+                    "Recipient will receive the amount based on the current exchange rate or the transaction will be refunded"
+                  )}
+                </span>
               </div>
             </div>
           </div>

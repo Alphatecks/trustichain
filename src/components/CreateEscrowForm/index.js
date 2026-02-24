@@ -56,6 +56,97 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [exchangeRate, setExchangeRate] = useState(null); // XRP to USD rate
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
   const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
+  const [payerEmailValidation, setPayerEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
+  const [counterpartyEmailValidation, setCounterpartyEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
+  const [validationTimeouts, setValidationTimeouts] = useState({ payer: null, counterparty: null });
+
+  // Validate payer email in real-time
+  const validatePayerEmail = async (email) => {
+    if (!email || email.trim() === '') {
+      setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
+      return;
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setPayerEmailValidation({ isValid: false, message: 'Invalid email format', isValidating: false });
+      return;
+    }
+
+    setPayerEmailValidation({ isValid: null, message: 'Validating...', isValidating: true });
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
+        return;
+      }
+
+      const response = await fetch(getApiUrl('api/escrow/validate-payer-email'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ payerEmail: email }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result?.success) {
+        setPayerEmailValidation({ isValid: true, message: result?.message || 'Email is valid', isValidating: false });
+      } else {
+        setPayerEmailValidation({ isValid: false, message: result?.message || 'Email validation failed', isValidating: false });
+      }
+    } catch (error) {
+      setPayerEmailValidation({ isValid: false, message: 'Validation error', isValidating: false });
+    }
+  };
+
+  // Validate counterparty email in real-time
+  const validateCounterpartyEmail = async (email) => {
+    if (!email || email.trim() === '') {
+      setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
+      return;
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setCounterpartyEmailValidation({ isValid: false, message: 'Invalid email format', isValidating: false });
+      return;
+    }
+
+    setCounterpartyEmailValidation({ isValid: null, message: 'Validating...', isValidating: true });
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
+        return;
+      }
+
+      const response = await fetch(getApiUrl('api/escrow/validate-counterparty-email'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ counterpartyEmail: email }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result?.success) {
+        setCounterpartyEmailValidation({ isValid: true, message: result?.message || 'Email is valid', isValidating: false });
+      } else {
+        setCounterpartyEmailValidation({ isValid: false, message: result?.message || 'Email validation failed', isValidating: false });
+      }
+    } catch (error) {
+      setCounterpartyEmailValidation({ isValid: false, message: 'Validation error', isValidating: false });
+    }
+  };
 
   // Fetch exchange rate for XRP to USD conversion (copied from MyEscrow)
   useEffect(() => {
@@ -104,6 +195,14 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     }
   }, [isOpen]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (validationTimeouts.payer) clearTimeout(validationTimeouts.payer);
+      if (validationTimeouts.counterparty) clearTimeout(validationTimeouts.counterparty);
+    };
+  }, [validationTimeouts]);
+
   // Map escrow type to industry for API
   const getEscrowTypeMapping = (escrowType) => {
     const mapping = {
@@ -117,15 +216,31 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   };
 
   // Helper function to format date to ISO format
-  const formatDateToISO = (dateString) => {
+  const formatDateToYYYYMMDD = (dateString) => {
     if (!dateString || dateString.trim() === '') return null;
 
     try {
+      // If it's already in YYYY-MM-DD format, return it
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      // If it's an ISO string, extract YYYY-MM-DD
+      if (typeof dateString === 'string' && dateString.includes('T')) {
+        return dateString.split('T')[0];
+      }
+      
+      // Otherwise, try to parse and format
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return null;
       }
-      return date.toISOString();
+      
+      // Format as YYYY-MM-DD
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     } catch (error) {
       console.error('Error formatting date:', error);
       return null;
@@ -165,6 +280,13 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       counterpartyName: '',
       counterpartyPhone: '',
     });
+    // Reset validation states
+    setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
+    setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
+    // Clear any pending timeouts
+    if (validationTimeouts.payer) clearTimeout(validationTimeouts.payer);
+    if (validationTimeouts.counterparty) clearTimeout(validationTimeouts.counterparty);
+    setValidationTimeouts({ payer: null, counterparty: null });
     setTermsData({
       releaseType: 'Manual Release',
       expectedCompletionDate: '',
@@ -192,26 +314,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     try {
       setIsCreatingEscrow(true);
       setEscrowCreationStep('creating');
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'pre-fix',
-          hypothesisId: 'H1',
-          location: 'CreateEscrowForm.js:handleCreateEscrow:entry',
-          message: 'Entered handleCreateEscrow',
-          data: {
-            currentStep,
-            releaseType: termsData.releaseType,
-            totalAmount: termsData.totalAmount,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
 
       // Validate required fields
       if (!formData.payerWallet || !formData.counterpartyWallet) {
@@ -248,9 +350,9 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       const transactionType = mapEscrowTypeToTransactionType(selectedEscrowType);
       const industry = getEscrowTypeMapping(selectedEscrowType);
 
-      // Format dates
-      const expectedCompletionDateISO = formatDateToISO(termsData.expectedCompletionDate);
-      const expectedReleaseDateISO = formatDateToISO(termsData.expectedReleaseDate);
+      // Format dates to YYYY-MM-DD format
+      const expectedCompletionDateISO = formatDateToYYYYMMDD(termsData.expectedCompletionDate);
+      const expectedReleaseDateISO = formatDateToYYYYMMDD(termsData.expectedReleaseDate);
 
       // Format dispute resolution period
       const disputeResolutionPeriodFormatted = formatDisputePeriod(
@@ -344,27 +446,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             expired,
           } = responseData;
 
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: 'debug-session',
-              runId: 'pre-fix',
-              hypothesisId: 'H2',
-              location: 'CreateEscrowForm.js:handleCreateEscrow:response',
-              message: 'Escrow create response summary',
-              data: {
-                hasXummUrl: !!xummUrl,
-                hasEscrowId: !!escrowId,
-                hasXrplTxHash: !!xrplTxHash,
-                escrowStatus: escrow?.status || null,
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          // #endregion
-
           // Snapshot amount & rate at creation time so UI doesn't drift during polling
           const totalAmountNumber = parseFloat(termsData.totalAmount);
           const effectiveRate = exchangeRate || 1;
@@ -390,25 +471,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             xrplTxHash &&
             (escrow?.status === 'active' || escrow?.status === 'ACTIVE')
           ) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId: 'debug-session',
-                runId: 'pre-fix',
-                hypothesisId: 'H3',
-                location: 'CreateEscrowForm.js:handleCreateEscrow:case1',
-                message: 'Taking immediate XRPL success branch (no XUMM)',
-                data: {
-                  hasXrplTxHash: !!xrplTxHash,
-                  escrowStatus: escrow?.status || null,
-                },
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {});
-            // #endregion
-
             const createdEscrow = buildCreatedEscrow(escrow || responseData);
 
             toast.success('Escrow created successfully!');
@@ -479,24 +541,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
         setIsCreatingEscrow(false);
         setEscrowCreationStep('idle');
       }
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'pre-fix',
-          hypothesisId: 'H6',
-          location: 'CreateEscrowForm.js:handleCreateEscrow:finally',
-          message: 'handleCreateEscrow finally block executed',
-          data: {
-            escrowCreationStep,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
     }
   };
 
@@ -686,10 +730,37 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         type="email"
                         placeholder="Enter your Email"
                         value={formData.payerEmail}
-                        onChange={(e) =>
-                          setFormData({ ...formData, payerEmail: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const email = e.target.value;
+                          setFormData({ ...formData, payerEmail: email });
+                          
+                          // Clear previous timeout
+                          if (validationTimeouts.payer) {
+                            clearTimeout(validationTimeouts.payer);
+                          }
+                          
+                          // Debounce validation (500ms delay)
+                          const timeout = setTimeout(() => {
+                            validatePayerEmail(email);
+                          }, 500);
+                          
+                          setValidationTimeouts(prev => ({ ...prev, payer: timeout }));
+                        }}
+                        style={{
+                          borderColor: payerEmailValidation.isValid === true ? '#10b981' : 
+                                     payerEmailValidation.isValid === false ? '#ef4444' : undefined
+                        }}
                       />
+                      {payerEmailValidation.message && (
+                        <div style={{
+                          fontSize: '0.75rem',
+                          marginTop: '0.25rem',
+                          color: payerEmailValidation.isValid === true ? '#10b981' : 
+                                 payerEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
+                        }}>
+                          {payerEmailValidation.message}
+                        </div>
+                      )}
                     </div>
                     <div className="form-group">
                       <label>
@@ -710,10 +781,37 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         type="email"
                         placeholder="Enter your Email"
                         value={formData.counterpartyEmail}
-                        onChange={(e) =>
-                          setFormData({ ...formData, counterpartyEmail: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const email = e.target.value;
+                          setFormData({ ...formData, counterpartyEmail: email });
+                          
+                          // Clear previous timeout
+                          if (validationTimeouts.counterparty) {
+                            clearTimeout(validationTimeouts.counterparty);
+                          }
+                          
+                          // Debounce validation (500ms delay)
+                          const timeout = setTimeout(() => {
+                            validateCounterpartyEmail(email);
+                          }, 500);
+                          
+                          setValidationTimeouts(prev => ({ ...prev, counterparty: timeout }));
+                        }}
+                        style={{
+                          borderColor: counterpartyEmailValidation.isValid === true ? '#10b981' : 
+                                     counterpartyEmailValidation.isValid === false ? '#ef4444' : undefined
+                        }}
                       />
+                      {counterpartyEmailValidation.message && (
+                        <div style={{
+                          fontSize: '0.75rem',
+                          marginTop: '0.25rem',
+                          color: counterpartyEmailValidation.isValid === true ? '#10b981' : 
+                                 counterpartyEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
+                        }}>
+                          {counterpartyEmailValidation.message}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -819,26 +917,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                 {termsData.releaseType === 'Manual Release' && (
                   <div className="terms-form-grid">
                     <div className="form-group">
-                      <label>Expected Completion Date</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="date"
-                          placeholder="Add Date"
-                          value={termsData.expectedCompletionDate ? termsData.expectedCompletionDate.split('T')[0] : ''}
-                          onChange={(e) => {
-                            // Always store as ISO 8601 string (midnight UTC)
-                            const dateValue = e.target.value;
-                            setTermsData({
-                              ...termsData,
-                              expectedCompletionDate: dateValue ? new Date(dateValue + 'T00:00:00Z').toISOString() : '',
-                            });
-                          }}
-                        />
-                        <Calendar size={18} className="input-icon" />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
                       <label>Dispute Resolution Period</label>
                       <div className="select-input-wrapper">
                         <select
@@ -895,17 +973,28 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       <label>Expected Completion Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
+                          type="date"
                           placeholder="Add Date"
-                          value={termsData.expectedCompletionDate}
-                          onChange={(e) =>
+                          value={termsData.expectedCompletionDate || ''}
+                          onChange={(e) => {
+                            const dateValue = e.target.value;
                             setTermsData({
                               ...termsData,
-                              expectedCompletionDate: e.target.value,
-                            })
-                          }
+                              expectedCompletionDate: dateValue ? new Date(dateValue + 'T00:00:00Z').toISOString() : '',
+                            });
+                          }}
+                          onMouseDown={(e) => {
+                            // Open picker on mousedown (before default behavior)
+                            if (e.target.showPicker) {
+                              try {
+                                e.target.showPicker();
+                                e.preventDefault(); // Prevent default browser behavior
+                              } catch (err) {
+                                // Silently fail if showPicker is not available
+                              }
+                            }
+                          }}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
 
@@ -934,17 +1023,29 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       <label>Expected Release Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
+                          type="date"
                           placeholder="Add Date"
-                          value={termsData.expectedReleaseDate}
-                          onChange={(e) =>
+                          value={termsData.expectedReleaseDate || ''}
+                          onChange={(e) => {
+                            // Store as YYYY-MM-DD format (native date input format)
+                            const dateValue = e.target.value;
                             setTermsData({
                               ...termsData,
-                              expectedReleaseDate: e.target.value,
-                            })
-                          }
+                              expectedReleaseDate: dateValue || '',
+                            });
+                          }}
+                          onMouseDown={(e) => {
+                            // Open picker on mousedown (before default behavior)
+                            if (e.target.showPicker) {
+                              try {
+                                e.target.showPicker();
+                                e.preventDefault(); // Prevent default browser behavior
+                              } catch (err) {
+                                // Silently fail if showPicker is not available
+                              }
+                            }
+                          }}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
 
@@ -1047,17 +1148,28 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       <label>Expected Completion Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
+                          type="date"
                           placeholder="Add Date"
-                          value={termsData.expectedCompletionDate}
-                          onChange={(e) =>
+                          value={termsData.expectedCompletionDate || ''}
+                          onChange={(e) => {
+                            const dateValue = e.target.value;
                             setTermsData({
                               ...termsData,
-                              expectedCompletionDate: e.target.value,
-                            })
-                          }
+                              expectedCompletionDate: dateValue ? new Date(dateValue + 'T00:00:00Z').toISOString() : '',
+                            });
+                          }}
+                          onMouseDown={(e) => {
+                            // Open picker on mousedown (before default behavior)
+                            if (e.target.showPicker) {
+                              try {
+                                e.target.showPicker();
+                                e.preventDefault(); // Prevent default browser behavior
+                              } catch (err) {
+                                // Silently fail if showPicker is not available
+                              }
+                            }
+                          }}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
 
@@ -1174,12 +1286,14 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
               <div className="escrow-form-section">
                 <h3 className="section-title">Escrow Details</h3>
                 <div className="terms-form-grid">
-                  <div className="form-group">
-                    <label>Expected Completion Date</label>
-                    <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                      {termsData.expectedCompletionDate || '—'}
+                  {termsData.releaseType !== 'Manual Release' && (
+                    <div className="form-group">
+                      <label>Expected Completion Date</label>
+                      <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                        {termsData.expectedCompletionDate || '—'}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="form-group">
                     <label>Dispute Resolution Period</label>

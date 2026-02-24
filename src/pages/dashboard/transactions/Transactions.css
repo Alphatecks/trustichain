@@ -6686,6 +6686,34 @@ body.transactions-page-active .landing-navbar {
     font-weight: 700 !important;
   }
 
+  .savings-add-money-amount-input-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+  }
+
+  .savings-add-money-amount-currency {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+  }
+
+  .savings-add-money-amount-input {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .savings-add-money-amount-input::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.5 !important;
+  }
+
   .savings-add-money-balance-info {
     font-size: 0.875rem !important;
   }
@@ -7278,6 +7306,44 @@ body.transactions-page-active .landing-navbar {
   line-height: 1.2;
 }
 
+.savings-add-money-amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.savings-add-money-amount-currency {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.savings-add-money-amount-input {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.savings-add-money-amount-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.savings-add-money-amount-input:focus {
+  outline: none;
+}
+
 .savings-add-money-balance-info {
   font-size: 0.875rem;
   font-weight: 400;
@@ -7414,6 +7480,45 @@ body.transactions-page-active .landing-navbar {
   line-height: 1.2;
 }
 
+.savings-add-account-amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.savings-add-account-amount-input {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.savings-add-account-amount-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.savings-add-account-amount-input:focus {
+  outline: none;
+}
+
+.savings-add-account-amount-currency {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000000;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
 .savings-add-account-exchange-rate {
   font-size: 0.875rem;
   font-weight: 400;
@@ -7469,6 +7574,58 @@ body.transactions-page-active .landing-navbar {
   transition: border-color 0.2s;
 }
 
+.savings-add-account-duration-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.savings-add-account-duration-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  background: var(--white);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s;
+  outline: none;
+  cursor: pointer;
+}
+
+.savings-add-account-duration-input:focus {
+  border-color: var(--blue-600);
+  outline: none;
+}
+
+.savings-add-account-duration-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.savings-add-account-duration-calendar-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  color: var(--blue-600);
+  cursor: pointer;
+  z-index: 2;
+  transition: color 0.2s;
+}
+
+.savings-add-account-duration-calendar-icon:hover {
+  color: var(--blue-700);
+}
+
 .savings-add-account-category-selector:hover,
 .savings-add-account-duration-selector:hover {
   border-color: var(--blue-300);
@@ -7501,10 +7658,24 @@ body.transactions-page-active .landing-navbar {
   cursor: pointer;
   transition: background 0.2s;
   margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.savings-add-account-create-btn:hover {
+.savings-add-account-create-btn:hover:not(:disabled) {
   background: #2563eb;
+}
+
+.savings-add-account-create-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: var(--blue-600);
+}
+
+.savings-add-account-create-btn:disabled .loading-indicator-dot {
+  background: var(--white, #ffffff);
 }
 
 
