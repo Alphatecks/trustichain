@@ -136,17 +136,19 @@ const getNotificationIconConfig = (type) => {
 const Dashboard = () => {
       // Loading state for View Wallet button
       const [isLoadingWalletAddress, setIsLoadingWalletAddress] = useState(false);
-    // On mount, check if user has a wallet
+    // On mount (and in background), check if user has a wallet so we show View wallet vs Create wallet correctly
     useEffect(() => {
       const fetchWallets = async () => {
+        setIsLoadingWalletAddress(true);
         try {
           const token = localStorage.getItem('token');
           if (!token) {
             setHasWallet(false);
             setWalletAddress("");
+            setIsLoadingWalletAddress(false);
             return;
           }
-          const res = await fetch(`${getApiUrl('api/wallet/all')}`, {
+          const res = await fetch(getApiUrl('api/wallet/balance'), {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -154,17 +156,19 @@ const Dashboard = () => {
             },
           });
           const result = await res.json();
-          // If result is empty array or no wallet, show Create Wallet
-          if (Array.isArray(result.data) && result.data.length > 0 && result.data[0].xrpl_address) {
+          const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
+          if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
+            setWalletAddress(address);
             setHasWallet(true);
-            setWalletAddress(result.data[0].xrpl_address);
           } else {
-            setHasWallet(false);
             setWalletAddress("");
+            setHasWallet(false);
           }
         } catch (err) {
           setHasWallet(false);
           setWalletAddress("");
+        } finally {
+          setIsLoadingWalletAddress(false);
         }
       };
       fetchWallets();
@@ -381,8 +385,11 @@ const Dashboard = () => {
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
   const [isLoadingRates, setIsLoadingRates] = useState(true);
-  const [portfolioPoints, setPortfolioPoints] = useState(null);
+  const [portfolioPoints, setPortfolioPoints] = useState([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
+  const [portfolioTimeframe, setPortfolioTimeframe] = useState('monthly');
+  const [showPortfolioDropdown, setShowPortfolioDropdown] = useState(false);
+  const [showMobilePortfolioDropdown, setShowMobilePortfolioDropdown] = useState(false);
   const [walletBalances, setWalletBalances] = useState(null);
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
   const [escrows, setEscrows] = useState([]);
@@ -827,14 +834,16 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchPortfolioPerformance = async () => {
       try {
+        setIsLoadingPortfolio(true);
         const token = localStorage.getItem('token');
         if (!token) {
           console.warn('No token found for portfolio performance');
+          setPortfolioPoints([]);
           setIsLoadingPortfolio(false);
           return;
         }
 
-        const apiUrl = getApiUrl('api/portfolio/performance?timeframe=daily');
+        const apiUrl = getApiUrl(`api/portfolio/performance?timeframe=${portfolioTimeframe}`);
         console.log('Fetching portfolio performance from:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -857,6 +866,7 @@ const Dashboard = () => {
             setPortfolioPoints(result.data.points);
           } else {
             console.warn('Unexpected portfolio performance response shape. Expected data.points as array.', result);
+            setPortfolioPoints([]);
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -865,16 +875,37 @@ const Dashboard = () => {
             statusText: response.statusText,
             data: errorData
           });
+          setPortfolioPoints([]);
+          toast.error(errorData?.message || 'Failed to load portfolio data');
         }
       } catch (error) {
         console.error('Error fetching portfolio performance:', error);
+        setPortfolioPoints([]);
+        toast.error('Failed to load portfolio data');
       } finally {
         setIsLoadingPortfolio(false);
       }
     };
 
     fetchPortfolioPerformance();
-  }, []);
+  }, [portfolioTimeframe]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.mobile-section-dropdown') && !event.target.closest('.chart-dropdown')) {
+        setShowMobilePortfolioDropdown(false);
+        setShowPortfolioDropdown(false);
+      }
+    };
+
+    if (showPortfolioDropdown || showMobilePortfolioDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+      };
+    }
+  }, [showPortfolioDropdown, showMobilePortfolioDropdown]);
 
   useEffect(() => {
     const fetchWalletBalances = async () => {
@@ -910,8 +941,8 @@ const Dashboard = () => {
           const result = await response.json();
           console.log('Wallet balances API response data:', result);
 
-          // If backend includes an XRPL address, treat wallet as already created
-          const existingAddress = result?.data?.xrplAddress;
+          // If backend includes an XRPL address, treat wallet as already created (same extraction as mount + header)
+          const existingAddress = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
           if (
             existingAddress &&
             typeof existingAddress === 'string' &&
@@ -2429,6 +2460,7 @@ const Dashboard = () => {
                     type="button"
                     className="mobile-sidebar-nav-item"
                     onClick={() => {
+                      if (isLoadingWalletAddress) return;
                       setIsMobileMenuOpen(false);
                       if (hasWallet) {
                         setShowWalletModal(true);
@@ -2436,8 +2468,9 @@ const Dashboard = () => {
                         handleCreateWallet();
                       }
                     }}
+                    disabled={isLoadingWalletAddress}
                   >
-                    <span>{hasWallet ? 'View wallet' : 'Create wallet'}</span>
+                    <span>{isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View wallet' : 'Create wallet'}</span>
                   </button>
                 </nav>
               </div>
@@ -2595,9 +2628,80 @@ const Dashboard = () => {
             <div className="mobile-section-header">
               <div className="mobile-section-indicator"></div>
               <h3 className="mobile-section-title">Portfolio</h3>
-              <div className="mobile-section-dropdown">
-                <span>Monthly</span>
-                <ChevronDown size={14} />
+              <div className="mobile-section-dropdown" style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMobilePortfolioDropdown(!showMobilePortfolioDropdown);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    color: 'inherit'
+                  }}
+                >
+                  <span>{portfolioTimeframe.charAt(0).toUpperCase() + portfolioTimeframe.slice(1)}</span>
+                  <ChevronDown size={14} />
+                </button>
+                {showMobilePortfolioDropdown && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '0.5rem',
+                      background: 'white',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '0.5rem',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      minWidth: '120px'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {['daily', 'monthly', 'yearly'].map((timeframe) => (
+                      <button
+                        key={timeframe}
+                        type="button"
+                        onClick={() => {
+                          setPortfolioTimeframe(timeframe);
+                          setShowMobilePortfolioDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem 1rem',
+                          background: portfolioTimeframe === timeframe ? '#f0f7ff' : 'white',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          fontSize: '0.9rem',
+                          color: portfolioTimeframe === timeframe ? '#2563eb' : 'inherit'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (portfolioTimeframe !== timeframe) {
+                            e.target.style.background = '#f9fafb';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (portfolioTimeframe !== timeframe) {
+                            e.target.style.background = 'white';
+                          }
+                        }}
+                      >
+                        {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="mobile-chart-container">
@@ -3136,9 +3240,80 @@ const Dashboard = () => {
           <div className="dashboard-chart-card">
             <div className="chart-header">
               <h3>Portfolio</h3>
-              <div className="chart-dropdown">
-                <span>Monthly</span>
-                <ChevronDown size={16} />
+              <div className="chart-dropdown" style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPortfolioDropdown(!showPortfolioDropdown);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    color: 'inherit'
+                  }}
+                >
+                  <span>{portfolioTimeframe.charAt(0).toUpperCase() + portfolioTimeframe.slice(1)}</span>
+                  <ChevronDown size={16} />
+                </button>
+                {showPortfolioDropdown && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '0.5rem',
+                      background: 'white',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '0.5rem',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      minWidth: '120px'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {['daily', 'monthly', 'yearly'].map((timeframe) => (
+                      <button
+                        key={timeframe}
+                        type="button"
+                        onClick={() => {
+                          setPortfolioTimeframe(timeframe);
+                          setShowPortfolioDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem 1rem',
+                          background: portfolioTimeframe === timeframe ? '#f0f7ff' : 'white',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          fontSize: '0.9rem',
+                          color: portfolioTimeframe === timeframe ? '#2563eb' : 'inherit'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (portfolioTimeframe !== timeframe) {
+                            e.target.style.background = '#f9fafb';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (portfolioTimeframe !== timeframe) {
+                            e.target.style.background = 'white';
+                          }
+                        }}
+                      >
+                        {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="chart-container">
@@ -3999,7 +4174,12 @@ const Dashboard = () => {
         <div className="sidebar-section">
           <p className="sidebar-section-label">Wallet</p>
           <div className="sidebar-wallet" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {hasWallet ? (
+            {isLoadingWalletAddress ? (
+              <div className="sidebar-wallet-btn" style={{ opacity: 0.8, cursor: 'default' }} aria-label="Loading wallet">
+                <LoadingIndicator size="sm" />
+                <span style={{ marginLeft: '0.5rem' }}>Loading...</span>
+              </div>
+            ) : hasWallet ? (
               <button className="sidebar-wallet-btn" onClick={() => setShowConnectedWalletModal(true)} aria-label="View wallet">
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
                 <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
@@ -4007,7 +4187,7 @@ const Dashboard = () => {
             ) : (
               <button className="sidebar-wallet-btn" onClick={handleCreateWallet} aria-label="Create wallet">
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-                <span style={{ marginLeft: '0.5rem' }}>Create Wallet</span>
+                <span style={{ marginLeft: '0.5rem' }}>Create wallet</span>
               </button>
             )}
           </div>
@@ -4166,7 +4346,7 @@ const Dashboard = () => {
                           setIsLoadingWalletAddress(false);
                           return;
                         }
-                        const res = await fetch('https://trustichain-backend.onrender.com/api/wallet/balance', {
+                        const res = await fetch(getApiUrl('api/wallet/balance'), {
                           method: 'GET',
                           headers: {
                             'Authorization': `Bearer ${token}`,
@@ -4174,17 +4354,10 @@ const Dashboard = () => {
                           },
                         });
                         const result = await res.json();
-                        console.log('View Wallet API Response:', result);
-                        console.log('Response data:', result?.data);
-                        console.log('xrplAddress (root):', result?.xrplAddress);
-                        console.log('xrpl_address (root):', result?.xrpl_address);
-                        console.log('xrplAddress (data):', result?.data?.xrplAddress);
-                        console.log('xrpl_address (data):', result?.data?.xrpl_address);
-                        // Check for xrplAddress at root level first, then in data, with both naming variations
                         const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
-                        console.log('Extracted address:', address);
                         if (result?.success && address) {
                           setWalletAddress(address);
+                          setHasWallet(true);
                           setShowWalletModal(true);
                         } else {
                           console.error('Failed to get wallet address. Success:', result?.success, 'Address:', address);
@@ -4252,6 +4425,7 @@ const Dashboard = () => {
               isMobileMenuOpen={isMobileMenuOpen}
               setIsMobileMenuOpen={setIsMobileMenuOpen}
               hasWallet={hasWallet}
+              isLoadingWalletAddress={isLoadingWalletAddress}
               setShowWalletModal={setShowWalletModal}
               handleCreateWallet={handleCreateWallet}
               setShowFundWalletModal={setShowFundWalletModal}
@@ -4560,6 +4734,7 @@ const Dashboard = () => {
       <ConnectedWalletModal
         isOpen={showConnectedWalletModal}
         onClose={() => setShowConnectedWalletModal(false)}
+        walletAddress={walletAddress}
       />
 
       {/* Fund Wallet Modal */}

@@ -106,6 +106,12 @@ const MONTH_OPTIONS = [
   'November',
   'December'
 ];
+
+// Get current month name
+const getCurrentMonth = () => {
+  const now = new Date();
+  return MONTH_OPTIONS[now.getMonth()];
+};
 const toNumberOrNull = (value) => {
   const num = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(num) ? num : null;
@@ -172,7 +178,7 @@ const Dispute = () => {
   const [currentPage, setCurrentPage] = useState(12);
   const [itemsPerPage] = useState(10);
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const [selectedMonth, setSelectedMonth] = useState('November');
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isMobileMonthDropdownOpen, setIsMobileMonthDropdownOpen] = useState(false);
   const monthDropdownRef = useRef(null);
@@ -272,6 +278,97 @@ const Dispute = () => {
   const [evidenceImages, setEvidenceImages] = useState([]);
   const [isCreatingDispute, setIsCreatingDispute] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [payerEmailValidation, setPayerEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
+  const [counterpartyEmailValidation, setCounterpartyEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
+  const [validationTimeouts, setValidationTimeouts] = useState({ payer: null, counterparty: null });
+
+  // Validate payer email in real-time
+  const validatePayerEmail = async (email) => {
+    if (!email || email.trim() === '') {
+      setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
+      return;
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setPayerEmailValidation({ isValid: false, message: 'Invalid email format', isValidating: false });
+      return;
+    }
+
+    setPayerEmailValidation({ isValid: null, message: 'Validating...', isValidating: true });
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
+        return;
+      }
+
+      const response = await fetch(getApiUrl('api/escrow/validate-payer-email'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ payerEmail: email }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result?.success) {
+        setPayerEmailValidation({ isValid: true, message: result?.message || 'Email is valid', isValidating: false });
+      } else {
+        setPayerEmailValidation({ isValid: false, message: result?.message || 'Email validation failed', isValidating: false });
+      }
+    } catch (error) {
+      setPayerEmailValidation({ isValid: false, message: 'Validation error', isValidating: false });
+    }
+  };
+
+  // Validate counterparty email in real-time
+  const validateCounterpartyEmail = async (email) => {
+    if (!email || email.trim() === '') {
+      setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
+      return;
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setCounterpartyEmailValidation({ isValid: false, message: 'Invalid email format', isValidating: false });
+      return;
+    }
+
+    setCounterpartyEmailValidation({ isValid: null, message: 'Validating...', isValidating: true });
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
+        return;
+      }
+
+      const response = await fetch(getApiUrl('api/escrow/validate-counterparty-email'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ counterpartyEmail: email }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result?.success) {
+        setCounterpartyEmailValidation({ isValid: true, message: result?.message || 'Email is valid', isValidating: false });
+      } else {
+        setCounterpartyEmailValidation({ isValid: false, message: result?.message || 'Email validation failed', isValidating: false });
+      }
+    } catch (error) {
+      setCounterpartyEmailValidation({ isValid: false, message: 'Validation error', isValidating: false });
+    }
+  };
 
   const handleEvidenceUpload = (files) => {
     const fileArray = Array.isArray(files) ? files : Array.from(files);
@@ -487,6 +584,18 @@ const Dispute = () => {
         });
         return [];
       });
+    }
+  }, [showCreateDisputeModal]);
+
+  // Clear email validation when modal closes
+  useEffect(() => {
+    if (!showCreateDisputeModal) {
+      setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
+      setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
+      // Clear any pending timeouts
+      if (validationTimeouts.payer) clearTimeout(validationTimeouts.payer);
+      if (validationTimeouts.counterparty) clearTimeout(validationTimeouts.counterparty);
+      setValidationTimeouts({ payer: null, counterparty: null });
     }
   }, [showCreateDisputeModal]);
 
@@ -1433,8 +1542,37 @@ const Dispute = () => {
                             type="email"
                             placeholder="Enter your Email"
                             value={disputeFormData.payerEmail}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerEmail: e.target.value })}
+                            onChange={(e) => {
+                              const email = e.target.value;
+                              setDisputeFormData({ ...disputeFormData, payerEmail: email });
+                              
+                              // Clear previous timeout
+                              if (validationTimeouts.payer) {
+                                clearTimeout(validationTimeouts.payer);
+                              }
+                              
+                              // Debounce validation (500ms delay)
+                              const timeout = setTimeout(() => {
+                                validatePayerEmail(email);
+                              }, 500);
+                              
+                              setValidationTimeouts(prev => ({ ...prev, payer: timeout }));
+                            }}
+                            style={{
+                              borderColor: payerEmailValidation.isValid === true ? '#10b981' : 
+                                         payerEmailValidation.isValid === false ? '#ef4444' : undefined
+                            }}
                           />
+                          {payerEmailValidation.message && (
+                            <div style={{
+                              fontSize: '0.75rem',
+                              marginTop: '0.25rem',
+                              color: payerEmailValidation.isValid === true ? '#10b981' : 
+                                     payerEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
+                            }}>
+                              {payerEmailValidation.message}
+                            </div>
+                          )}
                         </div>
                         <div className="form-group">
                           <label>Counterparty XRP Wallet Address <span className="required">*</span></label>
@@ -1446,13 +1584,42 @@ const Dispute = () => {
                           />
                         </div>
                         <div className="form-group">
-                          <label>Email</label>
+                          <label>Counterparty Email</label>
                           <input
                             type="email"
-                            placeholder="Enter your Email"
+                            placeholder="Enter counterparty Email"
                             value={disputeFormData.counterpartyEmail}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyEmail: e.target.value })}
+                            onChange={(e) => {
+                              const email = e.target.value;
+                              setDisputeFormData({ ...disputeFormData, counterpartyEmail: email });
+                              
+                              // Clear previous timeout
+                              if (validationTimeouts.counterparty) {
+                                clearTimeout(validationTimeouts.counterparty);
+                              }
+                              
+                              // Debounce validation (500ms delay)
+                              const timeout = setTimeout(() => {
+                                validateCounterpartyEmail(email);
+                              }, 500);
+                              
+                              setValidationTimeouts(prev => ({ ...prev, counterparty: timeout }));
+                            }}
+                            style={{
+                              borderColor: counterpartyEmailValidation.isValid === true ? '#10b981' : 
+                                         counterpartyEmailValidation.isValid === false ? '#ef4444' : undefined
+                            }}
                           />
+                          {counterpartyEmailValidation.message && (
+                            <div style={{
+                              fontSize: '0.75rem',
+                              marginTop: '0.25rem',
+                              color: counterpartyEmailValidation.isValid === true ? '#10b981' : 
+                                     counterpartyEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
+                            }}>
+                              {counterpartyEmailValidation.message}
+                            </div>
+                          )}
                         </div>
                       </div>
 

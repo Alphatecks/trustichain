@@ -10,7 +10,7 @@ const formatAddress = (address) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-const ConnectedWalletModal = ({ isOpen, onClose }) => {
+const ConnectedWalletModal = ({ isOpen, onClose, walletAddress }) => {
   const { account, isConnected, disconnectWallet } = useWeb3();
   const [confirming, setConfirming] = useState(false);
 
@@ -92,6 +92,27 @@ const ConnectedWalletModal = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               )}
+            </div>
+          ) : walletAddress && walletAddress.trim() ? (
+            <div className="connected-wallet-row">
+              <div className="connected-wallet-identity">
+                <User size={20} className="connected-wallet-icon" />
+                <div>
+                  <div className="connected-wallet-address">{formatAddress(walletAddress)}</div>
+                  <div className="connected-wallet-sub">{walletAddress}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="connected-wallet-disconnect"
+                onClick={() => {
+                  navigator.clipboard.writeText(walletAddress);
+                  toast.success('Address copied to clipboard');
+                }}
+                aria-label="Copy address"
+              >
+                Copy
+              </button>
             </div>
           ) : (
             <div style={{ padding: '1.5rem' }}>

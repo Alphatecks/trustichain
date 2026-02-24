@@ -1,26 +1,99 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, Info } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getApiUrl } from '../../utils/config';
+import LoadingIndicator from '../LoadingIndicator';
 import '../LoadingIndicator/index.css';
 import './index.css';
 
 const WithdrawModal = ({ isOpen, onCancel, onSuccess }) => {
-  const [amount, setAmount] = useState('24,567.89');
+  const [amount, setAmount] = useState('');
   const [selectedWallet, setSelectedWallet] = useState('USD wallet');
+  const [destinationAddress, setDestinationAddress] = useState('');
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const handleCloseModal = () => {
-    setAmount('24,567.89');
+    setAmount('');
     setSelectedWallet('USD wallet');
+    setDestinationAddress('');
     setShowWalletDropdown(false);
+    setIsWithdrawing(false);
     onCancel();
   };
 
-  const handleWithdraw = () => {
-    onSuccess({
-      amount,
-      wallet: selectedWallet
-    });
-    handleCloseModal();
+  const handleWithdraw = async () => {
+    // Remove commas from amount and validate
+    const cleanAmount = amount.replace(/,/g, '');
+    const numericAmount = parseFloat(cleanAmount);
+
+    if (!cleanAmount || numericAmount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!destinationAddress || destinationAddress.trim().length < 10) {
+      toast.error('Please enter a valid destination address');
+      return;
+    }
+
+    setIsWithdrawing(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to withdraw from your wallet');
+        setIsWithdrawing(false);
+        return;
+      }
+
+      // Map wallet selection to currency
+      const currency = selectedWallet === 'XRP wallet' ? 'XRP' : 'USD';
+
+      const apiUrl = getApiUrl('api/wallet/withdraw');
+      console.log('Calling withdraw API:', apiUrl, {
+        amount: numericAmount,
+        currency,
+        destinationAddress: destinationAddress.trim(),
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: numericAmount,
+          currency,
+          destinationAddress: destinationAddress.trim(),
+        }),
+      });
+
+      console.log('Withdraw API response status:', response.status);
+
+      const result = await response.json().catch(() => ({}));
+      console.log('Withdraw API response body:', result);
+
+      if (response.ok && result.success) {
+        toast.success(result.message || 'Withdrawal request submitted successfully!');
+        handleCloseModal();
+        if (onSuccess) {
+          onSuccess({
+            amount: numericAmount,
+            currency,
+            destinationAddress: destinationAddress.trim()
+          });
+        }
+      } else {
+        toast.error(result.message || 'Failed to withdraw. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error withdrawing:', error);
+      toast.error('An error occurred while processing your withdrawal. Please try again.');
+    } finally {
+      setIsWithdrawing(false);
+    }
   };
 
   if (!isOpen) {
@@ -43,19 +116,28 @@ const WithdrawModal = ({ isOpen, onCancel, onSuccess }) => {
         <div className="create-escrow-modal-content" style={{ padding: '2rem' }}>
           <div className="withdraw-section">
             <div className="withdraw-amount-section">
-              <label className="withdraw-label">Amount</label>
+              <label className="withdraw-label">Amount <span style={{ color: 'red' }}>*</span></label>
               <div className="withdraw-amount-display">
                 <div className="amount-input-wrapper">
-                  <span className="amount-currency">$</span>
+                  <span className="amount-currency">{selectedWallet === 'XRP wallet' ? 'XRP' : '$'}</span>
                   <input
                     type="text"
                     className="amount-input"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="24,567.89"
+                    onChange={(e) => {
+                      // Allow only numbers and one decimal point
+                      const value = e.target.value.replace(/[^\d.]/g, '');
+                      // Ensure only one decimal point
+                      const parts = value.split('.');
+                      if (parts.length > 2) {
+                        return;
+                      }
+                      setAmount(value);
+                    }}
+                    placeholder="0.00"
+                    disabled={isWithdrawing}
                   />
                 </div>
-                <div className="balance-text">Balance: 24,567.89</div>
               </div>
             </div>
 
@@ -66,6 +148,7 @@ const WithdrawModal = ({ isOpen, onCancel, onSuccess }) => {
                   type="button"
                   className="wallet-selector-btn"
                   onClick={() => setShowWalletDropdown(!showWalletDropdown)}
+                  disabled={isWithdrawing}
                 >
                   <span>{selectedWallet}</span>
                   <ChevronDown size={16} />
@@ -97,12 +180,50 @@ const WithdrawModal = ({ isOpen, onCancel, onSuccess }) => {
               </div>
             </div>
 
+            <div className="withdraw-wallet-section">
+              <label className="withdraw-label">Destination Address <span style={{ color: 'red' }}>*</span></label>
+              <input
+                type="text"
+                className="withdraw-input"
+                placeholder="Enter destination wallet address"
+                value={destinationAddress}
+                onChange={(e) => setDestinationAddress(e.target.value)}
+                disabled={isWithdrawing}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontFamily: 'Satoshi, Inter, sans-serif',
+                  background: isWithdrawing ? '#f5f5f5' : 'var(--white)',
+                  cursor: isWithdrawing ? 'not-allowed' : 'text'
+                }}
+              />
+            </div>
+
             <button 
               type="button"
               className="withdraw-btn"
               onClick={handleWithdraw}
+              disabled={isWithdrawing || !amount || !destinationAddress.trim()}
+              style={{
+                opacity: (isWithdrawing || !amount || !destinationAddress.trim()) ? 0.6 : 1,
+                cursor: (isWithdrawing || !amount || !destinationAddress.trim()) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
             >
-              Withdraw
+              {isWithdrawing ? (
+                <>
+                  <LoadingIndicator size="sm" />
+                  Processing...
+                </>
+              ) : (
+                'Withdraw'
+              )}
             </button>
 
             <div className="withdraw-info">

@@ -80,6 +80,7 @@ const BusinessDashboard = ({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
   hasWallet,
+  isLoadingWalletAddress = false,
   setShowWalletModal,
   handleCreateWallet,
   setShowFundWalletModal,
@@ -282,6 +283,7 @@ const BusinessDashboard = ({
                   type="button"
                   className="mobile-sidebar-nav-item"
                   onClick={() => {
+                    if (isLoadingWalletAddress) return;
                     setIsMobileMenuOpen(false);
                     if (hasWallet) {
                       setShowWalletModal(true);
@@ -289,8 +291,9 @@ const BusinessDashboard = ({
                       handleCreateWallet();
                     }
                   }}
+                  disabled={isLoadingWalletAddress}
                 >
-                  <span>{hasWallet ? 'View wallet' : 'Create wallet'}</span>
+                  <span>{isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View wallet' : 'Create wallet'}</span>
                 </button>
               </nav>
             </div>

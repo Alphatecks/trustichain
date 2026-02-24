@@ -73,6 +73,7 @@ const SupplierContractPage = () => {
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [hasWallet, setHasWallet] = useState(false);
+  const [isLoadingWalletAddress, setIsLoadingWalletAddress] = useState(true);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [showFundSupplyAccountModal, setShowFundSupplyAccountModal] = useState(false);
@@ -152,6 +153,39 @@ const SupplierContractPage = () => {
       console.error('Error creating wallet:', error);
     }
   };
+
+  // On load, check if user has a wallet so we show View wallet vs Create wallet correctly
+  useEffect(() => {
+    const fetchWallets = async () => {
+      setIsLoadingWalletAddress(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setHasWallet(false);
+          setIsLoadingWalletAddress(false);
+          return;
+        }
+        const res = await fetch(`${getApiUrl('api/wallet/all')}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const result = await res.json();
+        if (Array.isArray(result.data) && result.data.length > 0 && result.data[0].xrpl_address) {
+          setHasWallet(true);
+        } else {
+          setHasWallet(false);
+        }
+      } catch (err) {
+        setHasWallet(false);
+      } finally {
+        setIsLoadingWalletAddress(false);
+      }
+    };
+    fetchWallets();
+  }, []);
 
   useEffect(() => {
     const fetchDashboardSummary = async () => {
@@ -430,14 +464,16 @@ const SupplierContractPage = () => {
                 type="button" 
                 className="create-wallet-btn"
                 onClick={() => {
+                  if (isLoadingWalletAddress) return;
                   if (hasWallet) {
                     setShowWalletModal(true);
                   } else {
                     handleCreateWallet();
                   }
                 }}
+                disabled={isLoadingWalletAddress}
               >
-                {hasWallet ? 'View Wallet' : 'Create Wallet'}
+                {isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View Wallet' : 'Create Wallet'}
               </button>
             )}
             <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
@@ -475,6 +511,7 @@ const SupplierContractPage = () => {
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
           hasWallet={hasWallet}
+          isLoadingWalletAddress={isLoadingWalletAddress}
           setShowWalletModal={setShowWalletModal}
           handleCreateWallet={handleCreateWallet}
           setShowFundWalletModal={setShowFundWalletModal}

@@ -657,6 +657,42 @@
   background: var(--blue-600);
 }
 
+.activity-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--blue-600);
+  margin-left: auto;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.activity-status-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: var(--blue-100);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.activity-status-info svg {
+  color: var(--blue-600);
+  flex-shrink: 0;
+}
+
 /* Timeline */
 .timeline-container {
   display: flex;
@@ -724,6 +760,18 @@
   background: #FFF8E1;
   color: #FFA000;
   border: 1px solid #FFECB3;
+}
+
+.verdict-button.approved {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #C8E6C9;
+}
+
+.verdict-button.rejected {
+  background: #FFEBEE;
+  color: #C62828;
+  border: 1px solid #FFCDD2;
 }
 
 .verdict-message {
@@ -917,6 +965,17 @@
 }
 
 .evidence-upload-area:hover {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+}
+
+.evidence-upload-area.dragging {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+  border-style: dashed;
+}
+
+.evidence-upload-area.has-file {
   border-color: var(--blue-600);
   background: var(--blue-50);
 }
