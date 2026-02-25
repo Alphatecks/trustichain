@@ -281,6 +281,83 @@ const Dispute = () => {
   const [payerEmailValidation, setPayerEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
   const [counterpartyEmailValidation, setCounterpartyEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
   const [validationTimeouts, setValidationTimeouts] = useState({ payer: null, counterparty: null });
+  const [isFetchingEscrowParties, setIsFetchingEscrowParties] = useState(false);
+  const escrowPartiesDebounceRef = useRef(null);
+
+  // Fetch escrow parties by escrow ID and fill form (payer + counterparty)
+  const fetchEscrowParties = async (escrowId) => {
+    const id = typeof escrowId === 'string' ? escrowId.trim() : '';
+    if (!id) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to fetch escrow details');
+      return;
+    }
+
+    setIsFetchingEscrowParties(true);
+    try {
+      const response = await fetch(getApiUrl(`api/escrow/${encodeURIComponent(id)}/parties`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      console.log('Escrow parties API response:', result);
+
+      if (!response.ok || !result?.success) {
+        toast.error(result?.message || 'Could not load escrow details');
+        return;
+      }
+
+      const { payer, counterparty } = result.data || {};
+      setDisputeFormData((prev) => ({
+        ...prev,
+        escrowId: prev.escrowId,
+        payerWallet: payer?.walletAddress ?? prev.payerWallet,
+        payerName: payer?.name ?? prev.payerName,
+        payerEmail: payer?.email ?? prev.payerEmail,
+        payerPhone: payer?.phoneNumber ?? prev.payerPhone,
+        counterpartyWallet: counterparty?.xrpWalletAddress ?? prev.counterpartyWallet,
+        counterpartyName: counterparty?.name ?? prev.counterpartyName,
+        counterpartyEmail: counterparty?.email ?? prev.counterpartyEmail,
+        counterpartyPhone: counterparty?.phoneNumber ?? prev.counterpartyPhone,
+      }));
+      toast.success('Escrow details filled');
+    } catch (error) {
+      console.error('Fetch escrow parties error:', error);
+      toast.error('Failed to load escrow details');
+    } finally {
+      setIsFetchingEscrowParties(false);
+    }
+  };
+
+  // Debounced fetch: when escrow ID is being entered, fetch parties after a short pause (no need to finish typing)
+  const ESCROW_PARTIES_DEBOUNCE_MS = 600;
+  useEffect(() => {
+    const id = (disputeFormData.escrowId || '').trim();
+    if (!id) return;
+
+    if (escrowPartiesDebounceRef.current) {
+      clearTimeout(escrowPartiesDebounceRef.current);
+      escrowPartiesDebounceRef.current = null;
+    }
+
+    escrowPartiesDebounceRef.current = setTimeout(() => {
+      escrowPartiesDebounceRef.current = null;
+      fetchEscrowParties(id);
+    }, ESCROW_PARTIES_DEBOUNCE_MS);
+
+    return () => {
+      if (escrowPartiesDebounceRef.current) {
+        clearTimeout(escrowPartiesDebounceRef.current);
+        escrowPartiesDebounceRef.current = null;
+      }
+    };
+  }, [disputeFormData.escrowId]);
 
   // Validate payer email in real-time
   const validatePayerEmail = async (email) => {
@@ -1512,12 +1589,22 @@ const Dispute = () => {
                     <h3 className="section-title">Escrow ID</h3>
                     <div className="form-group">
                       <label>Escrow ID <span className="required">*</span></label>
-                      <input
-                        type="text"
-                        placeholder="Enter escrow ID"
-                        value={disputeFormData.escrowId}
-                        onChange={(e) => setDisputeFormData({ ...disputeFormData, escrowId: e.target.value })}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          placeholder="Enter or paste escrow ID"
+                          value={disputeFormData.escrowId}
+                          onChange={(e) => setDisputeFormData({ ...disputeFormData, escrowId: e.target.value })}
+                        />
+                        {isFetchingEscrowParties && (
+                          <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#6b7280' }}>
+                            Loading…
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                        Details auto-fill as you enter the escrow ID (after a short pause).
+                      </p>
                     </div>
                   </div>
 
