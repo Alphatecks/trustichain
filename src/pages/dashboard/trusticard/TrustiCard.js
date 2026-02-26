@@ -22,6 +22,7 @@ import {
   CreditCard as CreditCardIcon,
   Wallet,
   Eye,
+  EyeOff,
   KeyRound,
   Info,
   Menu,
@@ -43,6 +44,7 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import toast from 'react-hot-toast';
 import { getApiUrl } from '../../../utils/config';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
@@ -112,8 +114,40 @@ const TrustiCard = () => {
   const [showFundModal, setShowFundModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [fundAmount, setFundAmount] = useState('24,000');
-  const [withdrawAmount, setWithdrawAmount] = useState('24,567.89');
+  const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
+  const [isSubmittingCreateCustomer, setIsSubmittingCreateCustomer] = useState(false);
+  const [showIssueCardModal, setShowIssueCardModal] = useState(false);
+  const [isSubmittingIssueCard, setIsSubmittingIssueCard] = useState(false);
+  const [issueCardForm, setIssueCardForm] = useState({
+    customer_ulid: '',
+    card_name: '',
+    card_currency: 'USD',
+    card_type: 'platinum',
+    card_provider: 'visa',
+    reference_id: '',
+    meta_user_id: '',
+  });
+  const [createCustomerForm, setCreateCustomerForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    date_of_birth: '',
+    id_type: 'passport',
+    id_number: '',
+    id_front_image: null,
+    user_image: null,
+    id_back_image: null,
+    house_number: '',
+    address_line_1: '',
+    city: '',
+    zip_code: '',
+    country: '',
+    state: '',
+    reference_id: '',
+    meta_user_id: ''
+  });
+  const [fundAmount, setFundAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedWallet, setSelectedWallet] = useState('XRP wallet');
   const [selectedWithdrawWallet, setSelectedWithdrawWallet] = useState('USD wallet');
   const [addressForm, setAddressForm] = useState({
@@ -137,11 +171,24 @@ const TrustiCard = () => {
   const [currentPage, setCurrentPage] = useState(12);
   const [message, setMessage] = useState('');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [cardsList, setCardsList] = useState([]);
+  const [cardsPage, setCardsPage] = useState(1);
+  const [cardsTotal, setCardsTotal] = useState(0);
+  const [cardsLastPage, setCardsLastPage] = useState(1);
+  const [isLoadingCards, setIsLoadingCards] = useState(true);
+  const [cardTransactions, setCardTransactions] = useState([]);
+  const [isLoadingCardTransactions, setIsLoadingCardTransactions] = useState(true);
+  const [selectedCardDetails, setSelectedCardDetails] = useState(null);
+  const [isLoadingCardDetails, setIsLoadingCardDetails] = useState(false);
+  const [showSensitiveCardInfo, setShowSensitiveCardInfo] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [showCardDetails, setShowCardDetails] = useState(false);
   const [showMobileAddressPage, setShowMobileAddressPage] = useState(false);
   const [showMobileWithdrawPage, setShowMobileWithdrawPage] = useState(false);
   const [showMobileFundPage, setShowMobileFundPage] = useState(false);
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isFreezing, setIsFreezing] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [notifications, setNotifications] = useState([]);
   const [, setNotificationsTotal] = useState(0);
@@ -266,12 +313,32 @@ const TrustiCard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Mock transaction data
-  const transactions = [
-    { id: 'F4E5D6...C1B2A3', type: 'Received', amount: '+50 XRP', usd: '$25.00 USD', status: 'Successful', date: '2024-07-04', checked: false },
-    { id: 'A1B2C3...D4E5F6', type: 'Sent', amount: '-25 XRP', usd: '$12.50 USD', status: 'Successful', date: '2024-07-03', checked: false },
-    { id: 'G7H8I9...J0K1L2', type: 'Received', amount: '+100 XRP', usd: '$50.00 USD', status: 'Successful', date: '2024-07-02', checked: false },
-  ];
+  // Map API card transactions to UI shape
+  const transactions = useMemo(() => {
+    return cardTransactions.map((tx) => {
+      const amount = Number(tx.enter_amount) || 0;
+      const currency = tx.card_currency || 'USD';
+      const isCredit = (tx.amount_type || '').toUpperCase() === 'CREDIT';
+      const sign = isCredit ? '+' : '-';
+      const absAmount = Math.abs(amount);
+      const amountStr = `${sign}${absAmount.toFixed(2)} ${currency}`;
+      const dateStr = tx.created_at
+        ? new Date(tx.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })
+        : '—';
+      const typeLabel = (tx.trx_type || '').replace(/-/g, ' ');
+      const displayType = isCredit ? 'Received' : 'Sent';
+      return {
+        id: tx.trx_id || tx.ulid || '—',
+        type: displayType,
+        typeLabel,
+        amount: amountStr,
+        usd: currency === 'USD' ? `$${absAmount.toFixed(2)} USD` : `${absAmount.toFixed(2)} ${currency}`,
+        status: (tx.status || '—') === 'SUCCESS' ? 'Successful' : (tx.status || '—'),
+        date: dateStr,
+        checked: false,
+      };
+    });
+  }, [cardTransactions]);
 
   // Mock cashflow data
   const cashflowData = [
@@ -350,6 +417,402 @@ const TrustiCard = () => {
     fetchUserProfile();
   }, [isSessionExpired]);
 
+  const fetchCards = async (page = 1) => {
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      setCardsList([]);
+      setIsLoadingCards(false);
+      return;
+    }
+    setIsLoadingCards(true);
+    try {
+      const response = await fetch(getApiUrl(`api/cardyfie/cards?page=${page}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (response.ok && result?.success && result?.cards) {
+        const { data = [], current_page, last_page, total } = result.cards;
+        setCardsList(Array.isArray(data) ? data : []);
+        setCardsPage(current_page ?? page);
+        setCardsLastPage(last_page ?? 1);
+        setCardsTotal(total ?? 0);
+      } else {
+        setCardsList([]);
+      }
+    } catch (err) {
+      console.error('Fetch cards error:', err);
+      setCardsList([]);
+    } finally {
+      setIsLoadingCards(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCards(1);
+  }, [isSessionExpired]);
+
+  useEffect(() => {
+    if (cardsList.length > 0 && currentCardIndex >= cardsList.length) {
+      setCurrentCardIndex(Math.max(0, cardsList.length - 1));
+    }
+  }, [cardsList.length, currentCardIndex]);
+
+  const fetchCardTransactions = async (cardUlid = '', trxId = '') => {
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      setCardTransactions([]);
+      setIsLoadingCardTransactions(false);
+      return;
+    }
+    setIsLoadingCardTransactions(true);
+    try {
+      const params = new URLSearchParams();
+      if (cardUlid) params.set('card_ulid', cardUlid);
+      if (trxId) params.set('trx_id', trxId);
+      const qs = params.toString();
+      const url = getApiUrl(`api/cardyfie/card/transactions${qs ? `?${qs}` : ''}`);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (response.ok && result?.success && Array.isArray(result?.transactions)) {
+        setCardTransactions(result.transactions);
+      } else {
+        setCardTransactions([]);
+      }
+    } catch (err) {
+      console.error('Fetch card transactions error:', err);
+      setCardTransactions([]);
+    } finally {
+      setIsLoadingCardTransactions(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCardTransactions();
+  }, [isSessionExpired]);
+
+  const fetchCardDetails = async (cardUlid) => {
+    if (!cardUlid) {
+      setSelectedCardDetails(null);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      setSelectedCardDetails(null);
+      return;
+    }
+    setIsLoadingCardDetails(true);
+    try {
+      const response = await fetch(getApiUrl(`api/cardyfie/card/${encodeURIComponent(cardUlid)}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (response.ok && result?.success && result?.card) {
+        setSelectedCardDetails(result.card);
+      } else {
+        setSelectedCardDetails(null);
+      }
+    } catch (err) {
+      console.error('Fetch card details error:', err);
+      setSelectedCardDetails(null);
+    } finally {
+      setIsLoadingCardDetails(false);
+    }
+  };
+
+  const detailCardUlid = isMobile && showCardDetails
+    ? cardsList[currentCardIndex]?.ulid
+    : cardsList[0]?.ulid;
+
+  useEffect(() => {
+    if (detailCardUlid) {
+      fetchCardDetails(detailCardUlid);
+    } else {
+      setSelectedCardDetails(null);
+    }
+  }, [detailCardUlid]);
+
+  const depositToCard = async (amountInput) => {
+    const card = cardsList[currentCardIndex];
+    const cardUlid = card?.ulid;
+    if (!cardUlid) {
+      toast.error('No card selected');
+      return;
+    }
+    const amount = parseFloat(String(amountInput ?? '').replace(/,/g, ''), 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to continue');
+      return;
+    }
+    setIsDepositing(true);
+    try {
+      const response = await fetch(getApiUrl(`api/cardyfie/card/${encodeURIComponent(cardUlid)}/deposit`), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount }),
+      });
+      const result = await response.json();
+      if (response.ok && result?.success) {
+        if (result?.card) {
+          setSelectedCardDetails((prev) => (prev?.ulid === result.card?.ulid ? result.card : prev));
+          setCardsList((prev) =>
+            prev.map((c) => (c?.ulid === result.card?.ulid ? { ...c, ...result.card, card_balance: result.card?.card_balance } : c))
+          );
+        }
+        toast.success(result?.trx_id ? `Deposit successful. Ref: ${result.trx_id}` : 'Deposit successful');
+        setShowFundModal(false);
+        setShowMobileFundPage(false);
+        setFundAmount('');
+      } else {
+        toast.error(result?.message || 'Deposit failed');
+      }
+    } catch (err) {
+      console.error('Deposit error:', err);
+      toast.error('Deposit failed');
+    } finally {
+      setIsDepositing(false);
+    }
+  };
+
+  const withdrawFromCard = async (amountInput) => {
+    const card = cardsList[currentCardIndex];
+    const cardUlid = card?.ulid;
+    if (!cardUlid) {
+      toast.error('No card selected');
+      return;
+    }
+    const amount = parseFloat(String(amountInput ?? '').replace(/\$/g, '').replace(/,/g, ''), 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to continue');
+      return;
+    }
+    setIsWithdrawing(true);
+    try {
+      const response = await fetch(getApiUrl(`api/cardyfie/card/${encodeURIComponent(cardUlid)}/withdraw`), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount }),
+      });
+      const result = await response.json();
+      if (response.ok && result?.success) {
+        toast.success('Withdrawal successful');
+        setShowWithdrawModal(false);
+        setShowMobileWithdrawPage(false);
+        setWithdrawAmount('');
+        if (detailCardUlid) fetchCardDetails(detailCardUlid);
+        setCardsList((prev) => prev.map((c) => (c?.ulid === cardUlid ? { ...c, card_balance: undefined } : c)));
+        fetchCards(cardsPage);
+      } else {
+        toast.error(result?.message || 'Withdrawal failed');
+      }
+    } catch (err) {
+      console.error('Withdraw error:', err);
+      toast.error('Withdrawal failed');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleFreezeToggle = async () => {
+    const card = cardsList[currentCardIndex];
+    const cardUlid = card?.ulid;
+    if (!cardUlid) {
+      toast.error('No card selected');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to continue');
+      return;
+    }
+    const willFreeze = !freezeCard;
+    setIsFreezing(true);
+    try {
+      const endpoint = willFreeze ? 'freeze' : 'unfreeze';
+      const response = await fetch(getApiUrl(`api/cardyfie/card/${encodeURIComponent(cardUlid)}/${endpoint}`), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (response.ok && result?.success) {
+        setFreezeCard(willFreeze);
+        if (detailCardUlid) fetchCardDetails(detailCardUlid);
+        toast.success(willFreeze ? 'Card frozen' : 'Card unfrozen');
+      } else {
+        toast.error(result?.message || (willFreeze ? 'Failed to freeze card' : 'Failed to unfreeze card'));
+      }
+    } catch (err) {
+      console.error('Freeze/unfreeze error:', err);
+      toast.error(willFreeze ? 'Failed to freeze card' : 'Failed to unfreeze card');
+    } finally {
+      setIsFreezing(false);
+    }
+  };
+
+  const handleIssueCardSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to issue a card');
+      return;
+    }
+    const { customer_ulid, card_name, card_currency, card_type, card_provider, reference_id, meta_user_id } = issueCardForm;
+    if (!customer_ulid?.trim() || !card_name?.trim()) {
+      toast.error('Customer ULID and card name are required');
+      return;
+    }
+    setIsSubmittingIssueCard(true);
+    try {
+      const body = {
+        customer_ulid: customer_ulid.trim(),
+        card_name: card_name.trim(),
+        card_currency: (card_currency || 'USD').trim(),
+        card_type: (card_type || 'platinum').trim(),
+        card_provider: (card_provider || 'visa').trim(),
+      };
+      if (reference_id?.trim()) body.reference_id = reference_id.trim();
+      if (meta_user_id?.trim()) body.meta = { user_id: meta_user_id.trim() };
+
+      const response = await fetch(getApiUrl('api/cardyfie/card/issue'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (response.ok && result?.success) {
+        toast.success(result?.message || 'Card issued successfully');
+        setShowIssueCardModal(false);
+        setIssueCardForm({
+          customer_ulid: '',
+          card_name: '',
+          card_currency: 'USD',
+          card_type: 'platinum',
+          card_provider: 'visa',
+          reference_id: '',
+          meta_user_id: '',
+        });
+        fetchCards(cardsPage);
+      } else {
+        toast.error(result?.message || result?.error || 'Failed to issue card');
+      }
+    } catch (err) {
+      console.error('Issue card error:', err);
+      toast.error('Failed to issue card');
+    } finally {
+      setIsSubmittingIssueCard(false);
+    }
+  };
+
+  const handleCreateCustomerSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to create a customer');
+      return;
+    }
+    const { first_name, last_name, email, date_of_birth, id_type, id_number, id_front_image, user_image, id_back_image, house_number, address_line_1, city, zip_code, country, state, reference_id, meta_user_id } = createCustomerForm;
+    if (!first_name?.trim() || !last_name?.trim() || !email?.trim()) {
+      toast.error('First name, last name and email are required');
+      return;
+    }
+    setIsSubmittingCreateCustomer(true);
+    try {
+      const formData = new FormData();
+      formData.append('first_name', (first_name || '').trim());
+      formData.append('last_name', (last_name || '').trim());
+      formData.append('email', (email || '').trim());
+      if (date_of_birth?.trim()) formData.append('date_of_birth', date_of_birth.trim());
+      formData.append('id_type', (id_type || 'passport').trim());
+      if (id_number?.trim()) formData.append('id_number', id_number.trim());
+      if (house_number?.trim()) formData.append('house_number', house_number.trim());
+      if (address_line_1?.trim()) formData.append('address_line_1', address_line_1.trim());
+      if (city?.trim()) formData.append('city', city.trim());
+      if (zip_code?.trim()) formData.append('zip_code', zip_code.trim());
+      if (country?.trim()) formData.append('country', country.trim());
+      if (state?.trim()) formData.append('state', state.trim());
+      if (reference_id?.trim()) formData.append('reference_id', reference_id.trim());
+      if (meta_user_id?.trim()) formData.append('meta[user_id]', meta_user_id.trim());
+      if (id_front_image instanceof File) formData.append('id_front_image', id_front_image);
+      if (user_image instanceof File) formData.append('user_image', user_image);
+      if (id_back_image instanceof File) formData.append('id_back_image', id_back_image);
+
+      const response = await fetch(getApiUrl('api/cardyfie/customer'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      const result = await response.json();
+      if (response.ok && result?.success) {
+        toast.success(result?.message || 'Customer created successfully');
+        setShowCreateCustomerModal(false);
+        fetchCards(1);
+        fetchCardTransactions();
+        setCreateCustomerForm({
+          first_name: '',
+          last_name: '',
+          email: '',
+          date_of_birth: '',
+          id_type: 'passport',
+          id_number: '',
+          id_front_image: null,
+          user_image: null,
+          id_back_image: null,
+          house_number: '',
+          address_line_1: '',
+          city: '',
+          zip_code: '',
+          country: '',
+          state: '',
+          reference_id: '',
+          meta_user_id: ''
+        });
+      } else {
+        toast.error(result?.message || result?.error || 'Failed to create customer');
+      }
+    } catch (err) {
+      console.error('Create customer error:', err);
+      toast.error('Failed to create customer');
+    } finally {
+      setIsSubmittingCreateCustomer(false);
+    }
+  };
 
   return (
     <>
@@ -682,90 +1145,78 @@ const TrustiCard = () => {
                 <div className="mobile-section-indicator"></div>
                 <h2 className="mobile-my-cards-title">My Cards</h2>
               </div>
-              <button type="button" className="mobile-add-card-btn">
-                <Plus size={16} />
-                <span>Add card</span>
-              </button>
+              <div className="mobile-cards-header-actions">
+                <button type="button" className="mobile-add-card-btn mobile-apply-card-btn" onClick={() => setShowCreateCustomerModal(true)}>
+                  <span>Apply for card</span>
+                </button>
+                <button type="button" className="mobile-add-card-btn" onClick={() => setShowIssueCardModal(true)}>
+                  <Plus size={16} />
+                  <span>Create card</span>
+                </button>
+              </div>
             </div>
             <div className="mobile-card-display">
-              {currentCardIndex === 0 ? (
-                <div 
-                  className="mobile-card-blue" 
-                  onClick={() => setShowCardDetails(true)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="mobile-card-top">
-                    <span className="mobile-card-type-label">Platinum Card</span>
-                    <div className="mobile-card-debit-action">
-                      <span className="mobile-card-debit-text">Debit</span>
-                      <div className="mobile-card-debit-arrow">
-                        <ArrowRight size={16} />
+              {isLoadingCards ? (
+                <div className="mobile-card-loading">
+                  <LoadingIndicator size="md" />
+                </div>
+              ) : cardsList.length === 0 ? (
+                <div className="mobile-card-empty" onClick={() => setShowCreateCustomerModal(true)} style={{ cursor: 'pointer' }}>
+                  <CreditCardIcon size={32} style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }} />
+                  <span>No cards yet</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Tap to add a card</span>
+                </div>
+              ) : (() => {
+                const card = cardsList[currentCardIndex] || cardsList[0];
+                const balance = Number(card?.card_balance) || 0;
+                const currency = card?.card_currency_code || 'USD';
+                const balanceStr = new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balance);
+                const isFirst = currentCardIndex === 0;
+                return (
+                  <div
+                    className={isFirst ? 'mobile-card-blue' : 'mobile-card-white'}
+                    onClick={() => setShowCardDetails(true)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="mobile-card-top">
+                      <span className="mobile-card-type-label">{card?.card_name || 'Card'}</span>
+                      <div className="mobile-card-debit-action">
+                        <span className="mobile-card-debit-text">{card?.card_type === 'universal' ? 'Universal' : 'Debit'}</span>
+                        <div className="mobile-card-debit-arrow">
+                          <ArrowRight size={16} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mobile-card-balance">{balanceStr}</div>
+                    <div className="mobile-card-bottom">
+                      <div className="mobile-card-bottom-item">
+                        <span className="mobile-card-bottom-label">Card number</span>
+                        <span className="mobile-card-bottom-value">{card?.masked_pan || '**** **** **** ****'}</span>
+                      </div>
+                      <div className="mobile-card-bottom-item">
+                        <span className="mobile-card-bottom-label">Exp</span>
+                        <span className="mobile-card-bottom-value">{card?.card_exp_time || '—'}</span>
+                      </div>
+                      <div className="mobile-card-bottom-item">
+                        <span className="mobile-card-bottom-label">Status</span>
+                        <span className="mobile-card-bottom-value">{card?.status || '—'}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="mobile-card-balance">$24,567.89</div>
-                  <div className="mobile-card-bottom">
-                    <div className="mobile-card-bottom-item">
-                      <span className="mobile-card-bottom-label">Exp Date</span>
-                      <span className="mobile-card-bottom-value">4532 **** **** 5434</span>
-                    </div>
-                    <div className="mobile-card-bottom-item">
-                      <span className="mobile-card-bottom-label">Exp Date</span>
-                      <span className="mobile-card-bottom-value">19/29</span>
-                    </div>
-                    <div className="mobile-card-bottom-item">
-                      <span className="mobile-card-bottom-label">CVV</span>
-                      <span className="mobile-card-bottom-value">345/29</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div 
-                  className="mobile-card-white" 
-                  onClick={() => setShowCardDetails(true)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="mobile-card-top">
-                    <span className="mobile-card-type-label">Platinum Card</span>
-                    <div className="mobile-card-debit-action">
-                      <span className="mobile-card-debit-text">Debit</span>
-                      <div className="mobile-card-debit-arrow">
-                        <ArrowRight size={16} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mobile-card-balance">$24,567.89</div>
-                  <div className="mobile-card-bottom">
-                    <div className="mobile-card-bottom-item">
-                      <span className="mobile-card-bottom-label">Exp Date</span>
-                      <span className="mobile-card-bottom-value">4532 **** **** 5434</span>
-                    </div>
-                    <div className="mobile-card-bottom-item">
-                      <span className="mobile-card-bottom-label">Exp Date</span>
-                      <span className="mobile-card-bottom-value">19/29</span>
-                    </div>
-                    <div className="mobile-card-bottom-item">
-                      <span className="mobile-card-bottom-label">CVV</span>
-                      <span className="mobile-card-bottom-value">345/29</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
-            <div className="mobile-card-pagination">
-              <div 
-                className={`mobile-card-dot ${currentCardIndex === 0 ? 'active' : ''}`}
-                onClick={() => setCurrentCardIndex(0)}
-              ></div>
-              <div 
-                className={`mobile-card-dot ${currentCardIndex === 1 ? 'active' : ''}`}
-                onClick={() => setCurrentCardIndex(1)}
-              ></div>
-              <div 
-                className={`mobile-card-dot ${currentCardIndex === 2 ? 'active' : ''}`}
-                onClick={() => setCurrentCardIndex(2)}
-              ></div>
-            </div>
+            {!isLoadingCards && cardsList.length > 1 && (
+              <div className="mobile-card-pagination">
+                {cardsList.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`mobile-card-dot ${currentCardIndex === i ? 'active' : ''}`}
+                    onClick={() => setCurrentCardIndex(i)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           )}
 
@@ -846,29 +1297,36 @@ const TrustiCard = () => {
               </button>
             </div>
             <div className="mobile-transaction-list">
-              {transactions.map((tx, index) => {
-                // Extract XRP amount from tx.amount (e.g., "+50 XRP" -> "50 XRP")
-                const xrpAmount = tx.amount.replace('+', '').replace('-', '');
-                return (
-                  <div key={index} className="mobile-transaction-item">
-                    <div className={`mobile-transaction-icon ${tx.type.toLowerCase()}`}>
-                      {tx.type === 'Received' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
-                    </div>
-                    <div className="mobile-transaction-content">
-                      <div className="mobile-transaction-type">{tx.type}</div>
-                      <div className="mobile-transaction-description">
-                        You received {xrpAmount}, worth {tx.usd}.
+              {isLoadingCardTransactions ? (
+                <div className="mobile-transaction-loading">
+                  <LoadingIndicator size="md" />
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="mobile-transaction-empty">No card transactions yet</div>
+              ) : (
+                transactions.map((tx, index) => {
+                  const xrpAmount = tx.amount.replace('+', '').replace('-', '');
+                  return (
+                    <div key={index} className="mobile-transaction-item">
+                      <div className={`mobile-transaction-icon ${tx.type.toLowerCase()}`}>
+                        {tx.type === 'Received' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
                       </div>
-                      <div className="mobile-transaction-footer">
-                        <span className={`mobile-transaction-status ${tx.status.toLowerCase()}`}>
-                          {tx.status}
-                        </span>
-                        <span className="mobile-transaction-date">{tx.date}</span>
+                      <div className="mobile-transaction-content">
+                        <div className="mobile-transaction-type">{tx.typeLabel || tx.type}</div>
+                        <div className="mobile-transaction-description">
+                          {tx.type === 'Received' ? 'You received' : 'You sent'} {xrpAmount}, worth {tx.usd}.
+                        </div>
+                        <div className="mobile-transaction-footer">
+                          <span className={`mobile-transaction-status ${(tx.status || '').toLowerCase()}`}>
+                            {tx.status}
+                          </span>
+                          <span className="mobile-transaction-date">{tx.date}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
           )}
@@ -881,10 +1339,14 @@ const TrustiCard = () => {
                   <div className="mobile-section-indicator"></div>
                   <h2 className="mobile-card-details-title">Card Details</h2>
                 </div>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="mobile-card-details-close"
-                  onClick={() => setShowCardDetails(false)}
+                  onClick={() => {
+                    setShowCardDetails(false);
+                    setSelectedCardDetails(null);
+                    setShowSensitiveCardInfo(false);
+                  }}
                 >
                   <X size={20} />
                 </button>
@@ -895,32 +1357,43 @@ const TrustiCard = () => {
                 <div className="mobile-card-details-card-section">
                   <div className="mobile-card-details-section-header">
                     <div className="mobile-section-indicator"></div>
-                    <h3 className="mobile-card-details-section-title">Platinum Card</h3>
+                    <h3 className="mobile-card-details-section-title">{selectedCardDetails?.card_name || cardsList[currentCardIndex]?.card_name || 'Card'}</h3>
                   </div>
                   <div className="mobile-card-details-card-display">
                     <div className="mobile-card-blue">
                       <div className="mobile-card-top">
-                        <span className="mobile-card-type-label">Platinum Card</span>
+                        <span className="mobile-card-type-label">{selectedCardDetails?.card_name || cardsList[currentCardIndex]?.card_name || 'Card'}</span>
                         <div className="mobile-card-debit-action">
-                          <span className="mobile-card-debit-text">Debit</span>
+                          <span className="mobile-card-debit-text">{selectedCardDetails?.card_type === 'universal' ? 'Universal' : 'Debit'}</span>
                           <div className="mobile-card-debit-arrow">
                             <ArrowRight size={16} />
                           </div>
                         </div>
                       </div>
-                      <div className="mobile-card-balance">$24,567.89</div>
+                      <div className="mobile-card-balance">
+                        {isLoadingCardDetails ? (
+                          <LoadingIndicator size="sm" />
+                        ) : (
+                          new Intl.NumberFormat(undefined, {
+                            style: 'currency',
+                            currency: selectedCardDetails?.card_currency_code || cardsList[currentCardIndex]?.card_currency_code || 'USD',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(Number(selectedCardDetails?.card_balance ?? cardsList[currentCardIndex]?.card_balance) || 0)
+                        )}
+                      </div>
                       <div className="mobile-card-bottom">
                         <div className="mobile-card-bottom-item">
-                          <span className="mobile-card-bottom-label">Exp Date</span>
-                          <span className="mobile-card-bottom-value">4532 **** **** 5434</span>
+                          <span className="mobile-card-bottom-label">Card number</span>
+                          <span className="mobile-card-bottom-value">{selectedCardDetails?.masked_pan || cardsList[currentCardIndex]?.masked_pan || '**** **** **** ****'}</span>
                         </div>
                         <div className="mobile-card-bottom-item">
-                          <span className="mobile-card-bottom-label">Exp Date</span>
-                          <span className="mobile-card-bottom-value">19/29</span>
+                          <span className="mobile-card-bottom-label">Exp</span>
+                          <span className="mobile-card-bottom-value">{selectedCardDetails?.card_exp_time || cardsList[currentCardIndex]?.card_exp_time || '—'}</span>
                         </div>
                         <div className="mobile-card-bottom-item">
-                          <span className="mobile-card-bottom-label">CVV</span>
-                          <span className="mobile-card-bottom-value">345/29</span>
+                          <span className="mobile-card-bottom-label">Status</span>
+                          <span className="mobile-card-bottom-value">{selectedCardDetails?.status || cardsList[currentCardIndex]?.status || '—'}</span>
                         </div>
                       </div>
                     </div>
@@ -946,18 +1419,6 @@ const TrustiCard = () => {
                     className="mobile-card-action-btn"
                     onClick={() => {
                       setShowCardDetails(false);
-                      setShowMobileWithdrawPage(true);
-                    }}
-                  >
-                    <ArrowUp size={16} />
-                    <span>Withdraw</span>
-                  </button>
-                  <div className="mobile-card-action-divider"></div>
-                  <button 
-                    type="button" 
-                    className="mobile-card-action-btn"
-                    onClick={() => {
-                      setShowCardDetails(false);
                       setShowMobileAddressPage(true);
                     }}
                   >
@@ -966,29 +1427,52 @@ const TrustiCard = () => {
                   </button>
                 </div>
 
-                {/* Card Numbers Section */}
+                {/* Card Numbers Section - full PAN & CVV from API */}
                 <div className="mobile-card-details-info-section">
                   <div className="mobile-card-info-item full-width">
-                    <span className="mobile-card-info-label">Card Numbers</span>
+                    <span className="mobile-card-info-label">Card number</span>
                     <div className="mobile-card-info-value">
-                      <span>4532 5434 9875 5434</span>
-                      <Eye size={14} className="mobile-card-eye-icon" />
+                      {isLoadingCardDetails ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        <>
+                          <span>{showSensitiveCardInfo && selectedCardDetails?.real_pan ? selectedCardDetails.real_pan : (selectedCardDetails?.masked_pan || '**** **** **** ****')}</span>
+                          <button
+                            type="button"
+                            className="mobile-card-eye-btn"
+                            onClick={() => setShowSensitiveCardInfo((v) => !v)}
+                            aria-label={showSensitiveCardInfo ? 'Hide number' : 'Show number'}
+                          >
+                            {showSensitiveCardInfo ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="mobile-card-info-row">
                     <div className="mobile-card-info-item">
                       <span className="mobile-card-info-label">Exp Date</span>
-                      <span className="mobile-card-info-value">19/29</span>
+                      <span className="mobile-card-info-value">{selectedCardDetails?.card_exp_time || '—'}</span>
                     </div>
                     <div className="mobile-card-info-item">
                       <span className="mobile-card-info-label">CVV</span>
-                      <span className="mobile-card-info-value">345</span>
+                      <div className="mobile-card-info-value">
+                        {showSensitiveCardInfo && selectedCardDetails?.cvv ? selectedCardDetails.cvv : '***'}
+                      </div>
                     </div>
                     <div className="mobile-card-info-item">
                       <span className="mobile-card-info-label">Status</span>
-                      <button type="button" className="mobile-card-status-badge active">Active</button>
+                      <button type="button" className={`mobile-card-status-badge ${(selectedCardDetails?.status || '').toLowerCase() === 'enabled' ? 'active' : ''}`}>
+                        {selectedCardDetails?.status || '—'}
+                      </button>
                     </div>
                   </div>
+                  {selectedCardDetails?.address ? (
+                    <div className="mobile-card-info-item full-width" style={{ marginTop: '0.75rem' }}>
+                      <span className="mobile-card-info-label">Address</span>
+                      <span className="mobile-card-info-value">{selectedCardDetails.address}</span>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Spending Limits */}
@@ -1009,7 +1493,9 @@ const TrustiCard = () => {
                   <button 
                     type="button" 
                     className={`mobile-freeze-toggle ${freezeCard ? 'active' : ''}`}
-                    onClick={() => setFreezeCard(!freezeCard)}
+                    disabled={isFreezing || !cardsList[currentCardIndex]?.ulid}
+                    onClick={handleFreezeToggle}
+                    title={isFreezing ? 'Updating…' : undefined}
                   >
                     <div className={`mobile-freeze-toggle-slider ${freezeCard ? 'active' : ''}`}></div>
                   </button>
@@ -1025,28 +1511,36 @@ const TrustiCard = () => {
                     </button>
                   </div>
                   <div className="mobile-card-details-transaction-list">
-                    {transactions.map((tx, index) => {
-                      const xrpAmount = tx.amount.replace('+', '').replace('-', '');
-                      return (
-                        <div key={index} className="mobile-card-details-transaction-item">
-                          <div className={`mobile-transaction-icon ${tx.type.toLowerCase()}`}>
-                            {tx.type === 'Received' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
-                          </div>
-                          <div className="mobile-transaction-content">
-                            <div className="mobile-transaction-type">{tx.type}</div>
-                            <div className="mobile-transaction-description">
-                              You received {xrpAmount}, worth {tx.usd}.
+                    {isLoadingCardTransactions ? (
+                      <div className="mobile-transaction-loading">
+                        <LoadingIndicator size="md" />
+                      </div>
+                    ) : transactions.length === 0 ? (
+                      <div className="mobile-transaction-empty">No card transactions yet</div>
+                    ) : (
+                      transactions.map((tx, index) => {
+                        const xrpAmount = tx.amount.replace('+', '').replace('-', '');
+                        return (
+                          <div key={index} className="mobile-card-details-transaction-item">
+                            <div className={`mobile-transaction-icon ${tx.type.toLowerCase()}`}>
+                              {tx.type === 'Received' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
                             </div>
-                            <div className="mobile-transaction-footer">
-                              <span className={`mobile-transaction-status ${tx.status.toLowerCase()}`}>
-                                {tx.status}
-                              </span>
-                              <span className="mobile-transaction-date">{tx.date}</span>
+                            <div className="mobile-transaction-content">
+                              <div className="mobile-transaction-type">{tx.typeLabel || tx.type}</div>
+                              <div className="mobile-transaction-description">
+                                {tx.type === 'Received' ? 'You received' : 'You sent'} {xrpAmount}, worth {tx.usd}.
+                              </div>
+                              <div className="mobile-transaction-footer">
+                                <span className={`mobile-transaction-status ${(tx.status || '').toLowerCase()}`}>
+                                  {tx.status}
+                                </span>
+                                <span className="mobile-transaction-date">{tx.date}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -1131,65 +1625,6 @@ const TrustiCard = () => {
             </div>
           )}
 
-          {/* Mobile Withdraw Funds Page */}
-          {showMobileWithdrawPage && isMobile && (
-            <div className="mobile-withdraw-funds-page">
-              <div className="mobile-withdraw-header">
-                <div className="mobile-withdraw-title-wrapper">
-                  <div className="mobile-section-indicator"></div>
-                  <h2 className="mobile-withdraw-title">Withdraw Funds</h2>
-                </div>
-                <button 
-                  type="button" 
-                  className="mobile-withdraw-close"
-                  onClick={() => setShowMobileWithdrawPage(false)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="mobile-withdraw-content">
-                {/* Amount Section */}
-                <div className="mobile-withdraw-amount-section">
-                  <label className="mobile-withdraw-amount-label">Amount</label>
-                  <div className="mobile-withdraw-amount-value">$24,567.89</div>
-                  <div className="mobile-withdraw-balance">Balance: 24,567.89</div>
-                </div>
-
-                {/* Wallet Selection Section */}
-                <div className="mobile-withdraw-wallet-section">
-                  <label className="mobile-withdraw-wallet-label">Wallet name</label>
-                  <div className="mobile-withdraw-wallet-selector">
-                    <span className="mobile-withdraw-wallet-value">{selectedWithdrawWallet}</span>
-                    <ChevronDown size={16} />
-                  </div>
-                </div>
-
-                {/* Withdraw Button */}
-                <button 
-                  type="button" 
-                  className="mobile-withdraw-btn"
-                  onClick={() => {
-                    // Handle withdraw action
-                    setShowMobileWithdrawPage(false);
-                  }}
-                >
-                  Withdraw
-                </button>
-
-                {/* Information Message */}
-                <div className="mobile-withdraw-info-message">
-                  <div className="mobile-withdraw-info-icon">
-                    <Info size={18} />
-                  </div>
-                  <span className="mobile-withdraw-info-text">
-                    Your funds will be added to your account within seconds or refunded if there's an issue.
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Mobile Fund Trusticard Page */}
           {showMobileFundPage && isMobile && (
             <div className="mobile-fund-trusticard-page">
@@ -1230,15 +1665,15 @@ const TrustiCard = () => {
                       className="mobile-fund-amount-input"
                       value={fundAmount}
                       onChange={(e) => setFundAmount(e.target.value)}
-                      placeholder="24,000 XPR"
+                      placeholder="0"
                     />
-                    <div className="mobile-fund-balance">Balance: 24,567.89 XPR</div>
+                    <div className="mobile-fund-balance">Balance: 0 XPR</div>
                   </div>
 
                   {/* Amount in USD Section */}
                   <div className="mobile-fund-usd-section">
                     <label className="mobile-fund-usd-label">Amount in USD</label>
-                    <div className="mobile-fund-usd-value">$24,567.89</div>
+                    <div className="mobile-fund-usd-value">$0</div>
                   </div>
                 </div>
 
@@ -1246,12 +1681,10 @@ const TrustiCard = () => {
                 <button 
                   type="button" 
                   className="mobile-fund-card-btn"
-                  onClick={() => {
-                    // Handle fund card action
-                    setShowMobileFundPage(false);
-                  }}
+                  disabled={isDepositing || !cardsList[currentCardIndex]?.ulid}
+                  onClick={() => depositToCard(fundAmount)}
                 >
-                  Fund Card
+                  {isDepositing ? <LoadingIndicator size="sm" /> : 'Fund Card'}
                 </button>
 
                 {/* Information Message */}
@@ -1274,54 +1707,57 @@ const TrustiCard = () => {
                 <div className="section-header">
                   <div className="section-indicator"></div>
                   <h2 className="section-title">My Cards</h2>
-                  <button type="button" className="add-card-btn">
-                    <Plus size={16} />
-                    Add card
-                  </button>
+                  <div className="cards-header-actions">
+                    <button type="button" className="add-card-btn apply-card-btn" onClick={() => setShowCreateCustomerModal(true)}>
+                      Apply for card
+                    </button>
+                    <button type="button" className="add-card-btn" onClick={() => setShowIssueCardModal(true)}>
+                      <Plus size={16} />
+                      Create card
+                    </button>
+                  </div>
                 </div>
                 <div className="cards-stack">
-                  <div className="platinum-card blue-card">
-                    <div className="platinum-card-header">
-                      <span className="platinum-card-label">Platinum Card</span>
-                      <span className="platinum-card-type">Debit</span>
+                  {isLoadingCards ? (
+                    <div className="cards-stack-loading">
+                      <LoadingIndicator size="md" />
                     </div>
-                    <div className="platinum-card-balance">$24,567.89</div>
-                    <div className="platinum-card-details">
-                      <div className="platinum-card-detail-item">
-                        <span className="platinum-card-detail-label">Exp Date</span>
-                        <span className="platinum-card-detail-value">4532 **** **** 5434</span>
-                      </div>
-                      <div className="platinum-card-detail-item">
-                        <span className="platinum-card-detail-label">Exp Date</span>
-                        <span className="platinum-card-detail-value">19/29</span>
-                      </div>
-                      <div className="platinum-card-detail-item">
-                        <span className="platinum-card-detail-label">CVV</span>
-                        <span className="platinum-card-detail-value">345/29</span>
-                      </div>
+                  ) : cardsList.length === 0 ? (
+                    <div className="cards-stack-empty" onClick={() => setShowCreateCustomerModal(true)} style={{ cursor: 'pointer' }}>
+                      <CreditCardIcon size={40} style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }} />
+                      <span>No cards yet</span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Click to add a card</span>
                     </div>
-                  </div>
-                  <div className="platinum-card secondary-card">
-                    <div className="platinum-card-header">
-                      <span className="platinum-card-label">Platinum Card</span>
-                      <span className="platinum-card-type">Debit</span>
-                    </div>
-                    <div className="platinum-card-balance">$24,567.89</div>
-                    <div className="platinum-card-details">
-                      <div className="platinum-card-detail-item">
-                        <span className="platinum-card-detail-label">Exp Date</span>
-                        <span className="platinum-card-detail-value">4532 **** **** 5434</span>
-                      </div>
-                      <div className="platinum-card-detail-item">
-                        <span className="platinum-card-detail-label">Exp Date</span>
-                        <span className="platinum-card-detail-value">19/29</span>
-                      </div>
-                      <div className="platinum-card-detail-item">
-                        <span className="platinum-card-detail-label">CVV</span>
-                        <span className="platinum-card-detail-value">345/29</span>
-                      </div>
-                    </div>
-                  </div>
+                  ) : (
+                    cardsList.map((card, index) => {
+                      const balance = Number(card?.card_balance) || 0;
+                      const currency = card?.card_currency_code || 'USD';
+                      const balanceStr = new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balance);
+                      return (
+                        <div key={card?.ulid || card?.id || index} className={`platinum-card ${index === 0 ? 'blue-card' : 'secondary-card'}`}>
+                          <div className="platinum-card-header">
+                            <span className="platinum-card-label">{card?.card_name || 'Card'}</span>
+                            <span className="platinum-card-type">{card?.card_type === 'universal' ? 'Universal' : card?.card_provider || 'Debit'}</span>
+                          </div>
+                          <div className="platinum-card-balance">{balanceStr}</div>
+                          <div className="platinum-card-details">
+                            <div className="platinum-card-detail-item">
+                              <span className="platinum-card-detail-label">Card number</span>
+                              <span className="platinum-card-detail-value">{card?.masked_pan || '**** **** **** ****'}</span>
+                            </div>
+                            <div className="platinum-card-detail-item">
+                              <span className="platinum-card-detail-label">Exp</span>
+                              <span className="platinum-card-detail-value">{card?.card_exp_time || '—'}</span>
+                            </div>
+                            <div className="platinum-card-detail-item">
+                              <span className="platinum-card-detail-label">Status</span>
+                              <span className="platinum-card-detail-value">{card?.status || '—'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
@@ -1347,10 +1783,6 @@ const TrustiCard = () => {
                     <Plus size={14} />
                     Top Up
                   </button>
-                  <button type="button" className="card-action-btn" onClick={() => setShowWithdrawModal(true)}>
-                    <ArrowUp size={14} />
-                    Withdraw
-                  </button>
                   <button type="button" className="card-action-btn" onClick={() => setShowAddressModal(true)}>
                     <CreditCardIcon size={14} />
                     Address
@@ -1358,26 +1790,47 @@ const TrustiCard = () => {
                 </div>
                 <div className="card-info-grid">
                   <div className="card-info-item card-numbers-full">
-                    <span className="card-info-label">Card Numbers</span>
+                    <span className="card-info-label">Card number</span>
                     <div className="card-info-value">
-                      <span>4532 5434 9875 5434</span>
-                      <Eye size={14} className="refresh-icon" />
+                      {isLoadingCardDetails ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        <>
+                          <span>{showSensitiveCardInfo && selectedCardDetails?.real_pan ? selectedCardDetails.real_pan : (selectedCardDetails?.masked_pan || cardsList[0]?.masked_pan || '**** **** **** ****')}</span>
+                          <button
+                            type="button"
+                            className="card-detail-eye-btn"
+                            onClick={() => setShowSensitiveCardInfo((v) => !v)}
+                            aria-label={showSensitiveCardInfo ? 'Hide number' : 'Show number'}
+                          >
+                            {showSensitiveCardInfo ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="card-info-row">
                     <div className="card-info-item">
                       <span className="card-info-label">Exp Date</span>
-                      <span className="card-info-value">19/29</span>
+                      <span className="card-info-value">{selectedCardDetails?.card_exp_time || cardsList[0]?.card_exp_time || '—'}</span>
                     </div>
                     <div className="card-info-item">
                       <span className="card-info-label">CVV</span>
-                      <span className="card-info-value">345</span>
+                      <span className="card-info-value">{showSensitiveCardInfo && selectedCardDetails?.cvv ? selectedCardDetails.cvv : '***'}</span>
                     </div>
                     <div className="card-info-item status-item">
                       <span className="card-info-label">Status</span>
-                      <button type="button" className="status-badge active">Active</button>
+                      <button type="button" className={`status-badge ${(selectedCardDetails?.status || cardsList[0]?.status || '').toLowerCase() === 'enabled' ? 'active' : ''}`}>
+                        {selectedCardDetails?.status || cardsList[0]?.status || '—'}
+                      </button>
                     </div>
                   </div>
+                  {selectedCardDetails?.address ? (
+                    <div className="card-info-item card-address-full" style={{ marginTop: '0.5rem' }}>
+                      <span className="card-info-label">Address</span>
+                      <span className="card-info-value">{selectedCardDetails.address}</span>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="spending-limits">
                   <div className="spending-limits-header">
@@ -1393,7 +1846,9 @@ const TrustiCard = () => {
                   <button 
                     type="button" 
                     className={`freeze-toggle ${freezeCard ? 'active' : ''}`}
-                    onClick={() => setFreezeCard(!freezeCard)}
+                    disabled={isFreezing || !cardsList[currentCardIndex]?.ulid}
+                    onClick={handleFreezeToggle}
+                    title={isFreezing ? 'Updating…' : undefined}
                   >
                     <div className={`freeze-toggle-slider ${freezeCard ? 'active' : ''}`}></div>
                   </button>
@@ -1509,6 +1964,7 @@ const TrustiCard = () => {
                         <th>
                           <input type="checkbox" />
                         </th>
+                        <th>Type</th>
                         <th>Transaction ID</th>
                         <th>Amount</th>
                         <th>Status</th>
@@ -1517,43 +1973,55 @@ const TrustiCard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {transactions.map((tx, index) => (
-                        <tr key={index}>
-                          <td>
-                            <input 
-                              type="checkbox" 
-                              checked={tx.checked}
-                              onChange={() => {}}
-                            />
-                          </td>
-                          <td>
-                            <div className="transaction-type-cell">
-                              <div className={`transaction-type-icon ${tx.type.toLowerCase()}`}>
-                                {tx.type === 'Received' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
-                              </div>
-                              <span>{tx.type}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="transaction-id">{tx.id}</div>
-                          </td>
-                          <td>
-                            <div className="transaction-amount">
-                              <span className="amount-value">{tx.amount}</span>
-                              <span className="amount-usd">({tx.usd})</span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`status-badge ${tx.status.toLowerCase()}`}>{tx.status}</span>
-                          </td>
-                          <td>{tx.date}</td>
-                          <td>
-                            <button type="button" className="transaction-detail-btn">
-                              <ArrowRight size={16} />
-                            </button>
+                      {isLoadingCardTransactions ? (
+                        <tr>
+                          <td colSpan={7} className="transaction-table-loading">
+                            <LoadingIndicator size="md" />
                           </td>
                         </tr>
-                      ))}
+                      ) : transactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="transaction-table-empty">No card transactions yet</td>
+                        </tr>
+                      ) : (
+                        transactions.map((tx, index) => (
+                          <tr key={index}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={tx.checked}
+                                onChange={() => {}}
+                              />
+                            </td>
+                            <td>
+                              <div className="transaction-type-cell">
+                                <div className={`transaction-type-icon ${tx.type.toLowerCase()}`}>
+                                  {tx.type === 'Received' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+                                </div>
+                                <span>{tx.typeLabel || tx.type}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="transaction-id">{tx.id}</div>
+                            </td>
+                            <td>
+                              <div className="transaction-amount">
+                                <span className="amount-value">{tx.amount}</span>
+                                <span className="amount-usd">({tx.usd})</span>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`status-badge ${(tx.status || '').toLowerCase()}`}>{tx.status}</span>
+                            </td>
+                            <td>{tx.date}</td>
+                            <td>
+                              <button type="button" className="transaction-detail-btn">
+                                <ArrowRight size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1642,7 +2110,7 @@ const TrustiCard = () => {
                   />
                   <span className="fund-amount-currency">XRP</span>
                 </div>
-                <div className="fund-balance">Balance: 24,567.89 XRP</div>
+                <div className="fund-balance">Balance: 0 XRP</div>
               </div>
 
               {/* Amount in USD Section */}
@@ -1652,7 +2120,7 @@ const TrustiCard = () => {
                   <input 
                     type="text" 
                     className="fund-usd-input"
-                    value="$24,567.89"
+                    value="$0"
                     readOnly
                   />
                 </div>
@@ -1662,80 +2130,14 @@ const TrustiCard = () => {
               <button 
                 type="button" 
                 className="fund-card-btn"
-                onClick={() => {
-                  // Handle fund card logic here
-                  setShowFundModal(false);
-                }}
+                disabled={isDepositing || !cardsList[currentCardIndex]?.ulid}
+                onClick={() => depositToCard(fundAmount)}
               >
-                Fund Card
+                {isDepositing ? <LoadingIndicator size="sm" /> : 'Fund Card'}
               </button>
 
               {/* Info Message */}
               <div className="fund-info-message">
-                <Info size={16} />
-                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Withdraw Modal */}
-      {showWithdrawModal && (
-        <div className="modal-overlay" onClick={() => setShowWithdrawModal(false)}>
-          <div className="withdraw-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="withdraw-modal-header">
-              <h2 className="withdraw-modal-title">Withdraw</h2>
-              <button 
-                type="button" 
-                className="withdraw-modal-close"
-                onClick={() => setShowWithdrawModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="withdraw-modal-content">
-              {/* Amount Section */}
-              <div className="withdraw-amount-section">
-                <label className="withdraw-amount-label">Amount</label>
-                <div className="withdraw-amount-input-wrapper">
-                  <input 
-                    type="text" 
-                    className="withdraw-amount-input"
-                    value={`$${withdrawAmount}`}
-                    onChange={(e) => {
-                      const value = e.target.value.replace('$', '').replace(/,/g, '');
-                      setWithdrawAmount(value);
-                    }}
-                  />
-                </div>
-                <div className="withdraw-balance">Balance: {withdrawAmount}</div>
-              </div>
-
-              {/* Wallet Name Section */}
-              <div className="withdraw-wallet-section">
-                <label className="withdraw-wallet-label">Wallet name</label>
-                <div className="withdraw-wallet-selector">
-                  <span>{selectedWithdrawWallet}</span>
-                  <ChevronDown size={16} />
-                </div>
-              </div>
-
-              {/* Withdraw Button */}
-              <button 
-                type="button" 
-                className="withdraw-btn"
-                onClick={() => {
-                  // Handle withdraw logic here
-                  setShowWithdrawModal(false);
-                }}
-              >
-                Withdraw
-              </button>
-
-              {/* Info Message */}
-              <div className="withdraw-info-message">
                 <Info size={16} />
                 <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
               </div>
@@ -1826,6 +2228,349 @@ const TrustiCard = () => {
                 Update address
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Issue card modal - Create card */}
+      {showIssueCardModal && (
+        <div className="modal-overlay create-customer-modal-overlay" onClick={() => !isSubmittingIssueCard && setShowIssueCardModal(false)}>
+          <div className="address-modal create-customer-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="address-modal-header create-customer-modal-header">
+              <div className="modal-header-back-icon" aria-hidden />
+              <h2 className="address-modal-title">Issue card</h2>
+              <button
+                type="button"
+                className="address-modal-close modal-close-btn"
+                onClick={() => !isSubmittingIssueCard && setShowIssueCardModal(false)}
+                disabled={isSubmittingIssueCard}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleIssueCardSubmit}>
+              <div className="create-customer-modal-content">
+                <div className="create-customer-form-grid">
+                  <div className="address-form-field" style={{ gridColumn: '1 / -1' }}>
+                    <label className="address-field-label">Customer ULID <span className="required-asterisk">*</span></label>
+                    <input
+                      type="text"
+                      className="address-input"
+                      placeholder="e.g. 01K44CWWXSAAHPSCQK8TP4W7D0"
+                      value={issueCardForm.customer_ulid}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, customer_ulid: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="address-form-field">
+                    <label className="address-field-label">Card name <span className="required-asterisk">*</span></label>
+                    <input
+                      type="text"
+                      className="address-input"
+                      placeholder="e.g. John Doe"
+                      value={issueCardForm.card_name}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, card_name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="address-form-field">
+                    <label className="address-field-label">Currency</label>
+                    <select
+                      className="address-input"
+                      value={issueCardForm.card_currency}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, card_currency: e.target.value })}
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                    </select>
+                  </div>
+                  <div className="address-form-field">
+                    <label className="address-field-label">Card type</label>
+                    <select
+                      className="address-input"
+                      value={issueCardForm.card_type}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, card_type: e.target.value })}
+                    >
+                      <option value="platinum">Platinum</option>
+                      <option value="gold">Gold</option>
+                      <option value="standard">Standard</option>
+                    </select>
+                  </div>
+                  <div className="address-form-field">
+                    <label className="address-field-label">Card provider</label>
+                    <select
+                      className="address-input"
+                      value={issueCardForm.card_provider}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, card_provider: e.target.value })}
+                    >
+                      <option value="visa">Visa</option>
+                      <option value="mastercard">Mastercard</option>
+                    </select>
+                  </div>
+                  <div className="address-form-field" style={{ gridColumn: '1 / -1' }}>
+                    <label className="address-field-label">Reference ID</label>
+                    <input
+                      type="text"
+                      className="address-input"
+                      placeholder="e.g. ref-card-1"
+                      value={issueCardForm.reference_id}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, reference_id: e.target.value })}
+                    />
+                  </div>
+                  <div className="address-form-field" style={{ gridColumn: '1 / -1' }}>
+                    <label className="address-field-label">Meta user ID</label>
+                    <input
+                      type="text"
+                      className="address-input"
+                      placeholder="e.g. your-user-uuid"
+                      value={issueCardForm.meta_user_id}
+                      onChange={(e) => setIssueCardForm({ ...issueCardForm, meta_user_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="create-customer-modal-footer">
+                <button type="button" className="create-customer-cancel-btn" onClick={() => setShowIssueCardModal(false)} disabled={isSubmittingIssueCard}>
+                  Cancel
+                </button>
+                <button type="submit" className="create-customer-submit-btn" disabled={isSubmittingIssueCard}>
+                  {isSubmittingIssueCard ? <LoadingIndicator size="sm" /> : 'Issue card'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Customer (Cardyfie) Modal - Apply for card; full-screen on mobile like create escrow */}
+      {showCreateCustomerModal && (
+        <div className="modal-overlay create-customer-modal-overlay" onClick={() => !isSubmittingCreateCustomer && setShowCreateCustomerModal(false)}>
+          <div className="address-modal create-customer-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="address-modal-header create-customer-modal-header">
+              <div className="modal-header-back-icon" aria-hidden />
+              <h2 className="address-modal-title">Create customer</h2>
+              <button
+                type="button"
+                className="address-modal-close modal-close-btn"
+                onClick={() => !isSubmittingCreateCustomer && setShowCreateCustomerModal(false)}
+                disabled={isSubmittingCreateCustomer}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            {/* Mobile step indicator - single step like create escrow mobile */}
+            <div className="create-customer-steps-mobile">
+              <div className="step-indicator-mobile active">
+                <div className="step-icon-mobile">
+                  <CreditCardIcon size={20} />
+                </div>
+                <div className="step-content-mobile">
+                  <span className="step-number-mobile">Create card</span>
+                  <span className="step-title-mobile">Create customer</span>
+                </div>
+              </div>
+            </div>
+            <form onSubmit={handleCreateCustomerSubmit}>
+              <div className="create-customer-modal-content">
+                <div className="create-customer-form-grid">
+                  <div className="create-customer-form-column">
+                    <div className="address-form-field">
+                      <label className="address-field-label">First name <span className="required-asterisk">*</span></label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. John"
+                        value={createCustomerForm.first_name}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, first_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Email <span className="required-asterisk">*</span></label>
+                      <input
+                        type="email"
+                        className="address-input"
+                        placeholder="e.g. john@example.com"
+                        value={createCustomerForm.email}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">ID type</label>
+                      <select
+                        className="address-input"
+                        value={createCustomerForm.id_type}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, id_type: e.target.value })}
+                      >
+                        <option value="passport">Passport</option>
+                        <option value="driving_licence">Driving licence</option>
+                        <option value="national_id">National ID</option>
+                      </select>
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">ID front image</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="address-input create-customer-file-input"
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, id_front_image: e.target.files?.[0] ?? null })}
+                      />
+                      {createCustomerForm.id_front_image && (
+                        <span className="create-customer-file-name">{createCustomerForm.id_front_image.name}</span>
+                      )}
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">House number</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. 221B"
+                        value={createCustomerForm.house_number}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, house_number: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">City</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. London"
+                        value={createCustomerForm.city}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Country</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. UK"
+                        value={createCustomerForm.country}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, country: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Reference ID</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. ref-1124"
+                        value={createCustomerForm.reference_id}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, reference_id: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="create-customer-form-column">
+                    <div className="address-form-field">
+                      <label className="address-field-label">Last name <span className="required-asterisk">*</span></label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. Doe"
+                        value={createCustomerForm.last_name}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, last_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Date of birth</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. 10/12/1990"
+                        value={createCustomerForm.date_of_birth}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, date_of_birth: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">ID number</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. GBR123456789"
+                        value={createCustomerForm.id_number}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, id_number: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">User photo (selfie)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="address-input create-customer-file-input"
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, user_image: e.target.files?.[0] ?? null })}
+                      />
+                      {createCustomerForm.user_image && (
+                        <span className="create-customer-file-name">{createCustomerForm.user_image.name}</span>
+                      )}
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">ID back image</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="address-input create-customer-file-input"
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, id_back_image: e.target.files?.[0] ?? null })}
+                      />
+                      {createCustomerForm.id_back_image && (
+                        <span className="create-customer-file-name">{createCustomerForm.id_back_image.name}</span>
+                      )}
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Address line 1</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. Baker Street"
+                        value={createCustomerForm.address_line_1}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, address_line_1: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Zip code</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. NW1 6XE"
+                        value={createCustomerForm.zip_code}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, zip_code: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">State</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. England"
+                        value={createCustomerForm.state}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, state: e.target.value })}
+                      />
+                    </div>
+                    <div className="address-form-field">
+                      <label className="address-field-label">Meta user ID (optional)</label>
+                      <input
+                        type="text"
+                        className="address-input"
+                        placeholder="e.g. your-user-uuid"
+                        value={createCustomerForm.meta_user_id}
+                        onChange={(e) => setCreateCustomerForm({ ...createCustomerForm, meta_user_id: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="create-customer-modal-footer">
+                <button
+                  type="submit"
+                  className="update-address-btn"
+                  disabled={isSubmittingCreateCustomer}
+                >
+                  {isSubmittingCreateCustomer ? 'Creating…' : 'Create customer'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -388,8 +388,11 @@ const Dashboard = () => {
   const [portfolioPoints, setPortfolioPoints] = useState([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [portfolioTimeframe, setPortfolioTimeframe] = useState('monthly');
+  const [portfolioYear, setPortfolioYear] = useState(() => new Date().getFullYear());
   const [showPortfolioDropdown, setShowPortfolioDropdown] = useState(false);
+  const [showPortfolioYearDropdown, setShowPortfolioYearDropdown] = useState(false);
   const [showMobilePortfolioDropdown, setShowMobilePortfolioDropdown] = useState(false);
+  const [showMobilePortfolioYearDropdown, setShowMobilePortfolioYearDropdown] = useState(false);
   const [walletBalances, setWalletBalances] = useState(null);
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
   const [escrows, setEscrows] = useState([]);
@@ -843,7 +846,11 @@ const Dashboard = () => {
           return;
         }
 
-        const apiUrl = getApiUrl(`api/portfolio/performance?timeframe=${portfolioTimeframe}`);
+        const params = new URLSearchParams({ timeframe: portfolioTimeframe });
+        if (portfolioTimeframe === 'monthly') params.set('year', String(portfolioYear));
+        // Cache-buster so changing year always fetches fresh data (avoids stale GET cache)
+        params.set('_', String(Date.now()));
+        const apiUrl = getApiUrl(`api/portfolio/performance?${params.toString()}`);
         console.log('Fetching portfolio performance from:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -852,29 +859,27 @@ const Dashboard = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          cache: 'no-store',
         });
 
         console.log('Portfolio performance API response status:', response.status);
 
         if (response.ok) {
           const result = await response.json();
-          console.log('Portfolio performance API response data:', result);
+          console.log('Portfolio response:', result);
 
-          // Expected shape:
-          // { success: true, data: { points: [ { label, value }, ... ], ... } }
-          if (result?.success && Array.isArray(result?.data?.points)) {
-            setPortfolioPoints(result.data.points);
+          // API: GET api/portfolio/performance?timeframe=monthly&year=YYYY (year optional; when monthly, filter by year)
+          // Response: { success, data: { timeframe, year?, data: [ { period, value }, ... ] } }
+          const rawData = result?.data?.data;
+          if (result?.success && Array.isArray(rawData)) {
+            const points = rawData.map((p) => ({ label: p.period ?? p.label ?? '', value: p.value }));
+            setPortfolioPoints(points);
           } else {
-            console.warn('Unexpected portfolio performance response shape. Expected data.points as array.', result);
             setPortfolioPoints([]);
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          console.error('Portfolio performance API error response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data: errorData
-          });
+          console.log('Portfolio response (error):', { status: response.status, statusText: response.statusText, data: errorData });
           setPortfolioPoints([]);
           toast.error(errorData?.message || 'Failed to load portfolio data');
         }
@@ -888,7 +893,57 @@ const Dashboard = () => {
     };
 
     fetchPortfolioPerformance();
-  }, [portfolioTimeframe]);
+  }, [portfolioTimeframe, portfolioYear]);
+
+  const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const portfolioChartPoints = useMemo(() => {
+    const data = portfolioPoints || [];
+    const norm = (p) => String(p ?? '').trim().toLowerCase();
+    const findValue = (label) => {
+      const labelStr = String(label).trim();
+      const labelNorm = labelStr.toLowerCase();
+      const match = data.find((d) => {
+        const dLabel = norm(d.label);
+        if (portfolioTimeframe === 'monthly') {
+          return dLabel === labelNorm || dLabel.slice(0, 3) === labelNorm.slice(0, 3) || labelNorm.slice(0, 3) === dLabel.slice(0, 3);
+        }
+        if (portfolioTimeframe === 'daily') {
+          const dayNum = parseInt(labelStr, 10);
+          const dNum = parseInt(dLabel, 10);
+          if (!Number.isNaN(dayNum) && !Number.isNaN(dNum)) return dayNum === dNum;
+          return dLabel === labelNorm;
+        }
+        if (portfolioTimeframe === 'yearly') {
+          const y = parseInt(labelStr, 10);
+          const dy = parseInt(dLabel, 10);
+          if (!Number.isNaN(y) && !Number.isNaN(dy)) return y === dy;
+          return dLabel === labelNorm;
+        }
+        return dLabel === labelNorm;
+      });
+      return match ? Number(match.value ?? 0) : 0;
+    };
+
+    if (portfolioTimeframe === 'daily') {
+      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      return Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        return { label: String(day), value: findValue(String(day)) };
+      });
+    }
+    if (portfolioTimeframe === 'monthly') {
+      return MONTH_LABELS.map((label) => ({ label, value: findValue(label) }));
+    }
+    if (portfolioTimeframe === 'yearly') {
+      const currentYear = new Date().getFullYear();
+      return Array.from({ length: 5 }, (_, i) => {
+        const y = currentYear - 4 + i;
+        return { label: String(y), value: findValue(String(y)) };
+      });
+    }
+    return data.map((p) => ({ label: p.label ?? '', value: Number(p.value ?? 0) }));
+  }, [portfolioPoints, portfolioTimeframe]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -896,6 +951,8 @@ const Dashboard = () => {
       if (!event.target.closest('.mobile-section-dropdown') && !event.target.closest('.chart-dropdown')) {
         setShowMobilePortfolioDropdown(false);
         setShowPortfolioDropdown(false);
+        setShowPortfolioYearDropdown(false);
+        setShowMobilePortfolioYearDropdown(false);
       }
     };
 
@@ -2628,85 +2685,157 @@ const Dashboard = () => {
             <div className="mobile-section-header">
               <div className="mobile-section-indicator"></div>
               <h3 className="mobile-section-title">Portfolio</h3>
-              <div className="mobile-section-dropdown" style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMobilePortfolioDropdown(!showMobilePortfolioDropdown);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: 'inherit',
-                    color: 'inherit'
-                  }}
-                >
-                  <span>{portfolioTimeframe.charAt(0).toUpperCase() + portfolioTimeframe.slice(1)}</span>
-                  <ChevronDown size={14} />
-                </button>
-                {showMobilePortfolioDropdown && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '0.5rem',
-                      background: 'white',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '0.5rem',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      zIndex: 1000,
-                      minWidth: '120px'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="mobile-section-dropdown" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMobilePortfolioDropdown(!showMobilePortfolioDropdown);
+                      setShowMobilePortfolioYearDropdown(false);
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 'inherit',
+                      color: 'inherit'
+                    }}
                   >
-                    {['daily', 'monthly', 'yearly'].map((timeframe) => (
-                      <button
-                        key={timeframe}
-                        type="button"
-                        onClick={() => {
-                          setPortfolioTimeframe(timeframe);
-                          setShowMobilePortfolioDropdown(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 1rem',
-                          background: portfolioTimeframe === timeframe ? '#f0f7ff' : 'white',
-                          border: 'none',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          fontSize: '0.9rem',
-                          color: portfolioTimeframe === timeframe ? '#2563eb' : 'inherit'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (portfolioTimeframe !== timeframe) {
-                            e.target.style.background = '#f9fafb';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (portfolioTimeframe !== timeframe) {
-                            e.target.style.background = 'white';
-                          }
-                        }}
-                      >
-                        {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                    <span>{portfolioTimeframe.charAt(0).toUpperCase() + portfolioTimeframe.slice(1)}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {showMobilePortfolioDropdown && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '0.5rem',
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        minWidth: '120px'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {['daily', 'monthly', 'yearly'].map((timeframe) => (
+                        <button
+                          key={timeframe}
+                          type="button"
+                          onClick={() => {
+                            setPortfolioTimeframe(timeframe);
+                            setShowMobilePortfolioDropdown(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: portfolioTimeframe === timeframe ? '#f0f7ff' : 'white',
+                            border: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            fontSize: '0.9rem',
+                            color: portfolioTimeframe === timeframe ? '#2563eb' : 'inherit'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (portfolioTimeframe !== timeframe) {
+                              e.target.style.background = '#f9fafb';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (portfolioTimeframe !== timeframe) {
+                              e.target.style.background = 'white';
+                            }
+                          }}
+                        >
+                          {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="mobile-section-dropdown" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMobilePortfolioYearDropdown(!showMobilePortfolioYearDropdown);
+                      setShowMobilePortfolioDropdown(false);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 'inherit',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    <span>{portfolioYear}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {showMobilePortfolioYearDropdown && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '0.5rem',
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        minWidth: '100px',
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                        <button
+                          key={y}
+                          type="button"
+                          onClick={() => {
+                            setPortfolioYear(y);
+                            setPortfolioTimeframe('monthly');
+                            setShowMobilePortfolioYearDropdown(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: portfolioYear === y ? '#f0f7ff' : 'white',
+                            border: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            fontSize: '0.9rem',
+                            color: portfolioYear === y ? '#2563eb' : 'inherit'
+                          }}
+                        >
+                          {y}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="mobile-chart-container">
               <div className="mobile-chart-y-axis">
-                {[0, 10, 20, 30, 40, 50].map((val) => (
+                {[50, 40, 30, 20, 10, 0].map((val) => (
                   <span key={val}>{val}k</span>
                 ))}
               </div>
@@ -2715,32 +2844,36 @@ const Dashboard = () => {
                   <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
                 )}
 
-                {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
+                {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
                   const maxValue =
-                    portfolioPoints.reduce(
-                      (max, p) => Math.max(max, Number(p.value ?? 0)),
+                    portfolioChartPoints.reduce(
+                      (max, p) => Math.max(max, Math.abs(Number(p.value ?? 0))),
                       0
                     ) || 1;
 
-                  return portfolioPoints.map((point, index) => {
+                  return portfolioChartPoints.map((point, index) => {
                     const value = Number(point.value ?? 0);
-                    const height = Math.max(5, (value / maxValue) * 100);
+                    const hasBar = value !== 0;
+                    const height = hasBar ? Math.max(5, (Math.abs(value) / maxValue) * 100) : 0;
                     const label = point.label ?? '';
-                    const isLastBar = index === portfolioPoints.length - 1;
+                    const isLastBar = index === portfolioChartPoints.length - 1;
+                    const isNegative = value < 0;
 
                     return (
                       <div key={`${label}-${index}`} className="mobile-bar-wrapper">
-                        <div
-                          className={`mobile-bar ${isLastBar ? 'mobile-bar-last' : ''}`}
-                          style={{ height: `${height}%` }}
-                        />
+                        {hasBar && (
+                          <div
+                            className={`mobile-bar ${isLastBar && !isNegative ? 'mobile-bar-last' : ''} ${isNegative ? 'mobile-bar-negative' : ''}`}
+                            style={{ height: `${height}%` }}
+                          />
+                        )}
                         <span className="mobile-bar-label">{label}</span>
                       </div>
                     );
                   });
                 })()}
 
-                {!isLoadingPortfolio && (!portfolioPoints || portfolioPoints.length === 0) && (
+                {!isLoadingPortfolio && (!portfolioChartPoints || portfolioChartPoints.length === 0) && (
                   <span className="mobile-rate-currency">No portfolio data</span>
                 )}
               </div>
@@ -3240,85 +3373,163 @@ const Dashboard = () => {
           <div className="dashboard-chart-card">
             <div className="chart-header">
               <h3>Portfolio</h3>
-              <div className="chart-dropdown" style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowPortfolioDropdown(!showPortfolioDropdown);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: 'inherit',
-                    color: 'inherit'
-                  }}
-                >
-                  <span>{portfolioTimeframe.charAt(0).toUpperCase() + portfolioTimeframe.slice(1)}</span>
-                  <ChevronDown size={16} />
-                </button>
-                {showPortfolioDropdown && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '0.5rem',
-                      background: 'white',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '0.5rem',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      zIndex: 1000,
-                      minWidth: '120px'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="chart-dropdown" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPortfolioDropdown(!showPortfolioDropdown);
+                      setShowPortfolioYearDropdown(false);
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 'inherit',
+                      color: 'inherit'
+                    }}
                   >
-                    {['daily', 'monthly', 'yearly'].map((timeframe) => (
-                      <button
-                        key={timeframe}
-                        type="button"
-                        onClick={() => {
-                          setPortfolioTimeframe(timeframe);
-                          setShowPortfolioDropdown(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 1rem',
-                          background: portfolioTimeframe === timeframe ? '#f0f7ff' : 'white',
-                          border: 'none',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          fontSize: '0.9rem',
-                          color: portfolioTimeframe === timeframe ? '#2563eb' : 'inherit'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (portfolioTimeframe !== timeframe) {
-                            e.target.style.background = '#f9fafb';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (portfolioTimeframe !== timeframe) {
-                            e.target.style.background = 'white';
-                          }
-                        }}
-                      >
-                        {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                    <span>{portfolioTimeframe.charAt(0).toUpperCase() + portfolioTimeframe.slice(1)}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  {showPortfolioDropdown && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '0.5rem',
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        minWidth: '120px'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {['daily', 'monthly', 'yearly'].map((timeframe) => (
+                        <button
+                          key={timeframe}
+                          type="button"
+                          onClick={() => {
+                            setPortfolioTimeframe(timeframe);
+                            setShowPortfolioDropdown(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: portfolioTimeframe === timeframe ? '#f0f7ff' : 'white',
+                            border: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            fontSize: '0.9rem',
+                            color: portfolioTimeframe === timeframe ? '#2563eb' : 'inherit'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (portfolioTimeframe !== timeframe) {
+                              e.target.style.background = '#f9fafb';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (portfolioTimeframe !== timeframe) {
+                              e.target.style.background = 'white';
+                            }
+                          }}
+                        >
+                          {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="chart-dropdown chart-year-dropdown" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPortfolioYearDropdown(!showPortfolioYearDropdown);
+                      setShowPortfolioDropdown(false);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 'inherit',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    <span>{portfolioYear}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  {showPortfolioYearDropdown && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '0.5rem',
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        minWidth: '100px',
+                        maxHeight: '240px',
+                        overflowY: 'auto'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                        <button
+                          key={y}
+                          type="button"
+                          onClick={() => {
+                            setPortfolioYear(y);
+                            setPortfolioTimeframe('monthly');
+                            setShowPortfolioYearDropdown(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: portfolioYear === y ? '#f0f7ff' : 'white',
+                            border: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            fontSize: '0.9rem',
+                            color: portfolioYear === y ? '#2563eb' : 'inherit'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (portfolioYear !== y) e.target.style.background = '#f9fafb';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (portfolioYear !== y) e.target.style.background = 'white';
+                          }}
+                        >
+                          {y}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="chart-container">
               <div className="chart-y-axis">
-                {[0, 10, 20, 30, 40, 50].map((val) => (
+                {[50, 40, 30, 20, 10, 0].map((val) => (
                   <span key={val}>{val}k</span>
                 ))}
               </div>
@@ -3327,31 +3538,36 @@ const Dashboard = () => {
                   <span className="rate-currency"><LoadingIndicator size="md" /></span>
                 )}
 
-                {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
+                {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
                   const maxValue =
-                    portfolioPoints.reduce(
-                      (max, p) => Math.max(max, Number(p.value ?? 0)),
+                    portfolioChartPoints.reduce(
+                      (max, p) => Math.max(max, Math.abs(Number(p.value ?? 0))),
                       0
                     ) || 1;
 
-                  return portfolioPoints.map((point, index) => {
+                  return portfolioChartPoints.map((point, index) => {
                     const value = Number(point.value ?? 0);
-                    const height = Math.max(5, (value / maxValue) * 100);
+                    const hasBar = value !== 0;
+                    const height = hasBar ? Math.max(5, (Math.abs(value) / maxValue) * 100) : 0;
                     const label = point.label ?? '';
+                    const isLast = index === portfolioChartPoints.length - 1;
+                    const isNegative = value < 0;
 
                     return (
                       <div key={`${label}-${index}`} className="bar-wrapper">
-                        <div
-                          className={`bar ${index === portfolioPoints.length - 1 ? 'bar-purple' : ''}`}
-                          style={{ height: `${height}%` }}
-                        />
+                        {hasBar && (
+                          <div
+                            className={`bar ${isLast && !isNegative ? 'bar-purple' : ''} ${isNegative ? 'bar-negative' : ''}`}
+                            style={{ height: `${height}%` }}
+                          />
+                        )}
                         <span className="bar-label">{label}</span>
                       </div>
                     );
                   });
                 })()}
 
-                {!isLoadingPortfolio && (!portfolioPoints || portfolioPoints.length === 0) && (
+                {!isLoadingPortfolio && (!portfolioChartPoints || portfolioChartPoints.length === 0) && (
                   <span className="rate-currency">No portfolio data</span>
                 )}
               </div>

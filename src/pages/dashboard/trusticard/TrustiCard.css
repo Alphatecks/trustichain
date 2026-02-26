@@ -41,6 +41,22 @@
     margin-bottom: 1.5rem;
   }
 
+  .mobile-cards-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mobile-add-card-btn.mobile-apply-card-btn {
+    background: transparent;
+    color: var(--blue-600);
+    border: 1px solid var(--blue-600);
+  }
+
+  .mobile-add-card-btn.mobile-apply-card-btn:hover {
+    background: var(--blue-50);
+  }
+
   .mobile-my-cards-title-wrapper {
     display: flex;
     align-items: center;
@@ -89,6 +105,24 @@
 
   .mobile-card-display {
     margin-bottom: 1.5rem;
+  }
+
+  .mobile-card-loading,
+  .mobile-card-empty {
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    color: var(--text-dark);
+    font-size: 1rem;
+  }
+
+  .mobile-card-empty span {
+    display: block;
   }
 
   .mobile-card-blue {
@@ -1457,11 +1491,45 @@
   background: var(--blue-700);
 }
 
+.cards-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.add-card-btn.apply-card-btn {
+  background: transparent;
+  color: var(--blue-600);
+  border: 1px solid var(--blue-600);
+}
+
+.add-card-btn.apply-card-btn:hover {
+  background: var(--blue-50);
+}
+
 .cards-stack {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   position: relative;
+}
+
+.cards-stack-loading,
+.cards-stack-empty {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--border);
+  border-radius: 1rem;
+  padding: 2rem;
+  color: var(--text-dark);
+  font-size: 1rem;
+}
+
+.cards-stack-empty span {
+  display: block;
 }
 
 .platinum-card {
@@ -2743,6 +2811,244 @@
 
 .update-address-btn:hover {
   background: var(--blue-700);
+}
+
+/* Create Customer Modal - wide, rows like create escrow */
+.create-customer-modal {
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+}
+
+.create-customer-modal form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.create-customer-modal .address-modal-content {
+  padding: 0;
+  gap: 0;
+}
+
+.create-customer-modal-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+.create-customer-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.create-customer-form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.create-customer-modal .address-form-field {
+  margin: 0;
+}
+
+.create-customer-modal .address-field-label .required-asterisk {
+  color: var(--red-500, #ef4444);
+}
+
+.create-customer-file-input {
+  padding: 0.5rem 1rem;
+}
+
+.create-customer-file-input::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--white);
+  color: var(--text-dark);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.create-customer-file-name {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.mobile-transaction-loading,
+.mobile-transaction-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.transaction-table-loading,
+.transaction-table-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.transaction-table-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobile-card-eye-btn,
+.card-detail-eye-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-card-eye-btn:hover,
+.card-detail-eye-btn:hover {
+  color: var(--blue-600);
+}
+
+.create-customer-modal-footer {
+  padding: 1rem 2rem 1.5rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .create-customer-form-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Create Customer: full-screen on mobile like create escrow */
+@media (max-width: 768px) {
+  .create-customer-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .create-customer-modal-overlay .create-customer-modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .create-customer-modal-header {
+    padding: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+  }
+
+  .create-customer-modal-header .modal-header-back-icon {
+    display: block !important;
+    width: 4px !important;
+    height: 24px !important;
+    background: var(--blue-600) !important;
+    border-radius: 2px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .create-customer-modal-header .address-modal-title {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    flex: 1 !important;
+    margin: 0 !important;
+  }
+
+  .create-customer-modal-header .modal-close-btn {
+    color: var(--blue-600) !important;
+    padding: 0.5rem !important;
+  }
+
+  .create-customer-steps-mobile {
+    display: block !important;
+    margin: 0 1rem 1.5rem !important;
+  }
+
+  .create-customer-steps-mobile .step-indicator-mobile {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    background: #f8faff !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+  }
+
+  .create-customer-steps-mobile .step-icon-mobile {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    border-radius: 50% !important;
+    background: var(--blue-600) !important;
+    color: var(--white) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .create-customer-steps-mobile .step-content-mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+  }
+
+  .create-customer-steps-mobile .step-number-mobile {
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    font-weight: 400 !important;
+  }
+
+  .create-customer-steps-mobile .step-title-mobile {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    color: var(--text-dark) !important;
+  }
+
+  .create-customer-modal .create-customer-modal-content {
+    padding: 1rem !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  .create-customer-modal .create-customer-modal-footer {
+    padding: 1rem !important;
+    border-top: 1px solid var(--border) !important;
+    background: var(--white) !important;
+  }
+
+  .create-customer-modal .update-address-btn {
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+  }
+}
+
+/* Desktop: hide mobile-only create customer elements */
+@media (min-width: 769px) {
+  .create-customer-modal-header .modal-header-back-icon {
+    display: none !important;
+  }
+
+  .create-customer-steps-mobile {
+    display: none !important;
+  }
 }
 
 .pagination-ellipsis {
