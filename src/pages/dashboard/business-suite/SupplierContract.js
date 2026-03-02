@@ -100,7 +100,9 @@ const SupplierContract = ({
   getBalanceValue,
   getExchangeRate,
   totalEscrowedAmount,
-  isLoadingTotalEscrowed
+  isLoadingTotalEscrowed,
+  supplierDetails = [],
+  isLoadingSupplierDetails = false
 }) => {
   const [transactionFilter, setTransactionFilter] = useState('All');
   const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
@@ -124,13 +126,6 @@ const SupplierContract = ({
     bankName: '',
     accountNumber: ''
   });
-
-  const supplierDetails = [
-    { id: 'SUPP-2024-00', progress: 75, dueDate: '14th Nov 25', amount: '$16,000' },
-    { id: 'SUPP-2024-002', progress: 15, percentage: '15%', amount: '$4,000' },
-    { id: 'SUPP-2024-00', progress: 75, dueDate: '14th Nov 25', amount: '$16,000' },
-    { id: 'SUPP-2024-002', progress: 15, percentage: '15%', amount: '$4,000' }
-  ];
 
   const transactions = Array(9).fill({
     id: 'F4E5D6...C1B2A3',
@@ -513,7 +508,17 @@ const SupplierContract = ({
             </div>
 
             <div className="upcoming-supply-grid-mobile">
-              {supplierDetails.map((supplier, index) => (
+              {isLoadingSupplierDetails ? (
+                <div className="upcoming-supply-loading-mobile" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center' }}>
+                  <LoadingIndicator size="sm" />
+                  <span style={{ marginLeft: '0.5rem' }}>Loading suppliers…</span>
+                </div>
+              ) : supplierDetails.length === 0 ? (
+                <div className="upcoming-supply-empty-mobile" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No supplier details yet
+                </div>
+              ) : (
+                supplierDetails.map((supplier, index) => (
                 <div key={index} className="upcoming-supply-card-mobile">
                   <div className="upcoming-supply-progress-circle-mobile">
                     <svg className="upcoming-supply-progress-ring-mobile" width="60" height="60">
@@ -553,7 +558,8 @@ const SupplierContract = ({
                     <div className="upcoming-supply-amount-value-mobile">{supplier.amount}</div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
 
@@ -1172,7 +1178,17 @@ const SupplierContract = ({
               <h3>Supplier details</h3>
             </div>
             <div className="supplier-details-grid">
-              {supplierDetails.map((supplier, index) => (
+              {isLoadingSupplierDetails ? (
+                <div className="supplier-details-loading" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center' }}>
+                  <LoadingIndicator size="sm" />
+                  <span style={{ marginLeft: '0.5rem' }}>Loading suppliers…</span>
+                </div>
+              ) : supplierDetails.length === 0 ? (
+                <div className="supplier-details-empty" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No supplier details yet
+                </div>
+              ) : (
+                supplierDetails.map((supplier, index) => (
                 <div key={index} className="supplier-detail-card">
                   <div className="supplier-card-top">
                     <div className="supplier-progress-circle">
@@ -1216,7 +1232,8 @@ const SupplierContract = ({
                     <div className="supplier-amount">{supplier.amount}</div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
 

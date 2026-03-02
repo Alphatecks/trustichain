@@ -2,26 +2,29 @@ import React, { useState } from 'react';
 import {
   FileText,
   Users,
-  CreditCard,
   CheckCircle,
   ArrowRight,
   ArrowLeft,
   X,
-  Calendar,
   ChevronDown
 } from 'lucide-react';
 import '../LoadingIndicator/index.css';
+import './index.css';
 
 const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [payrollData, setPayrollData] = useState({
+    name: '',
     companyName: '',
     payrollCycle: 'Weekly',
     startDate: '',
     companyDescription: '',
     companyEmail: '',
     cycleDate: '',
-    endDate: ''
+    endDate: '',
+    releaseDate: ''
   });
 
   const [membersData, setMembersData] = useState({
@@ -53,15 +56,18 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
   };
 
   const handleCloseModal = () => {
+    setSubmitError('');
     setCurrentStep(1);
     setPayrollData({
+      name: '',
       companyName: '',
       payrollCycle: 'Weekly',
       startDate: '',
       companyDescription: '',
       companyEmail: '',
       cycleDate: '',
-      endDate: ''
+      endDate: '',
+      releaseDate: ''
     });
     setMembersData({});
     setPaymentData({
@@ -75,17 +81,25 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
     onCancel();
   };
 
-  const handleSubmitAndNext = () => {
+  const handleSubmitAndNext = async () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Final submission
-      onSuccess({
-        ...payrollData,
-        ...membersData,
-        ...paymentData
-      });
-      handleCloseModal();
+      setSubmitError('');
+      setSubmitting(true);
+      const merged = { ...payrollData, ...membersData, ...paymentData };
+      try {
+        if (onSuccess) {
+          const result = await Promise.resolve(onSuccess(merged));
+          if (result !== false) handleCloseModal();
+        } else {
+          handleCloseModal();
+        }
+      } catch (err) {
+        setSubmitError(err?.message || 'Failed to create payroll');
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -101,7 +115,7 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
 
   return (
     <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
-      <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="create-escrow-modal add-payroll-modal" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="create-escrow-modal-header">
           <div className="modal-header-back-icon"></div>
@@ -198,15 +212,23 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                 <div className="counterparty-form-grid">
                   <div className="form-column">
                     <div className="form-group">
+                      <label>Payroll name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. March 2026 Payroll"
+                        value={payrollData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
                       <label>Company Name</label>
                       <div className="date-input-wrapper">
                         <input
                           type="text"
-                          placeholder="Add Date"
+                          placeholder="Company name"
                           value={payrollData.companyName}
                           onChange={(e) => handleInputChange('companyName', e.target.value)}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
                     <div className="form-group">
@@ -248,12 +270,10 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                       <label>Start Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
-                          placeholder="Select"
+                          type="date"
                           value={payrollData.startDate}
                           onChange={(e) => handleInputChange('startDate', e.target.value)}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
                     <div className="form-group">
@@ -279,26 +299,32 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                     </div>
                     <div className="form-group">
                       <label>Cycle Date</label>
-                      <div className="select-input-wrapper">
+                      <div className="date-input-wrapper">
                         <input
-                          type="text"
-                          placeholder="Select"
+                          type="date"
                           value={payrollData.cycleDate}
                           onChange={(e) => handleInputChange('cycleDate', e.target.value)}
                         />
-                        <ChevronDown size={18} />
                       </div>
                     </div>
                     <div className="form-group">
                       <label>End Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
-                          placeholder="Select"
+                          type="date"
                           value={payrollData.endDate}
                           onChange={(e) => handleInputChange('endDate', e.target.value)}
                         />
-                        <Calendar size={18} className="input-icon" />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Release date</label>
+                      <div className="date-input-wrapper">
+                        <input
+                          type="date"
+                          value={payrollData.releaseDate}
+                          onChange={(e) => handleInputChange('releaseDate', e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -379,12 +405,10 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                       <label>Start Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
-                          placeholder="Select"
+                          type="date"
                           value={payrollData.startDate}
                           onChange={(e) => handleInputChange('startDate', e.target.value)}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
                     <div className="form-group">
@@ -446,7 +470,7 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                     <div className="form-group">
                       <label>Cycle Date</label>
                       <input
-                        type="text"
+                        type="date"
                         className="form-input readonly"
                         value={payrollData.cycleDate}
                         readOnly
@@ -456,12 +480,10 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                       <label>End Date</label>
                       <div className="date-input-wrapper">
                         <input
-                          type="text"
-                          placeholder="Select"
+                          type="date"
                           value={payrollData.endDate}
                           onChange={(e) => handleInputChange('endDate', e.target.value)}
                         />
-                        <Calendar size={18} className="input-icon" />
                       </div>
                     </div>
                     <div className="form-group">
@@ -557,10 +579,14 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
 
           {currentStep === 3 && (
             <div className="create-escrow-modal-footer">
+              {submitError && (
+                <p style={{ color: '#dc2626', fontSize: '0.875rem', margin: '0 0 0.5rem 0', width: '100%' }}>{submitError}</p>
+              )}
               <button
                 type="button"
                 className="previous-btn"
                 onClick={handlePrevious}
+                disabled={submitting}
               >
                 <ArrowLeft size={16} />
                 <span>Previous</span>
@@ -569,11 +595,12 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="submit-next-btn"
                 onClick={handleSubmitAndNext}
+                disabled={submitting}
               >
                 <div className="submit-btn-icon-circle">
                   <ArrowRight size={16} />
                 </div>
-                <span>Save and Lock</span>
+                <span>{submitting ? 'Creating...' : 'Save and Lock'}</span>
               </button>
             </div>
           )}

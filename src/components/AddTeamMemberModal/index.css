@@ -1,0 +1,32 @@
+/* Remove divider above footer buttons in Add Team Member modal */
+.add-team-member-modal .create-escrow-modal-footer {
+  border-top: none;
+}
+
+/* Success confirmation modal */
+.add-team-member-success-modal .add-team-member-success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.add-team-member-success-icon {
+  margin-bottom: 1rem;
+}
+
+.add-team-member-success-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-dark, #1f2937);
+}
+
+.add-team-member-success-message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-muted, #6b7280);
+  line-height: 1.4;
+}

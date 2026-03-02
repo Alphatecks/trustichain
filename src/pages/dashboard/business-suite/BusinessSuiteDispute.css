@@ -1,0 +1,100 @@
+/* Business Suite Dispute modals – form styling inside create-escrow-modal */
+.business-dispute-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.business-dispute-modal-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark, #1f2937);
+}
+
+.business-dispute-modal-body label span {
+  font-weight: 500;
+  color: var(--text-dark, #1f2937);
+}
+
+.business-dispute-modal-body input[type="text"],
+.business-dispute-modal-body input[type="number"],
+.business-dispute-modal-body select,
+.business-dispute-modal-body textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: var(--white, #fff);
+  color: var(--text-dark, #1f2937);
+  transition: border-color 0.2s ease;
+}
+
+.business-dispute-modal-body input:focus,
+.business-dispute-modal-body select:focus,
+.business-dispute-modal-body textarea:focus {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+}
+
+.business-dispute-modal-body input::placeholder,
+.business-dispute-modal-body textarea::placeholder {
+  color: var(--text-muted, #9ca3af);
+}
+
+.business-dispute-modal-body textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Evidence file upload – styled like other form fields and upload areas */
+.business-dispute-modal-body label:has(input[type="file"]) {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--white, #fff);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.business-dispute-modal-body label:has(input[type="file"]):hover {
+  border-color: var(--blue-600, #2563eb);
+  background: var(--blue-50, #eff6ff);
+}
+
+.business-dispute-modal-body label:has(input[type="file"]:focus) {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+}
+
+.business-dispute-modal-body input[type="file"] {
+  width: 100%;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--text-dark, #1f2937);
+  border: none;
+  background: transparent;
+}
+
+.business-dispute-modal-body input[type="file"]::file-selector-button {
+  margin-right: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.375rem;
+  background: var(--white, #fff);
+  color: var(--text-dark, #1f2937);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.business-dispute-modal-body input[type="file"]::file-selector-button:hover {
+  border-color: var(--blue-600, #2563eb);
+  background: var(--blue-50, #eff6ff);
+  color: var(--blue-600, #2563eb);
+}

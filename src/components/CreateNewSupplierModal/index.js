@@ -1,409 +1,368 @@
-import React, { useState } from 'react';
-import { X, Calendar, Info, Download, Clock, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ChevronDown, Tag, CheckCircle, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getApiUrl } from '../../utils/config';
 import '../LoadingIndicator/index.css';
 import './index.css';
 
+const CHECK_DEBOUNCE_MS = 400;
+
+const COUNTRY_OPTIONS = [
+  'United States', 'United Kingdom', 'Canada', 'Germany', 'France', 'Nigeria',
+  'South Africa', 'Kenya', 'Ghana', 'India', 'Australia', 'Netherlands', 'Other'
+];
+
+const CONTRACT_TYPE_OPTIONS = [
+  'One-time', 'Recurring', 'Framework', 'Master', 'Spot', 'Other'
+];
+
+const SUPPLIER_TAGS = [
+  'Local', 'International', 'Logistics', 'Digital', 'Manufacturing',
+  'Services', 'Wholesale', 'Retail', 'Preferred', 'Trial'
+];
+
 const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
-  const [step, setStep] = useState(1);
-  const [supplierName, setSupplierName] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [amount, setAmount] = useState('24,567.89');
-  const [accountType, setAccountType] = useState('bank'); // 'bank' or 'wallet'
-  const [walletType, setWalletType] = useState('');
-  const [showWalletTypeDropdown, setShowWalletTypeDropdown] = useState(false);
+  const [name, setName] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
-  const [supplyDate, setSupplyDate] = useState('00/00/00');
-  const [currency, setCurrency] = useState('');
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [bankName, setBankName] = useState('');
-  const [showBankNameDropdown, setShowBankNameDropdown] = useState(false);
-  const [accountName, setAccountName] = useState('');
+  const [country, setCountry] = useState('');
+  const [contractType, setContractType] = useState('');
+  const [tags, setTags] = useState([]);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showContractDropdown, setShowContractDropdown] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [successData, setSuccessData] = useState(null);
+  const [isCheckingSupplier, setIsCheckingSupplier] = useState(false);
+  const [supplierCheckResult, setSupplierCheckResult] = useState(null); // null | { registered: boolean, message?: string }
+  const checkTimeoutRef = useRef(null);
+  const checkAbortRef = useRef(null);
 
   const handleCloseModal = () => {
-    setStep(1);
-    setSupplierName('');
-    setDueDate('');
-    setAmount('24,567.89');
-    setAccountType('bank');
-    setWalletType('');
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    checkAbortRef.current?.abort();
+    setName('');
     setWalletAddress('');
-    setSupplyDate('00/00/00');
-    setShowWalletTypeDropdown(false);
-    setCurrency('');
-    setBankName('');
-    setAccountName('');
-    setShowCurrencyDropdown(false);
-    setShowBankNameDropdown(false);
+    setCountry('');
+    setContractType('');
+    setTags([]);
+    setShowCountryDropdown(false);
+    setShowContractDropdown(false);
+    setSubmitError('');
+    setSupplierCheckResult(null);
+    setIsCheckingSupplier(false);
+    setShowSuccessModal(false);
+    setSuccessMessage('');
+    setSuccessData(null);
     onCancel();
   };
 
-  const handleNextStep1 = () => {
-    setStep(2);
+  // Debounced check if supplier is registered when name changes
+  useEffect(() => {
+    const trimmed = name?.trim() ?? '';
+    if (!trimmed) {
+      setSupplierCheckResult(null);
+      setIsCheckingSupplier(false);
+      return;
+    }
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    checkAbortRef.current?.abort();
+    checkTimeoutRef.current = setTimeout(() => {
+      checkTimeoutRef.current = null;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setSupplierCheckResult(null);
+        setIsCheckingSupplier(false);
+        return;
+      }
+      setIsCheckingSupplier(true);
+      setSupplierCheckResult(null);
+      const controller = new AbortController();
+      checkAbortRef.current = controller;
+      fetch(getApiUrl('api/business-suite/suppliers/check'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: trimmed }),
+        signal: controller.signal
+      })
+        .then((res) => res.json().catch(() => ({})))
+        .then((result) => {
+          if (checkAbortRef.current !== controller) return;
+          setSupplierCheckResult({
+            registered: result?.registered === true,
+            message: result?.message ?? (result?.success ? (result?.registered ? 'Supplier is registered' : 'Supplier not registered') : '')
+          });
+        })
+        .catch((err) => {
+          if (err?.name === 'AbortError' || checkAbortRef.current !== controller) return;
+          setSupplierCheckResult({ registered: false, message: '' });
+        })
+        .finally(() => {
+          if (checkAbortRef.current === controller) setIsCheckingSupplier(false);
+        });
+    }, CHECK_DEBOUNCE_MS);
+    return () => {
+      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+      checkAbortRef.current?.abort();
+    };
+  }, [name]);
+
+  const toggleTag = (tag) => {
+    setTags(prev => prev.includes(tag)
+      ? prev.filter(t => t !== tag)
+      : [...prev, tag]
+    );
   };
 
-  const handleNextStep2 = () => {
-    onSuccess({
-      supplierName,
-      dueDate,
-      amount,
-      accountType,
-      walletType,
-      walletAddress,
-      supplyDate,
-      currency,
-      bankName,
-      accountName
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitError('');
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to add a supplier.');
+      return;
+    }
+
+    const body = {
+      name: name.trim() || undefined,
+      walletAddress: walletAddress.trim() || undefined,
+      country: country || undefined,
+      contractType: contractType || undefined,
+      tags: Array.isArray(tags) ? tags : []
+    };
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(getApiUrl('api/business-suite/suppliers'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result?.success) {
+        setSuccessMessage(result?.message ?? 'Supplier added successfully.');
+        setSuccessData(result?.data ?? result);
+        setShowSuccessModal(true);
+      } else {
+        const msg = result?.message ?? (response.status === 401 ? 'Please sign in again.' : 'Failed to add supplier.');
+        setSubmitError(msg);
+        toast.error(msg);
+      }
+    } catch (err) {
+      console.error('Add supplier error:', err);
+      const msg = err?.message ?? 'Failed to add supplier. Please try again.';
+      setSubmitError(msg);
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSuccessDone = () => {
+    setShowSuccessModal(false);
+    setSuccessMessage('');
+    const data = successData;
+    setSuccessData(null);
     handleCloseModal();
+    onSuccess(data);
   };
 
   if (!isOpen) {
     return null;
   }
 
+  if (showSuccessModal) {
+    return (
+      <div className="create-escrow-modal-overlay add-supplier-modal-overlay" onClick={handleSuccessDone}>
+        <div className="create-escrow-modal create-new-supplier-modal add-supplier-success-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+          <div className="add-supplier-success-content">
+            <div className="add-supplier-success-icon">
+              <CheckCircle size={48} style={{ color: 'var(--green-600, #059669)' }} />
+            </div>
+            <h3 className="add-supplier-success-title">Success</h3>
+            <p className="add-supplier-success-message">{successMessage}</p>
+            <button type="button" className="create-supplier-submit-btn" onClick={handleSuccessDone} style={{ marginTop: '1rem' }}>
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
-      <div className="create-escrow-modal create-new-supplier-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-        {/* Modal Header */}
+    <div className="create-escrow-modal-overlay add-supplier-modal-overlay" onClick={handleCloseModal}>
+      <div className="create-escrow-modal create-new-supplier-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
         <div className="create-escrow-modal-header">
-          <div className="modal-header-back-icon"></div>
-          <h2>Create New Supplier</h2>
-          <button type="button" className="modal-close-btn" onClick={handleCloseModal}>
+          <div className="modal-header-back-icon" />
+          <h2>Add supplier</h2>
+          <button type="button" className="modal-close-btn" onClick={handleCloseModal} aria-label="Close">
             <X size={24} />
           </button>
         </div>
 
-        {/* Modal Content */}
-        <div className="create-escrow-modal-content" style={{ padding: '2rem' }}>
-          {step === 1 ? (
+        <form className="create-supplier-form" onSubmit={handleSubmit}>
+          <div className="create-escrow-modal-content create-supplier-form-content">
             <div className="create-supplier-section">
-              {/* Supplier Name Input */}
               <div className="create-supplier-field">
-                <label className="create-supplier-label">Supplier name</label>
+                <label className="create-supplier-label">Name</label>
                 <input
                   type="text"
                   className="create-supplier-input"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  placeholder="Enter name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Supplier or business name"
+                />
+                {isCheckingSupplier && (
+                  <p className="create-supplier-check-status create-supplier-check-loading" role="status">
+                    Checking…
+                  </p>
+                )}
+                {!isCheckingSupplier && supplierCheckResult && (
+                  <p
+                    className={`create-supplier-check-status ${supplierCheckResult.registered ? 'create-supplier-check-registered' : 'create-supplier-check-not-registered'}`}
+                    role="status"
+                  >
+                    {supplierCheckResult.registered ? (
+                      <>
+                        <CheckCircle size={14} />
+                        {supplierCheckResult.message || 'Supplier is registered'}
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle size={14} />
+                        {supplierCheckResult.message || 'Supplier not registered'}
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              <div className="create-supplier-field">
+                <label className="create-supplier-label">Wallet address</label>
+                <input
+                  type="text"
+                  className="create-supplier-input create-supplier-input-mono"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  placeholder="e.g. rXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 />
               </div>
 
-              {/* Due Date Input */}
               <div className="create-supplier-field">
-                <label className="create-supplier-label">Due Date</label>
-                <div className="create-supplier-date-wrapper">
-                  <input
-                    type="text"
-                    className="create-supplier-date-input"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    placeholder="00/00/00"
-                  />
-                  <Calendar size={18} className="create-supplier-calendar-icon" />
+                <label className="create-supplier-label">Country</label>
+                <div className="create-supplier-dropdown-wrapper">
+                  <button
+                    type="button"
+                    className="create-supplier-dropdown-btn"
+                    onClick={() => {
+                      setShowCountryDropdown(!showCountryDropdown);
+                      setShowContractDropdown(false);
+                    }}
+                  >
+                    <span>{country || 'Select country'}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  {showCountryDropdown && (
+                    <div className="create-supplier-dropdown">
+                      {COUNTRY_OPTIONS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="create-supplier-dropdown-item"
+                          onClick={() => {
+                            setCountry(c);
+                            setShowCountryDropdown(false);
+                          }}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Amount Display Section */}
-              <div className="create-supplier-amount-section">
-                <label className="create-supplier-amount-label">Amount</label>
-                <div className="create-supplier-amount-display">
-                  <div className="create-supplier-amount-value">${amount}</div>
-                  <div className="create-supplier-balance-text">Balance: 24,567.89</div>
+              <div className="create-supplier-field">
+                <label className="create-supplier-label">Contract type</label>
+                <div className="create-supplier-dropdown-wrapper">
+                  <button
+                    type="button"
+                    className="create-supplier-dropdown-btn"
+                    onClick={() => {
+                      setShowContractDropdown(!showContractDropdown);
+                      setShowCountryDropdown(false);
+                    }}
+                  >
+                    <span>{contractType || 'Select type'}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  {showContractDropdown && (
+                    <div className="create-supplier-dropdown">
+                      {CONTRACT_TYPE_OPTIONS.map((ct) => (
+                        <button
+                          key={ct}
+                          type="button"
+                          className="create-supplier-dropdown-item"
+                          onClick={() => {
+                            setContractType(ct);
+                            setShowContractDropdown(false);
+                          }}
+                        >
+                          {ct}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Next Button */}
-              <button 
-                type="button"
-                className="create-supplier-next-btn"
-                onClick={handleNextStep1}
-              >
-                Next
-              </button>
-
-              {/* Info Message */}
-              <div className="create-supplier-info">
-                <Info size={16} />
-                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
+              <div className="create-supplier-field">
+                <label className="create-supplier-label">
+                  <Tag size={14} />
+                  Tags
+                </label>
+                <p className="create-supplier-hint">Tag suppliers (e.g. local, international, logistics, digital)</p>
+                <div className="create-supplier-tags">
+                  {SUPPLIER_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={`create-supplier-tag ${tags.includes(tag) ? 'active' : ''}`}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="create-supplier-section">
-              {/* Account Type Selection */}
-              <div className="create-supplier-field">
-                <label className="create-supplier-label create-supplier-label-blue">Account Type</label>
-                <div className="create-supplier-account-type-buttons">
-                  <button
-                    type="button"
-                    className={`create-supplier-account-type-btn ${accountType === 'bank' ? 'active' : ''}`}
-                    onClick={() => {
-                      setAccountType('bank');
-                      setShowWalletTypeDropdown(false);
-                      setShowCurrencyDropdown(false);
-                      setShowBankNameDropdown(false);
-                    }}
-                  >
-                    <Download size={18} />
-                    Bank Transfer
-                  </button>
-                  <button
-                    type="button"
-                    className={`create-supplier-account-type-btn ${accountType === 'wallet' ? 'active' : ''}`}
-                    onClick={() => {
-                      setAccountType('wallet');
-                      setShowCurrencyDropdown(false);
-                      setShowBankNameDropdown(false);
-                    }}
-                  >
-                    <Clock size={18} />
-                    Wallet Transfer
-                  </button>
-                </div>
-              </div>
+          </div>
 
-              {accountType === 'bank' ? (
-                <>
-                  {/* Currency */}
-                  <div className="create-supplier-field">
-                    <label className="create-supplier-label">Currency</label>
-                    <div className="create-supplier-dropdown-wrapper">
-                      <button
-                        type="button"
-                        className="create-supplier-dropdown-btn"
-                        onClick={() => {
-                          setShowCurrencyDropdown(!showCurrencyDropdown);
-                          setShowBankNameDropdown(false);
-                        }}
-                      >
-                        <span>{currency || 'Select'}</span>
-                        <ChevronDown size={16} />
-                      </button>
-                      {showCurrencyDropdown && (
-                        <div className="create-supplier-dropdown">
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setCurrency('USD');
-                              setShowCurrencyDropdown(false);
-                            }}
-                          >
-                            USD
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setCurrency('EUR');
-                              setShowCurrencyDropdown(false);
-                            }}
-                          >
-                            EUR
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setCurrency('GBP');
-                              setShowCurrencyDropdown(false);
-                            }}
-                          >
-                            GBP
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setCurrency('NGN');
-                              setShowCurrencyDropdown(false);
-                            }}
-                          >
-                            NGN
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Bank Name */}
-                  <div className="create-supplier-field">
-                    <label className="create-supplier-label">Bank Name</label>
-                    <div className="create-supplier-dropdown-wrapper">
-                      <button
-                        type="button"
-                        className="create-supplier-dropdown-btn"
-                        onClick={() => {
-                          setShowBankNameDropdown(!showBankNameDropdown);
-                          setShowCurrencyDropdown(false);
-                        }}
-                      >
-                        <span>{bankName || 'Select'}</span>
-                        <ChevronDown size={16} />
-                      </button>
-                      {showBankNameDropdown && (
-                        <div className="create-supplier-dropdown">
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setBankName('Chase Bank');
-                              setShowBankNameDropdown(false);
-                            }}
-                          >
-                            Chase Bank
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setBankName('Bank of America');
-                              setShowBankNameDropdown(false);
-                            }}
-                          >
-                            Bank of America
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setBankName('Wells Fargo');
-                              setShowBankNameDropdown(false);
-                            }}
-                          >
-                            Wells Fargo
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setBankName('Citibank');
-                              setShowBankNameDropdown(false);
-                            }}
-                          >
-                            Citibank
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Account Name */}
-                  <div className="create-supplier-field">
-                    <label className="create-supplier-label">Account Name</label>
-                    <input
-                      type="text"
-                      className="create-supplier-input"
-                      value={accountName}
-                      onChange={(e) => setAccountName(e.target.value)}
-                      placeholder="Enter account name"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Wallet Type */}
-                  <div className="create-supplier-field">
-                    <label className="create-supplier-label">Wallet Type</label>
-                    <div className="create-supplier-dropdown-wrapper">
-                      <button
-                        type="button"
-                        className="create-supplier-dropdown-btn"
-                        onClick={() => {
-                          setShowWalletTypeDropdown(!showWalletTypeDropdown);
-                          setShowCurrencyDropdown(false);
-                          setShowBankNameDropdown(false);
-                        }}
-                      >
-                        <span>{walletType || 'Select'}</span>
-                        <ChevronDown size={16} />
-                      </button>
-                      {showWalletTypeDropdown && (
-                        <div className="create-supplier-dropdown">
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setWalletType('XRP wallet');
-                              setShowWalletTypeDropdown(false);
-                            }}
-                          >
-                            XRP wallet
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setWalletType('USDT wallet');
-                              setShowWalletTypeDropdown(false);
-                            }}
-                          >
-                            USDT wallet
-                          </button>
-                          <button
-                            type="button"
-                            className="create-supplier-dropdown-item"
-                            onClick={() => {
-                              setWalletType('USD wallet');
-                              setShowWalletTypeDropdown(false);
-                            }}
-                          >
-                            USD wallet
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Wallet Address */}
-                  <div className="create-supplier-field">
-                    <label className="create-supplier-label">Wallet Address</label>
-                    <div className="create-supplier-wallet-address-wrapper">
-                      <input
-                        type="text"
-                        className="create-supplier-input"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
-                        placeholder="Enter Wallet address"
-                      />
-                      <ChevronDown size={16} className="create-supplier-chevron-icon" />
-                    </div>
-                  </div>
-
-                  {/* Supply Date */}
-                  <div className="create-supplier-field">
-                    <label className="create-supplier-label">Supply Date</label>
-                    <div className="create-supplier-date-wrapper">
-                      <input
-                        type="text"
-                        className="create-supplier-date-input"
-                        value={supplyDate}
-                        onChange={(e) => setSupplyDate(e.target.value)}
-                        placeholder="00/00/00"
-                      />
-                      <Calendar size={18} className="create-supplier-calendar-icon" />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Next Button */}
-              <button 
-                type="button"
-                className="create-supplier-next-btn"
-                onClick={handleNextStep2}
-              >
-                Next
-              </button>
-
-              {/* Info Message */}
-              <div className="create-supplier-info">
-                <Info size={16} />
-                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
-              </div>
+          {submitError && (
+            <div className="create-supplier-error" role="alert">
+              {submitError}
             </div>
           )}
-        </div>
+
+          <div className="create-escrow-modal-footer create-supplier-footer">
+            <button type="button" className="create-supplier-cancel-btn" onClick={handleCloseModal} disabled={isSubmitting}>
+              Cancel
+            </button>
+            <button type="submit" className="create-supplier-submit-btn" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding…' : 'Add supplier'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

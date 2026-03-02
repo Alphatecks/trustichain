@@ -1,4 +1,7 @@
 /* Business Suite PIN Modal Styles */
+.business-suite-pin-modal-overlay.create-escrow-modal-overlay {
+  z-index: 1100;
+}
 .create-escrow-modal.business-suite-pin-modal {
   max-width: 380px !important;
 }
@@ -32,6 +35,11 @@
   align-items: center;
   gap: 1rem;
   margin: 0.5rem 0;
+}
+
+.business-suite-pin-dots-container.loading {
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 .pin-dot {

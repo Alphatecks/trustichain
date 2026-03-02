@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -29,17 +29,22 @@ import {
   Wallet,
   ChevronRight
 } from 'lucide-react';
-import '../dashboard/Dashboard.css';
+import './BusinessDashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
 import logoWhite from '../../../assets/images/logo/logo_white.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import AddTeamMemberModal from '../../../components/AddTeamMemberModal';
+import AddTeamModal from '../../../components/AddTeamModal';
+import AddPayrollModal from '../../../components/AddPayrollModal';
+import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
 import { handleLogout } from '../../../utils/logout';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null, path: '/dashboard' },
   { label: 'Payroll', icon: DollarSign, badge: null, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, badge: null, path: '/supplier-contract' },
+  { label: 'Dispute', icon: CreditCard, badge: null, path: '/business-dispute' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' }, // placeholder route (not currently wired)
   { label: 'Transaction', icon: Repeat, badge: null, path: '/transactions' }
 ];
@@ -55,6 +60,8 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck, path: '/security' } // placeholder route (not currently wired)
 ];
 
+const formatUsd = (n) => (n == null || Number.isNaN(Number(n)) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(Number(n)));
+
 const BusinessDashboard = ({
   dashboardData,
   isLoadingDashboard,
@@ -62,6 +69,13 @@ const BusinessDashboard = ({
   isLoadingRates,
   portfolioPoints,
   isLoadingPortfolio,
+  teams = [],
+  isLoadingTeams = false,
+  onViewTeam,
+  upcomingSupply = [],
+  isLoadingUpcomingSupply = false,
+  subscriptionList = [],
+  isLoadingSubscription = false,
   walletBalances,
   isLoadingWalletBalances,
   escrows,
@@ -83,6 +97,7 @@ const BusinessDashboard = ({
   isLoadingWalletAddress = false,
   setShowWalletModal,
   handleCreateWallet,
+  setShowFundMethodModal,
   setShowFundWalletModal,
   setShowWithdrawWalletModal,
   setShowCreateEscrowModal,
@@ -91,11 +106,21 @@ const BusinessDashboard = ({
   setIsSwitchingAccountType,
   setSwitchMessage,
   businessKycComplete,
+  businessCompanyName = '',
+  businessCompanyLogoUrl = '',
+  isLoadingBusinessKyc = false,
   navigate,
   location,
   getBalanceValue,
-  getExchangeRate
+  getExchangeRate,
+  onTeamCreated
 }) => {
+  const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
+  const [addTeamMemberTeamId, setAddTeamMemberTeamId] = useState(null);
+  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
+  const [showAddPayrollModal, setShowAddPayrollModal] = useState(false);
+  const [showCreateNewSupplierModal, setShowCreateNewSupplierModal] = useState(false);
+
   const handleNavClick = (item) => {
     if (!item?.path) return;
     // Compliance/Security are placeholders in this repo; avoid navigating to dead routes.
@@ -116,7 +141,9 @@ const BusinessDashboard = ({
         <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
             <div className="mobile-user-avatar">
-              {userAvatar ? (
+              {businessCompanyLogoUrl ? (
+                <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+              ) : userAvatar ? (
                 <img src={userAvatar} alt={userFullName} />
               ) : (
                 userInitials
@@ -124,11 +151,13 @@ const BusinessDashboard = ({
             </div>
             <div className="mobile-user-info">
               <span className="mobile-user-name">
-                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                {businessCompanyName
+                  ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                  : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                 <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
               </span>
               <span className="mobile-user-role">
-                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+                {businessCompanyName ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
               </span>
             </div>
           </div>
@@ -204,7 +233,11 @@ const BusinessDashboard = ({
                 {businessSuiteNav.map((item) => {
                   const Icon = item.icon;
                   const isDisabled = !businessKycComplete;
-                  const isActive = item.path ? location.pathname === item.path : false;
+                  const isActive = item.path
+                    ? (item.path === '/business-dispute' || item.path === '/payroll')
+                      ? (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+                      : location.pathname === item.path
+                    : false;
                   const handleNavClick = () => {
                     if (isDisabled) return;
                     setIsMobileMenuOpen(false);
@@ -311,11 +344,11 @@ const BusinessDashboard = ({
               </div>
 
               <div className="mobile-sidebar-trustiscore">
-                <span className="mobile-sidebar-trustiscore-label">Active Supplier</span>
+                <span className="mobile-sidebar-trustiscore-label">Suppliers</span>
                 <span className="mobile-sidebar-trustiscore-badge">
-                  {dashboardData?.trustiscore?.score !== undefined 
-                    ? dashboardData.trustiscore.score 
-                    : (isLoadingDashboard ? '...' : '97')}
+                  {dashboardData?.suppliers !== undefined 
+                    ? dashboardData.suppliers 
+                    : (isLoadingDashboard ? '...' : '0')}
                 </span>
               </div>
 
@@ -389,7 +422,7 @@ const BusinessDashboard = ({
             <button 
               type="button" 
               className="mobile-fund-btn"
-              onClick={() => setShowFundWalletModal(true)}
+              onClick={() => setShowFundMethodModal(true)}
             >
               <Plus size={16} />
               Fund Wallet
@@ -425,7 +458,7 @@ const BusinessDashboard = ({
             <button
               type="button"
               className="mobile-metric-btn"
-              onClick={() => setShowCreateEscrowModal(true)}
+              onClick={() => setShowAddPayrollModal(true)}
             >
               <Plus size={14} />
               Create Payroll
@@ -434,21 +467,18 @@ const BusinessDashboard = ({
           <div className="mobile-metric-card">
             <div className="mobile-metric-header">
               <ShieldCheck size={16} />
-              <span>Active Supplier</span>
+              <span>Suppliers</span>
             </div>
             <div className="mobile-metric-value">
-              {dashboardData?.trustiscore?.score !== undefined 
-                ? dashboardData.trustiscore.score 
-                : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
-              <span className="mobile-metric-suffix">/100</span>
+              {dashboardData?.suppliers !== undefined 
+                ? dashboardData.suppliers 
+                : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 0)}
             </div>
             <div className="mobile-metric-subvalue">
-              {dashboardData?.trustiscore?.level !== undefined 
-                ? dashboardData.trustiscore.level 
-                : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+              {dashboardData?.suppliers !== undefined ? 'Active suppliers' : ''}
             </div>
-            <button type="button" className="mobile-metric-btn">
-              Add Team Member
+            <button type="button" className="mobile-metric-btn" onClick={() => setShowCreateNewSupplierModal(true)}>
+              Create new supplier
             </button>
           </div>
         </div>
@@ -511,30 +541,33 @@ const BusinessDashboard = ({
           <div className="mobile-section-header">
             <div className="mobile-section-indicator"></div>
             <h3 className="mobile-section-title">My Teams</h3>
-            <a href="#" className="mobile-see-all-link">See all</a>
+            <button type="button" className="mobile-see-all-link" onClick={() => setShowAddTeamModal(true)}>Add a team</button>
           </div>
           <div className="mobile-teams-list">
-            {[
-              { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-              { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-              { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-              { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-              { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-              { name: 'Payroll1', members: 23, nextDate: '31st Nov' }
-            ].map((team, index) => (
-              <div key={index} className="mobile-team-item">
-                <div className="mobile-team-content">
-                  <div className="mobile-team-name">{team.name}</div>
-                  <div className="mobile-team-members">
-                    Team members <span className="mobile-team-badge">{team.members}</span>
+            {isLoadingTeams ? (
+              <div className="mobile-team-item"><span style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
+            ) : teams.length === 0 ? (
+              <div className="mobile-team-item"><span style={{ color: 'var(--text-muted)' }}>No teams yet</span></div>
+            ) : (
+              teams.map((team) => (
+                <div key={team.id || team.name} className="mobile-team-item">
+                  <div className="mobile-team-row1">
+                    <div className="mobile-team-name">{team.name}</div>
+                    <div className="mobile-team-next-date">Next date: {team.nextDate ?? '—'}</div>
+                  </div>
+                  <div className="mobile-team-row2">
+                    <span className="mobile-team-members-wrap">
+                      <span className="mobile-team-members">Team members</span>
+                      <span className="mobile-team-badge">{team.memberCount ?? team.members ?? 0}</span>
+                    </span>
+                    <div className="mobile-team-actions">
+                      <button type="button" className="mobile-team-add-members" onClick={() => { setAddTeamMemberTeamId(team.id); setShowAddTeamMemberModal(true); }}>Add team members</button>
+                      <button type="button" className="mobile-team-view-btn" onClick={() => onViewTeam?.(team.id)}>View</button>
+                    </div>
                   </div>
                 </div>
-                <div className="mobile-team-right">
-                  <div className="mobile-team-next-date">Next date: {team.nextDate}</div>
-                  <button className="mobile-team-view-btn">View</button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -546,25 +579,27 @@ const BusinessDashboard = ({
             <a href="#" className="mobile-see-all-link">See all</a>
           </div>
           <div className="mobile-supply-list">
-            {[
-              { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', dueDate: '28 Nov' },
-              { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', dueDate: '28 Nov' },
-              { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', dueDate: '28 Nov' }
-            ].map((supply, index) => (
-              <div key={index} className="mobile-supply-item">
-                <div className="mobile-supply-avatar">
-                  <div className="mobile-supply-avatar-placeholder"></div>
+            {isLoadingUpcomingSupply ? (
+              <div className="mobile-supply-item"><span style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
+            ) : upcomingSupply.length === 0 ? (
+              <div className="mobile-supply-item"><span style={{ color: 'var(--text-muted)' }}>No upcoming supply</span></div>
+            ) : (
+              upcomingSupply.map((supply) => (
+                <div key={supply.id || supply.email} className="mobile-supply-item">
+                  <div className="mobile-supply-avatar">
+                    <div className="mobile-supply-avatar-placeholder"></div>
+                  </div>
+                  <div className="mobile-supply-content">
+                    <div className="mobile-supply-name">{supply.name ?? '—'}</div>
+                    <div className="mobile-supply-email">{supply.email ?? '—'}</div>
+                  </div>
+                  <div className="mobile-supply-right">
+                    <div className="mobile-supply-amount">{formatUsd(supply.amountUsd)}</div>
+                    <div className="mobile-supply-date">Due date: {supply.dueDate ?? '—'}</div>
+                  </div>
                 </div>
-                <div className="mobile-supply-content">
-                  <div className="mobile-supply-name">{supply.name}</div>
-                  <div className="mobile-supply-email">{supply.email}</div>
-                </div>
-                <div className="mobile-supply-right">
-                  <div className="mobile-supply-amount">{supply.amount}</div>
-                  <div className="mobile-supply-date">Due date: {supply.dueDate}</div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -576,25 +611,27 @@ const BusinessDashboard = ({
             <a href="#" className="mobile-see-all-link">See all</a>
           </div>
           <div className="mobile-subscription-list">
-            {[
-              { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', nextPayment: '28 Nov' },
-              { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', nextPayment: '28 Nov' },
-              { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', nextPayment: '28 Nov' }
-            ].map((subscription, index) => (
-              <div key={index} className="mobile-subscription-item">
-                <div className="mobile-subscription-avatar">
-                  <div className="mobile-subscription-avatar-placeholder"></div>
+            {isLoadingSubscription ? (
+              <div className="mobile-subscription-item"><span style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
+            ) : subscriptionList.length === 0 ? (
+              <div className="mobile-subscription-item"><span style={{ color: 'var(--text-muted)' }}>No subscriptions</span></div>
+            ) : (
+              subscriptionList.map((sub) => (
+                <div key={sub.id || sub.email} className="mobile-subscription-item">
+                  <div className="mobile-subscription-avatar">
+                    <div className="mobile-subscription-avatar-placeholder"></div>
+                  </div>
+                  <div className="mobile-subscription-content">
+                    <div className="mobile-subscription-name">{sub.name ?? '—'}</div>
+                    <div className="mobile-subscription-email">{sub.email ?? '—'}</div>
+                  </div>
+                  <div className="mobile-subscription-right">
+                    <div className="mobile-subscription-amount">{formatUsd(sub.amountUsd)}</div>
+                    <div className="mobile-subscription-date">Next payment: {sub.nextPayment ?? sub.dueDate ?? '—'}</div>
+                  </div>
                 </div>
-                <div className="mobile-subscription-content">
-                  <div className="mobile-subscription-name">{subscription.name}</div>
-                  <div className="mobile-subscription-email">{subscription.email}</div>
-                </div>
-                <div className="mobile-subscription-right">
-                  <div className="mobile-subscription-amount">{subscription.amount}</div>
-                  <div className="mobile-subscription-date">Next payment: {subscription.nextPayment}</div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -643,434 +680,319 @@ const BusinessDashboard = ({
         </div>
       </div>
 
-      {/* Desktop Dashboard */}
-      <div className="dashboard-content">
-        <div className="dashboard-layout">
-          {/* Sidebar */}
-          <aside className="dashboard-sidebar">
-            <div className="sidebar-branding">
-              <img src={logo} alt="TrustiChain" className="sidebar-logo" />
-              <div className="sidebar-branding-text">
-                <span className="sidebar-title">TrustiChain</span>
-                <span className="sidebar-tagline">Secure escrow platform</span>
+      {/* Desktop: content only (parent provides sidebar + main) */}
+      <div className="bs-dashboard">
+        <div className="bs-breadcrumb">
+          <span>General</span>
+          <span className="bs-breadcrumb-current">› Dashboard</span>
+        </div>
+
+        {/* 4 cards */}
+        <div className="bs-cards-row">
+          <div className="bs-card bs-card-balance">
+            <div className="bs-card-header">
+              <div className="bs-card-header-left">
+                <Eye size={18} />
+                <h3 className="bs-card-title">Total Balance</h3>
               </div>
             </div>
-
-            <div className="sidebar-section">
-              <p className="sidebar-section-label">Business Suite</p>
-              <nav className="sidebar-nav">
-                {businessSuiteNav.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = item.path ? location.pathname === item.path : false;
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                      onClick={() => handleNavClick(item)}
-                    >
-                      <Icon size={18} />
-                      <span>{item.label}</span>
-                      {item.badge && <span className="sidebar-badge">{item.badge}</span>}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            <div className="sidebar-section">
-              <p className="sidebar-section-label">Developers Tool</p>
-              <nav className="sidebar-nav">
-                {developersNav.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = item.path ? location.pathname === item.path : false;
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                      onClick={() => handleDevelopersNavClick(item)}
-                    >
-                      <Icon size={18} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            <div className="sidebar-section">
-              <p className="sidebar-section-label">Support</p>
-              <nav className="sidebar-nav">
-                {supportNav.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = item.path ? location.pathname === item.path : false;
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                      onClick={() => {
-                        if (item.path === '/settings') {
-                          navigate('/settings');
-                        }
-                      }}
-                    >
-                      <Icon size={18} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            {/* Help Center Widget */}
-            <div className="sidebar-help-card">
-              <div className="help-icon-large">
-                <HelpCircle size={24} />
-              </div>
-              <h3>Help Center</h3>
-              <p>Having trouble in Trustichain? Please contact us</p>
-              <button type="button" className="help-cta">Contact us</button>
-            </div>
-
-            {/* Footer */}
-            <div className="sidebar-footer">
-              <div className="sidebar-trustiscore">
-                <span className="sidebar-trustiscore-label">Trustiscore</span>
-                <span className="sidebar-trustiscore-badge">
-                  {dashboardData?.trustiscore?.score !== undefined 
-                    ? dashboardData.trustiscore.score 
-                    : (isLoadingDashboard ? '...' : '97')}
-                </span>
-              </div>
-              <button type="button" className="sidebar-logout" onClick={handleLogout}>
-                <LogOut size={18} />
-                <span>Logout</span>
-              </button>
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <main className="dashboard-main">
-            {/* Breadcrumb */}
-            <div className="card-breadcrumb">
-              <span className="breadcrumb-root">Business Suite</span>
-              <span className="breadcrumb-divider">›</span>
-              <span className="breadcrumb-current">Dashboard</span>
-            </div>
-        {/* Summary Cards */}
-        <div className="dashboard-summary-cards">
-          <div className="summary-card total-balance-card">
-            <div className="summary-card-header">
-              <h3>Total Balance</h3>
-              <button type="button" onClick={() => setShowBalance(!showBalance)} className="eye-toggle">
-                {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
-            </div>
-            <div className="summary-card-value-row">
-              <div className="summary-card-value">
-                {showBalance 
-                  ? (isLoadingDashboard 
+            <div className="bs-card-balance-row">
+              <span className="bs-card-value">
+                {showBalance
+                  ? (isLoadingDashboard
                       ? <LoadingIndicator size="sm" />
                       : (() => {
-                          if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+                          let usdBalance = null;
+                          if (dashboardData?.balance?.xrp != null && exchangeRates?.length > 0) {
                             const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                            if (xrpToUsdRate) {
-                              const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            }
-                            const usdRate = exchangeRates.find(r => 
-                              (r.from === 'XRP' && r.to === 'USD') || 
-                              (r.currency === 'USD' || r.code === 'USD')
-                            );
-                            if (usdRate && usdRate.rate) {
-                              const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            if (xrpToUsdRate != null) {
+                              usdBalance = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+                            } else {
+                              const usdRate = exchangeRates.find(r =>
+                                (r.from === 'XRP' && r.to === 'USD') ||
+                                (r.currency === 'USD' || r.code === 'USD')
+                              );
+                              if (usdRate && usdRate.rate != null) {
+                                usdBalance = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
+                              }
                             }
                           }
-                          if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
-                            return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          if (usdBalance == null) usdBalance = getBalanceValue(dashboardData, 'usd');
+                          if (usdBalance == null && dashboardData?.balance != null) {
+                            const b = dashboardData.balance;
+                            const directUsd = b.usd ?? b.USD ?? b.usdAmount;
+                            if (directUsd != null) usdBalance = Number(directUsd);
                           }
+                          if (usdBalance != null) return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                           return '$0.00';
                         })())
                   : '••••••'}
-              </div>
-              <div className="summary-card-subvalue">
-                ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
-                    ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.000000')} XRP
-              </div>
+              </span>
+              <span className="bs-card-subvalue">
+                ≈ {dashboardData?.balance?.xrp != null
+                  ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.00')} XRP
+              </span>
             </div>
-            <div className="summary-card-actions">
-              <button 
-                type="button" 
-                className="summary-card-btn primary"
-                onClick={() => setShowFundWalletModal(true)}
-              >
-                + Fund Wallet
-              </button>
-              <button 
-                type="button" 
-                className="summary-card-btn secondary"
-                onClick={() => setShowWithdrawWalletModal(true)}
-              >
-                + Withdraw
-              </button>
+            <div className="bs-card-actions">
+              <button type="button" className="bs-btn bs-btn-primary" onClick={() => setShowFundMethodModal(true)}>+ Fund Wallet</button>
+              <button type="button" className="bs-btn" onClick={() => setShowWithdrawWalletModal(true)}>+ Withdraw</button>
             </div>
           </div>
 
-          <div className="summary-card active-escrow-card">
-            <div className="summary-card-header">
-              <Users size={16} />
-              <h3>Total Payroll Teams</h3>
-            </div>
-            <div className="summary-card-value-row">
-              <div className="summary-card-value">
-                {dashboardData?.activeEscrows?.count !== undefined 
-                  ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
-              </div>
-              <div className="summary-card-subvalue">
-                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
-                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
+          <div className="bs-card bs-card-metric">
+            <div className="bs-card-header">
+              <div className="bs-card-header-left">
+                <Users size={16} />
+                <h3 className="bs-card-title">Total Payroll Teams</h3>
               </div>
             </div>
-            <button
-              type="button"
-              className="summary-card-btn primary"
-              onClick={() => setShowCreateEscrowModal(true)}
-            >
-              + Create Payroll
-            </button>
+            <div className="bs-card-value-inline">
+              <span className="bs-card-value">
+                {dashboardData?.activeEscrows?.count !== undefined ? dashboardData.activeEscrows.count : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
+              </span><span className="bs-card-subvalue">
+                ${dashboardData?.activeEscrows?.lockedAmount !== undefined ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (isLoadingDashboard ? '...' : '156,789')} locked
+              </span>
+            </div>
+            <button type="button" className="bs-btn" onClick={() => setShowAddPayrollModal(true)}>+ Create Payroll</button>
           </div>
 
-          <div className="summary-card trustiscore-card">
-            <div className="summary-card-header">
-              <ShieldCheck size={16} />
-              <h3>Active Supplier</h3>
-            </div>
-            <div className="summary-card-value-row">
-              <div className="summary-card-value">
-                {dashboardData?.trustiscore?.score !== undefined 
-                  ? dashboardData.trustiscore.score 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
-                <span className="summary-card-value-suffix">/100</span>
-              </div>
-              <div className="summary-card-subvalue">
-                {dashboardData?.trustiscore?.level !== undefined 
-                  ? dashboardData.trustiscore.level 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+          <div className="bs-card bs-card-metric">
+            <div className="bs-card-header">
+              <div className="bs-card-header-left">
+                <ShieldCheck size={16} />
+                <h3 className="bs-card-title">Suppliers</h3>
               </div>
             </div>
-            <button type="button" className="summary-card-btn secondary">Add Team Member</button>
+            <div className="bs-card-value-inline">
+              <span className="bs-card-value">
+                {dashboardData?.suppliers !== undefined ? dashboardData.suppliers : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 0)}
+              </span>
+              <span className="bs-card-subvalue">Active suppliers</span>
+            </div>
+            <button type="button" className="bs-btn" onClick={() => setShowCreateNewSupplierModal(true)}>+ Create new supplier</button>
           </div>
 
-          <div className="summary-card total-escrowed-card">
-            <div className="summary-card-header">
-              <CreditCard size={16} />
-              <h3>Total Subscription</h3>
-            </div>
-            <div className="summary-card-value-row">
-              <div className="summary-card-value">
-                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '0.00')}
+          <div className="bs-card bs-card-subscription">
+            <div className="bs-card-header">
+              <div className="bs-card-header-left">
+                <CreditCard size={16} />
+                <h3 className="bs-card-title">Total Subscription</h3>
               </div>
             </div>
-            <button type="button" className="summary-card-btn secondary">View Payroll Escrow</button>
+            <div className="bs-card-value">
+              ${totalEscrowedAmount != null ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '0.00')}
+            </div>
+            <button type="button" className="bs-btn">View Payroll Escrow</button>
           </div>
         </div>
 
-        {/* Middle Section */}
-        <div className="dashboard-middle">
-          <div className="dashboard-left-column">
-          {/* Portfolio Chart */}
-          <div className="dashboard-chart-card">
-            <div className="chart-header">
-              <h3>Portfolio</h3>
-              <div className="chart-dropdown">
-                <span>Monthly</span>
-                <ChevronDown size={16} />
+        {/* Middle: Portfolio | My Teams + Alert */}
+        <div className="bs-middle-row">
+          <div className="bs-middle-left">
+            <div className="bs-portfolio-card">
+              <div className="bs-portfolio-header">
+                <h3 className="bs-portfolio-title">Portfolio</h3>
+                <div className="chart-dropdown" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  <span>Monthly</span>
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+              <div className="bs-portfolio-legend">
+                <span><span className="bs-legend-dot bs-legend-dot-sub" /> Subscription</span>
+                <span><span className="bs-legend-dot bs-legend-dot-pay" /> Payroll</span>
+              </div>
+              <div className="bs-chart-area">
+                <div className="bs-chart-y-axis">
+                  {[100, 75, 50, 25, 0].map((val) => <span key={val}>{val}%</span>)}
+                </div>
+                <div className="bs-chart-bars">
+                  {isLoadingPortfolio && <LoadingIndicator size="md" />}
+                  {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
+                    const hasSubscriptionPayroll = portfolioPoints.some((p) => p.subscriptionUsd != null || p.payrollUsd != null);
+                    if (hasSubscriptionPayroll) {
+                      const maxVal = portfolioPoints.reduce((m, p) => Math.max(m, Number(p.subscriptionUsd ?? 0), Number(p.payrollUsd ?? 0)), 0) || 1;
+                      return portfolioPoints.map((point, i) => {
+                        const sub = Number(point.subscriptionUsd ?? 0);
+                        const pay = Number(point.payrollUsd ?? 0);
+                        const hSub = sub > 0 ? Math.max(4, (sub / maxVal) * 100) : 0;
+                        const hPay = pay > 0 ? Math.max(4, (pay / maxVal) * 100) : 0;
+                        const label = point.label ?? '';
+                        return (
+                          <div key={`${label}-${i}`} className="bs-chart-bar-group">
+                            <div className="bs-chart-bar-wrap bs-chart-bar-wrap-dual">
+                              {hSub > 0 && <div className="bs-chart-bar bs-chart-bar-sub" style={{ height: `${hSub}%` }} />}
+                              {hPay > 0 && <div className="bs-chart-bar bs-chart-bar-pay" style={{ height: `${hPay}%` }} />}
+                              {hSub === 0 && hPay === 0 && <div className="bs-chart-bar bs-chart-bar-empty" style={{ height: '4%' }} />}
+                            </div>
+                            <span className="bs-chart-label">{label}</span>
+                          </div>
+                        );
+                      });
+                    }
+                    const maxVal = portfolioPoints.reduce((m, p) => Math.max(m, Math.abs(Number(p.value ?? 0))), 0) || 1;
+                    return portfolioPoints.map((point, i) => {
+                      const v = Number(point.value ?? 0);
+                      const hasBar = v !== 0;
+                      const h = hasBar ? Math.max(8, (Math.abs(v) / maxVal) * 100) : 0;
+                      const label = point.label ?? '';
+                      return (
+                        <div key={`${label}-${i}`} className="bs-chart-bar-group">
+                          <div className="bs-chart-bar-wrap">
+                            {hasBar && (
+                              <div
+                                className={`bs-chart-bar ${v >= 0 ? 'bs-chart-bar-positive' : 'bs-chart-bar-negative'}`}
+                                style={{ height: `${h}%` }}
+                              />
+                            )}
+                          </div>
+                          <span className="bs-chart-label">{label}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                  {!isLoadingPortfolio && (!portfolioPoints || portfolioPoints.length === 0) && (
+                    <span className="bs-chart-label" style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>No portfolio data</span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="chart-container">
-              <div className="chart-y-axis">
-                {[0, 10, 20, 30, 40, 50].map((val) => (
-                  <span key={val}>{val}k</span>
-                ))}
-              </div>
-              <div className="bar-chart">
-                {isLoadingPortfolio && (
-                  <span className="rate-currency"><LoadingIndicator size="md" /></span>
+            {/* Upcoming Supply & Subscription directly under Portfolio */}
+            <div className="bs-under-portfolio">
+              <div className="bs-list-card">
+                <div className="bs-list-card-header">
+                  <h3 className="bs-list-card-title">Upcoming Supply</h3>
+                  <a href="#" className="bs-list-card-see-all">See all</a>
+                </div>
+                {isLoadingUpcomingSupply ? (
+                  <div className="bs-list-item"><span style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
+                ) : upcomingSupply.length === 0 ? (
+                  <div className="bs-list-item"><span style={{ color: 'var(--text-muted)' }}>No upcoming supply</span></div>
+                ) : (
+                  upcomingSupply.map((row) => (
+                    <div key={row.id || row.email} className="bs-list-item">
+                      <div className="bs-list-avatar" />
+                      <div className="bs-list-content">
+                        <div className="bs-list-name">{row.name ?? '—'}</div>
+                        <div className="bs-list-email">{row.email ?? '—'}</div>
+                      </div>
+                      <div className="bs-list-right">
+                        <div className="bs-list-amount">{formatUsd(row.amountUsd)}</div>
+                        <div className="bs-list-date">Due date: {row.dueDate ?? '—'}</div>
+                      </div>
+                    </div>
+                  ))
                 )}
-
-                {!isLoadingPortfolio && portfolioPoints && portfolioPoints.length > 0 && (() => {
-                  const maxValue =
-                    portfolioPoints.reduce(
-                      (max, p) => Math.max(max, Number(p.value ?? 0)),
-                      0
-                    ) || 1;
-
-                  return portfolioPoints.map((point, index) => {
-                    const value = Number(point.value ?? 0);
-                    const height = Math.max(5, (value / maxValue) * 100);
-                    const label = point.label ?? '';
-
-                    return (
-                      <div key={`${label}-${index}`} className="bar-wrapper">
-                        <div
-                          className={`bar ${index === portfolioPoints.length - 1 ? 'bar-purple' : ''}`}
-                          style={{ height: `${height}%` }}
-                        />
-                        <span className="bar-label">{label}</span>
+              </div>
+              <div className="bs-list-card">
+                <div className="bs-list-card-header">
+                  <h3 className="bs-list-card-title">Subscription</h3>
+                  <a href="#" className="bs-list-card-see-all">See all</a>
+                </div>
+                {isLoadingSubscription ? (
+                  <div className="bs-list-item"><span style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
+                ) : subscriptionList.length === 0 ? (
+                  <div className="bs-list-item"><span style={{ color: 'var(--text-muted)' }}>No subscriptions</span></div>
+                ) : (
+                  subscriptionList.map((row) => (
+                    <div key={row.id || row.email} className="bs-list-item">
+                      <div className="bs-list-avatar" />
+                      <div className="bs-list-content">
+                        <div className="bs-list-name">{row.name ?? '—'}</div>
+                        <div className="bs-list-email">{row.email ?? '—'}</div>
                       </div>
-                    );
-                  });
-                })()}
-
-                {!isLoadingPortfolio && (!portfolioPoints || portfolioPoints.length === 0) && (
-                  <span className="rate-currency">No portfolio data</span>
+                      <div className="bs-list-right">
+                        <div className="bs-list-amount">{formatUsd(row.amountUsd)}</div>
+                        <div className="bs-list-date">Next payment: {row.nextPayment ?? row.dueDate ?? '—'}</div>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
           </div>
-
-            {/* Upcoming Supply, Subscription & Alert Cards */}
-            <div className="business-cards-grid">
-              {/* Upcoming Supply Card */}
-              <div className="upcoming-supply-card">
-                <div className="card-section-header">
-                  <div className="card-section-header-left">
-                    <div className="card-section-indicator"></div>
-                    <h3>Upcoming Supply</h3>
-                  </div>
-                  <a href="#" className="card-see-all-link">See all</a>
-                </div>
-                <div className="supply-list">
-                  {[
-                    { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', dueDate: '28 Nov' },
-                    { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', dueDate: '28 Nov' },
-                    { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', dueDate: '28 Nov' }
-                  ].map((supply, index) => (
-                    <div key={index} className="supply-item">
-                      <div className="supply-avatar">
-                        <div className="supply-avatar-placeholder"></div>
-                      </div>
-                      <div className="supply-content">
-                        <div className="supply-name">{supply.name}</div>
-                        <div className="supply-email">{supply.email}</div>
-                      </div>
-                      <div className="supply-right">
-                        <div className="supply-amount">{supply.amount}</div>
-                        <div className="supply-date">Due date: {supply.dueDate}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          <div className="bs-middle-right">
+            <div className="bs-teams-card">
+              <div className="bs-teams-header">
+                <h3 className="bs-teams-title">My Teams</h3>
+                <button type="button" className="bs-teams-see-all" onClick={() => setShowAddTeamModal(true)}>Add a team</button>
               </div>
-
-              {/* Subscription Card */}
-              <div className="subscription-card">
-                <div className="card-section-header">
-                  <div className="card-section-header-left">
-                    <div className="card-section-indicator"></div>
-                    <h3>Subscription</h3>
-                  </div>
-                  <a href="#" className="card-see-all-link">See all</a>
-                </div>
-                <div className="subscription-list">
-                  {[
-                    { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', nextPayment: '28 Nov' },
-                    { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', nextPayment: '28 Nov' },
-                    { name: 'Name 1', email: 'Demoemail@gmail.com', amount: '$24,567.89', nextPayment: '28 Nov' }
-                  ].map((subscription, index) => (
-                    <div key={index} className="subscription-item">
-                      <div className="subscription-avatar">
-                        <div className="subscription-avatar-placeholder"></div>
+              <div className="bs-teams-list">
+                {isLoadingTeams ? (
+                  <div className="bs-team-item"><span style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
+                ) : teams.length === 0 ? (
+                  <div className="bs-team-item"><span style={{ color: 'var(--text-muted)' }}>No teams yet</span></div>
+                ) : (
+                  teams.map((team) => (
+                    <div key={team.id || team.name} className="bs-team-item">
+                      <div className="bs-team-row1">
+                        <div className="bs-team-name">{team.name}</div>
+                        <div className="bs-team-next-date">Next date: {team.nextDate ?? '—'}</div>
                       </div>
-                      <div className="subscription-content">
-                        <div className="subscription-name">{subscription.name}</div>
-                        <div className="subscription-email">{subscription.email}</div>
-                      </div>
-                      <div className="subscription-right">
-                        <div className="subscription-amount">{subscription.amount}</div>
-                        <div className="subscription-date">Next payment: {subscription.nextPayment}</div>
+                      <div className="bs-team-row2">
+                        <span className="bs-team-members-wrap">
+                          <span className="bs-team-members">Team members</span>
+                          <span className="bs-team-badge">{team.memberCount ?? team.members ?? 0}</span>
+                        </span>
+                        <div className="bs-team-actions">
+                          <button type="button" className="bs-team-add-members" onClick={() => { setAddTeamMemberTeamId(team.id); setShowAddTeamMemberModal(true); }}>Add team members</button>
+                          <button type="button" className="bs-team-view" onClick={() => onViewTeam?.(team.id)}>View</button>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* My Teams & Alert */}
-          <div className="dashboard-right-cards">
-            <div className="my-teams-card">
-              <div className="teams-card-header">
-                <div className="teams-header-left">
-                  <div className="teams-indicator"></div>
-                  <h3>My Teams</h3>
-                </div>
-                <a href="#" className="teams-see-all-link">See all</a>
-              </div>
-              <div className="teams-list">
-                {[
-                  { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-                  { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-                  { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-                  { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-                  { name: 'Payroll1', members: 23, nextDate: '31st Nov' },
-                  { name: 'Payroll1', members: 23, nextDate: '31st Nov' }
-                ].map((team, index) => (
-                  <div key={index} className="team-item">
-                    <div className="team-content">
-                      <div className="team-name">{team.name}</div>
-                      <div className="team-members">
-                        Team members <span className="team-badge">{team.members}</span>
-                      </div>
-                    </div>
-                    <div className="team-right">
-                      <div className="team-next-date">Next date: {team.nextDate}</div>
-                      <button className="team-view-btn">View</button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
-
-            {/* Alert Card */}
-            <div className="alert-card">
-              <div className="card-section-header">
-                <div className="card-section-header-left">
-                  <div className="card-section-indicator"></div>
-                  <h3>Alert</h3>
-                </div>
+            <div className="bs-alert-card">
+              <div className="bs-alert-header">
+                <span className="bs-alert-indicator" />
+                <h3 className="bs-alert-title">Alert</h3>
               </div>
-              <div className="alert-content-wrapper">
-                <div className="alert-icon">
-                  <CreditCard size={40} />
+              <div className="bs-alert-body">
+                <div className="bs-alert-icon"><CreditCard size={32} /></div>
+                <div>
+                  <div className="bs-alert-heading">Upcoming Payroll Alert</div>
+                  <div className="bs-alert-message">Angelo Group's next payout window is opening. Confirm and finalize your disbursement.</div>
+                  <button type="button" className="bs-alert-btn">View payroll</button>
                 </div>
-                <div className="alert-text-content">
-                  <div className="alert-title">Upcoming Payroll Alert</div>
-                  <div className="alert-message">
-                    Angelo Group's next payout window is opening. Confirm and finalize your disbursement.
-                  </div>
-                </div>
-                <button className="alert-view-btn">View payroll</button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="dashboard-bottom">
-        </div>
-          </main>
-        </div>
       </div>
+
+      <AddTeamMemberModal
+        isOpen={showAddTeamMemberModal}
+        onCancel={() => { setShowAddTeamMemberModal(false); setAddTeamMemberTeamId(null); }}
+        onSuccess={() => { setShowAddTeamMemberModal(false); setAddTeamMemberTeamId(null); }}
+        teamId={addTeamMemberTeamId}
+      />
+      <AddTeamModal
+        isOpen={showAddTeamModal}
+        onCancel={() => setShowAddTeamModal(false)}
+        onSuccess={() => {
+          setShowAddTeamModal(false);
+          onTeamCreated?.();
+        }}
+      />
+      <AddPayrollModal
+        isOpen={showAddPayrollModal}
+        onCancel={() => setShowAddPayrollModal(false)}
+        onSuccess={() => {
+          setShowAddPayrollModal(false);
+          navigate?.('/payroll');
+        }}
+      />
+      <CreateNewSupplierModal
+        isOpen={showCreateNewSupplierModal}
+        onCancel={() => setShowCreateNewSupplierModal(false)}
+        onSuccess={(data) => {
+          setShowCreateNewSupplierModal(false);
+          if (data) navigate?.('/supplier-contract');
+        }}
+      />
     </>
   );
 };

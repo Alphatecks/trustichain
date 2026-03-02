@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShieldCheck,
+  CreditCard,
   Settings,
   Search,
   Bell,
@@ -32,6 +33,7 @@ import './Webhook.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateWebhookModal from '../../../components/CreateWebhookModal';
@@ -40,6 +42,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
@@ -55,18 +58,37 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck }
 ];
 
+const normalizeCompanyLogoUrl = (data) => {
+  const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${base}${path}`;
+};
+
 const Webhook = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const [accountType, setAccountType] = useState('Business Suite');
+  const [accountType, setAccountType] = useState(() => {
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') return stored;
+    return 'Business Suite';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [userFullName, setUserFullName] = useState('Sarah Chen');
-  const [userInitials, setUserInitials] = useState('SC');
+  const [userFullName, setUserFullName] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [userRole, setUserRole] = useState('');
+  const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(false);
   const [hasWallet, setHasWallet] = useState(false);
   const [isKycCompleteForAccount, setIsKycCompleteForAccount] = useState(true);
+  const [businessCompanyName, setBusinessCompanyName] = useState('');
+  const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('Monthly');
   const [webhookUrl, setWebhookUrl] = useState('https://yourserver.com/webhooks/trustichain');
   const [showCreateWebhookModal, setShowCreateWebhookModal] = useState(false);
@@ -82,6 +104,75 @@ const Webhook = () => {
     'Wallet Updated': true,
     'Payout Completed': true
   });
+
+  const formattedToday = useMemo(
+    () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    []
+  );
+
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    let cancelled = false;
+    setIsLoadingBusinessKyc(true);
+    fetch(getApiUrl('api/business-suite/kyc'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const kycData = result.data;
+          setBusinessCompanyName(kycData.companyName || kycData?.companyName || '');
+          setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+        }
+      })
+      .catch(() => { if (!cancelled) { setBusinessCompanyName(''); setBusinessCompanyLogoUrl(''); } })
+      .finally(() => { if (!cancelled) setIsLoadingBusinessKyc(false); });
+    return () => { cancelled = true; };
+  }, [accountType]);
+
+  useEffect(() => {
+    if (isSessionExpired) {
+      setUserFullName('');
+      setUserInitials('');
+      setUserRole('');
+      setUserAvatar(null);
+      setIsLoadingUserProfile(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) { setIsLoadingUserProfile(false); return; }
+    setIsLoadingUserProfile(true);
+    fetch(getApiUrl('api/user/profile'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          const data = result.data;
+          const fullName = data.fullName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.name || '';
+          if (fullName) setUserFullName(fullName);
+          const firstName = data.firstName || '';
+          const lastName = data.lastName || '';
+          let initials = '';
+          if (firstName && lastName) initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+          else if (fullName) {
+            const nameParts = fullName.trim().split(/\s+/);
+            if (nameParts.length >= 2) initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
+            else if (nameParts.length === 1) initials = nameParts[0].charAt(0).toUpperCase();
+          }
+          setUserInitials(initials);
+          setUserRole(data.role || data.userType || data.accountType || '');
+          setUserAvatar(data.avatar || data.profilePicture || data.image || data.photo || null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingUserProfile(false));
+  }, [isSessionExpired]);
 
   // Sample webhook logs data
   const webhookLogs = [
@@ -130,6 +221,8 @@ const Webhook = () => {
       navigate('/payroll');
     } else if (item.label === 'Supplier Contract') {
       navigate('/supplier-contract');
+    } else if (item.label === 'Dispute') {
+      navigate('/business-dispute');
     } else if (item.label === 'Transaction') {
       navigate('/transactions', { state: { accountType: 'Business Suite' } });
     }
@@ -199,8 +292,9 @@ const Webhook = () => {
                 {businessSuiteNav.map((item) => {
                   const Icon = item.icon;
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                                   (item.label === 'Payroll' && location.pathname === '/payroll') ||
+                                   (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                    (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
                                    (item.label === 'Transaction' && location.pathname === '/transactions');
                   return (
                     <button
@@ -284,7 +378,7 @@ const Webhook = () => {
             {/* Header */}
             <header className="dashboard-header">
               <div className="header-info">
-                <p className="header-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="header-date">{formattedToday}</p>
                 <h1>Welcome Back !</h1>
               </div>
 
@@ -299,17 +393,31 @@ const Webhook = () => {
               </div>
 
               <div className="header-actions">
-                <div className="account-type-display">
-                  <span className="account-type-label">Business Suite</span>
-                </div>
-                {isKycCompleteForAccount && (
-                  <button 
-                    type="button" 
-                    className="create-wallet-btn"
+                <div className="account-type-buttons">
+                  <button
+                    type="button"
+                    className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
                     onClick={() => {
-                      // Wallet functionality can be added here
+                      setAccountType('Personal');
+                      localStorage.setItem('dashboard_account_type', 'Personal');
+                      navigate('/dashboard');
                     }}
                   >
+                    Personal
+                  </button>
+                  <button
+                    type="button"
+                    className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
+                    onClick={() => {
+                      setAccountType('Business Suite');
+                      localStorage.setItem('dashboard_account_type', 'Business Suite');
+                    }}
+                  >
+                    Business Suite
+                  </button>
+                </div>
+                {isKycCompleteForAccount && (
+                  <button type="button" className="create-wallet-btn" onClick={() => navigate('/dashboard')}>
                     {hasWallet ? 'View Wallet' : 'Create Wallet'}
                   </button>
                 )}
@@ -317,13 +425,23 @@ const Webhook = () => {
                   <Bell size={18} />
                 </button>
                 <div className="header-user">
-                  <div className="user-avatar">{userInitials}</div>
+                  <div className="user-avatar">
+                    {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                      <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                    ) : userAvatar ? (
+                      <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                    ) : (
+                      userInitials
+                    )}
+                  </div>
                   <div className="user-info">
                     <span className="user-name">
-                      {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                      {accountType === 'Business Suite' && businessCompanyName
+                        ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                        : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                       <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                     </span>
-                    <small>Freelancer</small>
+                    <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
                   </div>
                 </div>
               </div>

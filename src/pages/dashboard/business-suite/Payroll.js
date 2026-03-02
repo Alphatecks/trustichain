@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -44,14 +44,17 @@ import './Payroll.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import AddPayrollModal from '../../../components/AddPayrollModal';
+import TransactionDetailModal from './TransactionDetailModal';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
@@ -67,39 +70,65 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck }
 ];
 
+const normalizeCompanyLogoUrl = (data) => {
+  const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${base}${path}`;
+};
+
 const Payroll = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const [accountType, setAccountType] = useState('Business Suite');
+  const [accountType, setAccountType] = useState(() => {
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') return stored;
+    return 'Business Suite';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [isSwitchingAccountType, setIsSwitchingAccountType] = useState(false);
   const [switchMessage, setSwitchMessage] = useState('');
-  const [userFullName, setUserFullName] = useState('Sarah Chen');
-  const [userInitials, setUserInitials] = useState('SC');
-  const [userRole, setUserRole] = useState('Freelancer');
+  const [userFullName, setUserFullName] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(false);
   const [hasWallet, setHasWallet] = useState(false);
   const [isKycCompleteForAccount, setIsKycCompleteForAccount] = useState(true);
   const [businessKycComplete, setBusinessKycComplete] = useState(true);
+  const [businessCompanyName, setBusinessCompanyName] = useState('');
+  const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [transactionFilter, setTransactionFilter] = useState('All');
   const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
-  const [currentPage, setCurrentPage] = useState(12);
-  const [payrollToggles, setPayrollToggles] = useState({
-    payroll1: 'active',
-    angelo1: 'active',
-    angelo2: 'active',
-    angelo3: 'active'
+  const [currentPage, setCurrentPage] = useState(1);
+  const [transactionHistory, setTransactionHistory] = useState([]);
+  const [isLoadingTransactionHistory, setIsLoadingTransactionHistory] = useState(true);
+  const [transactionHistoryPage, setTransactionHistoryPage] = useState(1);
+  const [transactionHistoryTotalPages, setTransactionHistoryTotalPages] = useState(1);
+  const [transactionHistoryMonth, setTransactionHistoryMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [freezeAutoRelease, setFreezeAutoRelease] = useState({
-    payroll1: false,
-    angelo1: false,
-    angelo2: false,
-    angelo3: false
-  });
+  const [payrolls, setPayrolls] = useState([]);
+  const [isLoadingPayrolls, setIsLoadingPayrolls] = useState(true);
+  const [payrollsPage, setPayrollsPage] = useState(1);
+  const [payrollsRefreshKey, setPayrollsRefreshKey] = useState(0);
+  const [releasingPayrollId, setReleasingPayrollId] = useState(null);
+  const [payrollSummary, setPayrollSummary] = useState(null);
+  const [isLoadingPayrollSummary, setIsLoadingPayrollSummary] = useState(true);
+  const [payrollsTotalPages, setPayrollsTotalPages] = useState(1);
+  const [payrollToggles, setPayrollToggles] = useState({});
+  const [freezeAutoRelease, setFreezeAutoRelease] = useState({});
   const [showAddPayrollModal, setShowAddPayrollModal] = useState(false);
+  const [transactionDetailOpen, setTransactionDetailOpen] = useState(false);
+  const [transactionDetailData, setTransactionDetailData] = useState(null);
+  const [isLoadingTransactionDetail, setIsLoadingTransactionDetail] = useState(false);
   const [selectedPayrollDetail, setSelectedPayrollDetail] = useState(null);
   const [showAddTeamMember, setShowAddTeamMember] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
@@ -151,26 +180,328 @@ const Payroll = () => {
     accountNumber: ''
   });
 
-  const payrolls = [
-    { id: 'payroll1', name: 'Payroll 1', releaseDate: '31 nov' },
-    { id: 'angelo1', name: 'Angelo group', releaseDate: '31 nov' },
-    { id: 'angelo2', name: 'Angelo group', releaseDate: '31 nov' },
-    { id: 'angelo3', name: 'Angelo group', releaseDate: '31 nov' }
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingPayrolls(false);
+      return;
+    }
+    setIsLoadingPayrolls(true);
+    fetch(getApiUrl(`api/business-suite/payrolls?page=${payrollsPage}&pageSize=20`), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && Array.isArray(result?.data?.items)) {
+          setPayrolls(result.data.items);
+          setPayrollsTotalPages(result?.data?.totalPages ?? 1);
+          const toggles = {};
+          const freeze = {};
+          result.data.items.forEach((p) => {
+            toggles[p.id] = p.status === 'scheduled' ? 'scheduled' : 'active';
+            freeze[p.id] = !!p.freezeAutoRelease;
+          });
+          setPayrollToggles(toggles);
+          setFreezeAutoRelease(freeze);
+        } else {
+          setPayrolls([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Payrolls list error:', err);
+        setPayrolls([]);
+      })
+      .finally(() => setIsLoadingPayrolls(false));
+  }, [payrollsPage, payrollsRefreshKey]);
 
-  const transactions = Array(9).fill({
-    transactionId: 'TC-PAY-AGP-0118-983472',
-    payrollName: 'Angelo Group Payroll',
-    amount: '+50 XRP ($25.00 USD)',
-    status: 'Pending',
-    dueDate: '2024-07-04'
-  });
+  useEffect(() => {
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') {
+      setAccountType(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    let cancelled = false;
+    setIsLoadingBusinessKyc(true);
+    fetch(getApiUrl('api/business-suite/kyc'), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const kycData = result.data;
+          setBusinessCompanyName(kycData.companyName || kycData?.companyName || '');
+          setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+          const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
+          const status = statusRaw.replace(/_/g, ' ').toLowerCase();
+          const verifiedStatuses = ['verified', 'approved', 'complete'];
+          setBusinessKycComplete(verifiedStatuses.includes(status));
+        }
+      })
+      .catch(() => { if (!cancelled) { setBusinessCompanyName(''); setBusinessCompanyLogoUrl(''); } })
+      .finally(() => { if (!cancelled) setIsLoadingBusinessKyc(false); });
+    return () => { cancelled = true; };
+  }, [accountType]);
+
+  useEffect(() => {
+    if (isSessionExpired) {
+      setUserFullName('');
+      setUserInitials('');
+      setUserRole('');
+      setUserAvatar(null);
+      setIsLoadingUserProfile(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingUserProfile(false);
+      return;
+    }
+    setIsLoadingUserProfile(true);
+    fetch(getApiUrl('api/user/profile'), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          const data = result.data;
+          const fullName = data.fullName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.name || '';
+          if (fullName) setUserFullName(fullName);
+          const firstName = data.firstName || '';
+          const lastName = data.lastName || '';
+          let initials = '';
+          if (firstName && lastName) {
+            initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+          } else if (fullName) {
+            const nameParts = fullName.trim().split(/\s+/);
+            if (nameParts.length >= 2) {
+              initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
+            } else if (nameParts.length === 1) {
+              initials = nameParts[0].charAt(0).toUpperCase();
+            }
+          }
+          setUserInitials(initials);
+          setUserRole(data.role || data.userType || data.accountType || '');
+          setUserAvatar(data.avatar || data.profilePicture || data.image || data.photo || null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingUserProfile(false));
+  }, [isSessionExpired]);
+
+  const formattedToday = useMemo(
+    () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    []
+  );
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingPayrollSummary(false);
+      return;
+    }
+    setIsLoadingPayrollSummary(true);
+    fetch(getApiUrl('api/business-suite/payrolls/summary'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          setPayrollSummary(result.data);
+        } else {
+          setPayrollSummary(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Payroll summary error:', err);
+        setPayrollSummary(null);
+      })
+      .finally(() => setIsLoadingPayrollSummary(false));
+  }, []);
+
+  const formatSummaryEscrowed = (n) => (n == null || Number.isNaN(Number(n)) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(n)));
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingTransactionHistory(false);
+      return;
+    }
+    setIsLoadingTransactionHistory(true);
+    const month = transactionHistoryMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    fetch(getApiUrl(`api/business-suite/payrolls/transactions?page=${transactionHistoryPage}&pageSize=20&month=${month}`), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && Array.isArray(result?.data?.items)) {
+          setTransactionHistory(result.data.items);
+          setTransactionHistoryTotalPages(result?.data?.totalPages ?? 1);
+        } else {
+          setTransactionHistory([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Transaction history error:', err);
+        setTransactionHistory([]);
+      })
+      .finally(() => setIsLoadingTransactionHistory(false));
+  }, [transactionHistoryPage, transactionHistoryMonth]);
+
+  const formatTransactionAmount = (item) => {
+    const hasXrp = item.amountXrp != null && !Number.isNaN(Number(item.amountXrp));
+    const usd = item.amountUsd != null && !Number.isNaN(Number(item.amountUsd))
+      ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(Number(item.amountUsd))
+      : null;
+    if (hasXrp && usd) return `${Number(item.amountXrp)} XRP (${usd})`;
+    if (hasXrp) return `${Number(item.amountXrp)} XRP`;
+    return usd || '—';
+  };
+
+  const handleViewTransaction = (itemId) => {
+    if (!itemId) return;
+    setTransactionDetailOpen(true);
+    setIsLoadingTransactionDetail(true);
+    setTransactionDetailData(null);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingTransactionDetail(false);
+      return;
+    }
+    fetch(getApiUrl(`api/business-suite/payrolls/transactions/${itemId}`), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          setTransactionDetailData(result.data);
+        } else {
+          setTransactionDetailData(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Transaction detail error:', err);
+        setTransactionDetailData(null);
+      })
+      .finally(() => setIsLoadingTransactionDetail(false));
+  };
+
+  const handleCloseTransactionDetail = () => {
+    setTransactionDetailOpen(false);
+    setTransactionDetailData(null);
+  };
+
+  const buildCreatePayrollPayload = (data) => {
+    const disbursementMode = (data.disbursementMode === 'Auto Release' || data.disbursementMode === 'auto_release') ? 'auto_release' : 'manual_release';
+    return {
+      name: data.name || `${data.companyName || 'Payroll'}`.trim() || 'New Payroll',
+      companyName: data.companyName || '',
+      companyEmail: data.companyEmail || '',
+      payrollCycle: data.payrollCycle || 'Weekly',
+      cycleDate: data.cycleDate || data.startDate || '',
+      startDate: data.startDate || '',
+      endDate: data.endDate || '',
+      companyDescription: data.companyDescription || '',
+      disbursementMode,
+      defaultSalaryType: data.defaultSalaryType || 'Monthly',
+      currency: data.currency || 'USD',
+      enableAllowances: !!data.allowanceAllocation,
+      releaseDate: data.releaseDate || data.endDate || '',
+      items: Array.isArray(data.items) ? data.items : [],
+    };
+  };
+
+  const handleCreatePayroll = async (formData) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    const payload = buildCreatePayrollPayload(formData);
+    const res = await fetch(getApiUrl('api/business-suite/payrolls'), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!result?.success) throw new Error(result?.message || 'Failed to create payroll');
+    setPayrollsRefreshKey((k) => k + 1);
+  };
+
+  const handleReleasePayroll = (payrollId) => {
+    if (!payrollId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setReleasingPayrollId(payrollId);
+    fetch(getApiUrl(`api/business-suite/payrolls/${payrollId}/release`), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success) {
+          setPayrollsRefreshKey((k) => k + 1);
+        }
+      })
+      .catch((err) => console.error('Release payroll error:', err))
+      .finally(() => setReleasingPayrollId(null));
+  };
 
   const toggleFreezeAutoRelease = (payrollId) => {
-    setFreezeAutoRelease(prev => ({
-      ...prev,
-      [payrollId]: !prev[payrollId]
-    }));
+    const nextFreeze = !freezeAutoRelease[payrollId];
+    setFreezeAutoRelease(prev => ({ ...prev, [payrollId]: nextFreeze }));
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(getApiUrl(`api/business-suite/payrolls/${payrollId}`), {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ freezeAutoRelease: nextFreeze }),
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (!result?.success) {
+          setFreezeAutoRelease(prev => ({ ...prev, [payrollId]: !nextFreeze }));
+        }
+      })
+      .catch((err) => {
+        console.error('Update payroll error:', err);
+        setFreezeAutoRelease(prev => ({ ...prev, [payrollId]: !nextFreeze }));
+      });
   };
 
 
@@ -183,7 +514,9 @@ const Payroll = () => {
           <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
             <div className="mobile-user-avatar">
-              {userAvatar ? (
+              {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+              ) : userAvatar ? (
                 <img src={userAvatar} alt={userFullName} />
               ) : (
                 userInitials
@@ -191,11 +524,13 @@ const Payroll = () => {
             </div>
             <div className="mobile-user-info">
               <span className="mobile-user-name">
-                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                {accountType === 'Business Suite' && businessCompanyName
+                  ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                  : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                 <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
               </span>
               <span className="mobile-user-role">
-                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+                {accountType === 'Business Suite' ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
               </span>
             </div>
           </div>
@@ -338,8 +673,9 @@ const Payroll = () => {
                   const Icon = item.icon;
                   const isDisabled = !businessKycComplete;
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                                   (item.label === 'Payroll' && location.pathname === '/payroll') ||
+                                   (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                    (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
                                    (item.label === 'Transaction' && location.pathname === '/transactions');
                   const handleNavClick = () => {
                     if (isDisabled) return;
@@ -350,6 +686,8 @@ const Payroll = () => {
                       navigate('/payroll');
                     } else if (item.label === 'Supplier Contract') {
                       navigate('/supplier-contract');
+                    } else if (item.label === 'Dispute') {
+                      navigate('/business-dispute');
                     } else if (item.label === 'Transaction') {
                       navigate('/transactions', { state: { accountType: 'Business Suite' } });
                     }
@@ -460,14 +798,14 @@ const Payroll = () => {
           {!selectedPayrollDetail && (
             <div className="payroll-summary-cards-wrapper-mobile">
               <div className="payroll-summary-cards-mobile">
-            <div className="payroll-summary-card-mobile">
+            <div className="payroll-summary-card-mobile payroll-summary-card-mobile--value-trend">
               <div className="summary-card-icon-mobile">
                 <FileText size={24} />
               </div>
               <div className="summary-card-content-mobile">
                 <div className="summary-card-title-mobile">Total Payroll</div>
                 <div className="summary-card-value-row-mobile">
-                  <div className="summary-card-value-mobile">23</div>
+                  <div className="summary-card-value-mobile">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalPayroll ?? '—')}</div>
                   <div className="summary-card-trend-mobile positive">
                     <TrendingUp size={14} />
                     <span>+3.1%</span>
@@ -476,14 +814,14 @@ const Payroll = () => {
               </div>
             </div>
 
-            <div className="payroll-summary-card-mobile">
+            <div className="payroll-summary-card-mobile payroll-summary-card-mobile--value-subtitle">
               <div className="summary-card-icon-mobile">
                 <Users size={24} />
               </div>
               <div className="summary-card-content-mobile">
                 <div className="summary-card-title-mobile">Total Team members</div>
                 <div className="summary-card-value-row-mobile">
-                  <div className="summary-card-value-mobile">345</div>
+                  <div className="summary-card-value-mobile">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalTeamMembers ?? '—')}</div>
                   <div className="summary-card-subtitle-mobile">Active members</div>
                 </div>
               </div>
@@ -496,7 +834,7 @@ const Payroll = () => {
               <div className="summary-card-content-mobile">
                 <div className="summary-card-title-mobile">Total Payroll Escrowed</div>
                 <div className="summary-card-value-row-mobile">
-                  <div className="summary-card-value-mobile">$45,280</div>
+                  <div className="summary-card-value-mobile">{isLoadingPayrollSummary ? '...' : formatSummaryEscrowed(payrollSummary?.totalPayrollEscrowed)}</div>
                 </div>
               </div>
             </div>
@@ -517,27 +855,33 @@ const Payroll = () => {
 
               {/* Payroll List - Simple Mobile View */}
               <div className="payroll-list-mobile">
-                {payrolls.map((payroll) => (
-                  <div 
-                    key={payroll.id} 
-                    className="payroll-list-item-mobile"
-                    onClick={() => navigate(`/payroll/${payroll.id}`)}
-                  >
-                    <div className="payroll-list-item-content-mobile">
-                      <h3 className="payroll-list-item-title-mobile">{payroll.name}</h3>
-                      <p className="payroll-list-item-subtitle-mobile">Next release {payroll.releaseDate}</p>
-                    </div>
-                    <button 
-                      className="payroll-list-item-arrow-mobile"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPayrollDetail(payroll);
-                      }}
+                {isLoadingPayrolls ? (
+                  <div className="payroll-list-item-mobile" style={{ color: 'var(--text-muted)' }}>Loading payrolls...</div>
+                ) : payrolls.length === 0 ? (
+                  <div className="payroll-list-item-mobile" style={{ color: 'var(--text-muted)' }}>No payrolls yet</div>
+                ) : (
+                  payrolls.map((payroll) => (
+                    <div 
+                      key={payroll.id} 
+                      className="payroll-list-item-mobile"
+                      onClick={() => navigate(`/payroll/${payroll.id}`)}
                     >
-                      <ArrowRight size={20} />
-                    </button>
-                  </div>
-                ))}
+                      <div className="payroll-list-item-content-mobile">
+                        <h3 className="payroll-list-item-title-mobile">{payroll.name}</h3>
+                        <p className="payroll-list-item-subtitle-mobile">Next release {payroll.releaseDate ?? '—'}</p>
+                      </div>
+                      <button 
+                        className="payroll-list-item-arrow-mobile"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPayrollDetail(payroll);
+                        }}
+                      >
+                        <ArrowRight size={20} />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </>
           )}
@@ -1650,25 +1994,29 @@ const Payroll = () => {
 
               {/* Mobile Transaction History List */}
               <div className="transaction-history-list-mobile">
-            {transactions.slice(0, 3).map((transaction, index) => {
-              const statusClass = transaction.status.toLowerCase() === 'pending' ? 'pending' : 'successful';
-              // Format transaction ID like "#ESC-2024-001"
-              const transactionIdFormatted = `#ESC-2024-00${index + 1}`;
-              return (
-                <div key={index} className="transaction-item-mobile">
-                  <div className="transaction-item-content-mobile">
-                    <div className="transaction-id-mobile">{transactionIdFormatted}</div>
-                    <div className="transaction-recipient-mobile">{transaction.payrollName.replace(' Payroll', '')}</div>
-                  </div>
-                  <div className="transaction-item-right-mobile">
-                    <div className="transaction-amount-mobile">{transaction.amount}</div>
-                    <span className={`transaction-status-mobile ${statusClass}`}>
-                      {transaction.status}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                {isLoadingTransactionHistory ? (
+                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+                ) : transactionHistory.length === 0 ? (
+                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>No transactions</div>
+                ) : (
+                  transactionHistory.slice(0, 10).map((tx) => {
+                    const statusClass = (tx.status || '').toLowerCase() === 'pending' ? 'pending' : 'successful';
+                    return (
+                      <div key={tx.id || tx.transactionId} className="transaction-item-mobile" onClick={() => handleViewTransaction(tx.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleViewTransaction(tx.id)}>
+                        <div className="transaction-item-content-mobile">
+                          <div className="transaction-id-mobile">{tx.transactionId ?? '—'}</div>
+                          <div className="transaction-recipient-mobile">{(tx.payrollName || tx.counterpartyName || '—').replace(/ Payroll$/i, '')}</div>
+                        </div>
+                        <div className="transaction-item-right-mobile">
+                          <div className="transaction-amount-mobile">{formatTransactionAmount(tx)}</div>
+                          <span className={`transaction-status-mobile ${statusClass}`}>
+                            {tx.status ?? '—'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </>
           )}
@@ -1690,8 +2038,10 @@ const Payroll = () => {
             {businessSuiteNav.map((item) => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'Payroll' && location.pathname === '/payroll') ||
-                               (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
+                               (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
+                               (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                               (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
+                               (item.label === 'Transaction' && location.pathname === '/transactions');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard', { state: { accountType: 'Business Suite' } });
@@ -1699,6 +2049,8 @@ const Payroll = () => {
                   navigate('/payroll');
                 } else if (item.label === 'Supplier Contract') {
                   navigate('/supplier-contract');
+                } else if (item.label === 'Dispute') {
+                  navigate('/business-dispute');
                 } else if (item.label === 'Transaction') {
                   navigate('/transactions', { state: { accountType: 'Business Suite' } });
                 }
@@ -1787,7 +2139,7 @@ const Payroll = () => {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <div className="header-info">
-            <p className="header-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="header-date">{formattedToday}</p>
             <h1>Welcome Back !</h1>
           </div>
 
@@ -1802,16 +2154,34 @@ const Payroll = () => {
           </div>
 
           <div className="header-actions">
-            <div className="account-type-display">
-              <span className="account-type-label">Business Suite</span>
+            <div className="account-type-buttons">
+              <button
+                type="button"
+                className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
+                onClick={() => {
+                  setAccountType('Personal');
+                  localStorage.setItem('dashboard_account_type', 'Personal');
+                  navigate('/dashboard');
+                }}
+              >
+                Personal
+              </button>
+              <button
+                type="button"
+                className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
+                onClick={() => {
+                  setAccountType('Business Suite');
+                  localStorage.setItem('dashboard_account_type', 'Business Suite');
+                }}
+              >
+                Business Suite
+              </button>
             </div>
             {isKycCompleteForAccount && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="create-wallet-btn"
-                onClick={() => {
-                  // Wallet functionality can be added here
-                }}
+                onClick={() => navigate('/dashboard')}
               >
                 {hasWallet ? 'View Wallet' : 'Create Wallet'}
               </button>
@@ -1820,13 +2190,23 @@ const Payroll = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                ) : userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  {accountType === 'Business Suite' && businessCompanyName
+                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
-                <small>Freelancer</small>
+                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
               </div>
             </div>
           </div>
@@ -1843,71 +2223,79 @@ const Payroll = () => {
                   Add Payroll
                 </button>
               </div>
-              {payrolls.map((payroll) => (
-                <div key={payroll.id} className="payroll-card">
-                  <div className="payroll-card-header">
-                    <h3 className="payroll-card-title">{payroll.name}</h3>
-                    <a 
-                      href="#" 
-                      className="payroll-view-link"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate(`/payroll/${payroll.id}`);
-                      }}
-                    >
-                      View
-                    </a>
-                  </div>
-                  
-                  {/* Segmented toggle for all payrolls */}
-                  <div className="payroll-segmented-toggle">
-                    <button
-                      type="button"
-                      className={`segmented-toggle-segment ${payrollToggles[payroll.id] === 'active' ? 'active' : ''}`}
-                      onClick={() => setPayrollToggles(prev => ({ ...prev, [payroll.id]: 'active' }))}
-                    >
+              {isLoadingPayrolls ? (
+                <div className="payroll-card" style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>Loading payrolls...</div>
+              ) : payrolls.length === 0 ? (
+                <div className="payroll-card" style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>No payrolls yet</div>
+              ) : (
+                payrolls.map((payroll) => (
+                  <div key={payroll.id} className="payroll-card">
+                    <div className="payroll-card-header">
+                      <h3 className="payroll-card-title">{payroll.name}</h3>
+                      <a 
+                        href="#" 
+                        className="payroll-view-link"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/payroll/${payroll.id}`);
+                        }}
+                      >
+                        View
+                      </a>
+                    </div>
+                    
+                    {/* Segmented toggle for all payrolls */}
+                    <div className="payroll-segmented-toggle">
+                      <button
+                        type="button"
+                        className={`segmented-toggle-segment ${(payrollToggles[payroll.id] ?? 'active') === 'active' ? 'active' : ''}`}
+                        onClick={() => setPayrollToggles(prev => ({ ...prev, [payroll.id]: 'active' }))}
+                      >
+                      </button>
+                      <button
+                        type="button"
+                        className={`segmented-toggle-segment ${(payrollToggles[payroll.id] ?? 'active') === 'scheduled' ? 'active' : ''}`}
+                        onClick={() => setPayrollToggles(prev => ({ ...prev, [payroll.id]: 'scheduled' }))}
+                      >
+                      </button>
+                    </div>
+
+                    <div className="payroll-release-date">
+                      Release date: <span className="payroll-date-value">{payroll.releaseDate ?? '—'}</span>
+                    </div>
+
+                    <div className="payroll-freeze-toggle">
+                      <span className="freeze-toggle-label">Freeze Auto release</span>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={!!freezeAutoRelease[payroll.id]}
+                          onChange={() => toggleFreezeAutoRelease(payroll.id)}
+                        />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+
+                    <button type="button" className="payroll-release-btn" onClick={() => handleReleasePayroll(payroll.id)} disabled={releasingPayrollId === payroll.id}>
+                      {releasingPayrollId === payroll.id ? 'Releasing...' : 'Release now'}
                     </button>
-                    <button
-                      type="button"
-                      className={`segmented-toggle-segment ${payrollToggles[payroll.id] === 'scheduled' ? 'active' : ''}`}
-                      onClick={() => setPayrollToggles(prev => ({ ...prev, [payroll.id]: 'scheduled' }))}
-                    >
-                    </button>
                   </div>
-
-                  <div className="payroll-release-date">
-                    Release date: <span className="payroll-date-value">{payroll.releaseDate}</span>
-                  </div>
-
-                  <div className="payroll-freeze-toggle">
-                    <span className="freeze-toggle-label">Freeze Auto release</span>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={freezeAutoRelease[payroll.id]}
-                        onChange={() => toggleFreezeAutoRelease(payroll.id)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  <button className="payroll-release-btn">Release now</button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Right Section: Summary & Transaction History */}
             <div className="payroll-summary-section">
               {/* Summary Cards */}
               <div className="payroll-summary-cards">
-                <div className="payroll-summary-card">
+                <div className="payroll-summary-card payroll-summary-card--value-trend">
                   <div className="summary-card-icon">
                     <FileText size={24} />
                   </div>
                   <div className="summary-card-content">
                     <div className="summary-card-title">Total Payroll</div>
                     <div className="summary-card-value-row">
-                      <div className="summary-card-value">23</div>
+                      <div className="summary-card-value">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalPayroll ?? '—')}</div>
                       <div className="summary-card-trend positive">
                         <TrendingUp size={14} />
                         <span>+3.1%</span>
@@ -1916,14 +2304,14 @@ const Payroll = () => {
                   </div>
                 </div>
 
-                <div className="payroll-summary-card">
+                <div className="payroll-summary-card payroll-summary-card--value-subtitle">
                   <div className="summary-card-icon">
                     <Users size={24} />
                   </div>
                   <div className="summary-card-content">
                     <div className="summary-card-title">Total Team members</div>
                     <div className="summary-card-value-row">
-                      <div className="summary-card-value">345</div>
+                      <div className="summary-card-value">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalTeamMembers ?? '—')}</div>
                       <div className="summary-card-subtitle">Active members</div>
                     </div>
                   </div>
@@ -1936,7 +2324,7 @@ const Payroll = () => {
                   <div className="summary-card-content">
                     <div className="summary-card-title">Total Payroll Escrowed</div>
                     <div className="summary-card-value-row">
-                      <div className="summary-card-value">$45,280</div>
+                      <div className="summary-card-value">{isLoadingPayrollSummary ? '...' : formatSummaryEscrowed(payrollSummary?.totalPayrollEscrowed)}</div>
                     </div>
                   </div>
                 </div>
@@ -1978,46 +2366,60 @@ const Payroll = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {transactions.map((transaction, index) => (
-                        <tr key={index}>
-                          <td>
-                            <input type="checkbox" />
-                          </td>
-                          <td className="transaction-id">{transaction.transactionId}</td>
-                          <td>{transaction.payrollName}</td>
-                          <td>{transaction.amount}</td>
-                          <td>
-                            <span className="transaction-status pending">{transaction.status}</span>
-                          </td>
-                          <td>{transaction.dueDate}</td>
-                          <td>
-                            <button className="transaction-action-btn">
-                              <ArrowRight size={16} />
-                            </button>
-                          </td>
+                      {isLoadingTransactionHistory ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>Loading...</td>
                         </tr>
-                      ))}
+                      ) : transactionHistory.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>No transactions</td>
+                        </tr>
+                      ) : (
+                        transactionHistory.map((tx) => (
+                          <tr key={tx.id || tx.transactionId}>
+                            <td>
+                              <input type="checkbox" />
+                            </td>
+                            <td className="transaction-id">{tx.transactionId ?? '—'}</td>
+                            <td>{tx.payrollName ?? '—'}</td>
+                            <td>{formatTransactionAmount(tx)}</td>
+                            <td>
+                              <span className={`transaction-status ${(tx.status || '').toLowerCase()}`}>{tx.status ?? '—'}</span>
+                            </td>
+                            <td>{tx.dueDate ?? '—'}</td>
+                            <td>
+                              <button type="button" className="transaction-action-btn" onClick={() => handleViewTransaction(tx.id)}>
+                                <ArrowRight size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
                 <div className="transaction-pagination">
-                  <button className="pagination-btn" disabled={currentPage === 1}>
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    disabled={transactionHistoryPage <= 1 || isLoadingTransactionHistory}
+                    onClick={() => setTransactionHistoryPage((p) => Math.max(1, p - 1))}
+                  >
                     ← Prev 10
                   </button>
                   <div className="pagination-numbers">
-                    <span className="pagination-number">1</span>
-                    <span className="pagination-ellipsis">...</span>
-                    <span className="pagination-number">11</span>
-                    <span className="pagination-number active">{currentPage}</span>
-                    <span className="pagination-number">13</span>
-                    <span className="pagination-number">14</span>
-                    <span className="pagination-number">15</span>
-                    <span className="pagination-number">16</span>
-                    <span className="pagination-number">17</span>
-                    <span className="pagination-number">18</span>
+                    <span className="pagination-number active">{transactionHistoryPage}</span>
+                    {transactionHistoryTotalPages > 1 && (
+                      <span className="pagination-number">/ {transactionHistoryTotalPages}</span>
+                    )}
                   </div>
-                  <button className="pagination-btn">
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    disabled={transactionHistoryPage >= transactionHistoryTotalPages || isLoadingTransactionHistory}
+                    onClick={() => setTransactionHistoryPage((p) => Math.min(transactionHistoryTotalPages, p + 1))}
+                  >
                     Next 10 →
                   </button>
                 </div>
@@ -2027,15 +2429,18 @@ const Payroll = () => {
         </div>
       </main>
 
+      <TransactionDetailModal
+        isOpen={transactionDetailOpen}
+        onClose={handleCloseTransactionDetail}
+        transaction={transactionDetailData}
+        loading={isLoadingTransactionDetail}
+      />
+
       {/* Add Payroll Modal */}
       <AddPayrollModal
         isOpen={showAddPayrollModal}
         onCancel={() => setShowAddPayrollModal(false)}
-        onSuccess={(data) => {
-          console.log('Payroll created:', data);
-          setShowAddPayrollModal(false);
-          // You can add toast notification or refresh the payroll list here
-        }}
+        onSuccess={handleCreatePayroll}
       />
     </div>
   );
