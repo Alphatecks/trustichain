@@ -97,6 +97,18 @@
     gap: 0.25rem;
   }
 
+  .payroll-summary-card-mobile--value-trend .summary-card-value-row-mobile {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .payroll-summary-card-mobile--value-subtitle .summary-card-value-row-mobile {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
   .summary-card-value-mobile {
     font-size: 1.25rem;
     font-weight: 600;
@@ -2431,6 +2443,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Value and trend together (no space-between) for Total Payroll */
+.payroll-summary-card--value-trend .summary-card-value-row {
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+/* Value and subtitle together (no space-between) for Total Team members */
+.payroll-summary-card--value-subtitle .summary-card-value-row {
+  justify-content: flex-start;
   gap: 0.5rem;
 }
 

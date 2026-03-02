@@ -2,10 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Delete } from 'lucide-react';
 import './index.css';
 
-const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
+const BusinessSuitePinModal = ({ isOpen, onClose, onVerify, mode = 'verify' }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const verifyTimeoutRef = useRef(null);
+
+  const isSetMode = mode === 'set';
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -17,32 +20,41 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
   }, []);
 
   const handleNumberPress = (number) => {
-    if (pin.length < 6) {
-      const newPin = pin + number;
-      setPin(newPin);
-      setError('');
-      
-      // Clear any pending verification
-      if (verifyTimeoutRef.current) {
-        clearTimeout(verifyTimeoutRef.current);
-      }
+    if (loading || pin.length >= 6) return;
+    const newPin = pin + number;
+    setPin(newPin);
+    setError('');
 
-      // Auto-verify when PIN reaches 4 digits (minimum) or 6 digits (max length)
-      // Wait a bit to see if user continues typing
-      if (newPin.length >= 4 && onVerify) {
-        verifyTimeoutRef.current = setTimeout(() => {
-          const isValid = onVerify(newPin);
-          if (isValid) {
-            // PIN is valid - the parent component will close the modal
+    if (verifyTimeoutRef.current) {
+      clearTimeout(verifyTimeoutRef.current);
+    }
+
+    // Submit when 6 digits entered
+    if (newPin.length === 6 && onVerify) {
+      verifyTimeoutRef.current = setTimeout(() => {
+        setLoading(true);
+        Promise.resolve(onVerify(newPin))
+          .then((isValid) => {
+            if (isValid) {
+              setPin('');
+              setError('');
+            } else {
+              setError(isSetMode ? 'Could not set PIN. Please try again.' : 'Invalid PIN. Please try again.');
+              setPin('');
+            }
+          })
+          .catch(() => {
+            setError('Something went wrong. Please try again.');
             setPin('');
-            setError('');
-          } else if (newPin.length === 6) {
-            // Only show error if we've reached max length and it's still invalid
-            setError('Invalid PIN. Please try again.');
-            setPin('');
-          }
-        }, newPin.length === 6 ? 300 : 800); // Shorter delay for 6 digits, longer for 4-5 to allow typing
-      }
+          })
+          .finally(() => {
+            setLoading(false);
+            if (verifyTimeoutRef.current) {
+              clearTimeout(verifyTimeoutRef.current);
+              verifyTimeoutRef.current = null;
+            }
+          });
+      }, 300);
     }
   };
 
@@ -82,11 +94,12 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
         {/* Modal Header */}
         <div className="create-escrow-modal-header">
           <div className="modal-header-back-icon"></div>
-          <h2>Business Suite Access</h2>
+          <h2>{isSetMode ? 'Set Business Suite PIN' : 'Business Suite Access'}</h2>
           <button 
             type="button" 
             className="modal-close-btn" 
             onClick={handleClose}
+            disabled={loading}
           >
             <X size={24} />
           </button>
@@ -95,11 +108,11 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
         {/* Modal Content */}
         <div className="create-escrow-modal-content business-suite-pin-content">
           <p className="business-suite-pin-description">
-            Enter your Business Suite PIN
+            {isSetMode ? 'Set your 6-digit PIN' : 'Enter your Business Suite PIN'}
           </p>
 
           {/* PIN Dots Display */}
-          <div className="business-suite-pin-dots-container">
+          <div className={`business-suite-pin-dots-container ${loading ? 'loading' : ''}`}>
             {renderPinDots()}
           </div>
 
@@ -116,6 +129,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('1')}
+                disabled={loading}
               >
                 1
               </button>
@@ -123,6 +137,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('2')}
+                disabled={loading}
               >
                 2
               </button>
@@ -130,6 +145,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('3')}
+                disabled={loading}
               >
                 3
               </button>
@@ -139,6 +155,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('4')}
+                disabled={loading}
               >
                 4
               </button>
@@ -146,6 +163,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('5')}
+                disabled={loading}
               >
                 5
               </button>
@@ -153,6 +171,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('6')}
+                disabled={loading}
               >
                 6
               </button>
@@ -162,6 +181,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('7')}
+                disabled={loading}
               >
                 7
               </button>
@@ -169,6 +189,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('8')}
+                disabled={loading}
               >
                 8
               </button>
@@ -176,6 +197,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('9')}
+                disabled={loading}
               >
                 9
               </button>
@@ -191,6 +213,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key"
                 onClick={() => handleNumberPress('0')}
+                disabled={loading}
               >
                 0
               </button>
@@ -198,6 +221,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
                 type="button"
                 className="pin-numberpad-key pin-numberpad-key-delete"
                 onClick={handleDelete}
+                disabled={loading}
               >
                 <Delete size={24} />
               </button>
@@ -209,6 +233,7 @@ const BusinessSuitePinModal = ({ isOpen, onClose, onVerify }) => {
               type="button"
               className="business-suite-pin-cancel-btn"
               onClick={handleClose}
+              disabled={loading}
             >
               Cancel
             </button>

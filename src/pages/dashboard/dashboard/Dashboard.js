@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
@@ -41,7 +41,8 @@ import {
   ChevronRight,
   Upload,
   PiggyBank,
-  Copy
+  Copy,
+  Clock
 } from 'lucide-react';
 import './Dashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
@@ -52,7 +53,7 @@ import chainsIllustration from '../../../assets/images/illustrations/chain.png';
 import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
-import { getApiUrl } from '../../../utils/config';
+import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -62,8 +63,20 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
+import TeamDetailModal from '../business-suite/TeamDetailModal';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
 import BusinessSuitePinModal from '../../../components/BusinessSuitePinModal';
+
+// Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
+const normalizeCompanyLogoUrl = (data) => {
+  const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${base}${path}`;
+};
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
@@ -80,6 +93,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
@@ -136,43 +150,7 @@ const getNotificationIconConfig = (type) => {
 const Dashboard = () => {
       // Loading state for View Wallet button
       const [isLoadingWalletAddress, setIsLoadingWalletAddress] = useState(false);
-    // On mount (and in background), check if user has a wallet so we show View wallet vs Create wallet correctly
-    useEffect(() => {
-      const fetchWallets = async () => {
-        setIsLoadingWalletAddress(true);
-        try {
-          const token = localStorage.getItem('token');
-          if (!token) {
-            setHasWallet(false);
-            setWalletAddress("");
-            setIsLoadingWalletAddress(false);
-            return;
-          }
-          const res = await fetch(getApiUrl('api/wallet/balance'), {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          const result = await res.json();
-          const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
-          if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
-            setWalletAddress(address);
-            setHasWallet(true);
-          } else {
-            setWalletAddress("");
-            setHasWallet(false);
-          }
-        } catch (err) {
-          setHasWallet(false);
-          setWalletAddress("");
-        } finally {
-          setIsLoadingWalletAddress(false);
-        }
-      };
-      fetchWallets();
-    }, []);
+    // On mount and when account type changes: check if user has a wallet (Personal vs Business Suite API)
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
@@ -187,22 +165,154 @@ const Dashboard = () => {
     const stored = localStorage.getItem('businessKycComplete');
     return stored ? JSON.parse(stored) : false;
   });
+  const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
+  const [isSubmittingBusinessKyc, setIsSubmittingBusinessKyc] = useState(false);
+  const [businessCompanyName, setBusinessCompanyName] = useState('');
+  const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState(() => {
-    // Check if account type was passed via navigation state
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') return stored;
     return 'Personal';
   });
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showBusinessSuitePinModal, setShowBusinessSuitePinModal] = useState(false);
+  const [kycStatusDialog, setKycStatusDialog] = useState(null); // 'in_review' | 'rejected' | null
+  const [showUnderReviewKycModal, setShowUnderReviewKycModal] = useState(false);
+  const showUnderReviewModalIfApplicable = (message) => {
+    const m = String(message || '').toLowerCase();
+    if (m.includes('under review') || m.includes('temporarily suspended')) {
+      setShowUnderReviewKycModal(true);
+      return true;
+    }
+    return false;
+  };
   const [pendingAccountSwitch, setPendingAccountSwitch] = useState(false);
   const [showConnectedWalletModal, setShowConnectedWalletModal] = useState(false);
-  
-  // Update account type from navigation state if provided
+
+  // Persist account type so it survives reload
+  useEffect(() => {
+    localStorage.setItem('dashboard_account_type', accountType);
+  }, [accountType]);
+
+  // On mount and when account type changes: check if user has a wallet (Personal vs Business Suite API)
+  useEffect(() => {
+    const fetchWallets = async () => {
+      setIsLoadingWalletAddress(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setHasWallet(false);
+          setWalletAddress('');
+          setIsLoadingWalletAddress(false);
+          return;
+        }
+        const url = accountType === 'Business Suite'
+          ? getApiUrl('api/business-suite/wallet/balance')
+          : getApiUrl('api/wallet/balance');
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const result = await res.json().catch(() => ({}));
+        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
+        if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
+          setWalletAddress(address);
+          setHasWallet(true);
+        } else {
+          setWalletAddress('');
+          setHasWallet(false);
+        }
+      } catch (err) {
+        setHasWallet(false);
+        setWalletAddress('');
+      } finally {
+        setIsLoadingWalletAddress(false);
+      }
+    };
+    fetchWallets();
+  }, [accountType]);
+
+  // Update account type from navigation state if provided (e.g. link with state)
   useEffect(() => {
     if (location.state?.accountType) {
       setAccountType(location.state.accountType);
     }
   }, [location.state]);
+
+  // Fetch business KYC status when on Business Suite (source of truth for show KYC vs dashboard)
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setBusinessKycComplete(false);
+      localStorage.removeItem('businessKycComplete');
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingBusinessKyc(true);
+    fetch(getApiUrl('api/business-suite/kyc'), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        console.log('KYC response (Business Suite load):', result);
+        if (result?.success && result?.data) {
+          const kycData = result.data;
+          console.log('Business Suite KYC response (company logo):', {
+            raw: kycData?.companyLogoUrl ?? kycData?.logoUrl ?? kycData?.company_logo_url ?? kycData?.url,
+            normalized: normalizeCompanyLogoUrl(kycData) || '(empty)',
+          });
+          const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
+          const status = statusRaw.replace(/_/g, ' ').toLowerCase();
+          const verifiedStatuses = ['verified', 'approved', 'complete'];
+          const isKycVerified = verifiedStatuses.includes(status);
+          if (isKycVerified) {
+            setBusinessKycComplete(true);
+            setBusinessCompanyName(kycData.companyName || '');
+            setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+            localStorage.setItem('businessKycComplete', 'true');
+          } else {
+            setBusinessKycComplete(false);
+            setBusinessCompanyName(kycData?.companyName || '');
+            setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+            localStorage.removeItem('businessKycComplete');
+          }
+        } else {
+          setBusinessKycComplete(false);
+          setBusinessCompanyName('');
+          setBusinessCompanyLogoUrl('');
+          localStorage.removeItem('businessKycComplete');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBusinessKycComplete(false);
+          setBusinessCompanyName('');
+          setBusinessCompanyLogoUrl('');
+          localStorage.removeItem('businessKycComplete');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingBusinessKyc(false);
+      });
+    return () => { cancelled = true; };
+  }, [accountType]);
+
+  useEffect(() => {
+    if (accountType === 'Business Suite') {
+      console.log('Business Suite company logo URL:', businessCompanyLogoUrl || '(empty)');
+    }
+  }, [accountType, businessCompanyLogoUrl]);
+
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [notifications, setNotifications] = useState([]);
   const [, setNotificationsTotal] = useState(0);
@@ -301,40 +411,153 @@ const Dashboard = () => {
   const [isSwitchingAccountType, setIsSwitchingAccountType] = useState(false);
   const [switchMessage, setSwitchMessage] = useState('');
 
-  // Handle Business Suite PIN verification
-  const handleBusinessSuitePinVerify = (pin) => {
-    // TODO: Replace with actual API call to verify PIN
-    // For now, using a simple check (can be stored in localStorage or verified via API)
-    const validPin = localStorage.getItem('businessSuitePin') || '1234'; // Default PIN for demo
-    
-    // Ensure both are strings for comparison
-    const enteredPin = String(pin).trim();
-    const expectedPin = String(validPin).trim();
-    
-    console.log('PIN Verification:', { enteredPin, expectedPin, match: enteredPin === expectedPin });
-    
-    if (enteredPin === expectedPin) {
-      // PIN is correct, complete the account switch
-      setAccountType('Business Suite');
-      setPendingAccountSwitch(false);
-      setShowBusinessSuitePinModal(false);
-      return true;
+  const [businessSuitePinMode, setBusinessSuitePinMode] = useState('verify'); // 'set' | 'verify'
+
+  // Handle Business Suite PIN: set (first time) or verify (when switching)
+  const handleBusinessSuitePinSubmit = async (pin) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return false;
     }
-    return false;
+    const pinStr = String(pin).trim();
+    if (pinStr.length !== 6) return false;
+
+    const url = businessSuitePinMode === 'verify'
+      ? getApiUrl('api/business-suite/verify-pin')
+      : getApiUrl('api/business-suite/set-pin');
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pin: pinStr }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (businessSuitePinMode === 'set') {
+        console.log('Business Suite set-pin response:', { status: res.status, statusText: res.statusText, data });
+      }
+      if (res.ok && data.success) {
+        setAccountType('Business Suite');
+        setPendingAccountSwitch(false);
+        setShowBusinessSuitePinModal(false);
+        return true;
+      }
+      if (res.status === 401) {
+        if (showUnderReviewModalIfApplicable(data?.message)) return false;
+        toast.error(data?.message || 'Invalid PIN');
+        return false;
+      }
+      if (res.status === 400) {
+        if (showUnderReviewModalIfApplicable(data?.message)) return false;
+        toast.error(data?.message || (businessSuitePinMode === 'set' ? 'Could not set PIN' : 'Invalid PIN'));
+        return false;
+      }
+      if (showUnderReviewModalIfApplicable(data?.message)) return false;
+      toast.error(data?.message || 'Something went wrong');
+      return false;
+    } catch (err) {
+      console.error('Business Suite PIN error:', err);
+      toast.error('Network error. Please try again.');
+      return false;
+    }
   };
 
-  // Handle switch to Business Suite - show animation first, then PIN modal
-  const handleSwitchToBusinessSuite = () => {
+  // Handle switch to Business Suite - first check KYC; if approved show PIN, else show KYC page
+  const handleSwitchToBusinessSuite = async () => {
     setPendingAccountSwitch(true);
     setSwitchMessage('switching to business suite');
     setIsSwitchingAccountType(true);
-    
-    // After animation completes, show PIN modal
-    setTimeout(() => {
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      setPendingAccountSwitch(false);
       setIsSwitchingAccountType(false);
       setSwitchMessage('');
-      setShowBusinessSuitePinModal(true);
-    }, 2000);
+      return;
+    }
+
+    try {
+      const kycRes = await fetch(getApiUrl('api/business-suite/kyc'), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const kycResult = await kycRes.json().catch(() => ({}));
+      console.log('KYC response (switch to Business Suite):', { ok: kycRes.ok, status: kycRes.status, body: kycResult });
+      // Status must be one of: In review, Verified, Rejected. In review/Rejected → show dialog; Verified → PIN; else → KYC screen
+      const hasKycRecord = kycRes.ok && kycResult?.success && kycResult?.data;
+      const kycData = hasKycRecord ? kycResult.data : null;
+      const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
+      const status = statusRaw.replace(/_/g, ' ').toLowerCase();
+      const isInReview = status === 'in review';
+      const isRejected = status === 'rejected';
+      const verifiedStatuses = ['verified', 'approved', 'complete'];
+      const isKycVerified = verifiedStatuses.includes(status);
+
+      if (isInReview) {
+        setIsSwitchingAccountType(false);
+        setSwitchMessage('');
+        setPendingAccountSwitch(false);
+        setKycStatusDialog('in_review');
+        return;
+      }
+      if (isRejected) {
+        setIsSwitchingAccountType(false);
+        setSwitchMessage('');
+        setPendingAccountSwitch(false);
+        setKycStatusDialog('rejected');
+        return;
+      }
+      if (isKycVerified) {
+        console.log('Business Suite: KYC verified, showing PIN modal after short delay. status=', status);
+        setBusinessKycComplete(true);
+        if (kycData?.companyName) setBusinessCompanyName(kycData.companyName);
+        const logoUrl = normalizeCompanyLogoUrl(kycData);
+        if (logoUrl) setBusinessCompanyLogoUrl(logoUrl);
+        localStorage.setItem('businessKycComplete', 'true');
+        const pinRes = await fetch(getApiUrl('api/business-suite/pin-status'), {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const pinData = await pinRes.json().catch(() => ({}));
+        const pinSet = pinData?.success && pinData?.pinSet === true;
+        setBusinessSuitePinMode(pinSet ? 'verify' : 'set');
+        setTimeout(() => {
+          setIsSwitchingAccountType(false);
+          setSwitchMessage('');
+          setShowBusinessSuitePinModal(true);
+        }, 600);
+      } else {
+        console.log('Business Suite: showing KYC screen. status=', JSON.stringify(status));
+        setBusinessKycComplete(false);
+        setBusinessCompanyName('');
+        setBusinessCompanyLogoUrl('');
+        localStorage.removeItem('businessKycComplete');
+        setAccountType('Business Suite');
+        setPendingAccountSwitch(false);
+        setIsSwitchingAccountType(false);
+        setSwitchMessage('');
+      }
+    } catch (err) {
+      console.error('Business Suite switch KYC check error:', err);
+      setBusinessKycComplete(false);
+      setBusinessCompanyName('');
+      setBusinessCompanyLogoUrl('');
+      localStorage.removeItem('businessKycComplete');
+      setAccountType('Business Suite');
+      setPendingAccountSwitch(false);
+      setIsSwitchingAccountType(false);
+      setSwitchMessage('');
+    }
   };
 
   // Handle closing PIN modal without verification
@@ -364,7 +587,8 @@ const Dashboard = () => {
   const [businessForm, setBusinessForm] = useState({
     companyName: '',
     businessDescription: '',
-    companyLogo: null
+    companyLogo: null,
+    companyLogoUrl: '' // set after uploading via POST api/business-suite/kyc/logo
   });
 
   const [escrowConfigForm, setEscrowConfigForm] = useState({
@@ -378,30 +602,48 @@ const Dashboard = () => {
     transactionLimits: '',
     identityVerificationRequired: false,
     addressVerificationRequired: false,
-    enhancedDueDiligence: false
+    enhancedDueDiligence: false,
+    identityVerificationDocument: null,
+    addressVerificationDocument: null,
+    enhancedDueDiligenceDocument: null
   });
 
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+  const [businessSuiteDashboardData, setBusinessSuiteDashboardData] = useState(null);
+  const [isLoadingBusinessSuiteDashboard, setIsLoadingBusinessSuiteDashboard] = useState(false);
   const [exchangeRates, setExchangeRates] = useState([]);
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [portfolioPoints, setPortfolioPoints] = useState([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [portfolioTimeframe, setPortfolioTimeframe] = useState('monthly');
   const [portfolioYear, setPortfolioYear] = useState(() => new Date().getFullYear());
+  const [businessSuitePortfolioPoints, setBusinessSuitePortfolioPoints] = useState([]);
+  const [isLoadingBusinessSuitePortfolio, setIsLoadingBusinessSuitePortfolio] = useState(false);
+  const [businessSuiteTeams, setBusinessSuiteTeams] = useState([]);
+  const [isLoadingBusinessSuiteTeams, setIsLoadingBusinessSuiteTeams] = useState(false);
+  const [teamDetailOpen, setTeamDetailOpen] = useState(false);
+  const [teamDetailData, setTeamDetailData] = useState(null);
+  const [teamDetailTeamId, setTeamDetailTeamId] = useState(null);
+  const [isLoadingTeamDetail, setIsLoadingTeamDetail] = useState(false);
+  const [upcomingSupply, setUpcomingSupply] = useState([]);
+  const [isLoadingUpcomingSupply, setIsLoadingUpcomingSupply] = useState(false);
+  const [subscriptionList, setSubscriptionList] = useState([]);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
   const [showPortfolioDropdown, setShowPortfolioDropdown] = useState(false);
   const [showPortfolioYearDropdown, setShowPortfolioYearDropdown] = useState(false);
   const [showMobilePortfolioDropdown, setShowMobilePortfolioDropdown] = useState(false);
   const [showMobilePortfolioYearDropdown, setShowMobilePortfolioYearDropdown] = useState(false);
   const [walletBalances, setWalletBalances] = useState(null);
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
+  const [walletBalancesRefreshTrigger, setWalletBalancesRefreshTrigger] = useState(0);
   const [escrows, setEscrows] = useState([]);
   const [isLoadingEscrows, setIsLoadingEscrows] = useState(true);
   const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(null);
   const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(true);
-  const [userFullName, setUserFullName] = useState('Sarah Chen');
-  const [userInitials, setUserInitials] = useState('SC');
-  const [userRole, setUserRole] = useState('Freelancer');
+  const [userFullName, setUserFullName] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [walletAddress, setWalletAddress] = useState('');
@@ -411,6 +653,12 @@ const Dashboard = () => {
   const [showFundMethodModal, setShowFundMethodModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
+  const [showConnectBusinessWalletModal, setShowConnectBusinessWalletModal] = useState(false);
+  const [connectBusinessWalletAddress, setConnectBusinessWalletAddress] = useState('');
+  const [isConnectingBusinessWallet, setIsConnectingBusinessWallet] = useState(false);
+  const [showBusinessSuiteWalletModal, setShowBusinessSuiteWalletModal] = useState(false);
+  const [businessSuiteWalletModalLoading, setBusinessSuiteWalletModalLoading] = useState(false);
+  const [businessSuiteWalletModalData, setBusinessSuiteWalletModalData] = useState(null); // { address?, balances?, error? }
   const [fundViaAddress, setFundViaAddress] = useState(false);
   const [fundWalletForm, setFundWalletForm] = useState({
     amount: '',
@@ -441,37 +689,37 @@ const Dashboard = () => {
     // Try different possible structures
     let value = null;
     
-    // Structure 1: data.balance.usd or data.balance.xrp
+    // Structure 1: data.balance.usd or data.balance.xrp (use ?? so 0 is valid)
     if (data.balance && typeof data.balance === 'object') {
-      value = data.balance[currencyKey] || data.balance[currencyUpper] || null;
-      if (value !== null) {
+      value = data.balance[currencyKey] ?? data.balance[currencyUpper] ?? null;
+      if (value !== null && value !== undefined) {
         console.log(`getBalanceValue: Found in data.balance.${currencyKey}:`, value);
         return Number(value);
       }
     }
     
-    // Structure 2: data.totalBalance or data.balanceData
+    // Structure 2: data.totalBalance or data.balanceData (use ?? so 0 is valid)
     const balanceObj = data.totalBalance || data.balanceData || data.balances || {};
     if (balanceObj && typeof balanceObj === 'object') {
-      value = balanceObj[currencyKey] || balanceObj[currencyUpper] || 
-              balanceObj[`total${currencyUpper}`] || 
-              balanceObj[`${currencyKey}Balance`] ||
-              balanceObj[`${currencyKey}Amount`] ||
+      value = balanceObj[currencyKey] ?? balanceObj[currencyUpper] ??
+              balanceObj[`total${currencyUpper}`] ??
+              balanceObj[`${currencyKey}Balance`] ??
+              balanceObj[`${currencyKey}Amount`] ??
               null;
-      if (value !== null) {
+      if (value !== null && value !== undefined) {
         console.log(`getBalanceValue: Found in balance object:`, value);
         return Number(value);
       }
     }
-    
+
     // Structure 3: Direct properties like data.totalUSD, data.balanceUSD
-    value = data[`total${currencyUpper}`] || 
-            data[`balance${currencyUpper}`] ||
-            data[`${currencyKey}Balance`] ||
-            data[`${currencyKey}Amount`] ||
+    value = data[`total${currencyUpper}`] ??
+            data[`balance${currencyUpper}`] ??
+            data[`${currencyKey}Balance`] ??
+            data[`${currencyKey}Amount`] ??
             null;
-    
-    if (value !== null) {
+
+    if (value !== null && value !== undefined) {
       console.log(`getBalanceValue: Found as direct property:`, value);
       return Number(value);
     }
@@ -610,14 +858,274 @@ const Dashboard = () => {
     fetchDashboardSummary();
   }, [kycComplete, isSessionExpired]);
 
+  // Business Suite dashboard summary (when account type is Business Suite)
+  useEffect(() => {
+    if (accountType !== 'Business Suite') {
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingBusinessSuiteDashboard(false);
+      return;
+    }
+    setIsLoadingBusinessSuiteDashboard(true);
+    fetch(getApiUrl('api/business-suite/dashboard/summary'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        console.log('Business Suite dashboard summary response:', result);
+        if (result?.success && result?.data) {
+          const d = result.data;
+          const bal = d.balance ?? {};
+          const usdVal = getBalanceValue(d, 'usd');
+          const xrpVal = getBalanceValue(d, 'xrp');
+          const normalized = {
+            balance: {
+              usd: usdVal ?? bal.usd ?? bal.USD ?? bal.usdAmount ?? bal.totalUsd ?? null,
+              xrp: xrpVal ?? bal.xrp ?? bal.XRP ?? bal.xrpAmount ?? bal.totalXrp ?? null,
+              usdt: bal.usdt ?? bal.USDT ?? null,
+              usdc: bal.usdc ?? bal.USDC ?? null,
+            },
+            activeEscrows: d.activeEscrows ?? { count: 0, lockedAmount: 0 },
+            trustiscore: d.trustiscore ?? { score: 0, level: '' },
+            totalEscrowed: d.totalEscrowed,
+            payrollsCreated: d.payrollsCreated,
+            suppliers: d.suppliers,
+            completedThisMonth: d.completedThisMonth,
+          };
+          setBusinessSuiteDashboardData(normalized);
+        } else {
+          setBusinessSuiteDashboardData(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Business Suite dashboard summary error:', err);
+        setBusinessSuiteDashboardData(null);
+      })
+      .finally(() => setIsLoadingBusinessSuiteDashboard(false));
+  }, [accountType]);
+
+  // Business Suite portfolio (Subscription + Payroll per month)
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingBusinessSuitePortfolio(false);
+      return;
+    }
+    const year = portfolioYear;
+    setIsLoadingBusinessSuitePortfolio(true);
+    fetch(getApiUrl(`api/business-suite/dashboard/portfolio?period=monthly&year=${year}`), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        if (result?.success && Array.isArray(result?.data?.data)) {
+          const raw = result.data.data;
+          const byPeriod = {};
+          raw.forEach((p) => {
+            const key = String(p.period ?? '').trim().slice(0, 3);
+            byPeriod[key] = p;
+          });
+          const points = months.map((label) => {
+            const key = label.toLowerCase().slice(0, 3);
+            const p = byPeriod[key] || raw.find((r) => String(r.period ?? '').trim().toLowerCase().slice(0, 3) === key);
+            return {
+              label,
+              subscriptionUsd: p ? Number(p.subscriptionUsd ?? 0) : 0,
+              payrollUsd: p ? Number(p.payrollUsd ?? 0) : 0,
+              subscriptionPercent: p ? Number(p.subscriptionPercent ?? 0) : 0,
+              payrollPercent: p ? Number(p.payrollPercent ?? 0) : 0,
+            };
+          });
+          setBusinessSuitePortfolioPoints(points);
+        } else {
+          setBusinessSuitePortfolioPoints([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Business Suite portfolio error:', err);
+        setBusinessSuitePortfolioPoints([]);
+      })
+      .finally(() => setIsLoadingBusinessSuitePortfolio(false));
+  }, [accountType, portfolioYear]);
+
+  // Business Suite teams (My Teams) – refetchable for Add Team modal
+  const refetchBusinessSuiteTeams = useCallback(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingBusinessSuiteTeams(false);
+      return;
+    }
+    setIsLoadingBusinessSuiteTeams(true);
+    fetch(getApiUrl('api/business-suite/teams?page=1&pageSize=10'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && Array.isArray(result?.data?.items)) {
+          setBusinessSuiteTeams(result.data.items);
+        } else {
+          setBusinessSuiteTeams([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Business Suite teams error:', err);
+        setBusinessSuiteTeams([]);
+      })
+      .finally(() => setIsLoadingBusinessSuiteTeams(false));
+  }, []);
+
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    refetchBusinessSuiteTeams();
+  }, [accountType, refetchBusinessSuiteTeams]);
+
+  // Business Suite upcoming supply (card: no query)
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingUpcomingSupply(false);
+      return;
+    }
+    setIsLoadingUpcomingSupply(true);
+    fetch(getApiUrl('api/business-suite/dashboard/upcoming-supply'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && Array.isArray(result?.data?.items)) {
+          setUpcomingSupply(result.data.items);
+        } else {
+          setUpcomingSupply([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Upcoming supply error:', err);
+        setUpcomingSupply([]);
+      })
+      .finally(() => setIsLoadingUpcomingSupply(false));
+  }, [accountType]);
+
+  // Business Suite subscription
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingSubscription(false);
+      return;
+    }
+    setIsLoadingSubscription(true);
+    fetch(getApiUrl('api/business-suite/dashboard/subscription'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && Array.isArray(result?.data?.items)) {
+          setSubscriptionList(result.data.items);
+        } else if (result?.success && result?.data != null && !Array.isArray(result.data?.items)) {
+          setSubscriptionList(Array.isArray(result.data) ? result.data : []);
+        } else {
+          setSubscriptionList([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Subscription error:', err);
+        setSubscriptionList([]);
+      })
+      .finally(() => setIsLoadingSubscription(false));
+  }, [accountType]);
+
+  const handleViewTeam = (teamId) => {
+    if (!teamId) return;
+    setTeamDetailOpen(true);
+    setTeamDetailTeamId(teamId);
+    setIsLoadingTeamDetail(true);
+    setTeamDetailData(null);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingTeamDetail(false);
+      return;
+    }
+    fetch(getApiUrl(`api/business-suite/teams/${teamId}`), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          setTeamDetailData(result.data);
+        } else {
+          setTeamDetailData(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Team detail error:', err);
+        setTeamDetailData(null);
+      })
+      .finally(() => setIsLoadingTeamDetail(false));
+  };
+
+  const handleCloseTeamDetail = () => {
+    setTeamDetailOpen(false);
+    setTeamDetailData(null);
+    setTeamDetailTeamId(null);
+  };
+
+  const handleTeamDetailMemberRemoved = () => {
+    const teamId = teamDetailTeamId;
+    if (!teamId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(getApiUrl(`api/business-suite/teams/${teamId}`), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          setTeamDetailData(result.data);
+        }
+      })
+      .catch((err) => console.error('Team detail refetch error:', err));
+  };
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       // If session is expired, use fallback data
       if (isSessionExpired) {
-        console.log('Session expired, using fallback user profile');
-        setUserFullName('Sarah Chen');
-        setUserInitials('SC');
-        setUserRole('Freelancer');
+        setUserFullName('');
+        setUserInitials('');
+        setUserRole('');
         setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
@@ -654,7 +1162,7 @@ const Dashboard = () => {
               data.fullName ||
               [data.firstName, data.lastName].filter(Boolean).join(' ') ||
               data.name ||
-              userFullName;
+              '';
 
             if (fullName && typeof fullName === 'string') {
               setUserFullName(fullName);
@@ -663,7 +1171,7 @@ const Dashboard = () => {
             // Extract initials from firstName and lastName
             const firstName = data.firstName || '';
             const lastName = data.lastName || '';
-            let initials = 'SC'; // default fallback
+            let initials = '';
             
             if (firstName && lastName) {
               initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
@@ -680,7 +1188,7 @@ const Dashboard = () => {
             setUserInitials(initials);
 
             // Extract user role from profile data
-            const role = data.role || data.userType || data.accountType || 'Freelancer';
+            const role = data.role || data.userType || data.accountType || '';
             setUserRole(role);
 
             // Extract user avatar/image from profile data
@@ -708,13 +1216,44 @@ const Dashboard = () => {
   }, [isSessionExpired]);
 
   const handleCreateWallet = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('You need to be logged in to create a wallet.');
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('You need to be logged in to create a wallet.');
+      return;
+    }
 
+    if (accountType === 'Business Suite') {
+      try {
+        const apiUrl = getApiUrl('api/business-suite/wallet/create');
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const result = await response.json().catch(() => ({}));
+        console.log('Business Suite Create Wallet API response:', result);
+
+        if (response.ok && result?.success && result?.data?.xrpl_address) {
+          const xrplAddress = result.data.xrpl_address;
+          setWalletAddress(xrplAddress);
+          setHasWallet(true);
+          toast.success(result?.message || 'Wallet created successfully');
+          setWalletBalancesRefreshTrigger((prev) => prev + 1);
+          setShowBusinessSuiteWalletModal(true);
+        } else {
+          if (showUnderReviewModalIfApplicable(result?.message)) return;
+          toast.error(result?.message || 'Failed to create wallet. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error creating Business Suite wallet:', error);
+        toast.error('An error occurred while creating the wallet. Please try again.');
+      }
+      return;
+    }
+
+    try {
       const apiUrl = getApiUrl('api/wallet/create');
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -733,7 +1272,6 @@ const Dashboard = () => {
       console.log('Create Wallet API response:', result);
 
       if (result?.success) {
-        // Use the new API response format: result.data.xrpl_address
         const xrplAddress = result?.data?.xrpl_address;
         if (xrplAddress) {
           setWalletAddress(xrplAddress);
@@ -744,11 +1282,53 @@ const Dashboard = () => {
         }
       } else {
         const message = result?.message || 'Failed to create wallet. Please try again.';
+        if (showUnderReviewModalIfApplicable(message)) return;
         toast.error(message);
       }
     } catch (error) {
       console.error('Error creating wallet:', error);
       toast.error('An error occurred while creating the wallet. Please try again.');
+    }
+  };
+
+  const handleConnectBusinessWallet = async () => {
+    const address = (connectBusinessWalletAddress || '').trim();
+    if (!address) {
+      toast.error('Enter an XRPL wallet address.');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('You need to be logged in.');
+      return;
+    }
+    setIsConnectingBusinessWallet(true);
+    try {
+      const res = await fetch(getApiUrl('api/business-suite/wallet/connect'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (result?.success) {
+        const connectedAddress = result?.data?.walletAddress || address;
+        setWalletAddress(connectedAddress);
+        setHasWallet(true);
+        setShowConnectBusinessWalletModal(false);
+        setConnectBusinessWalletAddress('');
+        toast.success(result?.message || 'Wallet connected successfully.');
+      } else {
+        if (showUnderReviewModalIfApplicable(result?.message)) return;
+        toast.error(result?.message || 'Failed to connect wallet.');
+      }
+    } catch (err) {
+      console.error('Connect business wallet error:', err);
+      toast.error('Failed to connect wallet.');
+    } finally {
+      setIsConnectingBusinessWallet(false);
     }
   };
 
@@ -881,7 +1461,9 @@ const Dashboard = () => {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
           console.log('Portfolio response (error):', { status: response.status, statusText: response.statusText, data: errorData });
           setPortfolioPoints([]);
-          toast.error(errorData?.message || 'Failed to load portfolio data');
+          if (!showUnderReviewModalIfApplicable(errorData?.message)) {
+            toast.error(errorData?.message || 'Failed to load portfolio data');
+          }
         }
       } catch (error) {
         console.error('Error fetching portfolio performance:', error);
@@ -981,7 +1563,13 @@ const Dashboard = () => {
           return;
         }
 
-        const apiUrl = getApiUrl('api/wallet/balance');
+        const isBusinessSuite = accountType === 'Business Suite';
+        if (isBusinessSuite) {
+          setWalletBalances(null);
+        }
+        const apiUrl = isBusinessSuite
+          ? getApiUrl('api/business-suite/wallet/balance')
+          : getApiUrl('api/wallet/balance');
         console.log('Fetching wallet balances from:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -999,14 +1587,18 @@ const Dashboard = () => {
           console.log('Wallet balances API response data:', result);
 
           // If backend includes an XRPL address, treat wallet as already created (same extraction as mount + header)
-          const existingAddress = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
+          const existingAddress = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
           if (
+            result?.success &&
             existingAddress &&
             typeof existingAddress === 'string' &&
             existingAddress.trim().length > 0
           ) {
             setWalletAddress(prev => prev || existingAddress);
             setHasWallet(true);
+          } else if (accountType === 'Business Suite') {
+            setWalletAddress('');
+            setHasWallet(false);
           }
 
           // Handle different possible response structures
@@ -1069,17 +1661,98 @@ const Dashboard = () => {
             data: errorData
           });
           setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
+          if (accountType === 'Business Suite') {
+            setWalletAddress('');
+            setHasWallet(false);
+          }
         }
       } catch (error) {
         console.error('Error fetching wallet balances:', error);
         setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
+        if (accountType === 'Business Suite') {
+          setWalletAddress('');
+          setHasWallet(false);
+        }
       } finally {
         setIsLoadingWalletBalances(false);
       }
     };
 
     fetchWalletBalances();
-  }, [isSessionExpired]);
+  }, [isSessionExpired, accountType, walletBalancesRefreshTrigger]);
+
+  // When Business Suite wallet modal opens, fetch balance
+  useEffect(() => {
+    if (!showBusinessSuiteWalletModal || accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setBusinessSuiteWalletModalData({ error: 'Not authenticated' });
+      return;
+    }
+    setBusinessSuiteWalletModalLoading(true);
+    setBusinessSuiteWalletModalData(null);
+    const apiUrl = getApiUrl('api/business-suite/wallet/balance');
+    fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        console.log('GET api/business-suite/wallet/balance response:', result);
+        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
+        let balances = null;
+        if (result?.success && result?.data?.balance) {
+          balances = result.data.balance;
+        } else if (result?.success && result?.data) {
+          const data = result.data;
+          if (data.xrp !== undefined || data.usdt !== undefined || data.usdc !== undefined) {
+            balances = {
+              xrp: data.xrp ?? data.XRP ?? 0,
+              usdt: data.usdt ?? data.USDT ?? 0,
+              usdc: data.usdc ?? data.USDC ?? 0,
+              rippleUsd: data.rippleUsd ?? data.xrpusd ?? 0,
+            };
+          }
+        } else if (result?.success && Array.isArray(result?.data?.wallets)) {
+          balances = { xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 };
+          result.data.wallets.forEach((wallet) => {
+            const currency = (wallet.currency || wallet.code || '').toLowerCase();
+            const balance = Number(wallet.balance ?? wallet.amount ?? 0);
+            if (currency === 'xrp') balances.xrp = balance;
+            if (currency === 'usdt') balances.usdt = balance;
+            if (currency === 'usdc') balances.usdc = balance;
+          });
+        } else if (result?.balance) {
+          balances = result.balance;
+        }
+        const normalized = balances
+          ? {
+              xrp: Number(balances.xrp ?? 0),
+              usdt: Number(balances.usdt ?? 0),
+              usdc: Number(balances.usdc ?? 0),
+              rippleUsd: Number(balances.rippleUsd ?? balances.xrpusd ?? 0),
+            }
+          : null;
+        if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
+          setBusinessSuiteWalletModalData({ address: address.trim(), balances: normalized || { xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 } });
+        } else if (normalized) {
+          setBusinessSuiteWalletModalData({ address: null, balances: normalized });
+        } else {
+          const msg = (result?.message || '').toLowerCase();
+          setBusinessSuiteWalletModalData({
+            error: msg.includes('wallet not found') || msg.includes('not found') ? 'No wallet' : result?.message || 'Failed to load balance',
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Business Suite wallet modal fetch:', err);
+        setBusinessSuiteWalletModalData({ error: 'Failed to load balance' });
+      })
+      .finally(() => setBusinessSuiteWalletModalLoading(false));
+  }, [showBusinessSuiteWalletModal, accountType]);
 
   useEffect(() => {
     const fetchEscrows = async () => {
@@ -1256,6 +1929,11 @@ const Dashboard = () => {
       console.log('Transaction Blob:', prepareResult.data?.transactionBlob);
 
       if (!prepareResponse.ok || !prepareResult.success) {
+        if (showUnderReviewModalIfApplicable(prepareResult?.message)) {
+          setIsFundingWallet(false);
+          setFundingStep('idle');
+          return;
+        }
         toast.error(prepareResult.message || 'Failed to prepare transaction. Please try again.', { id: 'fund-wallet' });
         setIsFundingWallet(false);
         setFundingStep('idle');
@@ -2230,6 +2908,7 @@ const Dashboard = () => {
         // Refresh dashboard data
         await fetchDashboardSummary();
       } else {
+        if (showUnderReviewModalIfApplicable(result?.message)) return;
         toast.error(result.message || 'Failed to withdraw from wallet. Please try again.');
       }
     } catch (error) {
@@ -2281,16 +2960,229 @@ const Dashboard = () => {
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
-  const handleSubmitAndNext = (event) => {
+  const handleSubmitAndNext = async (event) => {
     event.preventDefault();
+
+    // Step 2 only: final submit sends all KYC (logo upload + main POST + document uploads)
     if (currentStep === 2) {
       if (accountType === 'Business Suite') {
-        setBusinessKycComplete(true);
-        localStorage.setItem('businessKycComplete', 'true');
-      } else {
-        setKycComplete(true);
-        localStorage.setItem('kycComplete', 'true');
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Please sign in to submit business KYC.');
+          return;
+        }
+        let companyLogoUrl = businessForm.companyLogoUrl?.trim() || null;
+        // Log everything that will be sent (for verification)
+        const kycSendLog = {
+          logo: businessForm.companyLogo
+            ? { sent: true, name: businessForm.companyLogo.name, size: businessForm.companyLogo.size, type: businessForm.companyLogo.type }
+            : { sent: false },
+          mainBody: null, // set below before POST
+          documents: {
+            identity: complianceForm.identityVerificationDocument
+              ? { sent: true, name: complianceForm.identityVerificationDocument.name, size: complianceForm.identityVerificationDocument.size, type: complianceForm.identityVerificationDocument.type }
+              : { sent: false },
+            address: complianceForm.addressVerificationDocument
+              ? { sent: true, name: complianceForm.addressVerificationDocument.name, size: complianceForm.addressVerificationDocument.size, type: complianceForm.addressVerificationDocument.type }
+              : { sent: false },
+            enhancedDueDiligence: complianceForm.enhancedDueDiligenceDocument
+              ? { sent: true, name: complianceForm.enhancedDueDiligenceDocument.name, size: complianceForm.enhancedDueDiligenceDocument.size, type: complianceForm.enhancedDueDiligenceDocument.type }
+              : { sent: false },
+          },
+        };
+        // Upload company logo first if user selected a file (final stage sends everything)
+        if (businessForm.companyLogo) {
+          setIsSubmittingBusinessKyc(true);
+          try {
+            const formData = new FormData();
+            formData.append('logo', businessForm.companyLogo);
+            const logoRes = await fetch(getApiUrl('api/business-suite/kyc/logo'), {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
+            const logoResult = await logoRes.json().catch(() => ({}));
+            if (logoRes.ok && logoResult?.success && (logoResult?.data?.companyLogoUrl || logoResult?.data?.url)) {
+              const normalized = normalizeCompanyLogoUrl(logoResult.data);
+              companyLogoUrl = normalized || logoResult.data.companyLogoUrl || logoResult.data.url || null;
+            }
+            if (!logoRes.ok || !logoResult?.success) {
+              if (showUnderReviewModalIfApplicable(logoResult?.message)) {
+                setIsSubmittingBusinessKyc(false);
+                return;
+              }
+              toast.error(logoResult?.message || 'Failed to upload company logo. Please try again.');
+              setIsSubmittingBusinessKyc(false);
+              return;
+            }
+          } catch (err) {
+            console.error('Logo upload error:', err);
+            toast.error('Failed to upload company logo. Please try again.');
+            setIsSubmittingBusinessKyc(false);
+            return;
+          }
+        }
+        // Upload KYC documents first and get URLs (same pattern as logo)
+        let identityDocumentUrl = null;
+        let addressDocumentUrl = null;
+        let enhancedDueDiligenceDocumentUrl = null;
+        const hasAnyDoc =
+          complianceForm.identityVerificationDocument ||
+          complianceForm.addressVerificationDocument ||
+          complianceForm.enhancedDueDiligenceDocument;
+        if (hasAnyDoc) setIsSubmittingBusinessKyc(true);
+        if (complianceForm.identityVerificationDocument) {
+          try {
+            const fd = new FormData();
+            fd.append('document', complianceForm.identityVerificationDocument);
+            const r = await fetch(getApiUrl('api/business-suite/kyc/documents/identity'), {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: fd,
+            });
+            const data = await r.json().catch(() => ({}));
+            console.log('KYC document upload response (identity):', data);
+            if (!r.ok || !data?.success) {
+              toast.error(data?.message || 'Failed to upload identity document.');
+              setIsSubmittingBusinessKyc(false);
+              return;
+            }
+            identityDocumentUrl = data?.data?.identityVerificationDocumentUrl || data?.data?.companyLogoUrl || data?.data?.url || data?.data?.documentUrl || null;
+            console.log('identityDocumentUrl:', identityDocumentUrl);
+          } catch (err) {
+            console.error('Identity document upload error:', err);
+            toast.error('Failed to upload identity document.');
+            setIsSubmittingBusinessKyc(false);
+            return;
+          }
+        }
+        if (complianceForm.addressVerificationDocument) {
+          try {
+            const fd = new FormData();
+            fd.append('document', complianceForm.addressVerificationDocument);
+            const r = await fetch(getApiUrl('api/business-suite/kyc/documents/address'), {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: fd,
+            });
+            const data = await r.json().catch(() => ({}));
+            console.log('KYC document upload response (address):', data);
+            if (!r.ok || !data?.success) {
+              toast.error(data?.message || 'Failed to upload address document.');
+              setIsSubmittingBusinessKyc(false);
+              return;
+            }
+            addressDocumentUrl = data?.data?.addressVerificationDocumentUrl || data?.data?.companyLogoUrl || data?.data?.url || data?.data?.documentUrl || null;
+            console.log('addressDocumentUrl:', addressDocumentUrl);
+          } catch (err) {
+            console.error('Address document upload error:', err);
+            toast.error('Failed to upload address document.');
+            setIsSubmittingBusinessKyc(false);
+            return;
+          }
+        }
+        if (complianceForm.enhancedDueDiligenceDocument) {
+          try {
+            const fd = new FormData();
+            fd.append('document', complianceForm.enhancedDueDiligenceDocument);
+            const r = await fetch(getApiUrl('api/business-suite/kyc/documents/enhanced-due-diligence'), {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: fd,
+            });
+            const data = await r.json().catch(() => ({}));
+            console.log('KYC document upload response (enhanced-due-diligence):', data);
+            if (!r.ok || !data?.success) {
+              toast.error(data?.message || 'Failed to upload enhanced due diligence document.');
+              setIsSubmittingBusinessKyc(false);
+              return;
+            }
+            enhancedDueDiligenceDocumentUrl = data?.data?.enhancedDueDiligenceDocumentUrl || data?.data?.companyLogoUrl || data?.data?.url || data?.data?.documentUrl || null;
+            console.log('enhancedDueDiligenceDocumentUrl:', enhancedDueDiligenceDocumentUrl);
+          } catch (err) {
+            console.error('Enhanced due diligence document upload error:', err);
+            toast.error('Failed to upload enhanced due diligence document.');
+            setIsSubmittingBusinessKyc(false);
+            return;
+          }
+        }
+        const payload = {
+          companyName: businessForm.companyName?.trim() || null,
+          businessDescription: businessForm.businessDescription?.trim() || null,
+          companyLogoUrl: companyLogoUrl || null,
+          identityVerificationDocumentUrl: identityDocumentUrl || null,
+          addressVerificationDocumentUrl: addressDocumentUrl || null,
+          enhancedDueDiligenceDocumentUrl: enhancedDueDiligenceDocumentUrl || null,
+          identityVerificationRequired: Boolean(complianceForm.identityVerificationRequired),
+          addressVerificationRequired: Boolean(complianceForm.addressVerificationRequired),
+          enhancedDueDiligence: Boolean(complianceForm.enhancedDueDiligence),
+          defaultEscrowFeeRate: escrowConfigForm.defaultEscrowFeeRate?.trim() || null,
+          autoReleasePeriod: escrowConfigForm.autoReleasePeriod?.trim() || null,
+          approvalWorkflow: escrowConfigForm.approvalWorkflow || null,
+          arbitrationType: complianceForm.arbitrationType || null,
+          transactionLimits: complianceForm.transactionLimits?.trim() || null,
+        };
+        kycSendLog.mainBody = payload;
+        if (kycSendLog.documents.identity) kycSendLog.documents.identity.url = identityDocumentUrl;
+        if (kycSendLog.documents.address) kycSendLog.documents.address.url = addressDocumentUrl;
+        if (kycSendLog.documents.enhancedDueDiligence) kycSendLog.documents.enhancedDueDiligence.url = enhancedDueDiligenceDocumentUrl;
+        console.log('KYC submit (Business Suite) – body sent to API:', kycSendLog);
+        console.log('POST api/business-suite/kyc – exact request body (as sent):', JSON.stringify(payload, null, 2));
+        if (!businessForm.companyLogo) setIsSubmittingBusinessKyc(true);
+        try {
+          const res = await fetch(getApiUrl('api/business-suite/kyc'), {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+          const result = await res.json().catch(() => ({}));
+          console.log('Submit for verification (Business Suite KYC) – API response:', { ok: res.ok, status: res.status, statusText: res.statusText, body: result });
+          if (res.ok && result?.success) {
+            const statusRaw = String(result?.data?.status ?? result?.status ?? '').trim();
+            const statusLower = statusRaw.replace(/_/g, ' ').toLowerCase();
+            const verifiedStatuses = ['verified', 'approved', 'complete'];
+            const isVerified = verifiedStatuses.includes(statusLower);
+            if (isVerified) {
+              setBusinessKycComplete(true);
+              if (result?.data?.companyName) setBusinessCompanyName(result.data.companyName);
+              const logoUrl = normalizeCompanyLogoUrl(result?.data);
+              if (logoUrl) setBusinessCompanyLogoUrl(logoUrl);
+              localStorage.setItem('businessKycComplete', 'true');
+              toast.success(result?.message || 'Business KYC submitted successfully');
+            } else {
+              setBusinessKycComplete(false);
+              localStorage.removeItem('businessKycComplete');
+              setShowUnderReviewKycModal(true);
+              toast.success(result?.message || 'Registration is under review. We will notify you once verified.');
+            }
+          } else {
+            console.error('Business KYC submit response error:', { status: res.status, statusText: res.statusText, result });
+            const msg = (result?.message || result?.error || '').toLowerCase();
+            const statusStr = String(result?.data?.status ?? result?.status ?? '').replace(/_/g, ' ').trim().toLowerCase();
+            const isUnderReview =
+              msg.includes('under review') ||
+              msg.includes('cannot update kyc') ||
+              msg.includes('temporarily suspended') ||
+              statusStr === 'in review';
+            if (isUnderReview) {
+              setShowUnderReviewKycModal(true);
+            } else {
+              toast.error(result?.message || 'Failed to submit business KYC. Please try again.');
+            }
+          }
+        } catch (err) {
+          console.error('Business KYC submit error:', err);
+          toast.error('Failed to submit business KYC. Please try again.');
+        } finally {
+          setIsSubmittingBusinessKyc(false);
+        }
+        return;
       }
+      setKycComplete(true);
+      localStorage.setItem('kycComplete', 'true');
     } else {
       advanceStep();
     }
@@ -2314,7 +3206,9 @@ const Dashboard = () => {
           <div className="mobile-dashboard-header">
             <div className="mobile-header-left">
               <div className="mobile-user-avatar">
-                {userAvatar ? (
+                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+                ) : userAvatar ? (
                   <img src={userAvatar} alt={userFullName} />
                 ) : (
                   userInitials
@@ -2322,11 +3216,13 @@ const Dashboard = () => {
               </div>
               <div className="mobile-user-info">
                 <span className="mobile-user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  {accountType === 'Business Suite' && businessCompanyName
+                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                   <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
                 </span>
                 <span className="mobile-user-role">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+                  {accountType === 'Business Suite' ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
                 </span>
               </div>
             </div>
@@ -2463,14 +3359,18 @@ const Dashboard = () => {
                     {developersNav.map((item) => {
                       const Icon = item.icon;
                       const isDisabled = !businessKycComplete;
+                      const developerPath = item.label === 'Api Keys' ? '/api-keys' : item.label === 'Sand box enviroment' ? '/sandbox-environment' : item.label === 'Web hook' ? '/webhook' : null;
+                      const handleDeveloperClick = () => {
+                        if (isDisabled) return;
+                        setIsMobileMenuOpen(false);
+                        if (developerPath) navigate(developerPath);
+                      };
                       return (
                         <button 
                           key={item.label} 
                           type="button" 
                           className={`mobile-sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
-                          onClick={() => {
-                            if (!isDisabled) setIsMobileMenuOpen(false);
-                          }}
+                          onClick={handleDeveloperClick}
                           disabled={isDisabled}
                         >
                           <Icon size={18} />
@@ -2487,7 +3387,9 @@ const Dashboard = () => {
                 <nav className="mobile-sidebar-nav">
                   {supportNav.map((item) => {
                     const Icon = item.icon;
+                    const isDisabled = accountType === 'Business Suite' && !businessKycComplete;
                     const handleSupportNavClick = () => {
+                      if (isDisabled) return;
                       setIsMobileMenuOpen(false);
                       if (item.label === 'Settings') {
                         navigate('/settings');
@@ -2499,8 +3401,9 @@ const Dashboard = () => {
                       <button 
                         key={item.label} 
                         type="button" 
-                        className="mobile-sidebar-nav-item"
+                        className={`mobile-sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
                         onClick={handleSupportNavClick}
+                        disabled={isDisabled}
                       >
                         <Icon size={18} />
                         <span>{item.label}</span>
@@ -2515,8 +3418,9 @@ const Dashboard = () => {
                 <nav className="mobile-sidebar-nav">
                   <button
                     type="button"
-                    className="mobile-sidebar-nav-item"
+                    className={`mobile-sidebar-nav-item ${accountType === 'Business Suite' && !businessKycComplete ? 'disabled' : ''}`}
                     onClick={() => {
+                      if (accountType === 'Business Suite' && !businessKycComplete) return;
                       if (isLoadingWalletAddress) return;
                       setIsMobileMenuOpen(false);
                       if (hasWallet) {
@@ -2525,7 +3429,7 @@ const Dashboard = () => {
                         handleCreateWallet();
                       }
                     }}
-                    disabled={isLoadingWalletAddress}
+                    disabled={isLoadingWalletAddress || (accountType === 'Business Suite' && !businessKycComplete)}
                   >
                     <span>{isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View wallet' : 'Create wallet'}</span>
                   </button>
@@ -4026,12 +4930,21 @@ const Dashboard = () => {
               </label>
               <label>
                 <span>Auto-Release Period</span>
-                <input
-                  type="text"
-                  placeholder="Enter auto-release period"
-                  value={escrowConfigForm.autoReleasePeriod}
-                  onChange={(e) => handleEscrowConfigChange('autoReleasePeriod', e.target.value)}
-                />
+                <div className="select-field">
+                  <select
+                    value={escrowConfigForm.autoReleasePeriod}
+                    onChange={(e) => handleEscrowConfigChange('autoReleasePeriod', e.target.value)}
+                  >
+                    <option value="">Select auto-release period</option>
+                    <option value="24 hours">24 hours</option>
+                    <option value="3 days">3 days</option>
+                    <option value="7 days">7 days</option>
+                    <option value="14 days">14 days</option>
+                    <option value="30 days">30 days</option>
+                    <option value="60 days">60 days</option>
+                    <option value="90 days">90 days</option>
+                  </select>
+                </div>
               </label>
               <label>
                 <span>Approval Workflow</span>
@@ -4147,52 +5060,94 @@ const Dashboard = () => {
               </label>
               <label>
                 <span>Transaction Limits</span>
-                <input
-                  type="text"
-                  placeholder="Enter transaction limits"
-                  value={complianceForm.transactionLimits}
-                  onChange={(e) => handleComplianceChange('transactionLimits', e.target.value)}
-                />
+                <div className="select-field">
+                  <select
+                    value={complianceForm.transactionLimits}
+                    onChange={(e) => handleComplianceChange('transactionLimits', e.target.value)}
+                  >
+                    <option value="">Select transaction limit</option>
+                    <option value="Max 10k USD">Max 10k USD</option>
+                    <option value="Max 50k USD">Max 50k USD</option>
+                    <option value="Max 100k USD">Max 100k USD</option>
+                    <option value="Max 250k USD">Max 250k USD</option>
+                    <option value="Max 500k USD">Max 500k USD</option>
+                    <option value="Max 1M USD">Max 1M USD</option>
+                    <option value="Unlimited">Unlimited</option>
+                  </select>
+                </div>
               </label>
               <div className="kyc-requirements-section">
                 <h3 className="kyc-requirements-title">KYC Requirements</h3>
-                <div className="kyc-toggle-item">
-                  <span className="kyc-toggle-label">Identity Verification Required</span>
-                  <button
-                    type="button"
-                    className={`kyc-toggle ${complianceForm.identityVerificationRequired ? 'active' : ''}`}
-                    onClick={() => handleComplianceChange('identityVerificationRequired', !complianceForm.identityVerificationRequired)}
-                  >
-                    <div className={`kyc-toggle-slider ${complianceForm.identityVerificationRequired ? 'active' : ''}`}></div>
-                  </button>
-                </div>
-                <div className="kyc-toggle-item">
-                  <span className="kyc-toggle-label">Address Verification Required</span>
-                  <button
-                    type="button"
-                    className={`kyc-toggle ${complianceForm.addressVerificationRequired ? 'active' : ''}`}
-                    onClick={() => handleComplianceChange('addressVerificationRequired', !complianceForm.addressVerificationRequired)}
-                  >
-                    <div className={`kyc-toggle-slider ${complianceForm.addressVerificationRequired ? 'active' : ''}`}></div>
-                  </button>
-                </div>
-                <div className="kyc-toggle-item">
-                  <span className="kyc-toggle-label">Enhanced Due Diligence</span>
-                  <button
-                    type="button"
-                    className={`kyc-toggle ${complianceForm.enhancedDueDiligence ? 'active' : ''}`}
-                    onClick={() => handleComplianceChange('enhancedDueDiligence', !complianceForm.enhancedDueDiligence)}
-                  >
-                    <div className={`kyc-toggle-slider ${complianceForm.enhancedDueDiligence ? 'active' : ''}`}></div>
-                  </button>
+                <p className="kyc-requirements-subtitle">Enable each requirement and attach supporting documents (PDF or image).</p>
+                <div className="kyc-requirement-cards">
+                  <div className="kyc-requirement-card">
+                    <div className="kyc-requirement-header">
+                      <span className="kyc-requirement-name">Identity Verification</span>
+                      <button
+                        type="button"
+                        className={`kyc-toggle ${complianceForm.identityVerificationRequired ? 'active' : ''}`}
+                        onClick={() => handleComplianceChange('identityVerificationRequired', !complianceForm.identityVerificationRequired)}
+                        aria-label="Toggle identity verification"
+                      >
+                        <div className={`kyc-toggle-slider ${complianceForm.identityVerificationRequired ? 'active' : ''}`} />
+                      </button>
+                    </div>
+                    <label className="kyc-doc-picker-btn">
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleComplianceChange('identityVerificationDocument', e.target.files?.[0] || null)} />
+                      <span className="kyc-doc-picker-btn-text">Browse</span>
+                    </label>
+                    {complianceForm.identityVerificationDocument && (
+                      <span className="kyc-doc-filename">{complianceForm.identityVerificationDocument.name}</span>
+                    )}
+                  </div>
+                  <div className="kyc-requirement-card">
+                    <div className="kyc-requirement-header">
+                      <span className="kyc-requirement-name">Address Verification</span>
+                      <button
+                        type="button"
+                        className={`kyc-toggle ${complianceForm.addressVerificationRequired ? 'active' : ''}`}
+                        onClick={() => handleComplianceChange('addressVerificationRequired', !complianceForm.addressVerificationRequired)}
+                        aria-label="Toggle address verification"
+                      >
+                        <div className={`kyc-toggle-slider ${complianceForm.addressVerificationRequired ? 'active' : ''}`} />
+                      </button>
+                    </div>
+                    <label className="kyc-doc-picker-btn">
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleComplianceChange('addressVerificationDocument', e.target.files?.[0] || null)} />
+                      <span className="kyc-doc-picker-btn-text">Browse</span>
+                    </label>
+                    {complianceForm.addressVerificationDocument && (
+                      <span className="kyc-doc-filename">{complianceForm.addressVerificationDocument.name}</span>
+                    )}
+                  </div>
+                  <div className="kyc-requirement-card">
+                    <div className="kyc-requirement-header">
+                      <span className="kyc-requirement-name">Enhanced Due Diligence</span>
+                      <button
+                        type="button"
+                        className={`kyc-toggle ${complianceForm.enhancedDueDiligence ? 'active' : ''}`}
+                        onClick={() => handleComplianceChange('enhancedDueDiligence', !complianceForm.enhancedDueDiligence)}
+                        aria-label="Toggle enhanced due diligence"
+                      >
+                        <div className={`kyc-toggle-slider ${complianceForm.enhancedDueDiligence ? 'active' : ''}`} />
+                      </button>
+                    </div>
+                    <label className="kyc-doc-picker-btn">
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleComplianceChange('enhancedDueDiligenceDocument', e.target.files?.[0] || null)} />
+                      <span className="kyc-doc-picker-btn-text">Browse</span>
+                    </label>
+                    {complianceForm.enhancedDueDiligenceDocument && (
+                      <span className="kyc-doc-filename">{complianceForm.enhancedDueDiligenceDocument.name}</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="form-actions">
-                <button type="submit" className="primary-btn">
+                <button type="submit" className="primary-btn" disabled={isSubmittingBusinessKyc}>
                   <span className="btn-arrow">
                     <ArrowRight size={16} />
                   </span>
-                  <span className="btn-text">Submit for verification</span>
+                  <span className="btn-text">{isSubmittingBusinessKyc ? 'Submitting…' : 'Submit for verification'}</span>
                 </button>
               </div>
             </form>
@@ -4345,7 +5300,7 @@ const Dashboard = () => {
                 'My Escrow': '/my-escrow',
                 Transactions: '/transactions',
                 Transaction: '/transactions',
-                Dispute: '/dispute',
+                Dispute: accountType === 'Business Suite' ? '/business-dispute' : '/dispute',
                 Savings: '/savings',
                 Trusticard: '/trusticard',
                 Payroll: '/payroll',
@@ -4356,8 +5311,8 @@ const Dashboard = () => {
 
               const isActive = (() => {
                 if (!targetPath) return false;
-                if (targetPath === '/dispute') {
-                  return location.pathname === '/dispute' || location.pathname.startsWith('/dispute/');
+                if (targetPath === '/dispute' || targetPath === '/business-dispute') {
+                  return location.pathname === targetPath || location.pathname.startsWith(`${targetPath}/`);
                 }
                 if (targetPath === '/payroll') {
                   return location.pathname === '/payroll' || location.pathname.startsWith('/payroll/');
@@ -4395,8 +5350,17 @@ const Dashboard = () => {
                 <LoadingIndicator size="sm" />
                 <span style={{ marginLeft: '0.5rem' }}>Loading...</span>
               </div>
+            ) : (accountType === 'Business Suite' && !businessKycComplete) ? (
+              <button type="button" className="sidebar-wallet-btn disabled" disabled aria-label="Verification required">
+                <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
+              </button>
             ) : hasWallet ? (
-              <button className="sidebar-wallet-btn" onClick={() => setShowConnectedWalletModal(true)} aria-label="View wallet">
+              <button
+                className="sidebar-wallet-btn"
+                onClick={() => (accountType === 'Business Suite' ? setShowBusinessSuiteWalletModal(true) : setShowConnectedWalletModal(true))}
+                aria-label="View wallet"
+              >
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
                 <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
               </button>
@@ -4416,12 +5380,19 @@ const Dashboard = () => {
               {developersNav.map((item) => {
                 const Icon = item.icon;
                 const isDisabled = !businessKycComplete;
+                const developerPath = item.label === 'Api Keys' ? '/api-keys' : item.label === 'Sand box enviroment' ? '/sandbox-environment' : item.label === 'Web hook' ? '/webhook' : null;
+                const isActive = developerPath && location.pathname === developerPath;
+                const handleDeveloperClick = () => {
+                  if (isDisabled || !developerPath) return;
+                  navigate(developerPath);
+                };
                 return (
                   <button 
                     key={item.label} 
                     type="button" 
-                    className={`sidebar-nav-item ${isDisabled ? 'disabled' : ''}`}
+                    className={`sidebar-nav-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
                     disabled={isDisabled}
+                    onClick={handleDeveloperClick}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -4437,7 +5408,9 @@ const Dashboard = () => {
           <nav className="sidebar-nav">
             {supportNav.map((item) => {
               const Icon = item.icon;
+              const isDisabled = accountType === 'Business Suite' && !businessKycComplete;
               const handleSupportNavClick = () => {
+                if (isDisabled) return;
                 if (item.label === 'Settings') {
                   navigate('/settings');
                 } else if (item.label === 'Security') {
@@ -4449,8 +5422,9 @@ const Dashboard = () => {
                 <button 
                   key={item.label} 
                   type="button" 
-                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
                   onClick={handleSupportNavClick}
+                  disabled={isDisabled}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -4562,22 +5536,35 @@ const Dashboard = () => {
                           setIsLoadingWalletAddress(false);
                           return;
                         }
-                        const res = await fetch(getApiUrl('api/wallet/balance'), {
+                        const walletBalanceUrl = accountType === 'Business Suite'
+                          ? getApiUrl('api/business-suite/wallet/balance')
+                          : getApiUrl('api/wallet/balance');
+                        const res = await fetch(walletBalanceUrl, {
                           method: 'GET',
                           headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json',
                           },
                         });
-                        const result = await res.json();
-                        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address;
-                        if (result?.success && address) {
+                        const result = await res.json().catch(() => ({}));
+                        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
+                        if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
                           setWalletAddress(address);
                           setHasWallet(true);
                           setShowWalletModal(true);
                         } else {
-                          console.error('Failed to get wallet address. Success:', result?.success, 'Address:', address);
-                          toast.error(result?.message || 'Failed to fetch wallet address.');
+                          const msg = (result?.message || '').toLowerCase();
+                          const isNotFound = msg.includes('wallet not found') || msg.includes('not found') || !result?.success;
+                          setWalletAddress('');
+                          setHasWallet(false);
+                          if (accountType === 'Business Suite' && isNotFound) {
+                            toast.error('No Business Suite wallet connected. Use Create wallet to connect your XRPL address.');
+                            setShowConnectBusinessWalletModal(true);
+                          } else {
+                            if (!showUnderReviewModalIfApplicable(result?.message)) {
+                              toast.error(result?.message || 'Failed to fetch wallet address.');
+                            }
+                          }
                         }
                       } catch (err) {
                         toast.error('Failed to fetch wallet address.');
@@ -4602,33 +5589,53 @@ const Dashboard = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  {accountType === 'Business Suite' && businessCompanyName
+                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
-                <small>Freelancer</small>
+                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
               </div>
             </div>
           </div>
         </header>
 
-        {isKycCompleteForAccount ? (
+        {accountType === 'Business Suite' && isLoadingBusinessKyc ? (
+          <div className="dashboard-kyc-loading" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh', padding: '2rem' }}>
+            <LoadingIndicator size="md" />
+          </div>
+        ) : isKycCompleteForAccount ? (
           accountType === 'Business Suite' ? (
             <BusinessDashboard
-              dashboardData={dashboardData}
-              isLoadingDashboard={isLoadingDashboard}
+              dashboardData={businessSuiteDashboardData}
+              isLoadingDashboard={isLoadingBusinessSuiteDashboard}
               exchangeRates={exchangeRates}
               isLoadingRates={isLoadingRates}
-              portfolioPoints={portfolioPoints}
-              isLoadingPortfolio={isLoadingPortfolio}
+              portfolioPoints={accountType === 'Business Suite' ? businessSuitePortfolioPoints : portfolioChartPoints}
+              isLoadingPortfolio={accountType === 'Business Suite' ? isLoadingBusinessSuitePortfolio : isLoadingPortfolio}
+              teams={businessSuiteTeams}
+              isLoadingTeams={isLoadingBusinessSuiteTeams}
+              onViewTeam={handleViewTeam}
+              onTeamCreated={refetchBusinessSuiteTeams}
+              upcomingSupply={upcomingSupply}
+              isLoadingUpcomingSupply={isLoadingUpcomingSupply}
+              subscriptionList={subscriptionList}
+              isLoadingSubscription={isLoadingSubscription}
               walletBalances={walletBalances}
               isLoadingWalletBalances={isLoadingWalletBalances}
               escrows={escrows}
               isLoadingEscrows={isLoadingEscrows}
-              totalEscrowedAmount={totalEscrowedAmount}
-              isLoadingTotalEscrowed={isLoadingTotalEscrowed}
+              totalEscrowedAmount={businessSuiteDashboardData?.totalEscrowed}
+              isLoadingTotalEscrowed={isLoadingBusinessSuiteDashboard}
               userFullName={userFullName}
               userInitials={userInitials}
               userRole={userRole}
@@ -4644,6 +5651,7 @@ const Dashboard = () => {
               isLoadingWalletAddress={isLoadingWalletAddress}
               setShowWalletModal={setShowWalletModal}
               handleCreateWallet={handleCreateWallet}
+              setShowFundMethodModal={setShowFundMethodModal}
               setShowFundWalletModal={setShowFundWalletModal}
               setShowWithdrawWalletModal={setShowWithdrawWalletModal}
               setShowCreateEscrowModal={setShowCreateEscrowModal}
@@ -4652,6 +5660,9 @@ const Dashboard = () => {
               setIsSwitchingAccountType={setIsSwitchingAccountType}
               setSwitchMessage={setSwitchMessage}
               businessKycComplete={businessKycComplete}
+              businessCompanyName={businessCompanyName}
+              businessCompanyLogoUrl={businessCompanyLogoUrl}
+              isLoadingBusinessKyc={isLoadingBusinessKyc}
               navigate={navigate}
               location={location}
               getBalanceValue={getBalanceValue}
@@ -4939,11 +5950,225 @@ const Dashboard = () => {
         onClose={() => setShowConnectWalletModal(false)} 
       />
 
+      {/* Business Suite Wallet Modal (fetch & show balance) */}
+      {showBusinessSuiteWalletModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowBusinessSuiteWalletModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Business Suite Wallet</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={() => setShowBusinessSuiteWalletModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="notification-modal-content" style={{ padding: '1.25rem' }}>
+              {businessSuiteWalletModalLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem' }}>
+                  <LoadingIndicator size="md" />
+                </div>
+              ) : businessSuiteWalletModalData?.error ? (
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{businessSuiteWalletModalData.error}</p>
+                  {businessSuiteWalletModalData.error === 'No wallet' && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ marginTop: '1rem' }}
+                      onClick={() => {
+                        setShowBusinessSuiteWalletModal(false);
+                        setConnectBusinessWalletAddress('');
+                        setShowConnectBusinessWalletModal(true);
+                      }}
+                    >
+                      Connect wallet
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {businessSuiteWalletModalData?.address && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>XRPL Address</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>{businessSuiteWalletModalData.address}</span>
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ flexShrink: 0 }}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(businessSuiteWalletModalData.address);
+                              toast.success('Address copied');
+                            } catch (e) {
+                              toast.error('Copy failed');
+                            }
+                          }}
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {businessSuiteWalletModalData?.balances && (
+                    <div>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Balance</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border, #eee)' }}>
+                          <span style={{ fontSize: '0.9rem' }}>XRP</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border, #eee)' }}>
+                          <span style={{ fontSize: '0.9rem' }}>USDT</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border, #eee)' }}>
+                          <span style={{ fontSize: '0.9rem' }}>USDC</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        {(businessSuiteWalletModalData.balances.rippleUsd ?? 0) > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0' }}>
+                            <span style={{ fontSize: '0.9rem' }}>XRPUSD</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connect Business Suite Wallet Modal */}
+      {showConnectBusinessWalletModal && (
+        <div className="notification-modal-overlay" onClick={() => !isConnectingBusinessWallet && setShowConnectBusinessWalletModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Connect XRPL Wallet</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={() => !isConnectingBusinessWallet && setShowConnectBusinessWalletModal(false)}
+                disabled={isConnectingBusinessWallet}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="notification-modal-content" style={{ padding: '1.25rem' }}>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                Enter your XRPL wallet address to use as your Business Suite wallet. You can fund it from this connected wallet.
+              </p>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>Wallet address</label>
+              <input
+                type="text"
+                placeholder="Paste your XRPL address here"
+                value={connectBusinessWalletAddress}
+                onChange={(e) => setConnectBusinessWalletAddress(e.target.value)}
+                disabled={isConnectingBusinessWallet}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid var(--border, #e0e0e0)',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <div style={{ padding: '0 1.25rem 1.25rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowConnectBusinessWalletModal(false)}
+                disabled={isConnectingBusinessWallet}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConnectBusinessWallet}
+                disabled={isConnectingBusinessWallet}
+              >
+                {isConnectingBusinessWallet ? 'Connecting...' : 'Connect'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Business Suite PIN Modal */}
       <BusinessSuitePinModal
         isOpen={showBusinessSuitePinModal}
+        mode={businessSuitePinMode}
         onClose={handleClosePinModal}
-        onVerify={handleBusinessSuitePinVerify}
+        onVerify={handleBusinessSuitePinSubmit}
+      />
+
+      {/* KYC Status Dialog: In review / Rejected */}
+      {kycStatusDialog && (
+        <div className="notification-modal-overlay kyc-status-dialog-overlay" onClick={() => setKycStatusDialog(null)}>
+          <div className="notification-modal kyc-status-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <h2>Business Suite</h2>
+              <button type="button" className="notification-close-btn" onClick={() => setKycStatusDialog(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="kyc-status-dialog-content">
+              <p className="kyc-status-dialog-message">
+                {kycStatusDialog === 'in_review'
+                  ? 'Your Business Suite application is in review. We will notify you once it has been verified.'
+                  : 'Your Business Suite application was rejected. Please contact support if you have questions.'}
+              </p>
+              <button type="button" className="kyc-status-dialog-ok" onClick={() => setKycStatusDialog(null)}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Under review – cannot update KYC modal */}
+      {showUnderReviewKycModal && (
+        <div className="notification-modal-overlay under-review-kyc-modal-overlay" onClick={() => setShowUnderReviewKycModal(false)}>
+          <div className="under-review-kyc-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="under-review-kyc-modal-icon-wrap">
+              <Clock size={40} strokeWidth={1.5} className="under-review-kyc-modal-icon" />
+            </div>
+            <h2 className="under-review-kyc-modal-title">Registration is under review</h2>
+            <p className="under-review-kyc-modal-message">
+              Your Business Suite registration has been submitted and is currently under review. You cannot update KYC details or use Business Suite features until the review is complete. We’ll notify you once it’s done.
+            </p>
+            <button type="button" className="under-review-kyc-modal-btn" onClick={() => setShowUnderReviewKycModal(false)}>
+              Got it
+            </button>
+            <button type="button" className="under-review-kyc-modal-close" onClick={() => setShowUnderReviewKycModal(false)} aria-label="Close">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <TeamDetailModal
+        isOpen={teamDetailOpen}
+        onClose={handleCloseTeamDetail}
+        team={teamDetailData}
+        loading={isLoadingTeamDetail}
+        onMemberRemoved={handleTeamDetailMemberRemoved}
       />
 
       {/* Connected Wallet Modal */}

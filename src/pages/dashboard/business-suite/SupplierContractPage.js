@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   DollarSign,
   Building2,
+  CreditCard,
   Repeat,
   Users,
   FileCheck,
@@ -18,7 +19,7 @@ import {
   Bell
 } from 'lucide-react';
 import { useSession } from '../../../context/SessionContext';
-import { getApiUrl } from '../../../utils/config';
+import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { handleLogout } from '../../../utils/logout';
 import SupplierContract from './SupplierContract';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
@@ -33,6 +34,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'Transaction', icon: Repeat, badge: null }
 ];
@@ -48,12 +50,26 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck }
 ];
 
+const normalizeCompanyLogoUrl = (data) => {
+  const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${base}${path}`;
+};
+
 const SupplierContractPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  
-  const [accountType, setAccountType] = useState('Business Suite');
+
+  const [accountType, setAccountType] = useState(() => {
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') return stored;
+    return 'Business Suite';
+  });
   const [showBalance, setShowBalance] = useState(true);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -67,9 +83,9 @@ const SupplierContractPage = () => {
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
   const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(45280.00);
   const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(false);
-  const [userFullName, setUserFullName] = useState('Sarah Chen');
-  const [userInitials, setUserInitials] = useState('SC');
-  const [userRole, setUserRole] = useState('Business Owner');
+  const [userFullName, setUserFullName] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [hasWallet, setHasWallet] = useState(false);
@@ -84,6 +100,100 @@ const SupplierContractPage = () => {
     const stored = localStorage.getItem('businessKycComplete');
     return stored ? JSON.parse(stored) : false;
   });
+  const [businessCompanyName, setBusinessCompanyName] = useState('');
+  const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
+  const [supplierDetailsItems, setSupplierDetailsItems] = useState([]);
+  const [isLoadingSupplierDetails, setIsLoadingSupplierDetails] = useState(true);
+
+  const formattedToday = useMemo(
+    () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    []
+  );
+
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    let cancelled = false;
+    setIsLoadingBusinessKyc(true);
+    fetch(getApiUrl('api/business-suite/kyc'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const kycData = result.data;
+          setBusinessCompanyName(kycData.companyName || kycData?.companyName || '');
+          setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+          const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
+          const status = statusRaw.replace(/_/g, ' ').toLowerCase();
+          const verifiedStatuses = ['verified', 'approved', 'complete'];
+          setBusinessKycComplete(verifiedStatuses.includes(status));
+        }
+      })
+      .catch(() => { if (!cancelled) { setBusinessCompanyName(''); setBusinessCompanyLogoUrl(''); } })
+      .finally(() => { if (!cancelled) setIsLoadingBusinessKyc(false); });
+    return () => { cancelled = true; };
+  }, [accountType]);
+
+  // Fetch supplier details (api/business-suite/suppliers/details)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      setSupplierDetailsItems([]);
+      setIsLoadingSupplierDetails(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSupplierDetails(true);
+    fetch(getApiUrl('api/business-suite/suppliers/details'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+        setSupplierDetailsItems(items);
+      })
+      .catch(() => { if (!cancelled) setSupplierDetailsItems([]); })
+      .finally(() => { if (!cancelled) setIsLoadingSupplierDetails(false); });
+    return () => { cancelled = true; };
+  }, [isSessionExpired]);
+
+  // Map API supplier details to UI shape: { id, progress, dueDate?, percentage?, amount }
+  const supplierDetailsForUI = useMemo(() => {
+    return supplierDetailsItems.map((item) => {
+      const id = item.supplierId || item.id || '—';
+      const progress = item.progressPercentage != null ? Number(item.progressPercentage) : 0;
+      let dueDate = null;
+      let percentage = null;
+      const statusDetail = item.statusDetail || '';
+      if (item.dueDate) {
+        try {
+          const d = new Date(item.dueDate);
+          const day = d.getDate();
+          const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+          const month = d.toLocaleDateString('en-GB', { month: 'short' });
+          const year = String(d.getFullYear()).slice(-2);
+          dueDate = `${day}${suffix} ${month} ${year}`;
+        } catch (_) {
+          dueDate = statusDetail.includes('Due date') ? statusDetail.replace(/^Due date:\s*/i, '').trim() : null;
+        }
+      } else if (statusDetail.includes('Due date')) {
+        dueDate = statusDetail.replace(/^Due date:\s*/i, '').trim();
+      } else if (/^\d+%$/.test(statusDetail.trim())) {
+        percentage = statusDetail.trim();
+      }
+      const amount = item.amount != null
+        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(item.amount))
+        : '—';
+      return { id, progress, dueDate, percentage, amount };
+    });
+  }, [supplierDetailsItems]);
 
   // Helper function to extract balance from different API response structures
   const getBalanceValue = (data, currency = 'usd') => {
@@ -250,9 +360,9 @@ const SupplierContractPage = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (isSessionExpired) {
-        setUserFullName('Sarah Chen');
-        setUserInitials('SC');
-        setUserRole('Business Owner');
+        setUserFullName('');
+        setUserInitials('');
+        setUserRole('');
         setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
@@ -282,7 +392,7 @@ const SupplierContractPage = () => {
               data.fullName ||
               [data.firstName, data.lastName].filter(Boolean).join(' ') ||
               data.name ||
-              userFullName;
+              '';
 
             if (fullName && typeof fullName === 'string') {
               setUserFullName(fullName);
@@ -290,8 +400,7 @@ const SupplierContractPage = () => {
 
             const firstName = data.firstName || '';
             const lastName = data.lastName || '';
-            let initials = 'SC';
-            
+            let initials = '';
             if (firstName && lastName) {
               initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
             } else if (fullName && typeof fullName === 'string') {
@@ -304,7 +413,7 @@ const SupplierContractPage = () => {
             }
             
             setUserInitials(initials);
-            const role = data.role || data.userType || data.accountType || 'Business Owner';
+            const role = data.role || data.userType || data.accountType || '';
             setUserRole(role);
             const avatar = data.avatar || data.profilePicture || data.image || null;
             setUserAvatar(avatar);
@@ -346,8 +455,10 @@ const SupplierContractPage = () => {
             {businessSuiteNav.map((item) => {
               const Icon = item.icon;
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'Payroll' && location.pathname === '/payroll') ||
-                               (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
+                               (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
+                               (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                               (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
+                               (item.label === 'Transaction' && location.pathname === '/transactions');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard', { state: { accountType: 'Business Suite' } });
@@ -355,6 +466,10 @@ const SupplierContractPage = () => {
                   navigate('/payroll');
                 } else if (item.label === 'Supplier Contract') {
                   navigate('/supplier-contract');
+                } else if (item.label === 'Dispute') {
+                  navigate('/business-dispute');
+                } else if (item.label === 'Transaction') {
+                  navigate('/transactions', { state: { accountType: 'Business Suite' } });
                 }
               };
               return (
@@ -441,7 +556,7 @@ const SupplierContractPage = () => {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <div className="header-info">
-            <p className="header-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="header-date">{formattedToday}</p>
             <h1>Welcome Back !</h1>
           </div>
 
@@ -456,20 +571,37 @@ const SupplierContractPage = () => {
           </div>
 
           <div className="header-actions">
-            <div className="account-type-display">
-              <span className="account-type-label">Business Suite</span>
+            <div className="account-type-buttons">
+              <button
+                type="button"
+                className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
+                onClick={() => {
+                  setAccountType('Personal');
+                  localStorage.setItem('dashboard_account_type', 'Personal');
+                  navigate('/dashboard');
+                }}
+              >
+                Personal
+              </button>
+              <button
+                type="button"
+                className={`account-type-btn ${accountType === 'Business Suite' ? 'active' : ''}`}
+                onClick={() => {
+                  setAccountType('Business Suite');
+                  localStorage.setItem('dashboard_account_type', 'Business Suite');
+                }}
+              >
+                Business Suite
+              </button>
             </div>
             {businessKycComplete && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="create-wallet-btn"
                 onClick={() => {
                   if (isLoadingWalletAddress) return;
-                  if (hasWallet) {
-                    setShowWalletModal(true);
-                  } else {
-                    handleCreateWallet();
-                  }
+                  if (hasWallet) setShowWalletModal(true);
+                  else handleCreateWallet();
                 }}
                 disabled={isLoadingWalletAddress}
               >
@@ -480,13 +612,23 @@ const SupplierContractPage = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                ) : userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  {accountType === 'Business Suite' && businessCompanyName
+                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
-                <small>{userRole}</small>
+                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
               </div>
             </div>
           </div>
@@ -530,6 +672,8 @@ const SupplierContractPage = () => {
           getExchangeRate={getExchangeRate}
           totalEscrowedAmount={totalEscrowedAmount}
           isLoadingTotalEscrowed={isLoadingTotalEscrowed}
+          supplierDetails={supplierDetailsForUI}
+          isLoadingSupplierDetails={isLoadingSupplierDetails}
         />
       </main>
 
@@ -558,8 +702,21 @@ const SupplierContractPage = () => {
         onCancel={() => setShowCreateNewSupplierModal(false)}
         onSuccess={(data) => {
           console.log('Create new supplier:', data);
-          // Handle the create supplier logic here
-          // Don't close modal on Next - likely goes to next step
+          setShowCreateNewSupplierModal(false);
+          // Refetch supplier details so the new supplier appears in the list
+          const token = localStorage.getItem('token');
+          if (token) {
+            fetch(getApiUrl('api/business-suite/suppliers/details'), {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            })
+              .then((res) => res.json().catch(() => ({})))
+              .then((result) => {
+                const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+                setSupplierDetailsItems(items);
+              })
+              .catch(() => {});
+          }
         }}
       />
     </div>

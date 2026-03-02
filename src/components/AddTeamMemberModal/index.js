@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   Briefcase,
@@ -12,10 +12,24 @@ import {
   Download,
   Clock
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getApiUrl } from '../../utils/config';
 import '../LoadingIndicator/index.css';
+import './index.css';
 
-const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
+const CHECK_DEBOUNCE_MS = 500;
+
+const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingMember, setIsCheckingMember] = useState(false);
+  const [memberCheckResult, setMemberCheckResult] = useState(null); // null | 'found' | 'not_found'
+  const [memberCheckMessage, setMemberCheckMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [successData, setSuccessData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const checkTimeoutRef = useRef(null);
+  const checkAbortRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -57,7 +71,93 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
     }
   };
 
+  // When full name changes (step 1), debounced check if member has personal account and fill email/phone
+  useEffect(() => {
+    if (!isOpen || currentStep !== 1) return;
+    const fullName = (formData.name || '').trim();
+    if (fullName.length < 2) {
+      setMemberCheckResult(null);
+      setMemberCheckMessage('');
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+        checkTimeoutRef.current = null;
+      }
+      return;
+    }
+    setMemberCheckResult(null);
+    setMemberCheckMessage('');
+    if (checkTimeoutRef.current) {
+      clearTimeout(checkTimeoutRef.current);
+      checkTimeoutRef.current = null;
+    }
+    checkAbortRef.current?.abort();
+    checkTimeoutRef.current = setTimeout(() => {
+      checkTimeoutRef.current = null;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const requestedName = fullName;
+      setIsCheckingMember(true);
+      const controller = new AbortController();
+      checkAbortRef.current = controller;
+      const url = getApiUrl('api/business-suite/teams/members/check');
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fullName: requestedName }),
+        signal: controller.signal,
+      })
+        .then((res) => res.json().catch(() => ({})))
+        .then((result) => {
+          if (checkAbortRef.current !== controller) return;
+          if (result?.success && result?.data?.exists === true) {
+            const data = result.data;
+            setFormData((prev) => {
+              if ((prev.name || '').trim() !== requestedName) return prev;
+              return {
+                ...prev,
+                ...(data.email != null && data.email !== '' && { email: String(data.email) }),
+                ...(data.phone != null && data.phone !== '' && { phoneNumber: String(data.phone) }),
+                ...(data.country != null && data.country !== '' && { country: String(data.country) }),
+              };
+            });
+            setMemberCheckResult('found');
+            setMemberCheckMessage(result?.message || 'User found – email and phone filled.');
+          } else {
+            setMemberCheckResult('not_found');
+            setMemberCheckMessage(
+              result?.message || 'No registered personal user found with this full name. Enter email and phone manually.'
+            );
+          }
+        })
+        .catch((err) => {
+          if (err?.name === 'AbortError' || checkAbortRef.current !== controller) return;
+          setMemberCheckResult(null);
+          setMemberCheckMessage('');
+        })
+        .finally(() => {
+          if (checkAbortRef.current === controller) setIsCheckingMember(false);
+        });
+    }, CHECK_DEBOUNCE_MS);
+    return () => {
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+        checkTimeoutRef.current = null;
+      }
+      checkAbortRef.current?.abort();
+    };
+  }, [isOpen, currentStep, formData.name]);
+
   const handleCloseModal = () => {
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    checkAbortRef.current?.abort();
+    setShowSuccessModal(false);
+    setSuccessMessage('');
+    setSuccessData(null);
+    setMemberCheckResult(null);
+    setMemberCheckMessage('');
     setCurrentStep(1);
     setFormData({
       name: '',
@@ -90,17 +190,106 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
     onCancel();
   };
 
-  const handleSubmitAndNext = () => {
+  const handleSubmitAndNext = async () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
-    } else {
-      // Final submission
-      onSuccess({
-        ...formData,
-        ...jobData,
-        ...paymentData
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('You need to be logged in.');
+      return;
+    }
+
+    const payload = {
+      name: formData.name ? `${formData.name}'s Team` : 'New Team',
+      email: formData.email || jobData.email || '',
+      phoneNumber: formData.phoneNumber || '',
+      country: formData.country || '',
+      address: formData.address || '',
+      gender: formData.gender || '',
+      jobTitle: jobData.jobTitle || '',
+      employmentType: jobData.employmentType || 'Full time',
+      status: jobData.status || '',
+      dateJoined: jobData.dateJoined || '',
+      currency: jobData.currency || paymentData.currency || 'USD',
+      defaultSalaryType: jobData.defaultSalaryType || '',
+      salaryAmount: Number(jobData.salaryAmount) || 0,
+      disbursementMode: jobData.disbursementMode || 'Auto Release',
+      accountType: paymentData.accountType || 'Wallet Transfer',
+      walletType: paymentData.walletType || '',
+      walletAddress: paymentData.walletAddress || '',
+      network: paymentData.network || ''
+    };
+
+    if (paymentData.accountType === 'Bank Transfer') {
+      payload.accountType = 'Bank Transfer';
+      delete payload.walletType;
+      delete payload.walletAddress;
+      delete payload.network;
+    }
+
+    // When adding to an existing team, send member payload (no team name)
+    const memberPayload = teamId
+      ? {
+          email: formData.email || jobData.email || '',
+          phoneNumber: formData.phoneNumber || '',
+          country: formData.country || '',
+          address: formData.address || '',
+          gender: formData.gender || '',
+          jobTitle: jobData.jobTitle || '',
+          employmentType: jobData.employmentType || 'Full time',
+          status: jobData.status || '',
+          dateJoined: jobData.dateJoined || '',
+          currency: jobData.currency || paymentData.currency || 'USD',
+          defaultSalaryType: jobData.defaultSalaryType || '',
+          salaryAmount: Number(jobData.salaryAmount) || 0,
+          disbursementMode: jobData.disbursementMode || 'Auto Release',
+          accountType: paymentData.accountType || 'Wallet Transfer',
+          walletType: paymentData.walletType || '',
+          walletAddress: paymentData.walletAddress || '',
+          network: paymentData.network || '',
+          ...(formData.name && { name: formData.name }),
+        }
+      : null;
+
+    if (paymentData.accountType === 'Bank Transfer' && memberPayload) {
+      memberPayload.accountType = 'Bank Transfer';
+      delete memberPayload.walletType;
+      delete memberPayload.walletAddress;
+      delete memberPayload.network;
+    }
+
+    const body = teamId ? memberPayload : payload;
+    const url = teamId
+      ? getApiUrl(`api/business-suite/teams/${teamId}/members`)
+      : getApiUrl('api/business-suite/teams');
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
       });
-      handleCloseModal();
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result?.success) {
+        setSuccessMessage(result?.message || (teamId ? 'Team member added successfully.' : 'Team created successfully.'));
+        setSuccessData(result?.data || result);
+        setShowSuccessModal(true);
+      } else {
+        toast.error(result?.message || (teamId ? 'Failed to add team member' : 'Failed to create team'));
+      }
+    } catch (err) {
+      console.error(teamId ? 'Add member error' : 'Create team error', err);
+      toast.error(teamId ? 'Failed to add team member' : 'Failed to create team');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -110,13 +299,41 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
     }
   };
 
+  const handleSuccessDone = () => {
+    setShowSuccessModal(false);
+    setSuccessMessage('');
+    const data = successData;
+    setSuccessData(null);
+    handleCloseModal();
+    onSuccess(data);
+  };
+
   if (!isOpen) {
     return null;
   }
 
+  if (showSuccessModal) {
+    return (
+      <div className="create-escrow-modal-overlay" onClick={handleSuccessDone}>
+        <div className="create-escrow-modal add-team-member-success-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+          <div className="add-team-member-success-content">
+            <div className="add-team-member-success-icon">
+              <CheckCircle size={48} style={{ color: 'var(--green-600, #059669)' }} />
+            </div>
+            <h3 className="add-team-member-success-title">Success</h3>
+            <p className="add-team-member-success-message">{successMessage}</p>
+            <button type="button" className="submit-next-btn" onClick={handleSuccessDone} style={{ marginTop: '1rem' }}>
+              <span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
-      <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="create-escrow-modal add-team-member-modal" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="create-escrow-modal-header">
           <div className="modal-header-back-icon"></div>
@@ -214,15 +431,28 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                   <div className="form-column">
                     <div className="form-group">
                       <label>Name</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Add Date"
-                          value={formData.name}
-                          onChange={(e) => handleInputChange('name', e.target.value)}
-                        />
-                        <Calendar size={18} className="input-icon" />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Enter full name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
+                      {isCheckingMember && (
+                        <span className="add-team-member-check-hint" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                          Checking if user exists…
+                        </span>
+                      )}
+                      {!isCheckingMember && memberCheckResult === 'found' && (
+                        <span className="add-team-member-check-found" style={{ fontSize: '0.8rem', color: 'var(--green-600, #059669)', marginTop: '0.25rem', display: 'block' }}>
+                          {memberCheckMessage}
+                        </span>
+                      )}
+                      {!isCheckingMember && memberCheckResult === 'not_found' && (
+                        <span className="add-team-member-check-not-found" style={{ fontSize: '0.8rem', color: 'var(--orange-600, #ea580c)', marginTop: '0.25rem', display: 'block' }}>
+                          {memberCheckMessage}
+                        </span>
+                      )}
                     </div>
                     <div className="form-group">
                       <label>Phone Number:</label>
@@ -246,27 +476,23 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                   <div className="form-column">
                     <div className="form-group form-group-wide">
                       <label>Email</label>
-                      <div className="select-input-wrapper">
-                        <input
-                          type="email"
-                          placeholder="Select"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
+                      <input
+                        type="email"
+                        placeholder="Enter email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
                     </div>
                     <div className="form-group form-group-wide">
                       <label>Country:</label>
-                      <div className="select-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Select"
-                          value={formData.country}
-                          onChange={(e) => handleInputChange('country', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Enter country"
+                        value={formData.country}
+                        onChange={(e) => handleInputChange('country', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
                     </div>
                     <div className="form-group">
                       <label>Gender:</label>
@@ -362,27 +588,32 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                     </div>
                     <div className="form-group form-group-wide">
                       <label>Status</label>
-                      <div className="select-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Select"
-                          value={jobData.status}
-                          onChange={(e) => handleInputChange('status', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
+                      <select
+                        value={jobData.status}
+                        onChange={(e) => handleInputChange('status', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--white)', cursor: 'pointer' }}
+                      >
+                        <option value="">Select</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Terminated">Terminated</option>
+                      </select>
                     </div>
                     <div className="form-group">
                       <label>Currency</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Add Date"
-                          value={jobData.currency}
-                          onChange={(e) => handleInputChange('currency', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
+                      <select
+                        value={jobData.currency}
+                        onChange={(e) => handleInputChange('currency', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--white)', cursor: 'pointer' }}
+                      >
+                        <option value="">Select</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="XRP">XRP</option>
+                        <option value="NGN">NGN</option>
+                      </select>
                     </div>
                     <div className="form-group">
                       <label>Salary Amount</label>
@@ -396,41 +627,28 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                   </div>
                   {/* Right Column */}
                   <div className="form-column">
-                    <div className="form-group form-group-wide">
-                      <label>Email</label>
-                      <div className="select-input-wrapper">
-                        <input
-                          type="email"
-                          placeholder="Select"
-                          value={jobData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
-                    </div>
                     <div className="form-group">
                       <label>Date Joined</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Enter phone number"
-                          value={jobData.dateJoined}
-                          onChange={(e) => handleInputChange('dateJoined', e.target.value)}
-                        />
-                        <Calendar size={18} className="input-icon" />
-                      </div>
+                      <input
+                        type="date"
+                        value={jobData.dateJoined}
+                        onChange={(e) => handleInputChange('dateJoined', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
                     </div>
                     <div className="form-group form-group-wide">
                       <label>Default Salary Type</label>
-                      <div className="select-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Select"
-                          value={jobData.defaultSalaryType}
-                          onChange={(e) => handleInputChange('defaultSalaryType', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
+                      <select
+                        value={jobData.defaultSalaryType}
+                        onChange={(e) => handleInputChange('defaultSalaryType', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--white)', cursor: 'pointer' }}
+                      >
+                        <option value="">Select</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Bi-weekly">Bi-weekly</option>
+                        <option value="Annual">Annual</option>
+                      </select>
                     </div>
                     <div className="form-group">
                       <label>Disbursement Mode</label>
@@ -526,33 +744,32 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                     <div className="form-column">
                       <div className="form-group">
                         <label>Wallet Type</label>
-                        <div className="select-input-wrapper">
-                          <input
-                            type="text"
-                            placeholder="Select"
-                            value={paymentData.walletType}
-                            onChange={(e) => handleInputChange('walletType', e.target.value)}
-                          />
-                          <ChevronDown size={18} className="input-icon" />
-                        </div>
+                        <select
+                          value={paymentData.walletType}
+                          onChange={(e) => handleInputChange('walletType', e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--white)', cursor: 'pointer' }}
+                        >
+                          <option value="">Select</option>
+                          <option value="XRPL">XRPL</option>
+                          <option value="Ethereum">Ethereum</option>
+                          <option value="Bitcoin">Bitcoin</option>
+                        </select>
                       </div>
                       <div className="form-group">
-                        <label>Wallet Adress</label>
-                        <div className="date-input-wrapper">
-                          <input
-                            type="text"
-                            placeholder="Add Date"
-                            value={paymentData.walletAddress}
-                            onChange={(e) => handleInputChange('walletAddress', e.target.value)}
-                          />
-                          <Calendar size={18} className="input-icon" />
-                        </div>
+                        <label>Wallet Address</label>
+                        <input
+                          type="text"
+                          placeholder="Enter wallet address"
+                          value={paymentData.walletAddress}
+                          onChange={(e) => handleInputChange('walletAddress', e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                        />
                       </div>
                       <div className="form-group">
                         <label>Network</label>
                         <input
                           type="text"
-                          placeholder="Enter your name"
+                          placeholder="Enter network"
                           value={paymentData.network}
                           onChange={(e) => handleInputChange('network', e.target.value)}
                         />
@@ -571,6 +788,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="submit-next-btn"
                 onClick={handleSubmitAndNext}
+                disabled={isSubmitting}
               >
                 <div className="submit-btn-icon-circle">
                   <ArrowRight size={16} />
@@ -586,6 +804,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="previous-btn"
                 onClick={handlePrevious}
+                disabled={isSubmitting}
               >
                 <ArrowLeft size={16} />
                 <span>Previous</span>
@@ -594,6 +813,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="submit-next-btn"
                 onClick={handleSubmitAndNext}
+                disabled={isSubmitting}
               >
                 <div className="submit-btn-icon-circle">
                   <ArrowRight size={16} />
@@ -609,6 +829,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="previous-btn"
                 onClick={handlePrevious}
+                disabled={isSubmitting}
               >
                 <ArrowLeft size={16} />
                 <span>Previous</span>
@@ -617,11 +838,12 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="submit-next-btn"
                 onClick={handleSubmitAndNext}
+                disabled={isSubmitting}
               >
                 <div className="submit-btn-icon-circle">
                   <ArrowRight size={16} />
                 </div>
-                <span>Submit</span>
+                <span>{isSubmitting ? 'Submitting...' : 'Submit'}</span>
               </button>
             </div>
           )}

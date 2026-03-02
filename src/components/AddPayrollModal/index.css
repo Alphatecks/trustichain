@@ -1,0 +1,9 @@
+/* Hide scroll indicator (scrollbar) on payroll modal content */
+.add-payroll-modal .create-escrow-modal-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.add-payroll-modal .create-escrow-modal-content::-webkit-scrollbar {
+  display: none;
+}
