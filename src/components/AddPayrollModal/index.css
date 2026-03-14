@@ -7,3 +7,147 @@
 .add-payroll-modal .create-escrow-modal-content::-webkit-scrollbar {
   display: none;
 }
+
+.add-payroll-select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--text-dark, #111827);
+  background: var(--white, #fff);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.add-payroll-select:focus {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+}
+
+.add-payroll-lookup-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--blue-600, #2563eb);
+}
+
+.add-payroll-members-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.9rem;
+}
+
+.add-payroll-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.add-payroll-member-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 0.5rem;
+}
+
+.add-payroll-member-icon {
+  flex-shrink: 0;
+  color: var(--blue-600, #2563eb);
+}
+
+.add-payroll-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.add-payroll-member-name {
+  font-weight: 500;
+  color: var(--text-dark, #111827);
+}
+
+.add-payroll-member-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted, #6b7280);
+}
+
+/* Payment summary (step 3) - read-only */
+.payment-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .payment-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.payment-summary-block {
+  padding: 1rem;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 0.5rem;
+}
+
+.payment-summary-block-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--blue-600, #2563eb);
+}
+
+.payment-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.payment-summary-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.payment-summary-label {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.payment-summary-value {
+  font-size: 0.9375rem;
+  color: var(--text-dark, #111827);
+  word-break: break-word;
+}
+
+.payment-summary-team-name {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.payment-summary-members {
+  max-height: 200px;
+}
+
+.payment-summary-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+}

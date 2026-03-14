@@ -52,17 +52,10 @@ const useAutoLogout = (inactivityTimeout = 3600000) => { // 3600 seconds = 36000
       clearTimeout(timeoutRef.current);
     }
 
-    console.log('Auto-logout timer reset. Will expire session in', inactivityTimeout / 1000, 'seconds if no activity');
-
     // Set new timeout
     timeoutRef.current = setTimeout(() => {
-      console.log('Session expiration timeout reached. Checking authentication...');
-      // Double-check authentication before expiring session
       if (checkAuthentication()) {
-        console.log('User is authenticated. Expiring session (using fallback data)...');
         expireSession();
-      } else {
-        console.log('User is not authenticated. Skipping session expiration.');
       }
     }, inactivityTimeout);
   }, [checkAuthentication, expireSession, inactivityTimeout]);
@@ -86,7 +79,6 @@ const useAutoLogout = (inactivityTimeout = 3600000) => { // 3600 seconds = 36000
 
     // Initial check
     checkAndSetup();
-    console.log('Auto-logout hook initialized. Timeout:', inactivityTimeout / 1000, 'seconds');
 
     // Events that indicate user activity
     const events = [

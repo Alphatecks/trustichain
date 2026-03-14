@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -34,7 +34,10 @@ import {
   Package,
   Monitor,
   Info,
-  Calendar
+  Calendar,
+  Check,
+  Upload,
+  AlertCircle
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './SupplierContract.css';
@@ -102,23 +105,38 @@ const SupplierContract = ({
   totalEscrowedAmount,
   isLoadingTotalEscrowed,
   supplierDetails = [],
-  isLoadingSupplierDetails = false
+  isLoadingSupplierDetails = false,
+  supplyContractsEscrowedToMe = [],
+  isLoadingSupplyContractsEscrowedToMe = false,
+  supplierTransactions = [],
+  isLoadingSupplierTransactions = false,
+  supplierTransactionsPagination = {},
+  onTransactionPageChange,
+  transactionHistoryMonth = '',
+  onTransactionMonthChange,
+  transactionHistoryStatus = '',
+  onTransactionStatusChange
 }) => {
-  const [transactionFilter, setTransactionFilter] = useState('All');
+  const [transactionFilter, setTransactionFilter] = useState(transactionHistoryStatus ? 'Successful' : 'All');
   const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
-  const [currentPage, setCurrentPage] = useState(12);
-  const [fundSupplyAmount, setFundSupplyAmount] = useState('24,567.89');
+  const { page: transactionPage = 1, totalPages: transactionTotalPages = 0 } = supplierTransactionsPagination;
+  const [fundSupplyAmount, setFundSupplyAmount] = useState('');
   const [showFundSupplyAccountModalMobile, setShowFundSupplyAccountModalMobile] = useState(false);
   const [showWithdrawSupplyAccountModalMobile, setShowWithdrawSupplyAccountModalMobile] = useState(false);
-  const [withdrawSupplyAmount, setWithdrawSupplyAmount] = useState('24,567.89');
+  const [withdrawSupplyAmount, setWithdrawSupplyAmount] = useState('');
   const [withdrawWalletType, setWithdrawWalletType] = useState('USD wallet');
   const [showCreateNewSupplierModalMobile, setShowCreateNewSupplierModalMobile] = useState(false);
   const [newSupplierStep, setNewSupplierStep] = useState(1);
   const [showSupplierDetailsModalMobile, setShowSupplierDetailsModalMobile] = useState(false);
+  const [selectedSupplierDetail, setSelectedSupplierDetail] = useState(null);
+  const [contractEvidenceFiles, setContractEvidenceFiles] = useState([]);
+  const [contractFundsReleased, setContractFundsReleased] = useState(false);
+  const [showViewSupplyContractModal, setShowViewSupplyContractModal] = useState(false);
+  const supplierDetailsSectionRef = useRef(null);
   const [newSupplierForm, setNewSupplierForm] = useState({
     supplierName: '',
     dueDate: '',
-    amount: '24,567.89',
+    amount: '',
     accountType: 'bank',
     walletType: '',
     walletAddress: '',
@@ -127,13 +145,31 @@ const SupplierContract = ({
     accountNumber: ''
   });
 
-  const transactions = Array(9).fill({
-    id: 'F4E5D6...C1B2A3',
-    type: 'Received',
-    amount: '+50 XRP ($25.00 USD)',
-    status: 'Successful',
-    date: '2024-07-04'
-  });
+  const transactions = useMemo(() => {
+    return supplierTransactions.map((t) => {
+      const amountXrp = Number(t.amountXrp ?? 0);
+      const amountUsd = Number(t.amountUsd ?? 0);
+      const amountStr = `+${amountXrp} XRP ($${amountUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)`;
+      let dateStr = '—';
+      if (t.createdAt) {
+        try {
+          const d = new Date(t.createdAt);
+          dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch (_) {}
+      }
+      return {
+        id: t.id,
+        transactionId: t.transactionId ?? t.id ?? '—',
+        supplierName: t.supplierName ?? '—',
+        type: t.type ?? 'Received',
+        amount: amountStr,
+        amountXrp,
+        amountUsd,
+        status: t.status ?? '—',
+        date: dateStr,
+      };
+    });
+  }, [supplierTransactions]);
 
   return (
     <>
@@ -375,7 +411,7 @@ const SupplierContract = ({
                 <div className="supplier-total-supply-icon-mobile">
                   <Wallet size={18} />
                 </div>
-                <h3 className="supplier-total-supply-title-mobile">Total supply amount</h3>
+                <h3 className="supplier-total-supply-title-mobile">Business suite Balance</h3>
               </div>
               <button 
                 type="button" 
@@ -401,14 +437,14 @@ const SupplierContract = ({
                         if (usdBalance !== null && usdBalance !== undefined) {
                           return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         }
-                        return '$24,567.89';
+                        return isLoadingDashboard ? null : '$0.00';
                       })())
                 : '••••••'}
             </div>
             <div className="supplier-total-supply-xrp-mobile">
               ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
                   ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '45,234')} XRP
+                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.00')} XRP
             </div>
             <div className="supplier-total-supply-actions-mobile">
               <button 
@@ -456,7 +492,7 @@ const SupplierContract = ({
                 onClick={() => setShowCreateNewSupplierModalMobile(true)}
               >
                 <Plus size={16} />
-                <span>Create new supplier</span>
+                <span>Create Supplier Escrow</span>
               </button>
             </div>
 
@@ -519,7 +555,24 @@ const SupplierContract = ({
                 </div>
               ) : (
                 supplierDetails.map((supplier, index) => (
-                <div key={index} className="upcoming-supply-card-mobile">
+                <div
+                  key={index}
+                  className="upcoming-supply-card-mobile"
+                  role="button"
+                  tabIndex={0}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedSupplierDetail(supplier);
+                    setShowSupplierDetailsModalMobile(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedSupplierDetail(supplier);
+                      setShowSupplierDetailsModalMobile(true);
+                    }
+                  }}
+                >
                   <div className="upcoming-supply-progress-circle-mobile">
                     <svg className="upcoming-supply-progress-ring-mobile" width="60" height="60">
                       <circle
@@ -568,7 +621,7 @@ const SupplierContract = ({
             <div className="supplier-transaction-history-header-mobile">
               <div className="supplier-transaction-history-title-wrapper-mobile">
                 <div className="supplier-transaction-history-blue-accent-mobile"></div>
-                <h2 className="supplier-transaction-history-title-mobile">Transaction History</h2>
+                <h2 className="supplier-transaction-history-title-mobile">Supplier transaction history</h2>
               </div>
               <button className="supplier-transaction-history-arrow-mobile">
                 <ArrowRight size={20} />
@@ -576,21 +629,31 @@ const SupplierContract = ({
             </div>
 
             <div className="supplier-transaction-history-list-mobile">
-              {transactions.slice(0, 4).map((transaction, index) => (
-                <div key={index} className="supplier-transaction-item-mobile">
-                  <div className="supplier-transaction-icon-mobile">
-                    <ArrowDown size={16} />
-                  </div>
-                  <div className="supplier-transaction-content-mobile">
-                    <div className="supplier-transaction-type-mobile">Received</div>
-                    <div className="supplier-transaction-description-mobile">You received 50 XRP, worth $25.00 USD.</div>
-                  </div>
-                  <div className="supplier-transaction-right-mobile">
-                    <div className="supplier-transaction-status-mobile">Successful</div>
-                    <div className="supplier-transaction-date-mobile">2024-07-04</div>
-                  </div>
+              {isLoadingSupplierTransactions ? (
+                <div className="supplier-transaction-loading-mobile">
+                  <LoadingIndicator size="sm" />
                 </div>
-              ))}
+              ) : transactions.length === 0 ? (
+                <div className="supplier-transaction-empty-mobile">No transactions yet</div>
+              ) : (
+                transactions.slice(0, 4).map((transaction) => (
+                  <div key={transaction.id} className="supplier-transaction-item-mobile">
+                    <div className="supplier-transaction-icon-mobile">
+                      <ArrowDown size={16} />
+                    </div>
+                    <div className="supplier-transaction-content-mobile">
+                      <div className="supplier-transaction-type-mobile">{transaction.type}</div>
+                      <div className="supplier-transaction-description-mobile">
+                        You received {transaction.amountXrp} XRP, worth ${transaction.amountUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD.
+                      </div>
+                    </div>
+                    <div className="supplier-transaction-right-mobile">
+                      <div className="supplier-transaction-status-mobile">{transaction.status}</div>
+                      <div className="supplier-transaction-date-mobile">{transaction.date}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -645,7 +708,11 @@ const SupplierContract = ({
                     }}
                     placeholder="$0.00"
                   />
-                  <div className="fund-supply-account-balance-mobile">Balance: 24,567.89 USDT</div>
+                  <div className="fund-supply-account-balance-mobile">
+                    Balance: {dashboardData?.balance?.usd != null
+                      ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : (isLoadingDashboard ? '...' : '$0.00')}
+                  </div>
                 </div>
 
                 <button className="fund-supply-account-button-mobile">
@@ -711,7 +778,11 @@ const SupplierContract = ({
                     }}
                     placeholder="$0.00"
                   />
-                  <div className="withdraw-supply-account-balance-mobile">Balance: 24,567.89 USDT</div>
+                  <div className="withdraw-supply-account-balance-mobile">
+                    Balance: {dashboardData?.balance?.usd != null
+                      ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : (isLoadingDashboard ? '...' : '$0.00')}
+                  </div>
                 </div>
 
                 <div className="withdraw-supply-account-wallet-type-section-mobile">
@@ -740,7 +811,7 @@ const SupplierContract = ({
               <div className="create-new-supplier-header-mobile">
                 <div className="create-new-supplier-title-wrapper-mobile">
                   <div className="create-new-supplier-blue-accent-mobile"></div>
-                  <h2 className="create-new-supplier-title-mobile">Create New Supplier</h2>
+                  <h2 className="create-new-supplier-title-mobile">Create Supplier Escrow</h2>
                 </div>
                 <button
                   className="create-new-supplier-close-mobile"
@@ -757,7 +828,7 @@ const SupplierContract = ({
                 {newSupplierStep === 1 && (
                   <>
                     <div className="create-new-supplier-field-mobile">
-                      <label className="create-new-supplier-label-mobile">Supplier name</label>
+                      <label className="create-new-supplier-label-mobile">Supplier Name</label>
                       <input
                         type="text"
                         className="create-new-supplier-input-mobile"
@@ -804,7 +875,11 @@ const SupplierContract = ({
                         }}
                         placeholder="$0.00"
                       />
-                      <div className="create-new-supplier-balance-mobile">Balance: {newSupplierForm.amount}</div>
+                      <div className="create-new-supplier-balance-mobile">
+                        Balance: {dashboardData?.balance?.usd != null
+                          ? `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : (isLoadingDashboard ? '...' : '$0.00')}
+                      </div>
                     </div>
 
                     <button 
@@ -903,12 +978,12 @@ const SupplierContract = ({
                         </div>
 
                         <div className="create-new-supplier-field-mobile">
-                          <label className="create-new-supplier-label-mobile">Wallet Address</label>
+                          <label className="create-new-supplier-label-mobile">Supplier Address</label>
                           <div className="create-new-supplier-input-wrapper-mobile">
                             <input
                               type="text"
                               className="create-new-supplier-input-mobile"
-                              placeholder="Enter Wallet address"
+                              placeholder="Enter Supplier Address"
                               value={newSupplierForm.walletAddress}
                               onChange={(e) => setNewSupplierForm({...newSupplierForm, walletAddress: e.target.value})}
                             />
@@ -922,7 +997,6 @@ const SupplierContract = ({
                       className="create-new-supplier-button-mobile"
                       onClick={() => {
                         setShowCreateNewSupplierModalMobile(false);
-                        setShowSupplierDetailsModalMobile(true);
                         setNewSupplierStep(1);
                       }}
                     >
@@ -939,91 +1013,6 @@ const SupplierContract = ({
             </div>
           )}
 
-          {/* Supplier Details Modal - Mobile */}
-          {showSupplierDetailsModalMobile && (
-            <div className="supplier-details-modal-mobile">
-              <div className="supplier-details-header-mobile">
-                <div className="supplier-details-title-wrapper-mobile">
-                  <div className="supplier-details-blue-accent-mobile"></div>
-                  <h2 className="supplier-details-title-mobile">Details</h2>
-                </div>
-                <button
-                  className="supplier-details-close-mobile"
-                  onClick={() => setShowSupplierDetailsModalMobile(false)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="supplier-details-content-mobile">
-                <div className="supplier-details-section-mobile">
-                  <h3 className="supplier-details-section-title-mobile">Transaction ID</h3>
-                  
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Supplier Details</span>
-                    <span className="supplier-details-value-mobile">#SUPP-2024-00</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Supplier Name</span>
-                    <span className="supplier-details-value-mobile">Jenny . O</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Due Date</span>
-                    <span className="supplier-details-value-mobile">30 - 12 - 25</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Account Type</span>
-                    <span className="supplier-details-value-mobile">Bank Transfer</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Currency</span>
-                    <span className="supplier-details-value-mobile">USD</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Amount</span>
-                    <span className="supplier-details-value-mobile">$5,000</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Bank Name</span>
-                    <span className="supplier-details-value-mobile">Bank Name</span>
-                  </div>
-
-                  <div className="supplier-details-row-mobile">
-                    <span className="supplier-details-label-mobile">Account Number</span>
-                    <span className="supplier-details-value-mobile">034326483252</span>
-                  </div>
-                </div>
-
-                <div className="supplier-details-status-mobile">
-                  <span className="supplier-details-label-mobile">Status</span>
-                  <span className="supplier-details-status-value-mobile">Successful</span>
-                </div>
-
-                <div className="supplier-details-actions-mobile">
-                  <button className="supplier-details-delete-btn-mobile">
-                    Delete
-                  </button>
-                  <button 
-                    className="supplier-details-done-btn-mobile"
-                    onClick={() => setShowSupplierDetailsModalMobile(false)}
-                  >
-                    Done
-                  </button>
-                </div>
-
-                <div className="supplier-details-info-mobile">
-                  <Info size={16} />
-                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1045,7 +1034,7 @@ const SupplierContract = ({
                 <div className="total-supply-icon-circle">
                   <Wallet size={16} />
                 </div>
-                <h3>Total supply amount</h3>
+                <h3>Business suite Balance</h3>
               </div>
               <button 
                 type="button" 
@@ -1074,24 +1063,24 @@ const SupplierContract = ({
                           if (usdBalance !== null && usdBalance !== undefined) {
                             return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                           }
-                          return '$24,567.89';
+                          return isLoadingDashboard ? null : '$0.00';
                         })())
                   : '••••••'}
               </div>
               <div className="total-supply-xrp-amount">
                 ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
                     ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '45,234')} XRP
+                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.00')} XRP
               </div>
             </div>
             <div className="total-supply-actions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="total-supply-btn fund-btn"
-                onClick={() => setShowFundSupplyAccountModal(true)}
+                onClick={() => setShowViewSupplyContractModal(true)}
               >
-                <Plus size={16} />
-                Fund Supply Account
+                <Eye size={16} />
+                View New Supply Contract
               </button>
               <button 
                 type="button" 
@@ -1128,7 +1117,7 @@ const SupplierContract = ({
               onClick={() => setShowCreateNewSupplierModal(true)}
             >
               <Plus size={16} />
-              Create new supplier
+              Create Supplier Escrow
             </button>
           </div>
 
@@ -1171,11 +1160,11 @@ const SupplierContract = ({
 
         {/* Middle Section */}
         <div className="dashboard-middle supplier-contract-middle">
-          {/* Supplier Details Section */}
-          <div className="supplier-details-section">
+          {/* Supplier Details Section – contracts escrowed to this business (Business A) by buyers (e.g. Business B) */}
+          <div id="supplier-details-section" className="supplier-details-section" ref={supplierDetailsSectionRef}>
             <div className="section-header">
               <div className="section-indicator"></div>
-              <h3>Supplier details</h3>
+              <h3>Supplier Contract details</h3>
             </div>
             <div className="supplier-details-grid">
               {isLoadingSupplierDetails ? (
@@ -1189,7 +1178,24 @@ const SupplierContract = ({
                 </div>
               ) : (
                 supplierDetails.map((supplier, index) => (
-                <div key={index} className="supplier-detail-card">
+                <div
+                  key={index}
+                  className="supplier-detail-card"
+                  role="button"
+                  tabIndex={0}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedSupplierDetail(supplier);
+                    setShowSupplierDetailsModalMobile(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedSupplierDetail(supplier);
+                      setShowSupplierDetailsModalMobile(true);
+                    }
+                  }}
+                >
                   <div className="supplier-card-top">
                     <div className="supplier-progress-circle">
                       <svg className="progress-ring" width="60" height="60">
@@ -1242,7 +1248,7 @@ const SupplierContract = ({
             <div className="section-header">
               <div className="section-header-left">
                 <div className="section-indicator"></div>
-                <h3>Transaction history</h3>
+                <h3>Supplier transaction history</h3>
               </div>
               <div className="transaction-filters">
                 <div className="filter-dropdown">
@@ -1272,58 +1278,350 @@ const SupplierContract = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((transaction, index) => (
-                    <tr key={index}>
-                      <td>
-                        <input type="checkbox" />
-                      </td>
-                      <td>
-                        <div className="transaction-type-cell">
-                          <div className="transaction-type-icon received">
-                            <ArrowDown size={14} />
-                          </div>
-                          <span>{transaction.type}</span>
-                        </div>
-                      </td>
-                      <td>{transaction.id}</td>
-                      <td>{transaction.amount}</td>
-                      <td>
-                        <span className="status-badge successful">{transaction.status}</span>
-                      </td>
-                      <td>{transaction.date}</td>
-                      <td>
-                        <button className="transaction-view-btn">
-                          <ArrowRightIcon size={16} />
-                        </button>
+                  {isLoadingSupplierTransactions ? (
+                    <tr>
+                      <td colSpan={7} className="transaction-loading-cell">
+                        <LoadingIndicator size="sm" />
                       </td>
                     </tr>
-                  ))}
+                  ) : transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="transaction-empty-cell">No transactions yet</td>
+                    </tr>
+                  ) : (
+                    transactions.map((transaction) => (
+                      <tr key={transaction.id}>
+                        <td>
+                          <input type="checkbox" />
+                        </td>
+                        <td>{transaction.transactionId}</td>
+                        <td>{transaction.supplierName}</td>
+                        <td>{transaction.amount}</td>
+                        <td>
+                          <span className={`status-badge ${(transaction.status || '').toLowerCase()}`}>{transaction.status}</span>
+                        </td>
+                        <td>{transaction.date}</td>
+                        <td>
+                          <button type="button" className="transaction-view-btn">
+                            <ArrowRightIcon size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
             <div className="transaction-pagination">
-              <button className="pagination-btn" disabled={currentPage === 1}>
-                ← Prev 10
+              <button
+                type="button"
+                className="pagination-btn"
+                disabled={transactionPage <= 1}
+                onClick={() => onTransactionPageChange?.(transactionPage - 1)}
+              >
+                ← Prev
               </button>
               <div className="pagination-numbers">
-                <span>1</span>
-                <span>...</span>
-                <span>11</span>
-                <span className="active">{currentPage}</span>
-                <span>13</span>
-                <span>14</span>
-                <span>15</span>
-                <span>16</span>
-                <span>17</span>
-                <span>18</span>
+                <span className="pagination-info">
+                  Page {transactionPage} of {transactionTotalPages || 1}
+                </span>
               </div>
-              <button className="pagination-btn">
-                Next 10 →
+              <button
+                type="button"
+                className="pagination-btn"
+                disabled={transactionPage >= transactionTotalPages}
+                onClick={() => onTransactionPageChange?.(transactionPage + 1)}
+              >
+                Next →
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Escrow Contract Details modal - shown when a supplier card View is clicked */}
+      {showSupplierDetailsModalMobile && selectedSupplierDetail && (
+        <div
+          className="supplier-details-modal-overlay"
+          onClick={() => {
+            setShowSupplierDetailsModalMobile(false);
+            setSelectedSupplierDetail(null);
+            setContractEvidenceFiles([]);
+            setContractFundsReleased(false);
+          }}
+          role="presentation"
+        >
+          <div
+            className="supplier-details-modal-mobile escrow-contract-details-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="supplier-details-modal-title"
+          >
+            <div className="supplier-details-header-mobile">
+              <div className="supplier-details-title-wrapper-mobile">
+                <div className="supplier-details-blue-accent-mobile"></div>
+                <h2 id="supplier-details-modal-title" className="supplier-details-title-mobile">Escrow contract</h2>
+              </div>
+              <button
+                type="button"
+                className="supplier-details-close-mobile"
+                onClick={() => {
+                  setShowSupplierDetailsModalMobile(false);
+                  setSelectedSupplierDetail(null);
+                  setContractEvidenceFiles([]);
+                  setContractFundsReleased(false);
+                }}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="supplier-details-content-mobile escrow-contract-content">
+              {/* Contract Header */}
+              <div className="escrow-contract-header">
+                <div className="escrow-contract-header-row">
+                  <span className="escrow-contract-label">Contract</span>
+                  <span className="escrow-contract-value">{selectedSupplierDetail.contractName ?? `#${selectedSupplierDetail.id}`}</span>
+                </div>
+                <div className="escrow-contract-header-row">
+                  <span className="escrow-contract-label">Buyer</span>
+                  <span className="escrow-contract-value">{selectedSupplierDetail.buyer ?? '—'}</span>
+                </div>
+                <div className="escrow-contract-header-row">
+                  <span className="escrow-contract-label">Amount</span>
+                  <span className="escrow-contract-value">{selectedSupplierDetail.amount ?? '—'}</span>
+                </div>
+                <div className="escrow-contract-header-row">
+                  <span className="escrow-contract-label">Currency</span>
+                  <span className="escrow-contract-value">{selectedSupplierDetail.currency ?? 'USDT'}</span>
+                </div>
+                <div className="escrow-contract-header-row">
+                  <span className="escrow-contract-label">Status</span>
+                  <span className="escrow-contract-value">{contractFundsReleased ? 'Funds Released' : (selectedSupplierDetail.escrowStatus ?? 'Funds Locked in Escrow')}</span>
+                </div>
+                <div className="escrow-funds-verified">
+                  <span className="escrow-funds-verified-dot" aria-hidden="true"></span>
+                  {contractFundsReleased ? 'Funds Released' : 'Funds Verified in Escrow'}
+                </div>
+              </div>
+
+              {/* Contract Timeline */}
+              <div className="escrow-contract-section">
+                <h3 className="escrow-contract-section-title">Contract timeline</h3>
+                <div className="escrow-timeline">
+                  <div className="escrow-timeline-step completed">
+                    <Check size={16} />
+                    <span>Escrow Created</span>
+                  </div>
+                  <div className="escrow-timeline-step completed">
+                    <Check size={16} />
+                    <span>Funds Deposited</span>
+                  </div>
+                  <div className="escrow-timeline-step completed">
+                    <Check size={16} />
+                    <span>Contract Accepted</span>
+                  </div>
+                  <div className={`escrow-timeline-step ${contractFundsReleased ? 'completed' : 'current'}`}>
+                    {contractFundsReleased ? <Check size={16} /> : null}
+                    <span>Awaiting Delivery</span>
+                  </div>
+                  <div className={`escrow-timeline-step ${contractFundsReleased ? 'completed' : ''}`}>
+                    {contractFundsReleased ? <Check size={16} /> : null}
+                    <span>Payment Release</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contract Terms */}
+              <div className="escrow-contract-section">
+                <h3 className="escrow-contract-section-title">Contract terms</h3>
+                <div className="escrow-contract-terms">
+                  <div className="escrow-contract-row">
+                    <span className="escrow-contract-label">Delivery deadline</span>
+                    <span className="escrow-contract-value">{selectedSupplierDetail.dueDate ?? '—'}</span>
+                  </div>
+                  <div className="escrow-contract-row">
+                    <span className="escrow-contract-label">Release condition</span>
+                    <span className="escrow-contract-value">Buyer confirmation</span>
+                  </div>
+                  <div className="escrow-contract-row">
+                    <span className="escrow-contract-label">Escrow type</span>
+                    <span className="escrow-contract-value">Full payment</span>
+                  </div>
+                  <div className="escrow-contract-row">
+                    <span className="escrow-contract-label">Dispute window</span>
+                    <span className="escrow-contract-value">7 days</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Evidence / Documents */}
+              <div className="escrow-contract-section">
+                <h3 className="escrow-contract-section-title">Evidence / documents</h3>
+                <p className="escrow-evidence-hint">Upload shipping receipts, invoices, tracking numbers, or delivery confirmations.</p>
+                <label className="escrow-upload-label">
+                  <Upload size={18} />
+                  <span>Upload file</span>
+                  <input
+                    type="file"
+                    className="escrow-upload-input"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files?.length) {
+                        setContractEvidenceFiles((prev) => [...prev, ...Array.from(files).map((f) => f.name)]);
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+                {contractEvidenceFiles.length > 0 && (
+                  <ul className="escrow-evidence-list">
+                    {contractEvidenceFiles.map((name, i) => (
+                      <li key={i}>{name}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="escrow-contract-actions">
+                {contractFundsReleased ? (
+                  <div className="escrow-funds-released-badge">Funds Released</div>
+                ) : (
+                  <>
+                    <button type="button" className="escrow-action-btn escrow-action-primary">
+                      <Package size={18} />
+                      Mark Delivered
+                    </button>
+                    <button
+                      type="button"
+                      className="escrow-action-btn escrow-action-secondary"
+                      onClick={() => setContractFundsReleased(true)}
+                    >
+                      Request Buyer Confirmation
+                    </button>
+                    <button type="button" className="escrow-action-btn escrow-action-outline">
+                      <AlertCircle size={18} />
+                      Raise Dispute
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="supplier-details-actions-mobile">
+                <button
+                  type="button"
+                  className="supplier-details-done-btn-mobile"
+                  onClick={() => {
+                    setShowSupplierDetailsModalMobile(false);
+                    setSelectedSupplierDetail(null);
+                    setContractEvidenceFiles([]);
+                    setContractFundsReleased(false);
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View New Supply Contract modal – contracts escrowed to this business (Business A) by buyers (e.g. Business B) */}
+      {showViewSupplyContractModal && (
+        <div
+          className="supplier-details-modal-overlay"
+          role="presentation"
+          onClick={() => setShowViewSupplyContractModal(false)}
+        >
+          <div
+            className="supplier-details-modal-mobile view-supply-contract-modal"
+            role="dialog"
+            aria-labelledby="view-supply-contract-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="supplier-details-header-mobile">
+              <div className="supplier-details-title-wrapper-mobile">
+                <div className="supplier-details-blue-accent-mobile" />
+                <h2 id="view-supply-contract-modal-title" className="supplier-details-title-mobile">
+                  Supply contracts escrowed to you
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="supplier-details-close-mobile"
+                aria-label="Close"
+                onClick={() => setShowViewSupplyContractModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="view-supply-contract-modal-content">
+              {isLoadingSupplyContractsEscrowedToMe ? (
+                <div className="view-supply-contract-loading">
+                  <LoadingIndicator size="sm" />
+                  <span>Loading contracts…</span>
+                </div>
+              ) : supplyContractsEscrowedToMe.length === 0 ? (
+                <div className="view-supply-contract-empty">
+                  No supply contracts escrowed to you yet.
+                </div>
+              ) : (
+                <ul className="view-supply-contract-list">
+                  {supplyContractsEscrowedToMe.map((item, index) => {
+                    const id = item.escrowId || item.contractId || `item-${index}`;
+                    const amountUsd = Number(item.amountUsd ?? 0);
+                    const amountStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amountUsd);
+                    let dateStr = '—';
+                    if (item.createdAt) {
+                      try {
+                        const d = new Date(item.createdAt);
+                        dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                      } catch (_) {}
+                    }
+                    return (
+                      <li key={id}>
+                        <button
+                          type="button"
+                          className="view-supply-contract-item"
+                          onClick={() => {
+                            setSelectedSupplierDetail({
+                              id: item.contractId || item.escrowId,
+                              contractName: item.contractId || `Contract ${item.contractId || item.escrowId}`,
+                              amount: amountStr,
+                              dueDate: dateStr,
+                              buyer: '—',
+                              currency: 'USDT',
+                              escrowStatus: item.status || 'Funds Locked in Escrow',
+                              progress: 0,
+                            });
+                            setShowViewSupplyContractModal(false);
+                            setShowSupplierDetailsModalMobile(true);
+                          }}
+                        >
+                          <div className="view-supply-contract-item-main">
+                            <span className="view-supply-contract-item-id">{item.contractId || item.escrowId}</span>
+                            <span className="view-supply-contract-item-name">{item.contractId || 'Contract'}</span>
+                            <span className="view-supply-contract-item-due">{dateStr}</span>
+                            {item.status && (
+                              <span className="view-supply-contract-item-status">{item.status}</span>
+                            )}
+                          </div>
+                          <div className="view-supply-contract-item-amount">{amountStr}</div>
+                          <ChevronRight size={18} className="view-supply-contract-item-arrow" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FileText,
   Users,
@@ -6,10 +6,16 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
-  ChevronDown
+  Mail,
+  User
 } from 'lucide-react';
+import { getApiUrl } from '../../utils/config';
+import LoadingIndicator from '../LoadingIndicator';
 import '../LoadingIndicator/index.css';
 import './index.css';
+
+const CURRENCY_OPTIONS = ['USD', 'EUR', 'GBP', 'XRP', 'NGN'];
+const SALARY_TYPE_OPTIONS = ['Monthly', 'Weekly', 'Bi-weekly', 'Other'];
 
 const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -20,22 +26,27 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
     companyName: '',
     payrollCycle: 'Weekly',
     startDate: '',
-    companyDescription: '',
     companyEmail: '',
     cycleDate: '',
     endDate: '',
-    releaseDate: ''
+    releaseDate: '',
+    payrollAmount: ''
   });
 
   const [membersData, setMembersData] = useState({
     // This will be populated when we add members
   });
 
+  const [teamMembersResult, setTeamMembersResult] = useState(null);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const fetchMembersTimeoutRef = useRef(null);
+
   const [paymentData, setPaymentData] = useState({
-    currency: '',
+    currency: 'USD',
     salaryAmount: '',
     allowanceAllocation: false,
-    defaultSalaryType: '',
+    defaultSalaryType: 'Monthly',
     disbursementMode: 'Auto Release',
     addAmount: ''
   });
@@ -45,13 +56,6 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
       setPayrollData(prev => ({ ...prev, [field]: value }));
     } else if (currentStep === 2) {
       setMembersData(prev => ({ ...prev, [field]: value }));
-    } else if (currentStep === 3) {
-      // Some fields in Step 3 belong to payrollData (payrollCycle, startDate, companyDescription, endDate)
-      if (['payrollCycle', 'startDate', 'companyDescription', 'endDate'].includes(field)) {
-        setPayrollData(prev => ({ ...prev, [field]: value }));
-      } else {
-        setPaymentData(prev => ({ ...prev, [field]: value }));
-      }
     }
   };
 
@@ -63,23 +67,70 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
       companyName: '',
       payrollCycle: 'Weekly',
       startDate: '',
-      companyDescription: '',
       companyEmail: '',
       cycleDate: '',
       endDate: '',
-      releaseDate: ''
+      releaseDate: '',
+      payrollAmount: ''
     });
     setMembersData({});
     setPaymentData({
-      currency: '',
+      currency: 'USD',
       salaryAmount: '',
       allowanceAllocation: false,
-      defaultSalaryType: '',
+      defaultSalaryType: 'Monthly',
       disbursementMode: 'Auto Release',
       addAmount: ''
     });
+    setTeamMembersResult(null);
+    setMembersError('');
     onCancel();
   };
+
+  // Fetch team members from API when Team name (companyName) is set
+  // GET api/business-suite/teams/members?name=<teamName> with Bearer token
+  useEffect(() => {
+    const teamName = (payrollData.companyName || '').trim();
+    if (!teamName) {
+      setTeamMembersResult(null);
+      setMembersError('');
+      return;
+    }
+    if (fetchMembersTimeoutRef.current) clearTimeout(fetchMembersTimeoutRef.current);
+    fetchMembersTimeoutRef.current = setTimeout(() => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setMembersError('Please sign in.');
+        return;
+      }
+      setIsLoadingMembers(true);
+      setMembersError('');
+      const url = getApiUrl(`api/business-suite/teams/members?name=${encodeURIComponent(teamName)}`);
+      fetch(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+        .then((res) => res.json().catch(() => ({})))
+        .then((result) => {
+          if (result?.success && result?.data) {
+            setTeamMembersResult(result.data);
+            setMembersError('');
+          } else {
+            setTeamMembersResult(null);
+            setMembersError(result?.message || 'No team members found.');
+          }
+        })
+        .catch((err) => {
+          console.error('Fetch team members error:', err);
+          setTeamMembersResult(null);
+          setMembersError('Failed to load team members.');
+        })
+        .finally(() => setIsLoadingMembers(false));
+    }, 400);
+    return () => {
+      if (fetchMembersTimeoutRef.current) clearTimeout(fetchMembersTimeoutRef.current);
+    };
+  }, [payrollData.companyName]);
 
   const handleSubmitAndNext = async () => {
     if (currentStep < 3) {
@@ -87,7 +138,22 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
     } else {
       setSubmitError('');
       setSubmitting(true);
-      const merged = { ...payrollData, ...membersData, ...paymentData };
+      const members = teamMembersResult?.members ?? [];
+      const totalAmount = parseFloat(payrollData.payrollAmount) || 0;
+      const count = members.length || 1;
+      const amountPerMember = count > 0 ? totalAmount / count : 0;
+      const items = members.map((m) => ({
+        counterpartyId: m.userId,
+        amountUsd: Math.round(amountPerMember * 100) / 100,
+      }));
+      const merged = {
+        ...payrollData,
+        ...membersData,
+        ...paymentData,
+        items,
+        teamId: teamMembersResult?.teamId,
+        teamName: teamMembersResult?.teamName || payrollData.companyName,
+      };
       try {
         if (onSuccess) {
           const result = await Promise.resolve(onSuccess(merged));
@@ -156,7 +222,7 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
               </div>
               <div className="step-content-mobile">
                 <span className="step-number-mobile">Step 3/3</span>
-                <span className="step-title-mobile">Payment Details</span>
+                <span className="step-title-mobile">Payment Summary</span>
               </div>
             </div>
           )}
@@ -198,7 +264,7 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
             </div>
             <div className="step-content">
               <span className="step-number">Step 3/3</span>
-              <span className="step-title">Payment Details</span>
+              <span className="step-title">Payment Summary</span>
             </div>
           </div>
         </div>
@@ -221,11 +287,11 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Company Name</label>
+                      <label>Team name</label>
                       <div className="date-input-wrapper">
                         <input
                           type="text"
-                          placeholder="Company name"
+                          placeholder="Team name"
                           value={payrollData.companyName}
                           onChange={(e) => handleInputChange('companyName', e.target.value)}
                         />
@@ -276,37 +342,8 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                         />
                       </div>
                     </div>
-                    <div className="form-group">
-                      <label>Company Description</label>
-                      <textarea
-                        className="form-textarea"
-                        placeholder="Enter details"
-                        value={payrollData.companyDescription}
-                        onChange={(e) => handleInputChange('companyDescription', e.target.value)}
-                        rows={4}
-                      />
-                    </div>
                   </div>
                   <div className="form-column">
-                    <div className="form-group">
-                      <label>Company email</label>
-                      <input
-                        type="email"
-                        placeholder="Enter Email"
-                        value={payrollData.companyEmail}
-                        onChange={(e) => handleInputChange('companyEmail', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Cycle Date</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="date"
-                          value={payrollData.cycleDate}
-                          onChange={(e) => handleInputChange('cycleDate', e.target.value)}
-                        />
-                      </div>
-                    </div>
                     <div className="form-group">
                       <label>End Date</label>
                       <div className="date-input-wrapper">
@@ -327,6 +364,17 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                         />
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label>Amount to be paid</label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        value={payrollData.payrollAmount}
+                        onChange={(e) => handleInputChange('payrollAmount', e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -338,13 +386,44 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
               <div className="escrow-form-section">
                 <h3 className="section-title" style={{ color: 'var(--blue-600)' }}>Members</h3>
                 <div className="counterparty-form-grid">
-                  <div className="form-column">
+                  <div className="form-column" style={{ gridColumn: '1 / -1' }}>
                     <div className="form-group">
-                      <label>Add team members</label>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                        You can add team members after creating the payroll.
+                      <label>Team members</label>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
+                        {!payrollData.companyName?.trim()
+                          ? 'Enter Team name in Step 1 to load team members.'
+                          : isLoadingMembers
+                            ? 'Loading team members...'
+                            : membersError
+                              ? membersError
+                              : teamMembersResult?.members?.length
+                                ? `Loaded from team "${teamMembersResult.teamName || payrollData.companyName}".`
+                                : 'No members found for this team name.'}
                       </p>
                     </div>
+                    {isLoadingMembers && (
+                      <div className="add-payroll-members-loading">
+                        <LoadingIndicator size="sm" />
+                        <span>Fetching members...</span>
+                      </div>
+                    )}
+                    {!isLoadingMembers && teamMembersResult?.members?.length > 0 && (
+                      <ul className="add-payroll-members-list">
+                        {teamMembersResult.members.map((m) => (
+                          <li key={m.id || m.userId} className="add-payroll-member-item">
+                            <User size={16} className="add-payroll-member-icon" />
+                            <div className="add-payroll-member-info">
+                              <span className="add-payroll-member-name">{m.fullName || '—'}</span>
+                              {m.email && (
+                                <span className="add-payroll-member-email">
+                                  <Mail size={12} /> {m.email}
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </div>
@@ -354,184 +433,71 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
           {currentStep === 3 && (
             <>
               <div className="escrow-form-section">
-                <h3 className="section-title" style={{ color: 'var(--blue-600)' }}>Compliance & Documentation</h3>
-                <div className="counterparty-form-grid">
-                  <div className="form-column">
-                    <div className="form-group">
-                      <label>Company Name</label>
-                      <input
-                        type="text"
-                        className="form-input readonly"
-                        value={payrollData.companyName}
-                        readOnly
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Payroll cycle</label>
-                      <div className="radio-group">
-                        <label className="radio-option">
-                          <input
-                            type="radio"
-                            name="payrollCycle"
-                            value="Weekly"
-                            checked={payrollData.payrollCycle === 'Weekly'}
-                            onChange={(e) => handleInputChange('payrollCycle', e.target.value)}
-                          />
-                          <span>Weekly</span>
-                        </label>
-                        <label className="radio-option">
-                          <input
-                            type="radio"
-                            name="payrollCycle"
-                            value="Bi-weekly"
-                            checked={payrollData.payrollCycle === 'Bi-weekly'}
-                            onChange={(e) => handleInputChange('payrollCycle', e.target.value)}
-                          />
-                          <span>Bi-weekly</span>
-                        </label>
-                        <label className="radio-option">
-                          <input
-                            type="radio"
-                            name="payrollCycle"
-                            value="Other"
-                            checked={payrollData.payrollCycle === 'Other'}
-                            onChange={(e) => handleInputChange('payrollCycle', e.target.value)}
-                          />
-                          <span>Other</span>
-                        </label>
+                <h3 className="section-title" style={{ color: 'var(--blue-600)' }}>Payment Summary</h3>
+                <div className="payment-summary-grid">
+                  <div className="payment-summary-block">
+                    <h4 className="payment-summary-block-title">Payroll details (Step 1)</h4>
+                    <div className="payment-summary-rows">
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">Payroll name</span>
+                        <span className="payment-summary-value">{payrollData.name || '—'}</span>
                       </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Start Date</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="date"
-                          value={payrollData.startDate}
-                          onChange={(e) => handleInputChange('startDate', e.target.value)}
-                        />
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">Team name</span>
+                        <span className="payment-summary-value">{payrollData.companyName || '—'}</span>
                       </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Company Description</label>
-                      <textarea
-                        className="form-textarea"
-                        placeholder="Enter details"
-                        value={payrollData.companyDescription}
-                        onChange={(e) => handleInputChange('companyDescription', e.target.value)}
-                        rows={4}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Currency</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Add Date"
-                          value={paymentData.currency}
-                          onChange={(e) => handleInputChange('currency', e.target.value)}
-                        />
-                        <ChevronDown size={18} className="input-icon" />
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">Payroll cycle</span>
+                        <span className="payment-summary-value">{payrollData.payrollCycle || '—'}</span>
                       </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Salary Amount</label>
-                      <input
-                        type="text"
-                        placeholder="Enter phone number"
-                        value={paymentData.salaryAmount}
-                        onChange={(e) => handleInputChange('salaryAmount', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Allowance Allocation</label>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-                        <span style={{ fontSize: '0.9rem', color: 'var(--text-dark)' }}>Enable Allowances</span>
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
-                            checked={paymentData.allowanceAllocation}
-                            onChange={(e) => handleInputChange('allowanceAllocation', e.target.checked)}
-                          />
-                          <span className="toggle-slider"></span>
-                        </label>
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">Start date</span>
+                        <span className="payment-summary-value">{payrollData.startDate || '—'}</span>
+                      </div>
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">End date</span>
+                        <span className="payment-summary-value">{payrollData.endDate || '—'}</span>
+                      </div>
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">Release date</span>
+                        <span className="payment-summary-value">{payrollData.releaseDate || '—'}</span>
+                      </div>
+                      <div className="payment-summary-row">
+                        <span className="payment-summary-label">Amount to be paid</span>
+                        <span className="payment-summary-value">
+                          {payrollData.payrollAmount !== '' && payrollData.payrollAmount !== undefined
+                            ? `$${Number(payrollData.payrollAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : '—'}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <div className="form-column">
-                    <div className="form-group">
-                      <label>Company email</label>
-                      <input
-                        type="text"
-                        className="form-input readonly"
-                        value={payrollData.companyEmail}
-                        readOnly
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Cycle Date</label>
-                      <input
-                        type="date"
-                        className="form-input readonly"
-                        value={payrollData.cycleDate}
-                        readOnly
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>End Date</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="date"
-                          value={payrollData.endDate}
-                          onChange={(e) => handleInputChange('endDate', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Default Salary Type</label>
-                      <div className="select-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Select"
-                          value={paymentData.defaultSalaryType}
-                          onChange={(e) => handleInputChange('defaultSalaryType', e.target.value)}
-                        />
-                        <ChevronDown size={18} />
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Disbursement Mode</label>
-                      <div className="radio-group">
-                        <label className="radio-option">
-                          <input
-                            type="radio"
-                            name="disbursementMode"
-                            value="Auto Release"
-                            checked={paymentData.disbursementMode === 'Auto Release'}
-                            onChange={(e) => handleInputChange('disbursementMode', e.target.value)}
-                          />
-                          <span>Auto Release</span>
-                        </label>
-                        <label className="radio-option">
-                          <input
-                            type="radio"
-                            name="disbursementMode"
-                            value="Manual Release"
-                            checked={paymentData.disbursementMode === 'Manual Release'}
-                            onChange={(e) => handleInputChange('disbursementMode', e.target.value)}
-                          />
-                          <span>Manual Release</span>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Add Amount</label>
-                      <input
-                        type="text"
-                        placeholder="Add amount"
-                        value={paymentData.addAmount}
-                        onChange={(e) => handleInputChange('addAmount', e.target.value)}
-                      />
-                    </div>
+                  <div className="payment-summary-block">
+                    <h4 className="payment-summary-block-title">Members (Step 2)</h4>
+                    <p className="payment-summary-team-name">
+                      {teamMembersResult?.teamName || payrollData.companyName
+                        ? `Team: ${teamMembersResult?.teamName || payrollData.companyName}`
+                        : null}
+                    </p>
+                    {teamMembersResult?.members?.length > 0 ? (
+                      <ul className="add-payroll-members-list payment-summary-members">
+                        {teamMembersResult.members.map((m) => (
+                          <li key={m.id || m.userId} className="add-payroll-member-item">
+                            <User size={16} className="add-payroll-member-icon" />
+                            <div className="add-payroll-member-info">
+                              <span className="add-payroll-member-name">{m.fullName || '—'}</span>
+                              {m.email && (
+                                <span className="add-payroll-member-email">
+                                  <Mail size={12} /> {m.email}
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="payment-summary-empty">No members added.</p>
+                    )}
                   </div>
                 </div>
               </div>

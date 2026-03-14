@@ -323,11 +323,13 @@
 }
 
 /* Supplier Details Section */
+#supplier-details-section.supplier-details-section,
 .supplier-details-section {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
+  scroll-margin-top: 1.5rem;
 }
 
 .supplier-details-section .section-header {
@@ -548,6 +550,12 @@
   flex: 1;
   overflow-x: auto;
   margin-bottom: 1.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.transaction-table-container::-webkit-scrollbar {
+  display: none;
 }
 
 .transaction-table {
@@ -705,6 +713,12 @@
 
   .transaction-table-container {
     overflow-x: scroll;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .transaction-table-container::-webkit-scrollbar {
+    display: none;
   }
 
   .transaction-filters {
@@ -2105,4 +2119,572 @@
     line-height: 1.5;
     font-family: 'Satoshi', 'Inter', sans-serif;
   }
+}
+
+/* Supplier contract details modal - global (mobile + desktop) */
+.supplier-details-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: supplier-details-overlay-in 0.2s ease-out;
+}
+
+@keyframes supplier-details-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.supplier-details-modal-overlay .supplier-details-modal-mobile {
+  position: relative;
+  max-width: 440px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--white, #fff);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  animation: supplier-details-modal-in 0.25s ease-out;
+}
+
+/* Hide scrollbar on contract details modal (outer container) */
+.supplier-details-modal-overlay .supplier-details-modal-mobile.escrow-contract-details-modal {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.supplier-details-modal-overlay .supplier-details-modal-mobile.escrow-contract-details-modal::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .supplier-details-modal-overlay .supplier-details-modal-mobile.escrow-contract-details-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 1rem 1.5rem;
+  }
+
+  .escrow-contract-details-modal .escrow-contract-content {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+@keyframes supplier-details-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.supplier-details-modal-overlay .supplier-details-header-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200, #e5e7eb);
+  padding-left: 0.75rem;
+  position: relative;
+  min-height: 40px;
+}
+
+.supplier-details-modal-overlay .supplier-details-title-wrapper-mobile {
+  flex: 1;
+  padding-left: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.supplier-details-modal-overlay .supplier-details-blue-accent-mobile {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 28px;
+  background: var(--blue-600, #2563eb);
+  border-radius: 3px;
+}
+
+.supplier-details-modal-overlay .supplier-details-title-mobile {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-dark, #111827);
+  margin: 0;
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-details-modal-overlay .supplier-details-close-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 50%;
+  color: var(--blue-600, #2563eb);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.supplier-details-modal-overlay .supplier-details-close-mobile:hover {
+  background: var(--gray-100, #f3f4f6);
+  color: var(--blue-700, #1d4ed8);
+}
+
+.supplier-details-modal-overlay .supplier-details-content-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.supplier-details-modal-overlay .supplier-details-section-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--gray-50, #f9fafb);
+  border-radius: 0.75rem;
+  border: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.supplier-details-modal-overlay .supplier-details-section-title-mobile {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-500, #6b7280);
+  margin: 0 0 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-details-modal-overlay .supplier-details-row-mobile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+  gap: 1rem;
+}
+
+.supplier-details-modal-overlay .supplier-details-row-mobile:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.supplier-details-modal-overlay .supplier-details-label-mobile {
+  font-size: 0.9375rem;
+  color: var(--gray-600, #4b5563);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-details-modal-overlay .supplier-details-value-mobile {
+  font-size: 0.9375rem;
+  color: var(--text-dark, #111827);
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  text-align: right;
+}
+
+.supplier-details-modal-overlay .supplier-details-actions-mobile {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.supplier-details-modal-overlay .supplier-details-delete-btn-mobile {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  background: var(--white, #fff);
+  color: var(--gray-700, #374151);
+  border: 1px solid var(--gray-300, #d1d5db);
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.supplier-details-modal-overlay .supplier-details-delete-btn-mobile:hover {
+  background: var(--gray-50, #f9fafb);
+  border-color: var(--gray-400, #9ca3af);
+}
+
+.supplier-details-modal-overlay .supplier-details-done-btn-mobile {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  background: var(--blue-600, #2563eb);
+  color: var(--white, #fff);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: background 0.2s;
+}
+
+.supplier-details-modal-overlay .supplier-details-done-btn-mobile:hover {
+  background: var(--blue-700, #1d4ed8);
+}
+
+/* Escrow contract details modal – contract page (header, timeline, terms, evidence, actions) */
+.escrow-contract-details-modal .escrow-contract-content {
+  padding: 0 0 1rem;
+  overflow-y: auto;
+  max-height: min(80vh, 640px);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.escrow-contract-details-modal .escrow-contract-content::-webkit-scrollbar {
+  display: none;
+}
+
+.escrow-contract-header {
+  padding: 1rem;
+  background: var(--gray-50, #f9fafb);
+  border-radius: 0.75rem;
+  border: 1px solid var(--gray-100, #f3f4f6);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-contract-header-row,
+.escrow-contract-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.escrow-contract-header .escrow-contract-label,
+.escrow-contract-section .escrow-contract-label {
+  font-size: 0.875rem;
+  color: var(--gray-600, #4b5563);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-contract-header .escrow-contract-value,
+.escrow-contract-section .escrow-contract-value {
+  font-size: 0.875rem;
+  color: var(--text-dark, #111827);
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  text-align: right;
+}
+
+.escrow-funds-verified {
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #15803d;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-funds-verified-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.escrow-contract-section {
+  padding: 1rem;
+  background: var(--gray-50, #f9fafb);
+  border-radius: 0.75rem;
+  border: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.escrow-contract-section-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-500, #6b7280);
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-timeline-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-500, #6b7280);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-timeline-step.completed {
+  color: #15803d;
+  font-weight: 500;
+}
+
+.escrow-timeline-step.completed svg {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.escrow-timeline-step.current {
+  color: var(--blue-600, #2563eb);
+  font-weight: 600;
+}
+
+.escrow-contract-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-evidence-hint {
+  font-size: 0.8125rem;
+  color: var(--gray-500, #6b7280);
+  margin: 0 0 0.75rem 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: var(--white, #fff);
+  border: 1px dashed var(--gray-300, #d1d5db);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700, #374151);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-upload-label:hover {
+  border-color: var(--blue-400, #60a5fa);
+  background: var(--gray-50, #f9fafb);
+}
+
+.escrow-upload-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.escrow-evidence-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.escrow-contract-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  border: 1px solid transparent;
+}
+
+.escrow-action-btn.escrow-action-primary {
+  background: var(--blue-600, #2563eb);
+  color: var(--white, #fff);
+  border-color: var(--blue-600, #2563eb);
+}
+
+.escrow-action-btn.escrow-action-primary:hover {
+  background: var(--blue-700, #1d4ed8);
+  border-color: var(--blue-700, #1d4ed8);
+}
+
+.escrow-action-btn.escrow-action-secondary {
+  background: var(--white, #fff);
+  color: var(--blue-600, #2563eb);
+  border-color: var(--blue-300, #93c5fd);
+}
+
+.escrow-action-btn.escrow-action-secondary:hover {
+  background: var(--blue-50, #eff6ff);
+  border-color: var(--blue-400, #60a5fa);
+}
+
+.escrow-action-btn.escrow-action-outline {
+  background: var(--white, #fff);
+  color: var(--gray-700, #374151);
+  border-color: var(--gray-300, #d1d5db);
+}
+
+.escrow-action-btn.escrow-action-outline:hover {
+  background: var(--gray-50, #f9fafb);
+  border-color: var(--gray-400, #9ca3af);
+}
+
+.escrow-funds-released-badge {
+  padding: 1rem;
+  text-align: center;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #15803d;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* View New Supply Contract modal – contracts escrowed to you */
+.view-supply-contract-modal .view-supply-contract-modal-content {
+  padding: 0 0 1.5rem;
+  overflow-y: auto;
+  max-height: min(70vh, 400px);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.view-supply-contract-modal .view-supply-contract-modal-content::-webkit-scrollbar {
+  display: none;
+}
+
+.view-supply-contract-loading,
+.view-supply-contract-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--gray-500, #6b7280);
+  font-size: 0.9375rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.view-supply-contract-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.view-supply-contract-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem;
+  text-align: left;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-100, #f3f4f6);
+  border-radius: 0.75rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.view-supply-contract-item:hover {
+  background: var(--blue-50, #eff6ff);
+  border-color: var(--blue-200, #bfdbfe);
+}
+
+.view-supply-contract-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.view-supply-contract-item-id {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--blue-600, #2563eb);
+}
+
+.view-supply-contract-item-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-dark, #111827);
+}
+
+.view-supply-contract-item-due {
+  font-size: 0.8125rem;
+  color: var(--gray-500, #6b7280);
+}
+
+.view-supply-contract-item-status {
+  font-size: 0.75rem;
+  text-transform: capitalize;
+  color: var(--blue-600, #2563eb);
+  font-weight: 500;
+}
+
+.view-supply-contract-item-amount {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-dark, #111827);
+  flex-shrink: 0;
+}
+
+.view-supply-contract-item-arrow {
+  color: var(--gray-400, #9ca3af);
+  flex-shrink: 0;
 }

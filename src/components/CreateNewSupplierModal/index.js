@@ -214,7 +214,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
           <div className="create-escrow-modal-content create-supplier-form-content">
             <div className="create-supplier-section">
               <div className="create-supplier-field">
-                <label className="create-supplier-label">Name</label>
+                <label className="create-supplier-label">Supplier Name</label>
                 <input
                   type="text"
                   className="create-supplier-input"
@@ -248,7 +248,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
               </div>
 
               <div className="create-supplier-field">
-                <label className="create-supplier-label">Wallet address</label>
+                <label className="create-supplier-label">Supplier Address</label>
                 <input
                   type="text"
                   className="create-supplier-input create-supplier-input-mono"
