@@ -27,7 +27,9 @@ import {
   X,
   Menu,
   Wallet,
-  ChevronRight
+  ChevronRight,
+  ArrowDown,
+  Send
 } from 'lucide-react';
 import './BusinessDashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
@@ -424,16 +426,16 @@ const BusinessDashboard = ({
               className="mobile-fund-btn"
               onClick={() => setShowFundMethodModal(true)}
             >
-              <Plus size={16} />
-              Fund Wallet
+              <ArrowDown size={16} />
+              Receive
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="mobile-withdraw-btn"
               onClick={() => setShowWithdrawWalletModal(true)}
             >
-              <Plus size={16} />
-              Withdraw
+              <Send size={16} />
+              Send
             </button>
           </div>
         </div>
@@ -478,7 +480,7 @@ const BusinessDashboard = ({
               {dashboardData?.suppliers !== undefined ? 'Active suppliers' : ''}
             </div>
             <button type="button" className="mobile-metric-btn" onClick={() => setShowCreateNewSupplierModal(true)}>
-              Create new supplier
+              Create Supplier Escrow
             </button>
           </div>
         </div>
@@ -735,8 +737,8 @@ const BusinessDashboard = ({
               </span>
             </div>
             <div className="bs-card-actions">
-              <button type="button" className="bs-btn bs-btn-primary" onClick={() => setShowFundMethodModal(true)}>+ Fund Wallet</button>
-              <button type="button" className="bs-btn" onClick={() => setShowWithdrawWalletModal(true)}>+ Withdraw</button>
+              <button type="button" className="bs-btn bs-btn-primary" onClick={() => setShowFundMethodModal(true)}><ArrowDown size={16} /> Receive</button>
+              <button type="button" className="bs-btn" onClick={() => setShowWithdrawWalletModal(true)}><Send size={16} /> Send</button>
             </div>
           </div>
 
@@ -770,7 +772,7 @@ const BusinessDashboard = ({
               </span>
               <span className="bs-card-subvalue">Active suppliers</span>
             </div>
-            <button type="button" className="bs-btn" onClick={() => setShowCreateNewSupplierModal(true)}>+ Create new supplier</button>
+            <button type="button" className="bs-btn" onClick={() => setShowCreateNewSupplierModal(true)}>+ Add supplier contract</button>
           </div>
 
           <div className="bs-card bs-card-subscription">

@@ -1026,9 +1026,6 @@ const Dispute = () => {
                                (item.label === 'Savings' && location.pathname === '/savings') ||
                                (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:466',message:'handleNavClick called',data:{itemLabel:item.label,currentPath:location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
                 } else if (item.label === 'My Escrow') {
@@ -1038,13 +1035,7 @@ const Dispute = () => {
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
                 } else if (item.label === 'Savings') {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:476',message:'Savings navigation triggered',data:{itemLabel:item.label,beforePath:location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                  // #endregion
                   navigate('/savings');
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:479',message:'navigate called for Savings',data:{targetPath:'/savings'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                  // #endregion
                 } else if (item.label === 'Trusticard') {
                   navigate('/trusticard');
                 }
@@ -1054,12 +1045,7 @@ const Dispute = () => {
                   key={item.label}
                   type="button"
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={(e) => {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dispute.js:495',message:'Button onClick fired',data:{itemLabel:item.label,buttonType:e.type,currentPath:location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                    // #endregion
-                    handleNavClick();
-                  }}
+                  onClick={() => handleNavClick()}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>

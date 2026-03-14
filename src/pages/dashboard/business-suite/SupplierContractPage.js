@@ -105,6 +105,19 @@ const SupplierContractPage = () => {
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [supplierDetailsItems, setSupplierDetailsItems] = useState([]);
   const [isLoadingSupplierDetails, setIsLoadingSupplierDetails] = useState(true);
+  const [supplyContractsEscrowedToMe, setSupplyContractsEscrowedToMe] = useState([]);
+  const [isLoadingSupplyContractsEscrowedToMe, setIsLoadingSupplyContractsEscrowedToMe] = useState(false);
+  const [supplierTransactionItems, setSupplierTransactionItems] = useState([]);
+  const [supplierTransactionTotal, setSupplierTransactionTotal] = useState(0);
+  const [supplierTransactionPage, setSupplierTransactionPage] = useState(1);
+  const [supplierTransactionPageSize] = useState(20);
+  const [supplierTransactionTotalPages, setSupplierTransactionTotalPages] = useState(0);
+  const [isLoadingSupplierTransactions, setIsLoadingSupplierTransactions] = useState(true);
+  const [transactionHistoryMonth, setTransactionHistoryMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [transactionHistoryStatus, setTransactionHistoryStatus] = useState('');
 
   const formattedToday = useMemo(
     () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -191,7 +204,11 @@ const SupplierContractPage = () => {
       const amount = item.amount != null
         ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(item.amount))
         : '—';
-      return { id, progress, dueDate, percentage, amount };
+      const contractName = item.contractName ?? item.contractTitle ?? item.supplierName ?? `Contract #${id}`;
+      const buyer = item.buyerName ?? item.buyer ?? '—';
+      const currency = item.currency ?? 'USDT';
+      const escrowStatus = item.escrowStatus ?? item.status ?? 'Funds Locked in Escrow';
+      return { id, progress, dueDate, percentage, amount, contractName, buyer, currency, escrowStatus };
     });
   }, [supplierDetailsItems]);
 
@@ -301,11 +318,7 @@ const SupplierContractPage = () => {
     const fetchDashboardSummary = async () => {
       try {
         if (isSessionExpired) {
-          setDashboardData({
-            balance: { usd: 24567.89, xrp: 45234.00 },
-            activeEscrows: { count: 23, lockedAmount: 156789.00 },
-            trustiscore: { score: 70, level: 'Platinum' }
-          });
+          setDashboardData(null);
           setIsLoadingDashboard(false);
           return;
         }
@@ -329,22 +342,14 @@ const SupplierContractPage = () => {
           const result = await response.json();
           if (result.success && result.data) {
             const normalizedData = { ...result.data };
-            
-            if (!normalizedData.balance) {
-              normalizedData.balance = {};
-            }
-            
-            const usdValue = getBalanceValue(result.data, 'usd');
-            const xrpValue = getBalanceValue(result.data, 'xrp');
-            
-            if (usdValue !== null) {
-              normalizedData.balance.usd = usdValue;
-            }
-            if (xrpValue !== null) {
-              normalizedData.balance.xrp = xrpValue;
-            }
-            
-            setDashboardData(normalizedData);
+            // Balance for this page comes from business-suite wallet (see effect below).
+            // Preserve existing balance when applying summary so we don't overwrite it
+            // when this request completes after the wallet/balance request (race fix).
+            delete normalizedData.balance;
+            setDashboardData((prev) => ({
+              ...normalizedData,
+              balance: prev?.balance,
+            }));
           }
         }
       } catch (error) {
@@ -356,6 +361,140 @@ const SupplierContractPage = () => {
 
     fetchDashboardSummary();
   }, [isSessionExpired]);
+
+  // Supplier contract page balance = business suite wallet balance
+  useEffect(() => {
+    if (isSessionExpired) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    let cancelled = false;
+    fetch(getApiUrl('api/business-suite/wallet/balance'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        let balances = null;
+        if (result?.success && result?.data?.balance) {
+          balances = result.data.balance;
+        } else if (result?.success && result?.data) {
+          const d = result.data;
+          if (d.xrp !== undefined || d.usdt !== undefined || d.usdc !== undefined || d.usd !== undefined) {
+            balances = {
+              xrp: d.xrp ?? d.XRP ?? 0,
+              usd: d.usd ?? d.USD ?? 0,
+              usdt: d.usdt ?? d.USDT ?? 0,
+              usdc: d.usdc ?? d.USDC ?? 0,
+              rippleUsd: d.rippleUsd ?? d.xrpusd ?? 0,
+            };
+          }
+        } else if (result?.success && Array.isArray(result?.data?.wallets)) {
+          balances = { xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 };
+          result.data.wallets.forEach((w) => {
+            const cur = (w.currency || w.code || '').toLowerCase();
+            const bal = Number(w.balance ?? w.amount ?? 0);
+            if (cur === 'xrp') balances.xrp = bal;
+            if (cur === 'usdt') balances.usdt = bal;
+            if (cur === 'usdc') balances.usdc = bal;
+          });
+        } else if (result?.balance) {
+          balances = result.balance;
+        }
+        if (balances) {
+          const usd =
+            Number(balances.usd ?? balances.USD ?? 0) ||
+            Number(balances.rippleUsd ?? balances.xrpusd ?? 0) ||
+            Number(balances.usdt ?? balances.USDT ?? 0) ||
+            Number(balances.usdc ?? balances.USDC ?? 0);
+          const xrp = Number(balances.xrp ?? balances.XRP ?? 0);
+          setDashboardData((prev) => ({
+            ...(prev || {}),
+            balance: { usd, xrp },
+          }));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isSessionExpired]);
+
+  // Supply contracts escrowed to this business (for "View New Supply Contract" modal)
+  useEffect(() => {
+    if (isSessionExpired) {
+      setSupplyContractsEscrowedToMe([]);
+      setIsLoadingSupplyContractsEscrowedToMe(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingSupplyContractsEscrowedToMe(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSupplyContractsEscrowedToMe(true);
+    fetch(getApiUrl('api/business-suite/supply-contracts/escrowed-to-me'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+        setSupplyContractsEscrowedToMe(items);
+      })
+      .catch(() => { if (!cancelled) setSupplyContractsEscrowedToMe([]); })
+      .finally(() => { if (!cancelled) setIsLoadingSupplyContractsEscrowedToMe(false); });
+    return () => { cancelled = true; };
+  }, [isSessionExpired]);
+
+  // Supplier transaction history
+  useEffect(() => {
+    if (isSessionExpired) {
+      setSupplierTransactionItems([]);
+      setIsLoadingSupplierTransactions(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingSupplierTransactions(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSupplierTransactions(true);
+    const params = new URLSearchParams({
+      page: String(supplierTransactionPage),
+      pageSize: String(supplierTransactionPageSize),
+      month: transactionHistoryMonth,
+    });
+    if (transactionHistoryStatus) params.set('status', transactionHistoryStatus);
+    fetch(getApiUrl(`api/business-suite/suppliers/transactions?${params}`), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const { items = [], total = 0, totalPages = 0 } = result.data;
+          setSupplierTransactionItems(items);
+          setSupplierTransactionTotal(total);
+          setSupplierTransactionTotalPages(totalPages);
+        } else {
+          setSupplierTransactionItems([]);
+          setSupplierTransactionTotal(0);
+          setSupplierTransactionTotalPages(0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSupplierTransactionItems([]);
+          setSupplierTransactionTotal(0);
+          setSupplierTransactionTotalPages(0);
+        }
+      })
+      .finally(() => { if (!cancelled) setIsLoadingSupplierTransactions(false); });
+    return () => { cancelled = true; };
+  }, [isSessionExpired, supplierTransactionPage, supplierTransactionPageSize, transactionHistoryMonth, transactionHistoryStatus]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -674,6 +813,21 @@ const SupplierContractPage = () => {
           isLoadingTotalEscrowed={isLoadingTotalEscrowed}
           supplierDetails={supplierDetailsForUI}
           isLoadingSupplierDetails={isLoadingSupplierDetails}
+          supplyContractsEscrowedToMe={supplyContractsEscrowedToMe}
+          isLoadingSupplyContractsEscrowedToMe={isLoadingSupplyContractsEscrowedToMe}
+          supplierTransactions={supplierTransactionItems}
+          isLoadingSupplierTransactions={isLoadingSupplierTransactions}
+          supplierTransactionsPagination={{
+            total: supplierTransactionTotal,
+            page: supplierTransactionPage,
+            pageSize: supplierTransactionPageSize,
+            totalPages: supplierTransactionTotalPages,
+          }}
+          onTransactionPageChange={setSupplierTransactionPage}
+          transactionHistoryMonth={transactionHistoryMonth}
+          onTransactionMonthChange={setTransactionHistoryMonth}
+          transactionHistoryStatus={transactionHistoryStatus}
+          onTransactionStatusChange={setTransactionHistoryStatus}
         />
       </main>
 
@@ -701,7 +855,7 @@ const SupplierContractPage = () => {
         isOpen={showCreateNewSupplierModal}
         onCancel={() => setShowCreateNewSupplierModal(false)}
         onSuccess={(data) => {
-          console.log('Create new supplier:', data);
+          console.log('Add supplier contract:', data);
           setShowCreateNewSupplierModal(false);
           // Refetch supplier details so the new supplier appears in the list
           const token = localStorage.getItem('token');

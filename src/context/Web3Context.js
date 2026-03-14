@@ -336,32 +336,17 @@ export const Web3Provider = ({ children }) => {
                 method: 'wallet_getSnaps'
               });
               
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:222',message:'wallet_getSnaps result',data:{installedSnaps:installedSnaps,keys:Object.keys(installedSnaps||{}),snapId:snapId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-              // #endregion
-              
               // Check if snap is installed (could be under different keys)
               const allKeys = Object.keys(installedSnaps || {});
               isInstalled = allKeys.some(key => 
                 key.includes('xrpl') || key.includes('xrplevm') || key === snapId
               );
               
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:230',message:'isInstalled check result',data:{allKeys:allKeys,isInstalled:isInstalled,matchingKeys:allKeys.filter(k=>k.includes('xrpl')||k.includes('xrplevm')||k===snapId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-              // #endregion
             } catch (err) {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:233',message:'wallet_getSnaps error',data:{error:err.message,errorStack:err.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-              // #endregion
               console.log('Could not check installed snaps:', err);
             }
             
             try {
-              // Try to get the address directly
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:236',message:'Attempting wallet_invokeSnap',data:{snapId:snapId,isInstalled:isInstalled},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
-              // #endregion
-              
               const result = await window.ethereum.request({
                 method: 'wallet_invokeSnap',
                 params: {
@@ -371,11 +356,7 @@ export const Web3Provider = ({ children }) => {
                   }
                 }
               });
-              
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:248',message:'wallet_invokeSnap success',data:{result:result,resultType:typeof result},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'E'})}).catch(()=>{});
-              // #endregion
-              
+
               // Handle different response formats
               if (typeof result === 'string') {
                 xrplAddress = result;
@@ -386,30 +367,14 @@ export const Web3Provider = ({ children }) => {
               } else if (result?.data?.address) {
                 xrplAddress = result.data.address;
               }
-              
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:258',message:'xrplAddress extracted',data:{xrplAddress:xrplAddress},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'E'})}).catch(()=>{});
-              // #endregion
             } catch (err) {
               snapError = err;
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:262',message:'wallet_invokeSnap error',data:{error:err.message,errorCode:err.code,isInstalled:isInstalled},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
-              // #endregion
-              
               // Error 4100 means "Unauthorized" - snap exists but needs permission
               // Note: We cannot programmatically request permission for domain-format snaps
               // The user must grant permission manually through MetaMask settings or by visiting wallet.xrplevm.org
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:286',message:'Error 4100 - snap needs permission',data:{errorCode:err.code,snapId:snapId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
-              // #endregion
             }
 
             if (!xrplAddress) {
-              // Failed to get XRPL address from snap
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Web3Context.js:310',message:'Failed to get xrplAddress',data:{isInstalled:isInstalled,snapError:snapError?.message,snapErrorCode:snapError?.code,snapId:snapId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,B,C,D'})}).catch(()=>{});
-              // #endregion
-              
               setAccount(null);
               setProvider(null);
               setSigner(null);

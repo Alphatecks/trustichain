@@ -152,8 +152,7 @@ const Payroll = () => {
     companyEmail: 'angelogroup@trustichain.org',
     cycleDate: 'Monthly',
     startDate: '3rd Dec 2025',
-    endDate: '25 Dec 2026',
-    companyDescription: ''
+    endDate: '25 Dec 2026'
   });
   const [teamMemberStep, setTeamMemberStep] = useState(1);
   const [teamMemberForm, setTeamMemberForm] = useState({
@@ -421,22 +420,23 @@ const Payroll = () => {
   };
 
   const buildCreatePayrollPayload = (data) => {
-    const disbursementMode = (data.disbursementMode === 'Auto Release' || data.disbursementMode === 'auto_release') ? 'auto_release' : 'manual_release';
+    const teamName = data.teamName || data.companyName || '';
     return {
-      name: data.name || `${data.companyName || 'Payroll'}`.trim() || 'New Payroll',
-      companyName: data.companyName || '',
+      name: data.name || teamName || 'New Payroll',
+      teamName,
+      companyName: data.companyName || teamName || '',
       companyEmail: data.companyEmail || '',
       payrollCycle: data.payrollCycle || 'Weekly',
-      cycleDate: data.cycleDate || data.startDate || '',
       startDate: data.startDate || '',
       endDate: data.endDate || '',
-      companyDescription: data.companyDescription || '',
-      disbursementMode,
-      defaultSalaryType: data.defaultSalaryType || 'Monthly',
-      currency: data.currency || 'USD',
-      enableAllowances: !!data.allowanceAllocation,
       releaseDate: data.releaseDate || data.endDate || '',
-      items: Array.isArray(data.items) ? data.items : [],
+      items: Array.isArray(data.items)
+        ? data.items.map((item) => ({
+            counterpartyId: item.counterpartyId,
+            amountUsd: typeof item.amountUsd === 'number' ? item.amountUsd : parseFloat(item.amountUsd) || 0,
+          }))
+        : [],
+      createEscrows: true,
     };
   };
 
@@ -471,6 +471,7 @@ const Payroll = () => {
     })
       .then((res) => res.json().catch(() => ({})))
       .then((result) => {
+        console.log('Payroll release response:', result);
         if (result?.success) {
           setPayrollsRefreshKey((k) => k + 1);
         }
@@ -1904,7 +1905,7 @@ const Payroll = () => {
                       <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.companyEmail}</span>
                     </div>
                     <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Cycle Date:</span>
+                      <span className="add-new-payroll-confirmation-label-mobile">Start Date:</span>
                       <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.cycleDate}</span>
                     </div>
                     <div className="add-new-payroll-confirmation-item-mobile">
@@ -1947,17 +1948,6 @@ const Payroll = () => {
                       <span className="add-new-payroll-confirmation-label-mobile">Add Amount:</span>
                       <span className="add-new-payroll-confirmation-value-mobile">${addPayrollForm.addAmount || '20'}</span>
                     </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Company Description</label>
-                    <input
-                      type="text"
-                      className="add-new-payroll-input-mobile"
-                      placeholder="Enter details"
-                      value={addPayrollForm.companyDescription}
-                      onChange={(e) => setAddPayrollForm({...addPayrollForm, companyDescription: e.target.value})}
-                    />
                   </div>
 
                   <button 

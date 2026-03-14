@@ -2082,23 +2082,12 @@ const Transactions = () => {
   };
 
   const handleConfirmSwap = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1831',message:'handleConfirmSwap called',data:{swapPreviewData:swapPreviewData?{fromAmount:swapPreviewData.fromAmount,fromCurrency:swapPreviewData.fromCurrency,toCurrency:swapPreviewData.toCurrency}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-
     if (!swapPreviewData) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1834',message:'Early return: swapPreviewData is null',data:{swapPreviewData:swapPreviewData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       setShowSwapPreviewModal(false);
       return;
     }
 
     const token = localStorage.getItem('token');
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1838',message:'Token check',data:{tokenExists:!!token,tokenLength:token?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-
     if (!token) {
       toast.error('Please log in to continue');
       return;
@@ -2123,10 +2112,6 @@ const Transactions = () => {
         method: 'POST',
         body: requestBody
       });
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1846',message:'API URL constructed',data:{apiUrl:apiUrl,requestBody:requestBody},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -2143,10 +2128,6 @@ const Transactions = () => {
         ok: response.ok,
         headers: Object.fromEntries(response.headers.entries())
       });
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1860',message:'Fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok,headers:Object.fromEntries(response.headers.entries())},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -2172,26 +2153,15 @@ const Transactions = () => {
       console.log('📊 Swap API Response Data:', result.data);
       console.log('🔑 Swap API Response Keys:', Object.keys(result));
       console.log('📋 Swap API Response Data Keys:', result.data ? Object.keys(result.data) : 'No data');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1882',message:'Response parsed',data:{success:result.success,message:result.message,hasData:!!result.data,dataKeys:result.data?Object.keys(result.data):null,fullData:result.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'})}).catch(()=>{});
-      // #endregion
 
       if (!result.success) {
         console.error('❌ Swap API Returned Error:', result);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1863',message:'API returned error',data:{result:result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-        // #endregion
         // Handle error responses with specific error messages
         const errorMessage = result.message || 'Failed to execute swap';
         toast.error(errorMessage);
         setIsSwapping(false);
         return;
       }
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1895',message:'Swap success - full response data',data:{fullResult:result,dataKeys:result.data?Object.keys(result.data):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-      // #endregion
 
       // Swap executed successfully - update swapPreviewData with transaction details
       console.log('🔄 Updating swapPreviewData with transaction details:', result.data);
@@ -2209,10 +2179,6 @@ const Transactions = () => {
       };
       
       console.log('📝 Updated Preview Data:', updatedPreviewData);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1908',message:'Before state updates',data:{updatedPreviewData:updatedPreviewData,currentShowSwapPreviewModal:showSwapPreviewModal,currentShowSwapSummaryModal:showSwapSummaryModal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-      // #endregion
 
       console.log('🎯 Setting state updates...');
       setSwapPreviewData(updatedPreviewData);
@@ -2221,10 +2187,6 @@ const Transactions = () => {
       setIsSwapping(false);
       
       console.log('✅ State updates completed. Showing success toast.');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1915',message:'After state updates - calling toast and fetchWalletBalances',data:{message:result.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'K'})}).catch(()=>{});
-      // #endregion
 
       toast.success(result.message || 'Swap completed successfully!');
       
@@ -2238,9 +2200,6 @@ const Transactions = () => {
         message: error?.message,
         stack: error?.stack
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Transactions.js:1889',message:'Exception caught',data:{errorName:error?.name,errorMessage:error?.message,errorStack:error?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
       toast.error('Failed to execute swap. Please try again.');
       setIsSwapping(false);
     }
@@ -3130,28 +3089,6 @@ const Transactions = () => {
           <div className="desktop-savings-content">
           {/* Left Panel */}
           <div className="desktop-savings-left-panel">
-            {/* #region agent log */}
-            {(() => {
-              const logData = {
-                location: 'Transactions.js:2094',
-                message: 'Left panel render check',
-                data: {
-                  showDesktopSavingsDashboard: showDesktopSavingsDashboard,
-                  windowWidth: typeof window !== 'undefined' ? window.innerWidth : 0
-                },
-                timestamp: Date.now(),
-                sessionId: 'debug-session',
-                runId: 'run1',
-                hypothesisId: 'C'
-              };
-              fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(logData)
-              }).catch(() => {});
-              return null;
-            })()}
-            {/* #endregion */}
             {/* Savings Allocation */}
             <div className="desktop-savings-section-card">
               <div className="desktop-savings-section-indicator"></div>
@@ -3312,30 +3249,6 @@ const Transactions = () => {
 
             {/* Cashflow - Mobile Only */}
             <div className="desktop-savings-section-card mobile-cashflow-section">
-              {/* #region agent log */}
-              {(() => {
-                const logData = {
-                  location: 'Transactions.js:2253',
-                  message: 'Mobile cashflow section render check',
-                  data: {
-                    cashflowDataExists: !!cashflowData,
-                    cashflowDataLength: cashflowData?.length || 0,
-                    cashflowPeriod: cashflowPeriod,
-                    showDesktopSavingsDashboard: showDesktopSavingsDashboard
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'run1',
-                  hypothesisId: 'A'
-                };
-                fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(logData)
-                }).catch(() => {});
-                return null;
-              })()}
-              {/* #endregion */}
               <div className="desktop-savings-section-content">
                 <div className="cashflow-section">
                   <div className="section-header">
@@ -3364,28 +3277,6 @@ const Transactions = () => {
                     </div>
                   </div>
                   <div className="cashflow-chart-container">
-                    {/* #region agent log */}
-                    {(() => {
-                      const logData = {
-                        location: 'Transactions.js:2281',
-                        message: 'Cashflow chart rendering',
-                        data: {
-                          cashflowDataLength: cashflowData?.length || 0,
-                          firstItem: cashflowData?.[0] || null
-                        },
-                        timestamp: Date.now(),
-                        sessionId: 'debug-session',
-                        runId: 'run1',
-                        hypothesisId: 'B'
-                      };
-                      fetch('http://127.0.0.1:7242/ingest/a00a5740-ea9a-4e7a-a021-4868da9e4ca2', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(logData)
-                      }).catch(() => {});
-                      return null;
-                    })()}
-                    {/* #endregion */}
                     <div className="chart-y-axis">
                       <span className="y-axis-label">100%</span>
                       <span className="y-axis-label">80%</span>
