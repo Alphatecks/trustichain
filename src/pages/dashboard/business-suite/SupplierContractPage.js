@@ -105,8 +105,10 @@ const SupplierContractPage = () => {
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [supplierDetailsItems, setSupplierDetailsItems] = useState([]);
   const [isLoadingSupplierDetails, setIsLoadingSupplierDetails] = useState(true);
-  const [supplyContractsEscrowedToMe, setSupplyContractsEscrowedToMe] = useState([]);
-  const [isLoadingSupplyContractsEscrowedToMe, setIsLoadingSupplyContractsEscrowedToMe] = useState(false);
+  const [supplyContractsForSupplier, setSupplyContractsForSupplier] = useState([]);
+  const [isLoadingSupplyContractsForSupplier, setIsLoadingSupplyContractsForSupplier] = useState(false);
+  const [supplyContractsForContractor, setSupplyContractsForContractor] = useState([]);
+  const [isLoadingSupplyContractsForContractor, setIsLoadingSupplyContractsForContractor] = useState(false);
   const [supplierTransactionItems, setSupplierTransactionItems] = useState([]);
   const [supplierTransactionTotal, setSupplierTransactionTotal] = useState(0);
   const [supplierTransactionPage, setSupplierTransactionPage] = useState(1);
@@ -208,7 +210,8 @@ const SupplierContractPage = () => {
       const buyer = item.buyerName ?? item.buyer ?? '—';
       const currency = item.currency ?? 'USDT';
       const escrowStatus = item.escrowStatus ?? item.status ?? 'Funds Locked in Escrow';
-      return { id, progress, dueDate, percentage, amount, contractName, buyer, currency, escrowStatus };
+      const evidence = item.evidence ?? item.supplierEvidence ?? item.documents ?? [];
+      return { id, progress, dueDate, percentage, amount, contractName, buyer, currency, escrowStatus, evidence };
     });
   }, [supplierDetailsItems]);
 
@@ -418,21 +421,21 @@ const SupplierContractPage = () => {
     return () => { cancelled = true; };
   }, [isSessionExpired]);
 
-  // Supply contracts escrowed to this business (for "View New Supply Contract" modal)
+  // View New Supply Contract (supplier): GET for-supplier
   useEffect(() => {
     if (isSessionExpired) {
-      setSupplyContractsEscrowedToMe([]);
-      setIsLoadingSupplyContractsEscrowedToMe(false);
+      setSupplyContractsForSupplier([]);
+      setIsLoadingSupplyContractsForSupplier(false);
       return;
     }
     const token = localStorage.getItem('token');
     if (!token) {
-      setIsLoadingSupplyContractsEscrowedToMe(false);
+      setIsLoadingSupplyContractsForSupplier(false);
       return;
     }
     let cancelled = false;
-    setIsLoadingSupplyContractsEscrowedToMe(true);
-    fetch(getApiUrl('api/business-suite/supply-contracts/escrowed-to-me'), {
+    setIsLoadingSupplyContractsForSupplier(true);
+    fetch(getApiUrl('api/business-suite/supply-contracts/for-supplier'), {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     })
@@ -440,10 +443,39 @@ const SupplierContractPage = () => {
       .then((result) => {
         if (cancelled) return;
         const items = Array.isArray(result?.data?.items) ? result.data.items : [];
-        setSupplyContractsEscrowedToMe(items);
+        setSupplyContractsForSupplier(items);
       })
-      .catch(() => { if (!cancelled) setSupplyContractsEscrowedToMe([]); })
-      .finally(() => { if (!cancelled) setIsLoadingSupplyContractsEscrowedToMe(false); });
+      .catch(() => { if (!cancelled) setSupplyContractsForSupplier([]); })
+      .finally(() => { if (!cancelled) setIsLoadingSupplyContractsForSupplier(false); });
+    return () => { cancelled = true; };
+  }, [isSessionExpired]);
+
+  // View Supply Status (contractor): GET for-contractor
+  useEffect(() => {
+    if (isSessionExpired) {
+      setSupplyContractsForContractor([]);
+      setIsLoadingSupplyContractsForContractor(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingSupplyContractsForContractor(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSupplyContractsForContractor(true);
+    fetch(getApiUrl('api/business-suite/supply-contracts/for-contractor'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+        setSupplyContractsForContractor(items);
+      })
+      .catch(() => { if (!cancelled) setSupplyContractsForContractor([]); })
+      .finally(() => { if (!cancelled) setIsLoadingSupplyContractsForContractor(false); });
     return () => { cancelled = true; };
   }, [isSessionExpired]);
 
@@ -744,7 +776,7 @@ const SupplierContractPage = () => {
                 }}
                 disabled={isLoadingWalletAddress}
               >
-                {isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View Wallet' : 'Create Wallet'}
+                {isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View wallet' : 'Create wallet'}
               </button>
             )}
             <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
@@ -813,8 +845,42 @@ const SupplierContractPage = () => {
           isLoadingTotalEscrowed={isLoadingTotalEscrowed}
           supplierDetails={supplierDetailsForUI}
           isLoadingSupplierDetails={isLoadingSupplierDetails}
-          supplyContractsEscrowedToMe={supplyContractsEscrowedToMe}
-          isLoadingSupplyContractsEscrowedToMe={isLoadingSupplyContractsEscrowedToMe}
+          supplyContractsForSupplier={supplyContractsForSupplier}
+          isLoadingSupplyContractsForSupplier={isLoadingSupplyContractsForSupplier}
+          supplyContractsForContractor={supplyContractsForContractor}
+          isLoadingSupplyContractsForContractor={isLoadingSupplyContractsForContractor}
+          onRefetchSupplyContractsForSupplier={() => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            setIsLoadingSupplyContractsForSupplier(true);
+            fetch(getApiUrl('api/business-suite/supply-contracts/for-supplier'), {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            })
+              .then((res) => res.json().catch(() => ({})))
+              .then((result) => {
+                const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+                setSupplyContractsForSupplier(items);
+              })
+              .catch(() => setSupplyContractsForSupplier([]))
+              .finally(() => setIsLoadingSupplyContractsForSupplier(false));
+          }}
+          onRefetchSupplyContractsForContractor={() => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            setIsLoadingSupplyContractsForContractor(true);
+            fetch(getApiUrl('api/business-suite/supply-contracts/for-contractor'), {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            })
+              .then((res) => res.json().catch(() => ({})))
+              .then((result) => {
+                const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+                setSupplyContractsForContractor(items);
+              })
+              .catch(() => setSupplyContractsForContractor([]))
+              .finally(() => setIsLoadingSupplyContractsForContractor(false));
+          }}
           supplierTransactions={supplierTransactionItems}
           isLoadingSupplierTransactions={isLoadingSupplierTransactions}
           supplierTransactionsPagination={{

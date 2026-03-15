@@ -64,6 +64,7 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
+import SupplierContractContent from '../business-suite/SupplierContractContent';
 import TeamDetailModal from '../business-suite/TeamDetailModal';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
 import BusinessSuitePinModal from '../../../components/BusinessSuitePinModal';
@@ -77,6 +78,24 @@ const normalizeCompanyLogoUrl = (data) => {
   const base = API_BASE_URL.replace(/\/$/, '');
   const path = s.startsWith('/') ? s : `/${s}`;
   return `${base}${path}`;
+};
+
+// Check if business email is set from GET api/business-suite/business-email/status (accept any response shape)
+const isBusinessEmailSet = (result) => {
+  if (!result) return false;
+  const d = result.data;
+  // result.data is the email string directly
+  if (typeof d === 'string' && d.trim().length > 0) return true;
+  // result.data is an object
+  if (d && typeof d === 'object') {
+    if (d.hasBusinessEmail === true) return true;
+    const email = d.businessEmail ?? d.email ?? d.business_email ?? d.businessEmail;
+    if (typeof email === 'string' && email.trim().length > 0) return true;
+  }
+  // email at top level
+  const topEmail = result.businessEmail ?? result.email ?? result.business_email;
+  if (typeof topEmail === 'string' && topEmail.trim().length > 0) return true;
+  return false;
 };
 
 const sidebarNav = [
@@ -199,6 +218,13 @@ const Dashboard = () => {
     localStorage.setItem('dashboard_account_type', accountType);
   }, [accountType]);
 
+  // When on Supplier Contract route, ensure Business Suite is selected (same header/sidebar)
+  useEffect(() => {
+    if (location.pathname === '/supplier-contract' && accountType !== 'Business Suite') {
+      setAccountType('Business Suite');
+    }
+  }, [location.pathname, accountType]);
+
   // When in Business Suite (e.g. after refresh), check business email status and show modal if not set
   useEffect(() => {
     if (accountType !== 'Business Suite') return;
@@ -209,11 +235,12 @@ const Dashboard = () => {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     })
-      .then((res) => res.json().catch(() => ({})))
-      .then((data) => {
+      .then((res) => res.json().catch(() => ({})).then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
         if (cancelled) return;
-        const hasBusinessEmail = data?.data?.hasBusinessEmail === true || !!data?.data?.businessEmail;
-        if (!hasBusinessEmail) {
+        console.log('[business-email/status] response:', { ok, data, isSet: isBusinessEmailSet(data) });
+        // Only show modal when we got a successful response and email is clearly not set
+        if (ok && !isBusinessEmailSet(data)) {
           setBusinessEmailInput('');
           setShowBusinessEmailWarningModal(true);
         }
@@ -477,8 +504,7 @@ const Dashboard = () => {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
           const statusData = await statusRes.json().catch(() => ({}));
-          const hasBusinessEmail = statusData?.data?.hasBusinessEmail === true || !!statusData?.data?.businessEmail;
-          if (!hasBusinessEmail) {
+          if (statusRes.ok && !isBusinessEmailSet(statusData)) {
             setBusinessEmailInput('');
             setShowBusinessEmailWarningModal(true);
           }
@@ -5691,6 +5717,47 @@ const Dashboard = () => {
           </div>
         ) : isKycCompleteForAccount ? (
           accountType === 'Business Suite' ? (
+            location.pathname === '/supplier-contract' ? (
+              <SupplierContractContent
+                dashboardData={businessSuiteDashboardData}
+                isLoadingDashboard={isLoadingBusinessSuiteDashboard}
+                exchangeRates={exchangeRates}
+                isLoadingRates={isLoadingRates}
+                walletBalances={walletBalances}
+                isLoadingWalletBalances={isLoadingWalletBalances}
+                totalEscrowedAmount={businessSuiteDashboardData?.totalEscrowed}
+                isLoadingTotalEscrowed={isLoadingBusinessSuiteDashboard}
+                userFullName={userFullName}
+                userInitials={userInitials}
+                userRole={userRole}
+                userAvatar={userAvatar}
+                isLoadingUserProfile={isLoadingUserProfile}
+                showBalance={showBalance}
+                setShowBalance={setShowBalance}
+                showNotificationModal={showNotificationModal}
+                setShowNotificationModal={setShowNotificationModal}
+                isMobileMenuOpen={isMobileMenuOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+                hasWallet={hasWallet}
+                isLoadingWalletAddress={isLoadingWalletAddress}
+                setShowWalletModal={setShowWalletModal}
+                handleCreateWallet={handleCreateWallet}
+                setShowFundWalletModal={setShowFundWalletModal}
+                setShowWithdrawWalletModal={setShowWithdrawWalletModal}
+                accountType={accountType}
+                setAccountType={setAccountType}
+                setIsSwitchingAccountType={setIsSwitchingAccountType}
+                setSwitchMessage={setSwitchMessage}
+                businessKycComplete={businessKycComplete}
+                businessCompanyName={businessCompanyName}
+                businessCompanyLogoUrl={businessCompanyLogoUrl}
+                isLoadingBusinessKyc={isLoadingBusinessKyc}
+                navigate={navigate}
+                location={location}
+                getBalanceValue={getBalanceValue}
+                getExchangeRate={getExchangeRate}
+              />
+            ) : (
             <BusinessDashboard
               dashboardData={businessSuiteDashboardData}
               isLoadingDashboard={isLoadingBusinessSuiteDashboard}
@@ -5744,6 +5811,7 @@ const Dashboard = () => {
               getBalanceValue={getBalanceValue}
               getExchangeRate={getExchangeRate}
             />
+            )
           ) : (
             renderDashboardView()
           )

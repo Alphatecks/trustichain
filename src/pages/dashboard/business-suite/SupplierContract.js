@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -37,13 +37,16 @@ import {
   Calendar,
   Check,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Activity
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './SupplierContract.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { getApiUrl } from '../../../utils/config';
+import toast from 'react-hot-toast';
 import { handleLogout } from '../../../utils/logout';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 
@@ -104,10 +107,14 @@ const SupplierContract = ({
   getExchangeRate,
   totalEscrowedAmount,
   isLoadingTotalEscrowed,
+  supplyContractOverview = null,
+  isLoadingSupplyContractOverview = false,
   supplierDetails = [],
   isLoadingSupplierDetails = false,
-  supplyContractsEscrowedToMe = [],
-  isLoadingSupplyContractsEscrowedToMe = false,
+  supplyContractsForSupplier = [],
+  isLoadingSupplyContractsForSupplier = false,
+  supplyContractsForContractor = [],
+  isLoadingSupplyContractsForContractor = false,
   supplierTransactions = [],
   isLoadingSupplierTransactions = false,
   supplierTransactionsPagination = {},
@@ -115,9 +122,13 @@ const SupplierContract = ({
   transactionHistoryMonth = '',
   onTransactionMonthChange,
   transactionHistoryStatus = '',
-  onTransactionStatusChange
+  onTransactionStatusChange,
+  onRefetchSupplyContractsForSupplier,
+  onRefetchSupplyContractsForContractor
 }) => {
   const [transactionFilter, setTransactionFilter] = useState(transactionHistoryStatus ? 'Successful' : 'All');
+  const [showViewSupplyStatusModal, setShowViewSupplyStatusModal] = useState(false);
+  const [releasingContractId, setReleasingContractId] = useState(null);
   const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
   const { page: transactionPage = 1, totalPages: transactionTotalPages = 0 } = supplierTransactionsPagination;
   const [fundSupplyAmount, setFundSupplyAmount] = useState('');
@@ -128,11 +139,19 @@ const SupplierContract = ({
   const [showCreateNewSupplierModalMobile, setShowCreateNewSupplierModalMobile] = useState(false);
   const [newSupplierStep, setNewSupplierStep] = useState(1);
   const [showSupplierDetailsModalMobile, setShowSupplierDetailsModalMobile] = useState(false);
+  const [supplierDetailModalSource, setSupplierDetailModalSource] = useState(null); // 'supplier-details' | 'escrowed-to-you'
   const [selectedSupplierDetail, setSelectedSupplierDetail] = useState(null);
+  const [selectedEscrowId, setSelectedEscrowId] = useState(null); // escrow UUID when opening from "Supply contracts escrowed to you"
+  const [escrowedToMeDetail, setEscrowedToMeDetail] = useState(null); // GET supply-contracts/escrowed-to-me/:id response data
+  const [escrowedToMeDetailLoading, setEscrowedToMeDetailLoading] = useState(false);
+  const [escrowedToMeDetailError, setEscrowedToMeDetailError] = useState(null);
   const [contractEvidenceFiles, setContractEvidenceFiles] = useState([]);
+  const [supplierDetailUploadedFiles, setSupplierDetailUploadedFiles] = useState([]); // uploads in supplier-details modal
+  const [isUploadingSupplierDocs, setIsUploadingSupplierDocs] = useState(false);
   const [contractFundsReleased, setContractFundsReleased] = useState(false);
   const [showViewSupplyContractModal, setShowViewSupplyContractModal] = useState(false);
   const supplierDetailsSectionRef = useRef(null);
+  const escrowUploadInputRef = useRef(null);
   const [newSupplierForm, setNewSupplierForm] = useState({
     supplierName: '',
     dueDate: '',
@@ -170,6 +189,155 @@ const SupplierContract = ({
       };
     });
   }, [supplierTransactions]);
+
+  const isSupplyDelivered = (item) => {
+    const s = (item?.status || item?.deliveryStatus || '').toLowerCase();
+    return ['released', 'completed', 'delivered', 'funds_released'].includes(s);
+  };
+
+  // Fetch supply contract detail when modal is opened from "Supply contracts escrowed to you" list
+  useEffect(() => {
+    if (!showSupplierDetailsModalMobile || supplierDetailModalSource !== 'escrowed-to-you' || !selectedEscrowId) {
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setEscrowedToMeDetailError('Please sign in');
+      setEscrowedToMeDetailLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setEscrowedToMeDetailLoading(true);
+    setEscrowedToMeDetailError(null);
+    setEscrowedToMeDetail(null);
+    fetch(getApiUrl(`api/business-suite/supply-contracts/escrowed-to-me/${selectedEscrowId}`), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(async (res) => {
+        const result = await res.json().catch(() => ({}));
+        return { res, result };
+      })
+      .then(({ res, result }) => {
+        console.log('Supply contract detail API response', { status: res?.status, ok: res?.ok, result });
+        if (cancelled) return;
+        if (res.ok && result?.success && result?.data) {
+          setEscrowedToMeDetail(result.data);
+          setEscrowedToMeDetailError(null);
+        } else {
+          setEscrowedToMeDetail(null);
+          setEscrowedToMeDetailError(result?.message || (res?.status === 404 ? 'Contract not found' : 'Failed to load contract'));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setEscrowedToMeDetail(null);
+          setEscrowedToMeDetailError(err?.message || 'Failed to load contract');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setEscrowedToMeDetailLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [showSupplierDetailsModalMobile, supplierDetailModalSource, selectedEscrowId]);
+
+  /** Upload a file and return its URL (uses disputes evidence upload endpoint). */
+  const uploadFileToGetUrl = async (file) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Please sign in');
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(getApiUrl('api/disputes/evidence/upload'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result?.success) throw new Error(result?.message || result?.error || 'Upload failed');
+    return result?.data?.fileUrl || result?.data?.url || result?.fileUrl || '';
+  };
+
+  /** PATCH supply contract documents (created-by-me) with an array of document URLs. */
+  const patchSupplyContractDocuments = async (contractId, contractDocumentUrls) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Please sign in');
+    const res = await fetch(getApiUrl(`api/business-suite/supply-contracts/created-by-me/${contractId}/documents`), {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractDocumentUrls }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result?.success) throw new Error(result?.message || result?.error || 'Failed to save documents');
+    return result;
+  };
+
+  const handleUploadDocumentsForSupplier = async (files, isSupplierDetailsModal) => {
+    const contractId = supplierDetailModalSource === 'escrowed-to-you' ? selectedEscrowId : selectedSupplierDetail?.id;
+    if (!contractId) {
+      toast.error('Contract not found');
+      return;
+    }
+    if (!files?.length) return;
+    setIsUploadingSupplierDocs(true);
+    try {
+      const urls = [];
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadFileToGetUrl(files[i]);
+        if (url) urls.push(url);
+      }
+      if (urls.length === 0) {
+        toast.error('No files could be uploaded');
+        return;
+      }
+      await patchSupplyContractDocuments(contractId, urls);
+      const names = Array.from(files).map((f) => f.name);
+      if (isSupplierDetailsModal) {
+        setSupplierDetailUploadedFiles((prev) => [...prev, ...names]);
+      } else {
+        setContractEvidenceFiles((prev) => [...prev, ...names]);
+      }
+      toast.success('Documents uploaded successfully');
+    } catch (e) {
+      toast.error(e?.message || 'Upload failed');
+    } finally {
+      setIsUploadingSupplierDocs(false);
+    }
+  };
+
+  const handleReleaseSupplyContract = async (item) => {
+    const escrowId = item.escrowId || item.contractId || item.id;
+    if (!escrowId) {
+      toast.error('Escrow ID missing');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    setReleasingContractId(escrowId);
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/supply-contracts/escrowed-to-me/${escrowId}/release`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: '' }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result?.success) {
+        toast.error(result?.message || result?.error || 'Release failed');
+        return;
+      }
+      toast.success('Funds released successfully');
+      setShowViewSupplyStatusModal(false);
+      if (typeof onRefetchSupplyContractsForContractor === 'function') {
+        onRefetchSupplyContractsForContractor();
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Release failed');
+    } finally {
+      setReleasingContractId(null);
+    }
+  };
 
   return (
     <>
@@ -455,13 +623,16 @@ const SupplierContract = ({
                 <Plus size={16} />
                 <span>Fund Wallet</span>
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="supplier-withdraw-btn-mobile"
-                onClick={() => setShowWithdrawSupplyAccountModalMobile(true)}
+                onClick={() => {
+                  if (typeof onRefetchSupplyContractsForContractor === 'function') onRefetchSupplyContractsForContractor();
+                  setShowViewSupplyStatusModal(true);
+                }}
               >
-                <Plus size={16} />
-                <span>Withdraw</span>
+                <Activity size={16} />
+                <span>View Supply status</span>
               </button>
             </div>
           </div>
@@ -474,17 +645,17 @@ const SupplierContract = ({
                 <div className="supplier-card-icon-mobile">
                   <Users size={20} />
                 </div>
-                <h3 className="supplier-card-title-mobile">Total supplier</h3>
+                <h3 className="supplier-card-title-mobile">Total supplier contracts</h3>
               </div>
               <div className="supplier-card-value-mobile">
-                {dashboardData?.activeEscrows?.count !== undefined 
-                  ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
+                {supplyContractOverview?.totalSupplier !== undefined
+                  ? supplyContractOverview.totalSupplier
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.activeEscrows?.count !== undefined ? dashboardData.activeEscrows.count : 23))}
               </div>
               <div className="supplier-card-secondary-mobile">
-                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
-                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
+                ${supplyContractOverview?.lockedUsd !== undefined
+                  ? Number(supplyContractOverview.lockedUsd).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.activeEscrows?.lockedAmount !== undefined ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '156,789'))} locked
               </div>
               <button
                 type="button"
@@ -505,15 +676,15 @@ const SupplierContract = ({
                 <h3 className="supplier-card-title-mobile">Pending supplier</h3>
               </div>
               <div className="supplier-card-value-mobile">
-                {dashboardData?.trustiscore?.score !== undefined 
-                  ? dashboardData.trustiscore.score
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
-                <span className="supplier-card-ratio-mobile">/100</span>
+                {supplyContractOverview?.pendingCount !== undefined
+                  ? supplyContractOverview.pendingCount
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.trustiscore?.score !== undefined ? dashboardData.trustiscore.score : 70))}
+                {supplyContractOverview?.pendingTotal !== undefined ? <span className="supplier-card-ratio-mobile">/{supplyContractOverview.pendingTotal}</span> : <span className="supplier-card-ratio-mobile">/100</span>}
               </div>
               <div className="supplier-card-label-mobile">
-                {dashboardData?.trustiscore?.level !== undefined 
-                  ? dashboardData.trustiscore.level 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+                {supplyContractOverview?.tier !== undefined && supplyContractOverview.tier !== null && supplyContractOverview.tier !== ''
+                  ? supplyContractOverview.tier
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.trustiscore?.level !== undefined ? dashboardData.trustiscore.level : 'Platinum'))}
               </div>
             </div>
 
@@ -526,9 +697,11 @@ const SupplierContract = ({
                 <h3 className="supplier-card-title-mobile">Total Supplier Amount</h3>
               </div>
               <div className="supplier-card-value-mobile">
-                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '45,280')}
+                ${supplyContractOverview?.totalSupplierAmount !== undefined
+                  ? Number(supplyContractOverview.totalSupplierAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : (totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : (isLoadingSupplyContractOverview || isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '45,280'))}
               </div>
             </div>
           </div>
@@ -1077,18 +1250,24 @@ const SupplierContract = ({
               <button
                 type="button"
                 className="total-supply-btn fund-btn"
-                onClick={() => setShowViewSupplyContractModal(true)}
+                onClick={() => {
+                  if (typeof onRefetchSupplyContractsForSupplier === 'function') onRefetchSupplyContractsForSupplier();
+                  setShowViewSupplyContractModal(true);
+                }}
               >
                 <Eye size={16} />
                 View New Supply Contract
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="total-supply-btn withdraw-btn"
-                onClick={() => setShowWithdrawModal(true)}
+                onClick={() => {
+                if (typeof onRefetchSupplyContractsForContractor === 'function') onRefetchSupplyContractsForContractor();
+                setShowViewSupplyStatusModal(true);
+              }}
               >
-                <Plus size={16} />
-                Withdraw
+                <Activity size={16} />
+                <span>View Supply status</span>
               </button>
             </div>
           </div>
@@ -1098,17 +1277,17 @@ const SupplierContract = ({
             <div className="overview-card-icon">
               <Users />
             </div>
-            <h3 className="overview-card-title">Total supplier</h3>
+            <h3 className="overview-card-title">Total supplier contracts</h3>
             <div className="overview-card-metrics">
               <span className="overview-card-main-value">
-                {dashboardData?.activeEscrows?.count !== undefined 
-                  ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
+                {supplyContractOverview?.totalSupplier !== undefined
+                  ? supplyContractOverview.totalSupplier
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.activeEscrows?.count !== undefined ? dashboardData.activeEscrows.count : 23))}
               </span>
               <span className="overview-card-secondary-value">
-                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
-                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
+                ${supplyContractOverview?.lockedUsd !== undefined
+                  ? Number(supplyContractOverview.lockedUsd).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.activeEscrows?.lockedAmount !== undefined ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '156,789'))} locked
               </span>
             </div>
             <button
@@ -1129,16 +1308,16 @@ const SupplierContract = ({
             <h3 className="overview-card-title">Pending supplier</h3>
             <div className="overview-card-metrics">
               <span className="overview-card-main-value">
-                {dashboardData?.trustiscore?.score !== undefined 
-                  ? dashboardData.trustiscore.score
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
-                <span className="overview-card-ratio">/100</span>
+                {supplyContractOverview?.pendingCount !== undefined
+                  ? supplyContractOverview.pendingCount
+                  : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.trustiscore?.score !== undefined ? dashboardData.trustiscore.score : 70))}
+                {supplyContractOverview?.pendingTotal !== undefined ? <span className="overview-card-ratio">/{supplyContractOverview.pendingTotal}</span> : <span className="overview-card-ratio">/100</span>}
               </span>
             </div>
             <div className="overview-card-label">
-              {dashboardData?.trustiscore?.level !== undefined 
-                ? dashboardData.trustiscore.level 
-                : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+              {supplyContractOverview?.tier !== undefined && supplyContractOverview.tier !== null && supplyContractOverview.tier !== ''
+                ? supplyContractOverview.tier
+                : (isLoadingSupplyContractOverview ? <LoadingIndicator size="sm" /> : (dashboardData?.trustiscore?.level !== undefined ? dashboardData.trustiscore.level : 'Platinum'))}
             </div>
           </div>
 
@@ -1150,9 +1329,11 @@ const SupplierContract = ({
             <h3 className="overview-card-title">Total Supplier Amount</h3>
             <div className="overview-card-metrics">
               <span className="overview-card-main-value">
-                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '45,280')}
+                ${supplyContractOverview?.totalSupplierAmount !== undefined
+                  ? Number(supplyContractOverview.totalSupplierAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : (totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : (isLoadingSupplyContractOverview || isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '45,280'))}
               </span>
             </div>
           </div>
@@ -1185,12 +1366,14 @@ const SupplierContract = ({
                   tabIndex={0}
                   style={{ cursor: 'pointer' }}
                   onClick={() => {
+                    setSupplierDetailModalSource('supplier-details');
                     setSelectedSupplierDetail(supplier);
                     setShowSupplierDetailsModalMobile(true);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
+                      setSupplierDetailModalSource('supplier-details');
                       setSelectedSupplierDetail(supplier);
                       setShowSupplierDetailsModalMobile(true);
                     }
@@ -1345,8 +1528,13 @@ const SupplierContract = ({
           className="supplier-details-modal-overlay"
           onClick={() => {
             setShowSupplierDetailsModalMobile(false);
+            setSupplierDetailModalSource(null);
             setSelectedSupplierDetail(null);
+            setSelectedEscrowId(null);
+            setEscrowedToMeDetail(null);
+            setEscrowedToMeDetailError(null);
             setContractEvidenceFiles([]);
+            setSupplierDetailUploadedFiles([]);
             setContractFundsReleased(false);
           }}
           role="presentation"
@@ -1367,8 +1555,13 @@ const SupplierContract = ({
                 className="supplier-details-close-mobile"
                 onClick={() => {
                   setShowSupplierDetailsModalMobile(false);
+                  setSupplierDetailModalSource(null);
                   setSelectedSupplierDetail(null);
+                  setSelectedEscrowId(null);
+                  setEscrowedToMeDetail(null);
+                  setEscrowedToMeDetailError(null);
                   setContractEvidenceFiles([]);
+                  setSupplierDetailUploadedFiles([]);
                   setContractFundsReleased(false);
                 }}
                 aria-label="Close"
@@ -1378,31 +1571,68 @@ const SupplierContract = ({
             </div>
 
             <div className="supplier-details-content-mobile escrow-contract-content">
+              {/* Escrowed-to-you: loading / error / content from API */}
+              {supplierDetailModalSource === 'escrowed-to-you' && (
+                <>
+                  {escrowedToMeDetailLoading && (
+                    <div className="escrow-contract-detail-loading">
+                      <LoadingIndicator size="md" />
+                      <span>Loading contract details…</span>
+                    </div>
+                  )}
+                  {!escrowedToMeDetailLoading && escrowedToMeDetailError && (
+                    <div className="escrow-contract-detail-error">
+                      <p>{escrowedToMeDetailError}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!(supplierDetailModalSource === 'escrowed-to-you' && (escrowedToMeDetailLoading || escrowedToMeDetailError)) && (
+                <>
               {/* Contract Header */}
               <div className="escrow-contract-header">
                 <div className="escrow-contract-header-row">
                   <span className="escrow-contract-label">Contract</span>
-                  <span className="escrow-contract-value">{selectedSupplierDetail.contractName ?? `#${selectedSupplierDetail.id}`}</span>
+                  <span className="escrow-contract-value">
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
+                      ? (escrowedToMeDetail.contractId ?? `#${escrowedToMeDetail.escrowId}`)
+                      : (selectedSupplierDetail.contractName ?? `#${selectedSupplierDetail.id}`)}
+                  </span>
                 </div>
                 <div className="escrow-contract-header-row">
                   <span className="escrow-contract-label">Buyer</span>
-                  <span className="escrow-contract-value">{selectedSupplierDetail.buyer ?? '—'}</span>
+                  <span className="escrow-contract-value">
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.buyer ?? '—') : (selectedSupplierDetail.buyer ?? '—')}
+                  </span>
                 </div>
                 <div className="escrow-contract-header-row">
                   <span className="escrow-contract-label">Amount</span>
-                  <span className="escrow-contract-value">{selectedSupplierDetail.amount ?? '—'}</span>
+                  <span className="escrow-contract-value">
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
+                      ? (escrowedToMeDetail.amountUsd != null ? `$${Number(escrowedToMeDetail.amountUsd).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—')
+                      : (selectedSupplierDetail.amount ?? '—')}
+                  </span>
                 </div>
                 <div className="escrow-contract-header-row">
                   <span className="escrow-contract-label">Currency</span>
-                  <span className="escrow-contract-value">{selectedSupplierDetail.currency ?? 'USDT'}</span>
+                  <span className="escrow-contract-value">
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.currency ?? 'USDT') : (selectedSupplierDetail.currency ?? 'USDT')}
+                  </span>
                 </div>
                 <div className="escrow-contract-header-row">
                   <span className="escrow-contract-label">Status</span>
-                  <span className="escrow-contract-value">{contractFundsReleased ? 'Funds Released' : (selectedSupplierDetail.escrowStatus ?? 'Funds Locked in Escrow')}</span>
+                  <span className="escrow-contract-value">
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
+                      ? (escrowedToMeDetail.timeline?.paymentRelease ? 'Funds Released' : (escrowedToMeDetail.status ?? 'Funds Locked in Escrow'))
+                      : (contractFundsReleased ? 'Funds Released' : (selectedSupplierDetail.escrowStatus ?? 'Funds Locked in Escrow'))}
+                  </span>
                 </div>
                 <div className="escrow-funds-verified">
                   <span className="escrow-funds-verified-dot" aria-hidden="true"></span>
-                  {contractFundsReleased ? 'Funds Released' : 'Funds Verified in Escrow'}
+                  {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
+                    ? (escrowedToMeDetail.timeline?.paymentRelease ? 'Funds Released' : (escrowedToMeDetail.fundsVerifiedInEscrow ? 'Funds Verified in Escrow' : 'Funds Verified in Escrow'))
+                    : (contractFundsReleased ? 'Funds Released' : 'Funds Verified in Escrow')}
                 </div>
               </div>
 
@@ -1410,26 +1640,34 @@ const SupplierContract = ({
               <div className="escrow-contract-section">
                 <h3 className="escrow-contract-section-title">Contract timeline</h3>
                 <div className="escrow-timeline">
-                  <div className="escrow-timeline-step completed">
-                    <Check size={16} />
-                    <span>Escrow Created</span>
-                  </div>
-                  <div className="escrow-timeline-step completed">
-                    <Check size={16} />
-                    <span>Funds Deposited</span>
-                  </div>
-                  <div className="escrow-timeline-step completed">
-                    <Check size={16} />
-                    <span>Contract Accepted</span>
-                  </div>
-                  <div className={`escrow-timeline-step ${contractFundsReleased ? 'completed' : 'current'}`}>
-                    {contractFundsReleased ? <Check size={16} /> : null}
-                    <span>Awaiting Delivery</span>
-                  </div>
-                  <div className={`escrow-timeline-step ${contractFundsReleased ? 'completed' : ''}`}>
-                    {contractFundsReleased ? <Check size={16} /> : null}
-                    <span>Payment Release</span>
-                  </div>
+                  {(() => {
+                    const t = supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.timeline;
+                    const released = t?.paymentRelease ?? (supplierDetailModalSource !== 'escrowed-to-you' && contractFundsReleased);
+                    return (
+                      <>
+                        <div className={`escrow-timeline-step ${(t?.escrowCreated ?? true) ? 'completed' : ''}`}>
+                          {(t?.escrowCreated ?? true) ? <Check size={16} /> : null}
+                          <span>Escrow Created</span>
+                        </div>
+                        <div className={`escrow-timeline-step ${(t?.fundsDeposited ?? true) ? 'completed' : ''}`}>
+                          {(t?.fundsDeposited ?? true) ? <Check size={16} /> : null}
+                          <span>Funds Deposited</span>
+                        </div>
+                        <div className={`escrow-timeline-step ${(t?.contractAccepted ?? true) ? 'completed' : ''}`}>
+                          {(t?.contractAccepted ?? true) ? <Check size={16} /> : null}
+                          <span>Contract Accepted</span>
+                        </div>
+                        <div className={`escrow-timeline-step ${released ? 'completed' : (t ? 'current' : (contractFundsReleased ? 'completed' : 'current'))}`}>
+                          {released ? <Check size={16} /> : null}
+                          <span>Awaiting Delivery</span>
+                        </div>
+                        <div className={`escrow-timeline-step ${released ? 'completed' : ''}`}>
+                          {released ? <Check size={16} /> : null}
+                          <span>Payment Release</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1439,57 +1677,154 @@ const SupplierContract = ({
                 <div className="escrow-contract-terms">
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Delivery deadline</span>
-                    <span className="escrow-contract-value">{selectedSupplierDetail.dueDate ?? '—'}</span>
+                    <span className="escrow-contract-value">
+                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.deliveryDeadline
+                        ? (() => {
+                            try {
+                              const d = new Date(escrowedToMeDetail.deliveryDeadline);
+                              return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                            } catch (_) { return escrowedToMeDetail.deliveryDeadline; }
+                          })()
+                        : (selectedSupplierDetail.dueDate ?? '—')}
+                    </span>
                   </div>
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Release condition</span>
-                    <span className="escrow-contract-value">Buyer confirmation</span>
+                    <span className="escrow-contract-value">
+                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.releaseCondition ?? 'Buyer confirmation') : 'Buyer confirmation'}
+                    </span>
                   </div>
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Escrow type</span>
-                    <span className="escrow-contract-value">Full payment</span>
+                    <span className="escrow-contract-value">
+                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.escrowType ?? 'Full payment') : 'Full payment'}
+                    </span>
                   </div>
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Dispute window</span>
-                    <span className="escrow-contract-value">7 days</span>
+                    <span className="escrow-contract-value">
+                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.disputeWindow ?? '7 days') : '7 days'}
+                    </span>
                   </div>
+                  {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.contractTitle && (
+                    <div className="escrow-contract-row">
+                      <span className="escrow-contract-label">Contract title</span>
+                      <span className="escrow-contract-value">{escrowedToMeDetail.contractTitle}</span>
+                    </div>
+                  )}
+                  {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.deliveryMethod && (
+                    <div className="escrow-contract-row">
+                      <span className="escrow-contract-label">Delivery method</span>
+                      <span className="escrow-contract-value">{escrowedToMeDetail.deliveryMethod}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Evidence / Documents */}
+              {/* Evidence / Documents – different per modal source */}
               <div className="escrow-contract-section">
                 <h3 className="escrow-contract-section-title">Evidence / documents</h3>
-                <p className="escrow-evidence-hint">Upload shipping receipts, invoices, tracking numbers, or delivery confirmations.</p>
-                <label className="escrow-upload-label">
-                  <Upload size={18} />
-                  <span>Upload file</span>
-                  <input
-                    type="file"
-                    className="escrow-upload-input"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files?.length) {
-                        setContractEvidenceFiles((prev) => [...prev, ...Array.from(files).map((f) => f.name)]);
-                      }
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-                {contractEvidenceFiles.length > 0 && (
-                  <ul className="escrow-evidence-list">
-                    {contractEvidenceFiles.map((name, i) => (
-                      <li key={i}>{name}</li>
-                    ))}
-                  </ul>
+                {supplierDetailModalSource === 'supplier-details' ? (
+                  <>
+                    <p className="escrow-evidence-hint">Evidence sent by the supplier (e.g. shipping receipts, invoices, tracking, delivery confirmations).</p>
+                    {selectedSupplierDetail.evidence && selectedSupplierDetail.evidence.length > 0 ? (
+                      <ul className="escrow-evidence-list">
+                        {selectedSupplierDetail.evidence.map((doc, i) => {
+                          const name = typeof doc === 'string' ? doc : (doc.fileName ?? doc.name ?? doc.title ?? 'Document');
+                          const url = typeof doc === 'object' && doc.fileUrl ? doc.fileUrl : (typeof doc === 'object' && doc.url ? doc.url : null);
+                          return (
+                            <li key={i}>
+                              {url ? (
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="escrow-evidence-link">{name}</a>
+                              ) : (
+                                name
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="escrow-evidence-empty">No evidence submitted by supplier yet.</p>
+                    )}
+                    <div className="escrow-contract-subsection">
+                      <h4 className="escrow-contract-subsection-title">Upload documents for supplier</h4>
+                      <button
+                        type="button"
+                        className="escrow-upload-docs-btn"
+                        disabled={isUploadingSupplierDocs}
+                        onClick={() => document.getElementById('supplier-detail-upload-input')?.click()}
+                      >
+                        <Upload size={18} />
+                        {isUploadingSupplierDocs ? 'Uploading…' : 'Upload documents for supplier'}
+                      </button>
+                      <input
+                        id="supplier-detail-upload-input"
+                        type="file"
+                        className="escrow-upload-input"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files?.length) {
+                            handleUploadDocumentsForSupplier(Array.from(files), true);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      {supplierDetailUploadedFiles.length > 0 && (
+                        <ul className="escrow-evidence-list">
+                          {supplierDetailUploadedFiles.map((name, i) => (
+                            <li key={i}>{name}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Documents sent by contractor (read-only) – from API or list item; no upload in escrowed-to-you modal */}
+                    <div className="escrow-contract-subsection">
+                      <h4 className="escrow-contract-subsection-title">Documents sent by contractor</h4>
+                      {(() => {
+                        const docs = (supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.documentsFromContractor) || selectedSupplierDetail.contractorDocuments || [];
+                        const list = Array.isArray(docs) ? docs : [];
+                        if (list.length === 0) {
+                          return <p className="escrow-evidence-empty">No documents from contractor yet.</p>;
+                        }
+                        return (
+                          <ul className="escrow-evidence-list">
+                            {list.map((doc, i) => {
+                              const url = typeof doc === 'string' ? doc : (doc?.fileUrl ?? doc?.url);
+                              const name = typeof doc === 'string'
+                                ? (url ? (url.split('/').pop() || `Document ${i + 1}`) : doc)
+                                : (doc?.fileName ?? doc?.name ?? doc?.title ?? `Document ${i + 1}`);
+                              return (
+                                <li key={i}>
+                                  {url ? (
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="escrow-evidence-link">{name}</a>
+                                  ) : (
+                                    name
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        );
+                      })()}
+                    </div>
+                  </>
                 )}
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons – supplier-details: only Raise Dispute; escrowed-to-you: Mark Delivered, Request buyer confirmation, Raise Dispute */}
               <div className="escrow-contract-actions">
-                {contractFundsReleased ? (
+                {(supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.timeline?.paymentRelease) || (supplierDetailModalSource !== 'escrowed-to-you' && contractFundsReleased) ? (
                   <div className="escrow-funds-released-badge">Funds Released</div>
+                ) : supplierDetailModalSource === 'supplier-details' ? (
+                  <button type="button" className="escrow-action-btn escrow-action-outline">
+                    <AlertCircle size={18} />
+                    Raise Dispute
+                  </button>
                 ) : (
                   <>
                     <button type="button" className="escrow-action-btn escrow-action-primary">
@@ -1511,20 +1846,112 @@ const SupplierContract = ({
                 )}
               </div>
 
+              </>)}
+
               <div className="supplier-details-actions-mobile">
                 <button
                   type="button"
                   className="supplier-details-done-btn-mobile"
                   onClick={() => {
                     setShowSupplierDetailsModalMobile(false);
+                    setSupplierDetailModalSource(null);
                     setSelectedSupplierDetail(null);
+                    setSelectedEscrowId(null);
+                    setEscrowedToMeDetail(null);
+                    setEscrowedToMeDetailError(null);
                     setContractEvidenceFiles([]);
+                    setSupplierDetailUploadedFiles([]);
                     setContractFundsReleased(false);
                   }}
                 >
                   Done
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Supply Status modal – delivered / pending and release */}
+      {showViewSupplyStatusModal && (
+        <div
+          className="supplier-details-modal-overlay"
+          role="presentation"
+          onClick={() => setShowViewSupplyStatusModal(false)}
+        >
+          <div
+            className="supplier-details-modal-mobile view-supply-status-modal"
+            role="dialog"
+            aria-labelledby="view-supply-status-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="supplier-details-header-mobile">
+              <div className="supplier-details-title-wrapper-mobile">
+                <div className="supplier-details-blue-accent-mobile" />
+                <h2 id="view-supply-status-modal-title" className="supplier-details-title-mobile">
+                  Supply status
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="supplier-details-close-mobile"
+                aria-label="Close"
+                onClick={() => setShowViewSupplyStatusModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="view-supply-status-modal-content">
+              {isLoadingSupplyContractsForContractor ? (
+                <div className="view-supply-status-loading">
+                  <LoadingIndicator size="sm" />
+                  <span>Loading…</span>
+                </div>
+              ) : supplyContractsForContractor.length === 0 ? (
+                <div className="view-supply-status-empty">
+                  No supply contracts. Third-party supply will appear here as delivered or pending.
+                </div>
+              ) : (
+                <ul className="view-supply-status-list">
+                  {supplyContractsForContractor.map((item, index) => {
+                    const id = item.escrowId || item.contractId || item.id || `item-${index}`;
+                    const delivered = isSupplyDelivered(item);
+                    const amountUsd = Number(item.amountUsd ?? 0);
+                    const amountStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amountUsd);
+                    let dateStr = '—';
+                    if (item.createdAt) {
+                      try {
+                        const d = new Date(item.createdAt);
+                        dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                      } catch (_) {}
+                    }
+                    const isReleasing = releasingContractId === id;
+                    return (
+                      <li key={id} className="view-supply-status-item">
+                        <div className="view-supply-status-item-main">
+                          <span className="view-supply-status-item-id">{item.contractId || item.escrowId || id}</span>
+                          <span className="view-supply-status-item-meta">{dateStr} · {amountStr}</span>
+                          <span className={`view-supply-status-badge ${delivered ? 'delivered' : 'pending'}`}>
+                            {delivered ? 'Delivered' : 'Pending'}
+                          </span>
+                        </div>
+                        {delivered ? (
+                          <span className="view-supply-status-released-label">Released</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="view-supply-status-release-btn"
+                            onClick={() => handleReleaseSupplyContract(item)}
+                            disabled={isReleasing}
+                          >
+                            {isReleasing ? <LoadingIndicator size="sm" /> : 'Release'}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
         </div>
@@ -1560,18 +1987,18 @@ const SupplierContract = ({
               </button>
             </div>
             <div className="view-supply-contract-modal-content">
-              {isLoadingSupplyContractsEscrowedToMe ? (
+              {isLoadingSupplyContractsForSupplier ? (
                 <div className="view-supply-contract-loading">
                   <LoadingIndicator size="sm" />
                   <span>Loading contracts…</span>
                 </div>
-              ) : supplyContractsEscrowedToMe.length === 0 ? (
+              ) : supplyContractsForSupplier.length === 0 ? (
                 <div className="view-supply-contract-empty">
                   No supply contracts escrowed to you yet.
                 </div>
               ) : (
                 <ul className="view-supply-contract-list">
-                  {supplyContractsEscrowedToMe.map((item, index) => {
+                  {supplyContractsForSupplier.map((item, index) => {
                     const id = item.escrowId || item.contractId || `item-${index}`;
                     const amountUsd = Number(item.amountUsd ?? 0);
                     const amountStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amountUsd);
@@ -1588,16 +2015,10 @@ const SupplierContract = ({
                           type="button"
                           className="view-supply-contract-item"
                           onClick={() => {
-                            setSelectedSupplierDetail({
-                              id: item.contractId || item.escrowId,
-                              contractName: item.contractId || `Contract ${item.contractId || item.escrowId}`,
-                              amount: amountStr,
-                              dueDate: dateStr,
-                              buyer: '—',
-                              currency: 'USDT',
-                              escrowStatus: item.status || 'Funds Locked in Escrow',
-                              progress: 0,
-                            });
+                            const escrowId = item.escrowId || item.contractId;
+                            setSupplierDetailModalSource('escrowed-to-you');
+                            setSelectedEscrowId(escrowId);
+                            setSelectedSupplierDetail({ id: escrowId }); // minimal so modal opens; content from API
                             setShowViewSupplyContractModal(false);
                             setShowSupplierDetailsModalMobile(true);
                           }}

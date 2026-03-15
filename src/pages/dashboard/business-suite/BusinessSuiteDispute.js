@@ -362,19 +362,18 @@ const BusinessSuiteDispute = () => {
       for (const item of supplierEvidence) {
         if (item?.file) {
           const up = await uploadEvidenceFile(item.file);
-          evidenceArray.push(up);
+          evidenceArray.push({ fileUrl: up.fileUrl, fileName: up.fileName });
         }
       }
       const body = {
-        category: 'supplier',
-        referenceId: ref,
-        disputeReason: supplierForm.reason.trim(),
+        supplierReference: ref,
+        reason: supplierForm.reason.trim(),
         amount: amount,
         currency: supplierForm.currency || 'USD',
         description: supplierForm.description.trim(),
         evidence: evidenceArray.length ? evidenceArray : undefined
       };
-      const res = await fetch(getApiUrl('api/disputes'), {
+      const res = await fetch(getApiUrl('api/business-suite/supplier-disputes'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -389,8 +388,8 @@ const BusinessSuiteDispute = () => {
       setSupplierForm({ referenceId: '', supplierName: '', reason: '', amount: '', description: '', currency: 'USD' });
       setSupplierEvidence([]);
       setListRefreshKey((k) => k + 1);
-      if (result?.data?.disputeId || result?.data?.caseId) {
-        const id = result.data.disputeId || result.data.caseId;
+      if (result?.data?.disputeId || result?.data?.caseId || result?.data?.id) {
+        const id = result.data.disputeId || result.data.caseId || result.data.id;
         setTimeout(() => navigate(`/business-dispute/${id}`), 500);
       }
     } catch (e) {

@@ -30,6 +30,24 @@ const DISPUTE_WINDOW_DAYS = [3, 5, 7];
 const PLATFORM_FEE_PERCENT = 0.5;
 const NETWORK_FEE_USD = 1;
 
+/** XRPL Ripple Epoch: seconds between Unix epoch (1970-01-01 UTC) and Ripple epoch (2000-01-01 UTC). */
+const RIPPLE_EPOCH_OFFSET_SECONDS = 946684800;
+
+/**
+ * Convert a date string (YYYY-MM-DD) to XRPL Ripple Epoch Time: seconds since 2000-01-01 00:00:00 UTC.
+ * @param {string} dateStr - Date in YYYY-MM-DD format
+ * @returns {number|undefined} Ripple Epoch seconds, or undefined if invalid
+ */
+function toRippleEpochSeconds(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return undefined;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return undefined;
+  const d = new Date(trimmed + 'T00:00:00.000Z');
+  if (Number.isNaN(d.getTime())) return undefined;
+  const unixSeconds = Math.floor(d.getTime() / 1000);
+  return unixSeconds - RIPPLE_EPOCH_OFFSET_SECONDS;
+}
+
 const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
   const [step, setStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -171,13 +189,8 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
       return;
     }
     try {
-      // Convert YYYY-MM-DD to DD/MM/YYYY for API
-      const deliveryDeadlineFormatted = deliveryDeadline
-        ? (() => {
-            const [y, m, d] = deliveryDeadline.split('-');
-            return `${d}/${m}/${y}`;
-          })()
-        : undefined;
+      // XRPL uses Ripple Epoch Time: seconds since 2000-01-01 00:00:00 UTC
+      const deliveryDeadlineRippleEpoch = deliveryDeadline ? toRippleEpochSeconds(deliveryDeadline) : undefined;
 
       const deliveryMethodLabel = DELIVERY_METHODS.find((x) => x.value === deliveryMethod)?.label ?? deliveryMethod;
       const escrowTypeLabel = escrowType === 'milestone' ? 'Milestone Payment' : 'Full Payment';
@@ -187,7 +200,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
         supplierWalletAddress: supplierWalletAddress.trim(),
         supplierEmail: supplierEmail.trim() || undefined,
         contractTitle: contractTitle.trim(),
-        deliveryDeadline: deliveryDeadlineFormatted,
+        deliveryDeadline: deliveryDeadlineRippleEpoch,
         contractDescription: contractDescription.trim() || undefined,
         deliveryMethod: deliveryMethodLabel,
         disputeWindow: `${disputeWindow} days`,
