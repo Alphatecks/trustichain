@@ -438,6 +438,175 @@
   opacity: 0.9;
 }
 
+/* Business email required (KYC) warning modal */
+.business-email-warning-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: businessEmailOverlayIn 0.2s ease-out;
+}
+@keyframes businessEmailOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.business-email-warning-modal {
+  position: relative;
+  background: var(--white);
+  border-radius: 1.25rem;
+  max-width: 420px;
+  width: 100%;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(12, 100, 255, 0.08);
+  animation: businessEmailModalIn 0.25s ease-out;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+@keyframes businessEmailModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.business-email-warning-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.business-email-warning-close:hover {
+  background: var(--gray-100, #f3f4f6);
+  color: var(--text-dark, #111827);
+}
+.business-email-warning-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue-100, #eff6ff) 0%, var(--blue-200, #dbeafe) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+.business-email-warning-icon {
+  color: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+.business-email-warning-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--text-dark, #111827);
+  text-align: center;
+  letter-spacing: -0.02em;
+  font-family: 'Poppins', 'Satoshi', sans-serif;
+}
+.business-email-warning-message {
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+}
+.business-email-warning-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.business-email-warning-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark, #111827);
+}
+.business-email-warning-input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.business-email-warning-input::placeholder {
+  color: var(--text-muted, #9ca3af);
+}
+.business-email-warning-input:focus {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+.business-email-warning-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.business-email-warning-submit {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--blue-600, #2563eb);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: background 0.2s, opacity 0.2s;
+}
+.business-email-warning-submit:hover:not(:disabled) {
+  background: var(--blue-700, #1d4ed8);
+}
+.business-email-warning-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.business-email-warning-dismiss {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-muted, #6b7280);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.business-email-warning-dismiss:hover {
+  background: var(--gray-50, #f9fafb);
+  color: var(--text-dark, #111827);
+  border-color: var(--gray-300, #d1d5db);
+}
+@media (max-width: 480px) {
+  .business-email-warning-modal {
+    padding: 1.5rem 1.25rem;
+    margin: 0.5rem;
+  }
+  .business-email-warning-title {
+    font-size: 1.2rem;
+  }
+}
+
 /* Under review – cannot update KYC modal */
 .under-review-kyc-modal-overlay {
   position: fixed;
