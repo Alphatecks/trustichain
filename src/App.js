@@ -29,7 +29,6 @@ import TrustiCard from './pages/dashboard/trusticard/TrustiCard';
 import Savings from './pages/dashboard/savings/Savings';
 import Payroll from './pages/dashboard/business-suite/Payroll';
 import PayrollDetail from './pages/dashboard/business-suite/PayrollDetail';
-import SupplierContractPage from './pages/dashboard/business-suite/SupplierContractPage';
 import APIKeys from './pages/dashboard/business-suite/APIKeys';
 import SandboxEnvironment from './pages/dashboard/business-suite/SandboxEnvironment';
 import Webhook from './pages/dashboard/business-suite/Webhook';
@@ -82,7 +81,7 @@ function AppContent() {
           <Route path="/trusticard" element={<TrustiCard />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/payroll/:payrollId" element={<PayrollDetail />} />
-          <Route path="/supplier-contract" element={<SupplierContractPage />} />
+          <Route path="/supplier-contract" element={<Dashboard />} />
           <Route path="/api-keys" element={<APIKeys />} />
           <Route path="/sandbox-environment" element={<SandboxEnvironment />} />
           <Route path="/webhook" element={<Webhook />} />
