@@ -50,6 +50,9 @@ import toast from 'react-hot-toast';
 import { handleLogout } from '../../../utils/logout';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (s) => typeof s === 'string' && UUID_REGEX.test(s.trim());
+
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
@@ -101,6 +104,9 @@ const SupplierContract = ({
   setIsSwitchingAccountType,
   setSwitchMessage,
   businessKycComplete,
+  businessCompanyName,
+  businessCompanyLogoUrl,
+  isLoadingBusinessKyc,
   navigate,
   location,
   getBalanceValue,
@@ -145,10 +151,17 @@ const SupplierContract = ({
   const [escrowedToMeDetail, setEscrowedToMeDetail] = useState(null); // GET supply-contracts/escrowed-to-me/:id response data
   const [escrowedToMeDetailLoading, setEscrowedToMeDetailLoading] = useState(false);
   const [escrowedToMeDetailError, setEscrowedToMeDetailError] = useState(null);
+  const [createdByMeDetail, setCreatedByMeDetail] = useState(null); // GET supply-contracts/created-by-me/:id response data
+  const [createdByMeDetailLoading, setCreatedByMeDetailLoading] = useState(false);
+  const [createdByMeDetailError, setCreatedByMeDetailError] = useState(null);
   const [contractEvidenceFiles, setContractEvidenceFiles] = useState([]);
   const [supplierDetailUploadedFiles, setSupplierDetailUploadedFiles] = useState([]); // uploads in supplier-details modal
   const [isUploadingSupplierDocs, setIsUploadingSupplierDocs] = useState(false);
+  const [proofOfCompletionFiles, setProofOfCompletionFiles] = useState([]); // { name, url }[] for escrowed-to-you modal
+  const [isUploadingProofOfCompletion, setIsUploadingProofOfCompletion] = useState(false);
   const [contractFundsReleased, setContractFundsReleased] = useState(false);
+  const [isMarkingDelivered, setIsMarkingDelivered] = useState(false);
+  const [isRequestingBuyerConfirmation, setIsRequestingBuyerConfirmation] = useState(false);
   const [showViewSupplyContractModal, setShowViewSupplyContractModal] = useState(false);
   const supplierDetailsSectionRef = useRef(null);
   const escrowUploadInputRef = useRef(null);
@@ -190,12 +203,14 @@ const SupplierContract = ({
     });
   }, [supplierTransactions]);
 
+  /** Delivered = delivery marked or status indicates released/completed. Uses API deliveryMarkedAt and status. */
   const isSupplyDelivered = (item) => {
+    if (item?.deliveryMarkedAt != null && item.deliveryMarkedAt !== '') return true;
     const s = (item?.status || item?.deliveryStatus || '').toLowerCase();
     return ['released', 'completed', 'delivered', 'funds_released'].includes(s);
   };
 
-  // Fetch supply contract detail when modal is opened from "Supply contracts escrowed to you" list
+  // Fetch supply contract detail when modal is opened from "Supply contracts escrowed to you" list (backend may expect UUID; prefer escrowId from list)
   useEffect(() => {
     if (!showSupplierDetailsModalMobile || supplierDetailModalSource !== 'escrowed-to-you' || !selectedEscrowId) {
       return;
@@ -241,6 +256,52 @@ const SupplierContract = ({
     return () => { cancelled = true; };
   }, [showSupplierDetailsModalMobile, supplierDetailModalSource, selectedEscrowId]);
 
+  // Fetch contractor (created-by-me) supply contract detail when modal is opened from supplier details list (prefer escrowId/UUID to avoid backend "invalid input syntax for type uuid")
+  useEffect(() => {
+    if (!showSupplierDetailsModalMobile || supplierDetailModalSource !== 'supplier-details' || !selectedSupplierDetail?.id) {
+      return;
+    }
+    const contractOrEscrowId = selectedSupplierDetail.escrowId || selectedSupplierDetail.id;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setCreatedByMeDetailError('Please sign in');
+      setCreatedByMeDetailLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCreatedByMeDetailLoading(true);
+    setCreatedByMeDetailError(null);
+    setCreatedByMeDetail(null);
+    fetch(getApiUrl(`api/business-suite/supply-contracts/created-by-me/${contractOrEscrowId}`), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(async (res) => {
+        const result = await res.json().catch(() => ({}));
+        return { res, result };
+      })
+      .then(({ res, result }) => {
+        if (cancelled) return;
+        if (res.ok && result?.success && result?.data) {
+          setCreatedByMeDetail(result.data);
+          setCreatedByMeDetailError(null);
+        } else {
+          setCreatedByMeDetail(null);
+          setCreatedByMeDetailError(result?.message || (res?.status === 404 ? 'Contract not found' : 'Failed to load contract'));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setCreatedByMeDetail(null);
+          setCreatedByMeDetailError(err?.message || 'Failed to load contract');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCreatedByMeDetailLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [showSupplierDetailsModalMobile, supplierDetailModalSource, selectedSupplierDetail?.id]);
+
   /** Upload a file and return its URL (uses disputes evidence upload endpoint). */
   const uploadFileToGetUrl = async (file) => {
     const token = localStorage.getItem('token');
@@ -272,7 +333,9 @@ const SupplierContract = ({
   };
 
   const handleUploadDocumentsForSupplier = async (files, isSupplierDetailsModal) => {
-    const contractId = supplierDetailModalSource === 'escrowed-to-you' ? selectedEscrowId : selectedSupplierDetail?.id;
+    const contractId = supplierDetailModalSource === 'escrowed-to-you'
+      ? (escrowedToMeDetail?.escrowId || (isUuid(selectedEscrowId) ? selectedEscrowId : null))
+      : (createdByMeDetail?.escrowId || createdByMeDetail?.contractId || selectedSupplierDetail?.escrowId || selectedSupplierDetail?.id);
     if (!contractId) {
       toast.error('Contract not found');
       return;
@@ -301,6 +364,87 @@ const SupplierContract = ({
       toast.error(e?.message || 'Upload failed');
     } finally {
       setIsUploadingSupplierDocs(false);
+    }
+  };
+
+  /** Upload proof of contract completion (escrowed-to-me detail modal). Uses POST multipart; open docs via signed-url to avoid Bucket not found. Backend expects UUID. */
+  const handleUploadProofOfCompletion = async (files) => {
+    const escrowId = escrowedToMeDetail?.escrowId || (isUuid(selectedEscrowId) ? selectedEscrowId : null);
+    if (!escrowId || !files?.length) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    setIsUploadingProofOfCompletion(true);
+    try {
+      const uploaded = [];
+      for (let i = 0; i < files.length; i++) {
+        const formData = new FormData();
+        formData.append('document', files[i]);
+        const res = await fetch(getApiUrl(`api/business-suite/supply-contracts/escrowed-to-me/${escrowId}/documents/upload-completion`), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const result = await res.json().catch(() => ({}));
+        if (res.ok && result?.success && result?.data?.fileUrl) {
+          uploaded.push({ name: files[i].name, url: result.data.fileUrl });
+        } else {
+          toast.error(result?.message || result?.error || `Failed to upload ${files[i].name}`);
+        }
+      }
+      if (uploaded.length > 0) {
+        setProofOfCompletionFiles((prev) => [...prev, ...uploaded]);
+        toast.success(uploaded.length === 1 ? 'Proof of completion uploaded' : `${uploaded.length} documents uploaded`);
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Upload failed');
+    } finally {
+      setIsUploadingProofOfCompletion(false);
+    }
+  };
+
+  /** Open a stored document URL via signed-url API to avoid 404 Bucket not found. */
+  const openDocumentWithSignedUrl = async (storedUrl) => {
+    if (!storedUrl || typeof storedUrl !== 'string') return;
+    const trimmed = storedUrl.trim();
+    if (!trimmed) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    const tryUrl = async (urlParam) => {
+      console.log('Signed URL API request – url param:', urlParam);
+      const res = await fetch(
+        getApiUrl(`api/business-suite/supply-contracts/documents/signed-url?url=${encodeURIComponent(urlParam)}`),
+        { method: 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      );
+      return res.json().catch(() => ({}));
+    };
+    try {
+      let result = await tryUrl(trimmed);
+      if (result?.success && result?.data?.signedUrl) {
+        window.open(result.data.signedUrl);
+        return;
+      }
+      const msg = result?.message || result?.error || '';
+      const invalidUrl = /invalid.*document.*url/i.test(msg);
+      if (invalidUrl && /^https?:\/\//i.test(trimmed)) {
+        const pathAfterPublic = /\/object\/public\/(.+)$/i.exec(trimmed)?.[1];
+        const storagePath = pathAfterPublic || (() => { try { return new URL(trimmed).pathname.replace(/^\//, ''); } catch { return null; } })();
+        if (storagePath) {
+          result = await tryUrl(storagePath);
+          if (result?.success && result?.data?.signedUrl) {
+            window.open(result.data.signedUrl);
+            return;
+          }
+        }
+      }
+      toast.error(result?.message || result?.error || 'Could not open document');
+    } catch (e) {
+      toast.error(e?.message || 'Could not open document');
     }
   };
 
@@ -339,6 +483,85 @@ const SupplierContract = ({
     }
   };
 
+  /** Refetch escrowed-to-me detail (e.g. after mark-delivered / request-buyer-confirmation). */
+  const refetchEscrowedToMeDetail = async () => {
+    if (!selectedEscrowId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/supply-contracts/escrowed-to-me/${selectedEscrowId}`), {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result?.success && result?.data) {
+        setEscrowedToMeDetail(result.data);
+      }
+    } catch (_) {}
+  };
+
+  const handleMarkDelivered = async () => {
+    const id = escrowedToMeDetail?.escrowId || (isUuid(selectedEscrowId) ? selectedEscrowId : null);
+    if (!id) {
+      toast.error('Contract not found');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    setIsMarkingDelivered(true);
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/supply-contracts/escrowed-to-me/${id}/mark-delivered`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result?.success) {
+        toast.success(result?.message || 'Contract marked as delivered');
+        await refetchEscrowedToMeDetail();
+      } else {
+        toast.error(result?.message || result?.error || 'Failed to mark as delivered');
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Failed to mark as delivered');
+    } finally {
+      setIsMarkingDelivered(false);
+    }
+  };
+
+  const handleRequestBuyerConfirmation = async () => {
+    const id = escrowedToMeDetail?.escrowId || (isUuid(selectedEscrowId) ? selectedEscrowId : null);
+    if (!id) {
+      toast.error('Contract not found');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    setIsRequestingBuyerConfirmation(true);
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/supply-contracts/escrowed-to-me/${id}/request-buyer-confirmation`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result?.success) {
+        toast.success(result?.message || 'Buyer confirmation requested');
+        await refetchEscrowedToMeDetail();
+      } else {
+        toast.error(result?.message || result?.error || 'Failed to request buyer confirmation');
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Failed to request buyer confirmation');
+    } finally {
+      setIsRequestingBuyerConfirmation(false);
+    }
+  };
+
   return (
     <>
       {/* Mobile Dashboard */}
@@ -347,7 +570,9 @@ const SupplierContract = ({
         <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
             <div className="mobile-user-avatar">
-              {userAvatar ? (
+              {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
+                <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+              ) : userAvatar ? (
                 <img src={userAvatar} alt={userFullName} />
               ) : (
                 userInitials
@@ -355,11 +580,13 @@ const SupplierContract = ({
             </div>
             <div className="mobile-user-info">
               <span className="mobile-user-name">
-                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                {accountType === 'Business Suite' && businessCompanyName
+                  ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
+                  : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
                 <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
               </span>
               <span className="mobile-user-role">
-                {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+                {accountType === 'Business Suite' ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
               </span>
             </div>
           </div>
@@ -1533,8 +1760,11 @@ const SupplierContract = ({
             setSelectedEscrowId(null);
             setEscrowedToMeDetail(null);
             setEscrowedToMeDetailError(null);
+            setCreatedByMeDetail(null);
+            setCreatedByMeDetailError(null);
             setContractEvidenceFiles([]);
             setSupplierDetailUploadedFiles([]);
+            setProofOfCompletionFiles([]);
             setContractFundsReleased(false);
           }}
           role="presentation"
@@ -1560,8 +1790,11 @@ const SupplierContract = ({
                   setSelectedEscrowId(null);
                   setEscrowedToMeDetail(null);
                   setEscrowedToMeDetailError(null);
+                  setCreatedByMeDetail(null);
+                  setCreatedByMeDetailError(null);
                   setContractEvidenceFiles([]);
                   setSupplierDetailUploadedFiles([]);
+                  setProofOfCompletionFiles([]);
                   setContractFundsReleased(false);
                 }}
                 aria-label="Close"
@@ -1571,7 +1804,7 @@ const SupplierContract = ({
             </div>
 
             <div className="supplier-details-content-mobile escrow-contract-content">
-              {/* Escrowed-to-you: loading / error / content from API */}
+              {/* Escrowed-to-you: loading / error from API */}
               {supplierDetailModalSource === 'escrowed-to-you' && (
                 <>
                   {escrowedToMeDetailLoading && (
@@ -1587,8 +1820,24 @@ const SupplierContract = ({
                   )}
                 </>
               )}
+              {/* Supplier-details (created-by-me): loading / error from API */}
+              {supplierDetailModalSource === 'supplier-details' && (
+                <>
+                  {createdByMeDetailLoading && (
+                    <div className="escrow-contract-detail-loading">
+                      <LoadingIndicator size="md" />
+                      <span>Loading contract details…</span>
+                    </div>
+                  )}
+                  {!createdByMeDetailLoading && createdByMeDetailError && (
+                    <div className="escrow-contract-detail-error">
+                      <p>{createdByMeDetailError}</p>
+                    </div>
+                  )}
+                </>
+              )}
 
-              {!(supplierDetailModalSource === 'escrowed-to-you' && (escrowedToMeDetailLoading || escrowedToMeDetailError)) && (
+              {!(supplierDetailModalSource === 'escrowed-to-you' && (escrowedToMeDetailLoading || escrowedToMeDetailError)) && !(supplierDetailModalSource === 'supplier-details' && (createdByMeDetailLoading || createdByMeDetailError || !createdByMeDetail)) && (
                 <>
               {/* Contract Header */}
               <div className="escrow-contract-header">
@@ -1597,13 +1846,15 @@ const SupplierContract = ({
                   <span className="escrow-contract-value">
                     {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
                       ? (escrowedToMeDetail.contractId ?? `#${escrowedToMeDetail.escrowId}`)
-                      : (selectedSupplierDetail.contractName ?? `#${selectedSupplierDetail.id}`)}
+                      : (createdByMeDetail?.contractId ?? `#${createdByMeDetail?.escrowId}` ?? selectedSupplierDetail?.contractName ?? `#${selectedSupplierDetail?.id}`)}
                   </span>
                 </div>
                 <div className="escrow-contract-header-row">
-                  <span className="escrow-contract-label">Buyer</span>
+                  <span className="escrow-contract-label">{supplierDetailModalSource === 'supplier-details' ? 'Supplier' : 'Buyer'}</span>
                   <span className="escrow-contract-value">
-                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.buyer ?? '—') : (selectedSupplierDetail.buyer ?? '—')}
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
+                      ? (escrowedToMeDetail.buyer ?? '—')
+                      : (createdByMeDetail?.supplierName ?? selectedSupplierDetail?.buyer ?? '—')}
                   </span>
                 </div>
                 <div className="escrow-contract-header-row">
@@ -1611,13 +1862,15 @@ const SupplierContract = ({
                   <span className="escrow-contract-value">
                     {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
                       ? (escrowedToMeDetail.amountUsd != null ? `$${Number(escrowedToMeDetail.amountUsd).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—')
-                      : (selectedSupplierDetail.amount ?? '—')}
+                      : (createdByMeDetail?.amountUsd != null ? `$${Number(createdByMeDetail.amountUsd).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : (selectedSupplierDetail?.amount ?? '—'))}
                   </span>
                 </div>
                 <div className="escrow-contract-header-row">
                   <span className="escrow-contract-label">Currency</span>
                   <span className="escrow-contract-value">
-                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.currency ?? 'USDT') : (selectedSupplierDetail.currency ?? 'USDT')}
+                    {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
+                      ? (escrowedToMeDetail.currency ?? 'USDT')
+                      : (createdByMeDetail?.currency ?? selectedSupplierDetail?.currency ?? 'USDT')}
                   </span>
                 </div>
                 <div className="escrow-contract-header-row">
@@ -1625,14 +1878,14 @@ const SupplierContract = ({
                   <span className="escrow-contract-value">
                     {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
                       ? (escrowedToMeDetail.timeline?.paymentRelease ? 'Funds Released' : (escrowedToMeDetail.status ?? 'Funds Locked in Escrow'))
-                      : (contractFundsReleased ? 'Funds Released' : (selectedSupplierDetail.escrowStatus ?? 'Funds Locked in Escrow'))}
+                      : (createdByMeDetail?.timeline?.paymentRelease ? 'Funds Released' : (createdByMeDetail?.status ?? selectedSupplierDetail?.escrowStatus ?? 'Funds Locked in Escrow'))}
                   </span>
                 </div>
                 <div className="escrow-funds-verified">
                   <span className="escrow-funds-verified-dot" aria-hidden="true"></span>
                   {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail
                     ? (escrowedToMeDetail.timeline?.paymentRelease ? 'Funds Released' : (escrowedToMeDetail.fundsVerifiedInEscrow ? 'Funds Verified in Escrow' : 'Funds Verified in Escrow'))
-                    : (contractFundsReleased ? 'Funds Released' : 'Funds Verified in Escrow')}
+                    : (createdByMeDetail?.timeline?.paymentRelease ? 'Funds Released' : (createdByMeDetail?.fundsVerifiedInEscrow ? 'Funds Verified in Escrow' : 'Funds Verified in Escrow'))}
                 </div>
               </div>
 
@@ -1641,7 +1894,7 @@ const SupplierContract = ({
                 <h3 className="escrow-contract-section-title">Contract timeline</h3>
                 <div className="escrow-timeline">
                   {(() => {
-                    const t = supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.timeline;
+                    const t = supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail?.timeline : createdByMeDetail?.timeline;
                     const released = t?.paymentRelease ?? (supplierDetailModalSource !== 'escrowed-to-you' && contractFundsReleased);
                     return (
                       <>
@@ -1678,44 +1931,45 @@ const SupplierContract = ({
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Delivery deadline</span>
                     <span className="escrow-contract-value">
-                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.deliveryDeadline
+                      {(supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail?.deliveryDeadline : createdByMeDetail?.deliveryDeadline)
                         ? (() => {
                             try {
-                              const d = new Date(escrowedToMeDetail.deliveryDeadline);
+                              const raw = supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail?.deliveryDeadline : createdByMeDetail?.deliveryDeadline;
+                              const d = new Date(raw);
                               return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-                            } catch (_) { return escrowedToMeDetail.deliveryDeadline; }
+                            } catch (_) { return supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail?.deliveryDeadline : createdByMeDetail?.deliveryDeadline; }
                           })()
-                        : (selectedSupplierDetail.dueDate ?? '—')}
+                        : (selectedSupplierDetail?.dueDate ?? '—')}
                     </span>
                   </div>
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Release condition</span>
                     <span className="escrow-contract-value">
-                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.releaseCondition ?? 'Buyer confirmation') : 'Buyer confirmation'}
+                      {(supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail : createdByMeDetail)?.releaseCondition ?? 'Buyer confirmation'}
                     </span>
                   </div>
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Escrow type</span>
                     <span className="escrow-contract-value">
-                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.escrowType ?? 'Full payment') : 'Full payment'}
+                      {(supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail : createdByMeDetail)?.escrowType ?? 'Full payment'}
                     </span>
                   </div>
                   <div className="escrow-contract-row">
                     <span className="escrow-contract-label">Dispute window</span>
                     <span className="escrow-contract-value">
-                      {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail ? (escrowedToMeDetail.disputeWindow ?? '7 days') : '7 days'}
+                      {(supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail : createdByMeDetail)?.disputeWindow ?? '7 days'}
                     </span>
                   </div>
-                  {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.contractTitle && (
+                  {((supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.contractTitle) || (supplierDetailModalSource === 'supplier-details' && createdByMeDetail?.contractTitle)) && (
                     <div className="escrow-contract-row">
                       <span className="escrow-contract-label">Contract title</span>
-                      <span className="escrow-contract-value">{escrowedToMeDetail.contractTitle}</span>
+                      <span className="escrow-contract-value">{supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail?.contractTitle : createdByMeDetail?.contractTitle}</span>
                     </div>
                   )}
-                  {supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.deliveryMethod && (
+                  {((supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.deliveryMethod) || (supplierDetailModalSource === 'supplier-details' && createdByMeDetail?.deliveryMethod)) && (
                     <div className="escrow-contract-row">
                       <span className="escrow-contract-label">Delivery method</span>
-                      <span className="escrow-contract-value">{escrowedToMeDetail.deliveryMethod}</span>
+                      <span className="escrow-contract-value">{supplierDetailModalSource === 'escrowed-to-you' ? escrowedToMeDetail?.deliveryMethod : createdByMeDetail?.deliveryMethod}</span>
                     </div>
                   )}
                 </div>
@@ -1726,26 +1980,47 @@ const SupplierContract = ({
                 <h3 className="escrow-contract-section-title">Evidence / documents</h3>
                 {supplierDetailModalSource === 'supplier-details' ? (
                   <>
-                    <p className="escrow-evidence-hint">Evidence sent by the supplier (e.g. shipping receipts, invoices, tracking, delivery confirmations).</p>
-                    {selectedSupplierDetail.evidence && selectedSupplierDetail.evidence.length > 0 ? (
-                      <ul className="escrow-evidence-list">
-                        {selectedSupplierDetail.evidence.map((doc, i) => {
-                          const name = typeof doc === 'string' ? doc : (doc.fileName ?? doc.name ?? doc.title ?? 'Document');
-                          const url = typeof doc === 'object' && doc.fileUrl ? doc.fileUrl : (typeof doc === 'object' && doc.url ? doc.url : null);
-                          return (
-                            <li key={i}>
-                              {url ? (
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="escrow-evidence-link">{name}</a>
-                              ) : (
-                                name
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className="escrow-evidence-empty">No evidence submitted by supplier yet.</p>
+                    {/* Contract documents (created-by-me API) */}
+                    {(createdByMeDetail?.contractDocumentUrls?.length > 0) && (
+                      <div className="escrow-contract-subsection">
+                        <h4 className="escrow-contract-subsection-title">Contract documents</h4>
+                        <ul className="escrow-evidence-list">
+                          {createdByMeDetail.contractDocumentUrls.map((urlOrDoc, i) => {
+                            const url = typeof urlOrDoc === 'string' ? urlOrDoc : (urlOrDoc?.fileUrl ?? urlOrDoc?.url);
+                            const name = url ? (url.split('/').pop() || `Document ${i + 1}`) : `Document ${i + 1}`;
+                            return url ? (
+                              <li key={i}>
+                                <button type="button" className="escrow-evidence-link escrow-evidence-link-btn" onClick={() => openDocumentWithSignedUrl(url)}>{name}</button>
+                              </li>
+                            ) : null;
+                          })}
+                        </ul>
+                      </div>
                     )}
+                    {/* Proof of completion / supplier evidence (created-by-me API: proofOfCompletionDocumentUrls; open via signed-url) */}
+                    <div className="escrow-contract-subsection">
+                      <h4 className="escrow-contract-subsection-title">Evidence sent by supplier</h4>
+                      <p className="escrow-evidence-hint">Proof of completion (e.g. shipping receipts, delivery confirmations).</p>
+                      {(createdByMeDetail?.proofOfCompletionDocumentUrls?.length > 0 || (selectedSupplierDetail?.evidence?.length > 0 && !createdByMeDetail)) ? (
+                        <ul className="escrow-evidence-list">
+                          {(createdByMeDetail?.proofOfCompletionDocumentUrls || selectedSupplierDetail?.evidence || []).map((doc, i) => {
+                            const url = typeof doc === 'string' ? doc : (doc?.fileUrl ?? doc?.url);
+                            const name = typeof doc === 'string' ? (url ? (url.split('/').pop() || `Document ${i + 1}`) : doc) : (doc?.fileName ?? doc?.name ?? doc?.title ?? `Document ${i + 1}`);
+                            return (
+                              <li key={i}>
+                                {url ? (
+                                  <button type="button" className="escrow-evidence-link escrow-evidence-link-btn" onClick={() => openDocumentWithSignedUrl(url)}>{name}</button>
+                                ) : (
+                                  name
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="escrow-evidence-empty">No evidence submitted by supplier yet.</p>
+                      )}
+                    </div>
                     <div className="escrow-contract-subsection">
                       <h4 className="escrow-contract-subsection-title">Upload documents for supplier</h4>
                       <button
@@ -1782,7 +2057,7 @@ const SupplierContract = ({
                   </>
                 ) : (
                   <>
-                    {/* Documents sent by contractor (read-only) – from API or list item; no upload in escrowed-to-you modal */}
+                    {/* Documents sent by contractor (read-only) – from API or list item */}
                     <div className="escrow-contract-subsection">
                       <h4 className="escrow-contract-subsection-title">Documents sent by contractor</h4>
                       {(() => {
@@ -1801,7 +2076,7 @@ const SupplierContract = ({
                               return (
                                 <li key={i}>
                                   {url ? (
-                                    <a href={url} target="_blank" rel="noopener noreferrer" className="escrow-evidence-link">{name}</a>
+                                    <button type="button" className="escrow-evidence-link escrow-evidence-link-btn" onClick={() => openDocumentWithSignedUrl(url)}>{name}</button>
                                   ) : (
                                     name
                                   )}
@@ -1812,13 +2087,63 @@ const SupplierContract = ({
                         );
                       })()}
                     </div>
+                    {/* Proof of contract completion – upload by supplier (escrowed-to-you only) */}
+                    <div className="escrow-contract-subsection">
+                      <h4 className="escrow-contract-subsection-title">Proof of contract completion</h4>
+                      <p className="escrow-evidence-hint">Upload evidence that the contract has been completed (e.g. delivery confirmation, signed handover, completion certificate).</p>
+                      <button
+                        type="button"
+                        className="escrow-upload-docs-btn"
+                        disabled={isUploadingProofOfCompletion}
+                        onClick={() => document.getElementById('proof-of-completion-upload-input')?.click()}
+                      >
+                        <Upload size={18} />
+                        {isUploadingProofOfCompletion ? 'Uploading…' : 'Upload proof of completion'}
+                      </button>
+                      <input
+                        id="proof-of-completion-upload-input"
+                        type="file"
+                        className="escrow-upload-input"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files?.length) handleUploadProofOfCompletion(Array.from(files));
+                          e.target.value = '';
+                        }}
+                      />
+                      {(escrowedToMeDetail?.proofOfCompletionDocuments?.length > 0 || proofOfCompletionFiles.length > 0) ? (
+                        <ul className="escrow-evidence-list">
+                          {(escrowedToMeDetail?.proofOfCompletionDocuments || []).map((doc, i) => {
+                            const url = typeof doc === 'string' ? doc : (doc?.fileUrl ?? doc?.url);
+                            const name = typeof doc === 'string' ? (url ? (url.split('/').pop() || `Document ${i + 1}`) : doc) : (doc?.fileName ?? doc?.name ?? doc?.title ?? `Document ${i + 1}`);
+                            return (
+                              <li key={`api-${i}`}>
+                                {url ? (
+                                  <button type="button" className="escrow-evidence-link escrow-evidence-link-btn" onClick={() => openDocumentWithSignedUrl(url)}>{name}</button>
+                                ) : (
+                                  name
+                                )}
+                              </li>
+                            );
+                          })}
+                          {proofOfCompletionFiles.map((item, i) => (
+                            <li key={`uploaded-${i}`}>
+                              <button type="button" className="escrow-evidence-link escrow-evidence-link-btn" onClick={() => openDocumentWithSignedUrl(item.url)}>{item.name}</button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="escrow-evidence-empty">No proof of completion uploaded yet.</p>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
 
               {/* Action Buttons – supplier-details: only Raise Dispute; escrowed-to-you: Mark Delivered, Request buyer confirmation, Raise Dispute */}
               <div className="escrow-contract-actions">
-                {(supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.timeline?.paymentRelease) || (supplierDetailModalSource !== 'escrowed-to-you' && contractFundsReleased) ? (
+                {(supplierDetailModalSource === 'escrowed-to-you' && escrowedToMeDetail?.timeline?.paymentRelease) || (supplierDetailModalSource === 'supplier-details' && createdByMeDetail?.timeline?.paymentRelease) || (supplierDetailModalSource !== 'escrowed-to-you' && contractFundsReleased) ? (
                   <div className="escrow-funds-released-badge">Funds Released</div>
                 ) : supplierDetailModalSource === 'supplier-details' ? (
                   <button type="button" className="escrow-action-btn escrow-action-outline">
@@ -1827,16 +2152,23 @@ const SupplierContract = ({
                   </button>
                 ) : (
                   <>
-                    <button type="button" className="escrow-action-btn escrow-action-primary">
-                      <Package size={18} />
-                      Mark Delivered
+                    <button
+                      type="button"
+                      className="escrow-action-btn escrow-action-primary"
+                      disabled={isMarkingDelivered || isRequestingBuyerConfirmation}
+                      onClick={handleMarkDelivered}
+                    >
+                      {isMarkingDelivered ? <LoadingIndicator size="sm" /> : <Package size={18} />}
+                      {isMarkingDelivered ? 'Marking…' : 'Mark Delivered'}
                     </button>
                     <button
                       type="button"
                       className="escrow-action-btn escrow-action-secondary"
-                      onClick={() => setContractFundsReleased(true)}
+                      disabled={isMarkingDelivered || isRequestingBuyerConfirmation}
+                      onClick={handleRequestBuyerConfirmation}
                     >
-                      Request Buyer Confirmation
+                      {isRequestingBuyerConfirmation ? <LoadingIndicator size="sm" /> : null}
+                      {isRequestingBuyerConfirmation ? 'Requesting…' : 'Request Buyer Confirmation'}
                     </button>
                     <button type="button" className="escrow-action-btn escrow-action-outline">
                       <AlertCircle size={18} />
@@ -1859,8 +2191,11 @@ const SupplierContract = ({
                     setSelectedEscrowId(null);
                     setEscrowedToMeDetail(null);
                     setEscrowedToMeDetailError(null);
+                    setCreatedByMeDetail(null);
+                    setCreatedByMeDetailError(null);
                     setContractEvidenceFiles([]);
                     setSupplierDetailUploadedFiles([]);
+                    setProofOfCompletionFiles([]);
                     setContractFundsReleased(false);
                   }}
                 >
@@ -1915,7 +2250,7 @@ const SupplierContract = ({
                 <ul className="view-supply-status-list">
                   {supplyContractsForContractor.map((item, index) => {
                     const id = item.escrowId || item.contractId || item.id || `item-${index}`;
-                    const delivered = isSupplyDelivered(item);
+                    const isReleased = item.canRelease === false || (item.canRelease !== true && isSupplyDelivered(item));
                     const amountUsd = Number(item.amountUsd ?? 0);
                     const amountStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amountUsd);
                     let dateStr = '—';
@@ -1925,24 +2260,36 @@ const SupplierContract = ({
                         dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
                       } catch (_) {}
                     }
+                    let expectedReleaseStr = '';
+                    if (item.expectedReleaseDate) {
+                      try {
+                        const d = new Date(item.expectedReleaseDate);
+                        expectedReleaseStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                      } catch (_) {}
+                    }
+                    const statusLabel = item.statusDisplay != null && item.statusDisplay !== '' ? item.statusDisplay : (isReleased ? 'Released' : 'Pending');
+                    const canRelease = item.canRelease === true || (item.canRelease !== false && !isReleased);
                     const isReleasing = releasingContractId === id;
                     return (
                       <li key={id} className="view-supply-status-item">
                         <div className="view-supply-status-item-main">
                           <span className="view-supply-status-item-id">{item.contractId || item.escrowId || id}</span>
-                          <span className="view-supply-status-item-meta">{dateStr} · {amountStr}</span>
-                          <span className={`view-supply-status-badge ${delivered ? 'delivered' : 'pending'}`}>
-                            {delivered ? 'Delivered' : 'Pending'}
+                          <span className="view-supply-status-item-meta">
+                            {dateStr} · {amountStr}
+                            {expectedReleaseStr ? ` · Expected release ${expectedReleaseStr}` : ''}
+                          </span>
+                          <span className={`view-supply-status-badge ${isReleased ? 'delivered' : 'pending'}`}>
+                            {statusLabel}
                           </span>
                         </div>
-                        {delivered ? (
+                        {isReleased ? (
                           <span className="view-supply-status-released-label">Released</span>
                         ) : (
                           <button
                             type="button"
                             className="view-supply-status-release-btn"
                             onClick={() => handleReleaseSupplyContract(item)}
-                            disabled={isReleasing}
+                            disabled={isReleasing || !canRelease}
                           >
                             {isReleasing ? <LoadingIndicator size="sm" /> : 'Release'}
                           </button>
@@ -2027,8 +2374,8 @@ const SupplierContract = ({
                             <span className="view-supply-contract-item-id">{item.contractId || item.escrowId}</span>
                             <span className="view-supply-contract-item-name">{item.contractId || 'Contract'}</span>
                             <span className="view-supply-contract-item-due">{dateStr}</span>
-                            {item.status && (
-                              <span className="view-supply-contract-item-status">{item.status}</span>
+                            {(item.statusDisplay || item.status) && (
+                              <span className="view-supply-contract-item-status">{item.statusDisplay || item.status}</span>
                             )}
                           </div>
                           <div className="view-supply-contract-item-amount">{amountStr}</div>
