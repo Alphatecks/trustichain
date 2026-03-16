@@ -197,9 +197,6 @@ const Dashboard = () => {
   });
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showBusinessSuitePinModal, setShowBusinessSuitePinModal] = useState(false);
-  const [showBusinessEmailWarningModal, setShowBusinessEmailWarningModal] = useState(false);
-  const [businessEmailInput, setBusinessEmailInput] = useState('');
-  const [isSavingBusinessEmail, setIsSavingBusinessEmail] = useState(false);
   const [kycStatusDialog, setKycStatusDialog] = useState(null); // 'in_review' | 'rejected' | null
   const [showUnderReviewKycModal, setShowUnderReviewKycModal] = useState(false);
   const showUnderReviewModalIfApplicable = (message) => {
@@ -224,30 +221,6 @@ const Dashboard = () => {
       setAccountType('Business Suite');
     }
   }, [location.pathname, accountType]);
-
-  // When in Business Suite (e.g. after refresh), check business email status and show modal if not set
-  useEffect(() => {
-    if (accountType !== 'Business Suite') return;
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    let cancelled = false;
-    fetch(getApiUrl('api/business-suite/business-email/status'), {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    })
-      .then((res) => res.json().catch(() => ({})).then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (cancelled) return;
-        console.log('[business-email/status] response:', { ok, data, isSet: isBusinessEmailSet(data) });
-        // Only show modal when we got a successful response and email is clearly not set
-        if (ok && !isBusinessEmailSet(data)) {
-          setBusinessEmailInput('');
-          setShowBusinessEmailWarningModal(true);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [accountType]);
 
   // On mount and when account type changes: check if user has a wallet (Personal vs Business Suite API)
   useEffect(() => {
@@ -497,20 +470,6 @@ const Dashboard = () => {
         setAccountType('Business Suite');
         setPendingAccountSwitch(false);
         setShowBusinessSuitePinModal(false);
-        // Check if business email is set for KYC; if not, show warning modal
-        try {
-          const statusRes = await fetch(getApiUrl('api/business-suite/business-email/status'), {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          });
-          const statusData = await statusRes.json().catch(() => ({}));
-          if (statusRes.ok && !isBusinessEmailSet(statusData)) {
-            setBusinessEmailInput('');
-            setShowBusinessEmailWarningModal(true);
-          }
-        } catch (_) {
-          // Non-blocking; user can set email later
-        }
         return true;
       }
       if (res.status === 401) {
@@ -635,40 +594,6 @@ const Dashboard = () => {
     if (pendingAccountSwitch) {
       setAccountType('Personal');
       setPendingAccountSwitch(false);
-    }
-  };
-
-  // Set/update business email (KYC) via API - used from business email warning modal
-  const handleSaveBusinessEmail = async () => {
-    const email = (businessEmailInput || '').trim();
-    if (!email) {
-      toast.error('Please enter a business email.');
-      return;
-    }
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('Please sign in.');
-      return;
-    }
-    setIsSavingBusinessEmail(true);
-    try {
-      const res = await fetch(getApiUrl('api/business-suite/business-email'), {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessEmail: email }),
-      });
-      const result = await res.json().catch(() => ({}));
-      if (res.ok && result?.success) {
-        toast.success('Business email saved.');
-        setShowBusinessEmailWarningModal(false);
-        setBusinessEmailInput('');
-      } else {
-        toast.error(result?.message || 'Failed to save business email.');
-      }
-    } catch (err) {
-      toast.error(err?.message || 'Something went wrong.');
-    } finally {
-      setIsSavingBusinessEmail(false);
     }
   };
 
@@ -3867,12 +3792,14 @@ const Dashboard = () => {
 
                     return (
                       <div key={`${label}-${index}`} className="mobile-bar-wrapper">
-                        {hasBar && (
-                          <div
-                            className={`mobile-bar ${isLastBar && !isNegative ? 'mobile-bar-last' : ''} ${isNegative ? 'mobile-bar-negative' : ''}`}
-                            style={{ height: `${height}%` }}
-                          />
-                        )}
+                        <div className="mobile-bar-inner">
+                          {hasBar && (
+                            <div
+                              className={`mobile-bar ${isLastBar && !isNegative ? 'mobile-bar-last' : ''} ${isNegative ? 'mobile-bar-negative' : ''}`}
+                              style={{ height: `${height}%` }}
+                            />
+                          )}
+                        </div>
                         <span className="mobile-bar-label">{label}</span>
                       </div>
                     );
@@ -6281,43 +6208,6 @@ const Dashboard = () => {
               <button type="button" className="kyc-status-dialog-ok" onClick={() => setKycStatusDialog(null)}>
                 OK
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Business email not set (KYC) – warning + set via API or in-app form */}
-      {showBusinessEmailWarningModal && (
-        <div className="business-email-warning-overlay" onClick={() => setShowBusinessEmailWarningModal(false)}>
-          <div className="business-email-warning-modal" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="business-email-warning-close" onClick={() => setShowBusinessEmailWarningModal(false)} aria-label="Close">
-              <X size={20} />
-            </button>
-            <div className="business-email-warning-icon-wrap">
-              <Mail size={32} className="business-email-warning-icon" />
-            </div>
-            <h2 className="business-email-warning-title">Business email required</h2>
-            <p className="business-email-warning-message">
-              You haven’t set your business email as part of KYC. Some features may be limited until you add it.
-            </p>
-            <div className="business-email-warning-form">
-              <label htmlFor="business-email-input">Business email</label>
-              <input
-                id="business-email-input"
-                type="email"
-                value={businessEmailInput}
-                onChange={(e) => setBusinessEmailInput(e.target.value)}
-                placeholder="contact@company.com"
-                className="business-email-warning-input"
-              />
-              <div className="business-email-warning-actions">
-                <button type="button" className="business-email-warning-submit" onClick={handleSaveBusinessEmail} disabled={isSavingBusinessEmail}>
-                  {isSavingBusinessEmail ? 'Saving…' : 'Set business email'}
-                </button>
-                <button type="button" className="business-email-warning-dismiss" onClick={() => setShowBusinessEmailWarningModal(false)}>
-                  Remind me later
-                </button>
-              </div>
             </div>
           </div>
         </div>

@@ -128,7 +128,7 @@ const SupplierContractContent = ({
 
   const supplierDetailsForUI = useMemo(() => {
     return supplierDetailsItems.map((item) => {
-      const id = item.supplierId || item.id || '—';
+      const id = item.contractId || item.escrowId || item.supplierId || item.id || '—';
       const progress = item.progressPercentage != null ? Number(item.progressPercentage) : 0;
       let dueDate = null;
       let percentage = null;
@@ -157,7 +157,7 @@ const SupplierContractContent = ({
       const currency = item.currency ?? 'USDT';
       const escrowStatus = item.escrowStatus ?? item.status ?? 'Funds Locked in Escrow';
       const evidence = item.evidence ?? item.supplierEvidence ?? item.documents ?? [];
-      return { id, progress, dueDate, percentage, amount, contractName, buyer, currency, escrowStatus, evidence };
+      return { id, escrowId: item.escrowId, contractId: item.contractId, progress, dueDate, percentage, amount, contractName, buyer, currency, escrowStatus, evidence };
     });
   }, [supplierDetailsItems]);
 
@@ -359,6 +359,9 @@ const SupplierContractContent = ({
         setIsSwitchingAccountType={setIsSwitchingAccountType}
         setSwitchMessage={setSwitchMessage}
         businessKycComplete={businessKycComplete}
+        businessCompanyName={businessCompanyName}
+        businessCompanyLogoUrl={businessCompanyLogoUrl}
+        isLoadingBusinessKyc={isLoadingBusinessKyc}
         navigate={navigate}
         location={location}
         getBalanceValue={getBalanceValue}

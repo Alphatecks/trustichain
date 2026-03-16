@@ -497,7 +497,7 @@ const BusinessDashboard = ({
           </div>
           <div className="mobile-chart-container">
             <div className="mobile-chart-y-axis">
-              {[0, 10, 20, 30, 40, 50].map((val) => (
+              {[50, 40, 30, 20, 10, 0].map((val) => (
                 <span key={val}>{val}k</span>
               ))}
             </div>
@@ -521,10 +521,12 @@ const BusinessDashboard = ({
 
                   return (
                     <div key={`${label}-${index}`} className="mobile-bar-wrapper">
-                      <div
-                        className={`mobile-bar ${isLastBar ? 'mobile-bar-last' : ''}`}
-                        style={{ height: `${height}%` }}
-                      />
+                      <div className="mobile-bar-inner">
+                        <div
+                          className={`mobile-bar ${isLastBar ? 'mobile-bar-last' : ''}`}
+                          style={{ height: `${height}%` }}
+                        />
+                      </div>
                       <span className="mobile-bar-label">{label}</span>
                     </div>
                   );

@@ -34,6 +34,7 @@ import SandboxEnvironment from './pages/dashboard/business-suite/SandboxEnvironm
 import Webhook from './pages/dashboard/business-suite/Webhook';
 import Settings from './pages/dashboard/settings/Settings';
 import useAutoLogout from './hooks/useAutoLogout';
+import BusinessEmailGate from './components/BusinessEmailGate';
 import './App.css';
 
 function AppContent() {
@@ -56,6 +57,7 @@ function AppContent() {
   return (
     <div className="App">
       {!isAuthPage && <NavbarComponent />}
+      <BusinessEmailGate />
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />

@@ -332,6 +332,25 @@ const BusinessSuiteDispute = () => {
     };
   };
 
+  /** Upload evidence for payroll dispute (Business Suite). Returns { fileUrl, fileName } for evidence array. */
+  const uploadPayrollEvidenceFile = async (file) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication required');
+    const formData = new FormData();
+    formData.append('document', file);
+    const res = await fetch(getApiUrl('api/business-suite/payroll-disputes/evidence/upload'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    const result = await res.json();
+    if (!res.ok || !result.success) throw new Error(result?.message || result?.error || 'Upload failed');
+    return {
+      fileUrl: result.data?.fileUrl || result.data?.url,
+      fileName: result.data?.fileName || file.name
+    };
+  };
+
   const submitSupplierDispute = async () => {
     const ref = (supplierForm.referenceId || supplierForm.supplierName || '').trim();
     if (!ref) {
@@ -428,20 +447,19 @@ const BusinessSuiteDispute = () => {
       const evidenceArray = [];
       for (const item of payrollEvidence) {
         if (item?.file) {
-          const up = await uploadEvidenceFile(item.file);
-          evidenceArray.push(up);
+          const up = await uploadPayrollEvidenceFile(item.file);
+          evidenceArray.push({ fileUrl: up.fileUrl, fileName: up.fileName });
         }
       }
       const body = {
-        category: 'payroll',
-        referenceId: payrollId,
-        disputeReason: payrollForm.reason.trim(),
-        amount: amount,
+        payrollId,
+        reason: payrollForm.reason.trim(),
+        amount: Number(amount),
         currency: payrollForm.currency || 'USD',
         description: payrollForm.description.trim(),
-        evidence: evidenceArray.length ? evidenceArray : undefined
+        ...(evidenceArray.length > 0 && { evidence: evidenceArray })
       };
-      const res = await fetch(getApiUrl('api/disputes'), {
+      const res = await fetch(getApiUrl('api/business-suite/payroll-disputes'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -451,17 +469,15 @@ const BusinessSuiteDispute = () => {
         toast.error(result?.message || result?.error || 'Failed to create dispute');
         return;
       }
-      toast.success('Payroll dispute filed');
+      toast.success(result?.message || 'Payroll dispute filed');
       setShowPayrollModal(false);
       setPayrollForm({ payrollId: '', reason: '', amount: '', description: '', currency: 'USD' });
       setPayrollEvidence([]);
       setListRefreshKey((k) => k + 1);
-      if (result?.data?.disputeId || result?.data?.caseId) {
-        const id = result.data.disputeId || result.data.caseId;
-        setTimeout(() => navigate(`/business-dispute/${id}`), 500);
-      }
+      const id = result?.data?.disputeId;
+      if (id) setTimeout(() => navigate(`/business-dispute/${id}`), 500);
     } catch (e) {
-      toast.error(e.message || 'Failed to file dispute');
+      toast.error(e?.message || 'Failed to file dispute');
     } finally {
       setIsCreating(false);
     }
