@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   ShieldCheck,
   CreditCard,
-  Repeat,
   Briefcase,
   Settings,
   Search,
@@ -57,8 +56,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transaction', icon: Repeat, badge: null }
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
 const developersNav = [
@@ -570,8 +568,14 @@ const SupplierContract = ({
         <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
             <div className="mobile-user-avatar">
-              {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
-                <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+              {accountType === 'Business Suite' ? (
+                businessCompanyLogoUrl ? (
+                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+                ) : isLoadingBusinessKyc ? (
+                  <LoadingIndicator size="sm" />
+                ) : (
+                  businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                )
               ) : userAvatar ? (
                 <img src={userAvatar} alt={userFullName} />
               ) : (
@@ -580,9 +584,11 @@ const SupplierContract = ({
             </div>
             <div className="mobile-user-info">
               <span className="mobile-user-name">
-                {accountType === 'Business Suite' && businessCompanyName
-                  ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                  : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
+                {accountType === 'Business Suite' ? (
+                  isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
+                ) : (
+                  isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                )}
                 <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
               </span>
               <span className="mobile-user-role">
@@ -674,8 +680,6 @@ const SupplierContract = ({
                       navigate('/payroll');
                     } else if (item.label === 'Supplier Contract') {
                       navigate('/supplier-contract');
-                    } else if (item.label === 'Transaction') {
-                      navigate('/transactions', { state: { accountType: 'Business Suite' } });
                     }
                   };
                   return (

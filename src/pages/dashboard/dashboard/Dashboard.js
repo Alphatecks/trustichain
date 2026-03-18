@@ -114,8 +114,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transaction', icon: Repeat, badge: null }
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
 const developersNav = [
@@ -3233,8 +3232,14 @@ const Dashboard = () => {
           <div className="mobile-dashboard-header">
             <div className="mobile-header-left">
               <div className="mobile-user-avatar">
-                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
-                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+                {accountType === 'Business Suite' ? (
+                  businessCompanyLogoUrl ? (
+                    <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+                  ) : isLoadingBusinessKyc ? (
+                    <LoadingIndicator size="sm" />
+                  ) : (
+                    businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                  )
                 ) : userAvatar ? (
                   <img src={userAvatar} alt={userFullName} />
                 ) : (
@@ -3243,9 +3248,11 @@ const Dashboard = () => {
               </div>
               <div className="mobile-user-info">
                 <span className="mobile-user-name">
-                  {accountType === 'Business Suite' && businessCompanyName
-                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
+                  {accountType === 'Business Suite' ? (
+                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
+                  ) : (
+                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                  )}
                   <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
                 </span>
                 <span className="mobile-user-role">
@@ -5619,17 +5626,27 @@ const Dashboard = () => {
             </button>
             <div className="header-user">
               <div className="user-avatar">
-                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
-                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                {accountType === 'Business Suite' ? (
+                  businessCompanyLogoUrl ? (
+                    <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                  ) : isLoadingBusinessKyc ? (
+                    <LoadingIndicator size="sm" />
+                  ) : (
+                    businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                  )
+                ) : userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                 ) : (
                   userInitials
                 )}
               </div>
               <div className="user-info">
                 <span className="user-name">
-                  {accountType === 'Business Suite' && businessCompanyName
-                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
+                  {accountType === 'Business Suite' ? (
+                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
+                  ) : (
+                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                  )}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>

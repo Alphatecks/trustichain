@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   ShieldCheck,
   CreditCard,
-  Repeat,
   Briefcase,
   DollarSign,
   Building2,
@@ -48,8 +47,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, path: '/supplier-contract' },
   { label: 'Dispute', icon: CreditCard, path: '/business-dispute' },
-  { label: 'Compliance', icon: FileCheck, path: '/compliance' },
-  { label: 'Transaction', icon: Repeat, path: '/transactions' }
+  { label: 'Compliance', icon: FileCheck, path: '/compliance' }
 ];
 
 const supportNav = [

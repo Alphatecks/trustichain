@@ -10,7 +10,6 @@ import {
   Plus,
   DollarSign,
   Building2,
-  Repeat,
   FileCheck,
   Code,
   Box,
@@ -43,8 +42,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transaction', icon: Repeat, badge: null }
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
 const developersNav = [
@@ -287,8 +285,6 @@ const SandboxEnvironment = () => {
       navigate('/supplier-contract');
     } else if (item.label === 'Dispute') {
       navigate('/business-dispute');
-    } else if (item.label === 'Transaction') {
-      navigate('/transactions', { state: { accountType: 'Business Suite' } });
     }
   };
 
@@ -355,8 +351,7 @@ const SandboxEnvironment = () => {
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                    (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                    (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
-                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
-                                   (item.label === 'Transaction' && location.pathname === '/transactions');
+                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
                   return (
                     <button
                       key={item.label}
@@ -487,8 +482,14 @@ const SandboxEnvironment = () => {
                 </button>
                 <div className="header-user">
                   <div className="user-avatar">
-                    {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
-                      <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                    {accountType === 'Business Suite' ? (
+                      businessCompanyLogoUrl ? (
+                        <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                      ) : isLoadingBusinessKyc ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                      )
                     ) : userAvatar ? (
                       <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                     ) : (
@@ -497,9 +498,11 @@ const SandboxEnvironment = () => {
                   </div>
                   <div className="user-info">
                     <span className="user-name">
-                      {accountType === 'Business Suite' && businessCompanyName
-                        ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                        : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
+                      {accountType === 'Business Suite' ? (
+                        isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
+                      ) : (
+                        isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                      )}
                       <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                     </span>
                     <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>

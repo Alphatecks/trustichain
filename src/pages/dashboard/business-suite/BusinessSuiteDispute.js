@@ -6,7 +6,6 @@ import {
   CreditCard,
   DollarSign,
   Building2,
-  Repeat,
   FileCheck,
   Code,
   Box,
@@ -46,8 +45,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, badge: null, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, badge: null, path: '/supplier-contract' },
   { label: 'Dispute', icon: CreditCard, badge: null, path: '/business-dispute' },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' },
-  { label: 'Transaction', icon: Repeat, badge: null, path: '/transactions' }
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' }
 ];
 
 const developersNav = [
@@ -585,8 +583,7 @@ const BusinessSuiteDispute = () => {
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                 (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                 (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
-                (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
-                (item.label === 'Transaction' && location.pathname === '/transactions');
+                (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
               return (
                 <button
                   key={item.label}
@@ -699,8 +696,14 @@ const BusinessSuiteDispute = () => {
             </button>
             <div className="header-user">
               <div className="user-avatar">
-                {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
-                  <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                {accountType === 'Business Suite' ? (
+                  businessCompanyLogoUrl ? (
+                    <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                  ) : isLoadingBusinessKyc ? (
+                    <LoadingIndicator size="sm" />
+                  ) : (
+                    businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                  )
                 ) : userAvatar ? (
                   <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                 ) : (
@@ -709,9 +712,11 @@ const BusinessSuiteDispute = () => {
               </div>
               <div className="user-info">
                 <span className="user-name">
-                  {accountType === 'Business Suite' && businessCompanyName
-                    ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                    : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
+                  {accountType === 'Business Suite' ? (
+                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
+                  ) : (
+                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                  )}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
                 <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
