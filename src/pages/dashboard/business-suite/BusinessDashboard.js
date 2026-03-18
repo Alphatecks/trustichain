@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   ShieldCheck,
   CreditCard,
-  Repeat,
   Briefcase,
   Settings,
   Search,
@@ -47,8 +46,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, badge: null, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, badge: null, path: '/supplier-contract' },
   { label: 'Dispute', icon: CreditCard, badge: null, path: '/business-dispute' },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' }, // placeholder route (not currently wired)
-  { label: 'Transaction', icon: Repeat, badge: null, path: '/transactions' }
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' } // placeholder route (not currently wired)
 ];
 
 const developersNav = [

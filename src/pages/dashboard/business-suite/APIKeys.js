@@ -10,7 +10,6 @@ import {
   Plus,
   DollarSign,
   Building2,
-  Repeat,
   FileCheck,
   Code,
   Box,
@@ -42,8 +41,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transaction', icon: Repeat, badge: null }
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
 const developersNav = [
@@ -89,11 +87,22 @@ const APIKeys = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [keyTypeFilter, setKeyTypeFilter] = useState('All');
-  const [currentPage, setCurrentPage] = useState(12);
+  const [keysList, setKeysList] = useState([]);
+  const [keysTotal, setKeysTotal] = useState(0);
+  const [keysPage, setKeysPage] = useState(1);
+  const [keysPageSize] = useState(20);
+  const [isLoadingKeys, setIsLoadingKeys] = useState(true);
+  const [keysError, setKeysError] = useState(null);
+  const [keysRefreshKey, setKeysRefreshKey] = useState(0);
+  const [selectedMonthValue, setSelectedMonthValue] = useState(null); // YYYY-MM or null
   const [selectedMonth, setSelectedMonth] = useState('November');
   const [showCreateApiKeyModal, setShowCreateApiKeyModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(true);
+  const [overviewError, setOverviewError] = useState(null);
+  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
 
   const formattedToday = useMemo(
     () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -123,6 +132,42 @@ const APIKeys = () => {
       .finally(() => { if (!cancelled) setIsLoadingBusinessKyc(false); });
     return () => { cancelled = true; };
   }, [accountType]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingOverview(false);
+      setOverviewError('Unauthorized');
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingOverview(true);
+    setOverviewError(null);
+    fetch(getApiUrl('api/business-suite/api-keys/overview'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          setOverview(result.data);
+          setOverviewError(null);
+        } else {
+          setOverview(null);
+          const msg = result?.message || result?.error || 'Failed to load overview';
+          setOverviewError(msg);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOverview(null);
+          setOverviewError('Failed to load overview');
+        }
+      })
+      .finally(() => { if (!cancelled) setIsLoadingOverview(false); });
+    return () => { cancelled = true; };
+  }, [overviewRefreshKey]);
 
   useEffect(() => {
     if (isSessionExpired) {
@@ -168,133 +213,82 @@ const APIKeys = () => {
       .finally(() => setIsLoadingUserProfile(false));
   }, [isSessionExpired]);
 
-  // Sample API keys data - expanded to fill space
-  const apiKeys = [
-    {
-      id: 1,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_87GH2KD9JKL990ASDF23',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '2hrs ago',
-      created: 'Oct 12, 2025',
-      type: 'Backend Key'
-    },
-    {
-      id: 2,
-      name: 'Mobile App Key',
-      publicKey: 'pk_live_12OP9SD8HF77QWLA92KD',
-      permission: 'Read / Write',
-      status: 'Active',
-      lastUsed: '21.03.2021',
-      created: '21.03.2021',
-      type: 'Mobile Key'
-    },
-    {
-      id: 3,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_34RT8YU9JK12QWER45TY',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '5hrs ago',
-      created: 'Sep 28, 2025',
-      type: 'Backend Key'
-    },
-    {
-      id: 4,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_56FG9HI0KL34ZXCV67UI',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '1 day ago',
-      created: 'Sep 15, 2025',
-      type: 'Backend Key'
-    },
-    {
-      id: 5,
-      name: 'Main Key',
-      publicKey: 'pk_live_78JK0LM1NO45ASDF89PO',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '3hrs ago',
-      created: 'Aug 20, 2025',
-      type: 'Main Key'
-    },
-    {
-      id: 6,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_90MN1OP2QR56ZXCV89AB',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '4hrs ago',
-      created: 'Sep 10, 2025',
-      type: 'Backend Key'
-    },
-    {
-      id: 7,
-      name: 'Mobile App Key',
-      publicKey: 'pk_live_23CD4EF5GH67IJKL90MN',
-      permission: 'Read / Write',
-      status: 'Active',
-      lastUsed: '6hrs ago',
-      created: 'Aug 25, 2025',
-      type: 'Mobile Key'
-    },
-    {
-      id: 8,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_45GH6IJ7KL89MNOP01QR',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '8hrs ago',
-      created: 'Aug 15, 2025',
-      type: 'Backend Key'
-    },
-    {
-      id: 9,
-      name: 'Main Key',
-      publicKey: 'pk_live_67IJ8KL9MN01OPQR23ST',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '12hrs ago',
-      created: 'Aug 5, 2025',
-      type: 'Main Key'
-    },
-    {
-      id: 10,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_89KL0MN1OP23QRST45UV',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '1 day ago',
-      created: 'Jul 30, 2025',
-      type: 'Backend Key'
-    },
-    {
-      id: 11,
-      name: 'Mobile App Key',
-      publicKey: 'pk_live_01MN2OP3QR45STUV67WX',
-      permission: 'Read / Write',
-      status: 'Active',
-      lastUsed: '2 days ago',
-      created: 'Jul 20, 2025',
-      type: 'Mobile Key'
-    },
-    {
-      id: 12,
-      name: 'Backend Server Key',
-      publicKey: 'pk_live_23OP4QR5ST67UVWX89YZ',
-      permission: 'Full Access',
-      status: 'Active',
-      lastUsed: '3 days ago',
-      created: 'Jul 10, 2025',
-      type: 'Backend Key'
+  // List API keys with filters and pagination
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingKeys(false);
+      setKeysError('Unauthorized');
+      return;
     }
-  ];
+    const typeParam = keyTypeFilter === 'All' ? '' : keyTypeFilter === 'Main Key' ? 'main' : keyTypeFilter === 'Mobile Key' ? 'mobile' : keyTypeFilter === 'Backend Key' ? 'backend' : '';
+    const params = new URLSearchParams();
+    params.set('page', String(keysPage));
+    params.set('pageSize', String(keysPageSize));
+    if (typeParam) params.set('type', typeParam);
+    if (selectedMonthValue) params.set('month', selectedMonthValue);
+    const url = `${getApiUrl('api/business-suite/api-keys')}?${params.toString()}`;
+    let cancelled = false;
+    setIsLoadingKeys(true);
+    setKeysError(null);
+    fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          setKeysList(result.data.keys || []);
+          setKeysTotal(result.data.total ?? 0);
+          setKeysError(null);
+        } else {
+          setKeysList([]);
+          setKeysTotal(0);
+          setKeysError(result?.message || result?.error || 'Failed to load API keys');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setKeysList([]);
+          setKeysTotal(0);
+          setKeysError('Failed to load API keys');
+        }
+      })
+      .finally(() => { if (!cancelled) setIsLoadingKeys(false); });
+    return () => { cancelled = true; };
+  }, [keyTypeFilter, keysPage, keysPageSize, selectedMonthValue, keysRefreshKey]);
 
-  const filteredKeys = keyTypeFilter === 'All' 
-    ? apiKeys 
-    : apiKeys.filter(key => key.type === keyTypeFilter);
+  const formatKeyDate = (iso) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return iso;
+    }
+  };
+
+  const formatLastUsed = (iso) => {
+    if (!iso) return 'Never';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}hrs ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+      return formatKeyDate(iso);
+    } catch {
+      return iso;
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil(keysTotal / keysPageSize));
 
   const handleNavClick = (item) => {
     if (item.label === 'Dashboard') {
@@ -305,8 +299,6 @@ const APIKeys = () => {
       navigate('/supplier-contract');
     } else if (item.label === 'Dispute') {
       navigate('/business-dispute');
-    } else if (item.label === 'Transaction') {
-      navigate('/transactions', { state: { accountType: 'Business Suite' } });
     }
   };
 
@@ -353,8 +345,7 @@ const APIKeys = () => {
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                    (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                    (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
-                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/'))) ||
-                                   (item.label === 'Transaction' && location.pathname === '/transactions');
+                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
                   return (
                     <button
                       key={item.label}
@@ -485,8 +476,14 @@ const APIKeys = () => {
                 </button>
                 <div className="header-user">
                   <div className="user-avatar">
-                    {accountType === 'Business Suite' && businessCompanyLogoUrl ? (
-                      <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                    {accountType === 'Business Suite' ? (
+                      businessCompanyLogoUrl ? (
+                        <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                      ) : isLoadingBusinessKyc ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                      )
                     ) : userAvatar ? (
                       <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                     ) : (
@@ -495,9 +492,15 @@ const APIKeys = () => {
                   </div>
                   <div className="user-info">
                     <span className="user-name">
-                      {accountType === 'Business Suite' && businessCompanyName
-                        ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                        : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
+                      {accountType === 'Business Suite' ? (
+                        isLoadingBusinessKyc || !businessCompanyName ? (
+                          <LoadingIndicator size="sm" />
+                        ) : (
+                          businessCompanyName
+                        )
+                      ) : (
+                        isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                      )}
                       <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                     </span>
                     <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
@@ -523,7 +526,7 @@ const APIKeys = () => {
               </button>
             </div>
 
-            {/* Summary Cards */}
+            {/* Summary Cards - from api/business-suite/api-keys/overview */}
             <div className="api-keys-summary-cards">
               <div className="api-keys-summary-card">
                 <div className="api-keys-card-header">
@@ -531,15 +534,23 @@ const APIKeys = () => {
                     <div className="api-keys-card-indicator"></div>
                     <h3>Total Active Keys</h3>
                   </div>
-                  <span className="api-keys-trend-badge positive">
-                    <TrendingUp size={14} />
-                    +3.1%
-                  </span>
+                  {overview?.totalActiveKeys?.trendPercent != null && (
+                    <span className={`api-keys-trend-badge ${Number(overview.totalActiveKeys.trendPercent) >= 0 ? 'positive' : 'negative'}`}>
+                      <TrendingUp size={14} />
+                      {Number(overview.totalActiveKeys.trendPercent) >= 0 ? '+' : ''}{overview.totalActiveKeys.trendPercent}%
+                    </span>
+                  )}
                 </div>
                 <div className="api-keys-card-value">
-                  <span className="api-keys-main-value">43</span>
+                  {isLoadingOverview ? (
+                    <LoadingIndicator size="sm" />
+                  ) : overviewError || overview?.totalActiveKeys?.value == null ? (
+                    <span className="api-keys-main-value">—</span>
+                  ) : (
+                    <span className="api-keys-main-value">{Number(overview.totalActiveKeys.value).toLocaleString()}</span>
+                  )}
                 </div>
-                <div className="api-keys-card-period">This month</div>
+                <div className="api-keys-card-period">{overview?.totalActiveKeys?.period || 'This month'}</div>
               </div>
 
               <div className="api-keys-summary-card">
@@ -548,15 +559,23 @@ const APIKeys = () => {
                     <div className="api-keys-card-indicator"></div>
                     <h3>API Requests</h3>
                   </div>
-                  <span className="api-keys-trend-badge positive">
-                    <TrendingUp size={14} />
-                    +3.1%
-                  </span>
+                  {overview?.apiRequests?.trendPercent != null && (
+                    <span className={`api-keys-trend-badge ${Number(overview.apiRequests.trendPercent) >= 0 ? 'positive' : 'negative'}`}>
+                      <TrendingUp size={14} />
+                      {Number(overview.apiRequests.trendPercent) >= 0 ? '+' : ''}{overview.apiRequests.trendPercent}%
+                    </span>
+                  )}
                 </div>
                 <div className="api-keys-card-value">
-                  <span className="api-keys-main-value">12,943</span>
+                  {isLoadingOverview ? (
+                    <LoadingIndicator size="sm" />
+                  ) : overviewError || overview?.apiRequests?.value == null ? (
+                    <span className="api-keys-main-value">—</span>
+                  ) : (
+                    <span className="api-keys-main-value">{Number(overview.apiRequests.value).toLocaleString()}</span>
+                  )}
                 </div>
-                <div className="api-keys-card-period">This month</div>
+                <div className="api-keys-card-period">{overview?.apiRequests?.period || 'This month'}</div>
               </div>
 
               <div className="api-keys-summary-card">
@@ -567,9 +586,17 @@ const APIKeys = () => {
                   </div>
                 </div>
                 <div className="api-keys-card-value">
-                  <span className="api-keys-main-value">231</span>
+                  {isLoadingOverview ? (
+                    <LoadingIndicator size="sm" />
+                  ) : overviewError || overview?.failedRequests?.value == null ? (
+                    <span className="api-keys-main-value">—</span>
+                  ) : (
+                    <span className="api-keys-main-value">{Number(overview.failedRequests.value).toLocaleString()}</span>
+                  )}
                 </div>
-                <div className="api-keys-card-subtitle">1.7% of total calls</div>
+                <div className="api-keys-card-subtitle">
+                  {overview?.failedRequests?.percentOfTotalCalls != null ? `${overview.failedRequests.percentOfTotalCalls}% of total calls` : (overview?.failedRequests?.period || '')}
+                </div>
               </div>
 
               <div className="api-keys-summary-card">
@@ -580,9 +607,15 @@ const APIKeys = () => {
                   </div>
                 </div>
                 <div className="api-keys-card-value">
-                  <span className="api-keys-main-value">184ms</span>
+                  {isLoadingOverview ? (
+                    <LoadingIndicator size="sm" />
+                  ) : overviewError || overview?.avgLatencyMs?.value == null ? (
+                    <span className="api-keys-main-value">—</span>
+                  ) : (
+                    <span className="api-keys-main-value">{Number(overview.avgLatencyMs.value)}ms</span>
+                  )}
                 </div>
-                <div className="api-keys-card-period">This month</div>
+                <div className="api-keys-card-period">{overview?.avgLatencyMs?.period || 'This month'}</div>
               </div>
             </div>
 
@@ -629,6 +662,11 @@ const APIKeys = () => {
 
               {/* Table */}
               <div className="api-keys-table-wrapper">
+                {keysError && (
+                  <div className="api-keys-table-error" style={{ padding: '1rem', color: 'var(--color-error, #c00)' }}>
+                    {keysError}
+                  </div>
+                )}
                 <table className="api-keys-table">
                   <thead>
                     <tr>
@@ -642,36 +680,47 @@ const APIKeys = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredKeys.map((key) => (
-                      <tr key={key.id}>
-                        <td>{key.name}</td>
-                        <td>
-                          <button type="button" className="api-keys-public-key-link" onClick={() => { setSelectedKey(key); setShowDetailsModal(true); }}>
-                            {key.publicKey}
-                          </button>
-                        </td>
-                        <td>{key.permission}</td>
-                        <td>
-                          <span className={`api-keys-status ${key.status.toLowerCase()}`}>
-                            {key.status}
-                          </span>
-                        </td>
-                        <td>{key.lastUsed}</td>
-                        <td>{key.created}</td>
-                        <td>
-                          <button 
-                            type="button" 
-                            className="api-keys-action-btn"
-                            onClick={() => {
-                              setSelectedKey(key);
-                              setShowDetailsModal(true);
-                            }}
-                          >
-                            <ArrowRight size={16} />
-                          </button>
+                    {isLoadingKeys ? (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
+                          <LoadingIndicator size="sm" />
                         </td>
                       </tr>
-                    ))}
+                    ) : keysList.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
+                          No API keys found
+                        </td>
+                      </tr>
+                    ) : (
+                      keysList.map((key) => (
+                        <tr key={key.id}>
+                          <td>{key.name}</td>
+                          <td>
+                            <button type="button" className="api-keys-public-key-link" onClick={() => { setSelectedKey(key); setShowDetailsModal(true); }}>
+                              {key.publicKey || '—'}
+                            </button>
+                          </td>
+                          <td>{key.permissionDisplay || key.permission || '—'}</td>
+                          <td>
+                            <span className={`api-keys-status ${(key.status || '').toLowerCase()}`}>
+                              {key.status ? key.status.charAt(0).toUpperCase() + key.status.slice(1) : '—'}
+                            </span>
+                          </td>
+                          <td>{formatLastUsed(key.lastUsedAt)}</td>
+                          <td>{formatKeyDate(key.createdAt)}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="api-keys-action-btn"
+                              onClick={() => { setSelectedKey(key); setShowDetailsModal(true); }}
+                            >
+                              <ArrowRight size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -681,34 +730,24 @@ const APIKeys = () => {
                 <button
                   type="button"
                   className="api-keys-pagination-btn"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
+                  onClick={() => setKeysPage((p) => Math.max(1, p - 1))}
+                  disabled={keysPage <= 1 || isLoadingKeys}
                 >
-                  Prev 10
+                  Prev
                 </button>
                 <div className="api-keys-pagination-numbers">
-                  <span>1</span>
-                  <span>...</span>
-                  <span>11</span>
-                  <span className="active">{currentPage}</span>
-                  <span>13</span>
-                  <span>14</span>
-                  <span>15</span>
-                  <span>16</span>
-                  <span>17</span>
-                  <span>18</span>
-                  <span>19</span>
-                  <span>20</span>
-                  <span>...</span>
-                  <span>78</span>
+                  <span className={keysPage === 1 ? 'active' : ''}>1</span>
+                  {totalPages > 2 && <span>...</span>}
+                  {keysPage > 1 && keysPage < totalPages && <span className="active">{keysPage}</span>}
+                  {totalPages > 1 && <span className={keysPage === totalPages ? 'active' : ''}>{totalPages}</span>}
                 </div>
                 <button
                   type="button"
                   className="api-keys-pagination-btn"
-                  onClick={() => setCurrentPage(Math.min(78, currentPage + 1))}
-                  disabled={currentPage === 78}
+                  onClick={() => setKeysPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={keysPage >= totalPages || isLoadingKeys}
                 >
-                  Next 10
+                  Next
                 </button>
               </div>
             </div>
@@ -721,8 +760,10 @@ const APIKeys = () => {
         isOpen={showCreateApiKeyModal}
         onCancel={() => setShowCreateApiKeyModal(false)}
         onSuccess={(data) => {
-          console.log('Create API key:', data);
-          // Handle the API key creation logic here
+          if (data) {
+            setKeysRefreshKey((k) => k + 1);
+            setOverviewRefreshKey((k) => k + 1);
+          }
           setShowCreateApiKeyModal(false);
         }}
       />
@@ -735,6 +776,16 @@ const APIKeys = () => {
           setSelectedKey(null);
         }}
         keyData={selectedKey}
+        onUpdated={() => {
+          setKeysRefreshKey((k) => k + 1);
+          setOverviewRefreshKey((k) => k + 1);
+        }}
+        onDeleted={() => {
+          setShowDetailsModal(false);
+          setSelectedKey(null);
+          setKeysRefreshKey((k) => k + 1);
+          setOverviewRefreshKey((k) => k + 1);
+        }}
       />
     </div>
   );
