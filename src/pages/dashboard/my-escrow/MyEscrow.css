@@ -2369,3 +2369,51 @@
 .payment-done-btn:hover {
   background: #0052CC;
 }
+
+/* Escrow Detail Modal */
+.escrow-detail-modal .escrow-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  gap: 1rem;
+}
+.escrow-detail-modal .escrow-detail-row:last-of-type {
+  border-bottom: none;
+}
+.escrow-detail-modal .escrow-detail-label {
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+  font-weight: 500;
+}
+.escrow-detail-modal .escrow-detail-value {
+  font-size: 0.9rem;
+  color: var(--text-dark, #1f2937);
+  text-align: right;
+}
+.escrow-detail-modal .escrow-detail-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #e8e8e8);
+}
+.escrow-detail-modal .escrow-detail-actions .release-btn,
+.escrow-detail-modal .escrow-detail-actions .cancel-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.escrow-detail-modal .escrow-detail-actions .release-btn {
+  background: var(--blue-600, #2563eb);
+  color: #fff;
+  border: none;
+}
+.escrow-detail-modal .escrow-detail-actions .cancel-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color, #e0e0e0);
+}

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -22,6 +23,7 @@ import {
   Calendar,
   ArrowRight,
   TrendingUp,
+  TrendingDown,
   CheckCircle,
   X,
   Copy,
@@ -89,12 +91,211 @@ const SandboxEnvironment = () => {
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('Monthly');
   const [showCreateSandboxKeyModal, setShowCreateSandboxKeyModal] = useState(false);
+  const [sandboxStats, setSandboxStats] = useState(null);
+  const [isLoadingSandboxStats, setIsLoadingSandboxStats] = useState(true);
+  const [isResettingSandbox, setIsResettingSandbox] = useState(false);
+
+  const [sandboxTestCopyValues, setSandboxTestCopyValues] = useState({});
+  const [activeSandboxTest, setActiveSandboxTest] = useState(null);
+
+  const [sandboxKeysList, setSandboxKeysList] = useState([]);
+  const [isLoadingSandboxKeys, setIsLoadingSandboxKeys] = useState(false);
+  const [sandboxKeysTotal, setSandboxKeysTotal] = useState(0);
+  const [sandboxKeysPage, setSandboxKeysPage] = useState(1);
+  const sandboxKeysPageSize = 20;
+
+  const [sandboxKeyDetail, setSandboxKeyDetail] = useState(null);
+  const [isLoadingSandboxKeyDetail, setIsLoadingSandboxKeyDetail] = useState(false);
+  const [showSandboxKeyDetailModal, setShowSandboxKeyDetailModal] = useState(false);
+
+  const [sandboxLogsList, setSandboxLogsList] = useState([]);
+  const [isLoadingSandboxLogs, setIsLoadingSandboxLogs] = useState(false);
+  const [sandboxLogsTotal, setSandboxLogsTotal] = useState(0);
+  const [sandboxLogsPage, setSandboxLogsPage] = useState(1);
+  const sandboxLogsPageSize = 20;
+  const sandboxLogsStatus = 'all';
 
   const formattedToday = useMemo(
     () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
     []
   );
 
+  const loadSandboxStats = useCallback(async () => {
+    if (accountType !== 'Business Suite') {
+      setSandboxStats(null);
+      setIsLoadingSandboxStats(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setSandboxStats(null);
+      setIsLoadingSandboxStats(false);
+      return;
+    }
+
+    setIsLoadingSandboxStats(true);
+    try {
+      const res = await fetch(getApiUrl('api/business-suite/sandbox/stats'), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setSandboxStats(result.data);
+      } else {
+        setSandboxStats(null);
+      }
+    } catch (e) {
+      console.error('Sandbox stats error:', e);
+      setSandboxStats(null);
+    } finally {
+      setIsLoadingSandboxStats(false);
+    }
+  }, [accountType]);
+
+  useEffect(() => {
+    loadSandboxStats();
+  }, [loadSandboxStats]);
+
+  const loadSandboxKeys = useCallback(async () => {
+    if (accountType !== 'Business Suite') {
+      setSandboxKeysList([]);
+      setSandboxKeysTotal(0);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setSandboxKeysList([]);
+      setSandboxKeysTotal(0);
+      return;
+    }
+
+    setIsLoadingSandboxKeys(true);
+    try {
+      const dateRange = 'monthly';
+      const status = 'all';
+      const res = await fetch(
+        getApiUrl(
+          `api/business-suite/sandbox/keys?status=${encodeURIComponent(status)}&dateRange=${encodeURIComponent(dateRange)}&page=${sandboxKeysPage}&pageSize=${sandboxKeysPageSize}`
+        ),
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setSandboxKeysList(Array.isArray(result.data.keys) ? result.data.keys : []);
+        setSandboxKeysTotal(Number(result.data.total ?? 0));
+      } else {
+        setSandboxKeysList([]);
+        setSandboxKeysTotal(0);
+      }
+    } catch (e) {
+      console.error('Sandbox keys list error:', e);
+      setSandboxKeysList([]);
+      setSandboxKeysTotal(0);
+    } finally {
+      setIsLoadingSandboxKeys(false);
+    }
+  }, [accountType, sandboxKeysPage]);
+
+  useEffect(() => {
+    loadSandboxKeys();
+  }, [loadSandboxKeys]);
+
+  const loadSandboxLogs = useCallback(async () => {
+    if (accountType !== 'Business Suite') {
+      setSandboxLogsList([]);
+      setSandboxLogsTotal(0);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setSandboxLogsList([]);
+      setSandboxLogsTotal(0);
+      return;
+    }
+
+    setIsLoadingSandboxLogs(true);
+    try {
+      const res = await fetch(
+        getApiUrl(
+          `api/business-suite/sandbox/logs?status=${encodeURIComponent(sandboxLogsStatus)}&page=${sandboxLogsPage}&pageSize=${sandboxLogsPageSize}`
+        ),
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setSandboxLogsList(Array.isArray(result.data.logs) ? result.data.logs : []);
+        setSandboxLogsTotal(Number(result.data.total ?? 0));
+      } else {
+        setSandboxLogsList([]);
+        setSandboxLogsTotal(0);
+      }
+    } catch (e) {
+      console.error('Sandbox logs error:', e);
+      setSandboxLogsList([]);
+      setSandboxLogsTotal(0);
+    } finally {
+      setIsLoadingSandboxLogs(false);
+    }
+  }, [accountType, sandboxLogsPage]);
+
+  useEffect(() => {
+    loadSandboxLogs();
+  }, [loadSandboxLogs]);
+
+  const handleViewSandboxKeyDetail = useCallback(async (keyId) => {
+    if (!keyId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setShowSandboxKeyDetailModal(true);
+    setIsLoadingSandboxKeyDetail(true);
+    setSandboxKeyDetail(null);
+
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/sandbox/keys/${keyId}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setSandboxKeyDetail(result.data);
+      } else {
+        setSandboxKeyDetail(null);
+      }
+    } catch (e) {
+      console.error('Sandbox key detail error:', e);
+      setSandboxKeyDetail(null);
+    } finally {
+      setIsLoadingSandboxKeyDetail(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (accountType !== 'Business Suite') return;
     const token = localStorage.getItem('token');
@@ -159,31 +360,6 @@ const SandboxEnvironment = () => {
       .finally(() => setIsLoadingUserProfile(false));
   }, [isSessionExpired]);
 
-  // Sample sandbox keys data
-  const sandboxKeys = [
-    {
-      id: 1,
-      name: 'Sandbox Main',
-      publicKey: 'sbx_pub_834jjklm90asdf23',
-      status: 'Successful',
-      dateCreated: '2024-07-04'
-    },
-    {
-      id: 2,
-      name: 'Sandbox Test',
-      publicKey: 'sbx_pub_12op9sd8hf77qwla92kd',
-      status: 'Successful',
-      dateCreated: '2024-07-03'
-    },
-    {
-      id: 3,
-      name: 'Sandbox Dev',
-      publicKey: 'sbx_pub_34rt8yu9jk12qwer45ty',
-      status: 'Successful',
-      dateCreated: '2024-07-02'
-    }
-  ];
-
   useEffect(() => {
     if (accountType !== 'Business Suite') return;
     const token = localStorage.getItem('token');
@@ -247,34 +423,6 @@ const SandboxEnvironment = () => {
       .catch(() => {})
       .finally(() => setIsLoadingUserProfile(false));
   }, [isSessionExpired]);
-
-  // Sample sandbox logs data
-  const sandboxLogs = [
-    {
-      id: 1,
-      time: '12:04 PM',
-      event: 'Escrow#344 Created',
-      status: 'OK'
-    },
-    {
-      id: 2,
-      time: '11:30 AM',
-      event: 'Payment Failed (Test Card)',
-      status: 'ERROR'
-    },
-    {
-      id: 3,
-      time: '12:04 PM',
-      event: 'Escrow#344 Created',
-      status: 'OK'
-    },
-    {
-      id: 4,
-      time: '11:30 AM',
-      event: 'Payment Failed (Test Card)',
-      status: 'ERROR'
-    }
-  ];
 
   const handleNavClick = (item) => {
     if (item.label === 'Dashboard') {
@@ -299,23 +447,123 @@ const SandboxEnvironment = () => {
   };
 
   const handleResetSandbox = () => {
-    console.log('Reset Sandbox Data clicked');
-    // Placeholder - no actual API call
+    // Reset sandbox data via API, then refresh stats.
+    (async () => {
+      if (isResettingSandbox) return;
+
+      if (accountType !== 'Business Suite') {
+        toast.error('Sandbox reset is only available in Business Suite');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      setIsResettingSandbox(true);
+      try {
+        const res = await fetch(getApiUrl('api/business-suite/sandbox/reset'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        const result = await res.json().catch(() => ({}));
+        if (result?.success) {
+          toast.success('Sandbox reset successfully');
+          await loadSandboxStats();
+        } else {
+          toast.error(result?.message || 'Failed to reset sandbox');
+        }
+      } catch (e) {
+        console.error('Reset sandbox error:', e);
+        toast.error('Failed to reset sandbox');
+      } finally {
+        setIsResettingSandbox(false);
+      }
+    })();
   };
 
   const handleCreateSandboxKey = () => {
     setShowCreateSandboxKeyModal(true);
   };
 
-  const handleTestAction = (action) => {
-    console.log(`${action} clicked`);
-    // Placeholder - no actual API call
+  const handleTestAction = async (actionKey) => {
+    if (accountType !== 'Business Suite') {
+      toast.error('Sandbox testing is only available in Business Suite');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    // actionKey maps to { endpoint, copyValueField } below.
+    const apiMap = {
+      'test-wallet': 'api/business-suite/sandbox/test-wallet/generate',
+      'test-escrow': 'api/business-suite/sandbox/test-escrow/create',
+      'subscription-renewal': 'api/business-suite/sandbox/subscription-renewal/simulate',
+      dispute: 'api/business-suite/sandbox/dispute/simulate',
+      'payment-success': 'api/business-suite/sandbox/payment-success/simulate',
+      'failed-payment': 'api/business-suite/sandbox/payment-failed/simulate',
+    };
+
+    const apiPath = apiMap[actionKey];
+    if (!apiPath) return;
+
+    setActiveSandboxTest(actionKey);
+    try {
+      const res = await fetch(getApiUrl(apiPath), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        const copyValue =
+          result.data.copyValue ??
+          result.data.address ??
+          result.data.escrowId ??
+          result.data.reference ??
+          '';
+
+        setSandboxTestCopyValues((prev) => ({ ...prev, [actionKey]: copyValue }));
+        toast.success(result?.message || 'Sandbox test executed');
+      } else {
+        toast.error(result?.message || result?.error || 'Failed to execute sandbox test');
+      }
+    } catch (e) {
+      console.error('Sandbox test error:', e);
+      toast.error('Failed to execute sandbox test');
+    } finally {
+      setActiveSandboxTest(null);
+    }
   };
 
-  const handleCopyAction = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-      console.log('Copied to clipboard:', text);
-    });
+  const handleCopyAction = async (actionKey) => {
+    const value = sandboxTestCopyValues[actionKey];
+    if (!value) {
+      toast.error('Nothing to copy yet. Run the test first.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success('Copied to clipboard');
+    } catch (e) {
+      console.error('Copy error:', e);
+      toast.error('Failed to copy');
+    }
   };
 
   return (
@@ -524,8 +772,9 @@ const SandboxEnvironment = () => {
                 type="button"
                 className="sandbox-reset-btn"
                 onClick={handleResetSandbox}
+                disabled={isResettingSandbox}
               >
-                Reset Sandbox Data
+                {isResettingSandbox ? <LoadingIndicator size="sm" /> : 'Reset Sandbox Data'}
               </button>
               <button
                 type="button"
@@ -545,15 +794,35 @@ const SandboxEnvironment = () => {
                     <div className="sandbox-card-indicator"></div>
                     <h3>Total Sandbox Keys</h3>
                   </div>
-                  <span className="sandbox-trend-badge positive">
-                    <TrendingUp size={14} />
-                    +3.1%
-                  </span>
+                  {isLoadingSandboxStats ? (
+                    <span className="sandbox-trend-badge positive">
+                      <LoadingIndicator size="sm" />
+                    </span>
+                  ) : (
+                    (() => {
+                      const tp = Number(sandboxStats?.totalSandboxKeys?.trendPercent ?? 0);
+                      const positive = Number.isNaN(tp) ? true : tp >= 0;
+                      return (
+                        <span className={`sandbox-trend-badge ${positive ? 'positive' : 'negative'}`}>
+                          {positive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                          {Number.isNaN(tp) ? '+0.0%' : `${positive ? '+' : ''}${tp}%`}
+                        </span>
+                      );
+                    })()
+                  )}
                 </div>
                 <div className="sandbox-card-value">
-                  <span className="sandbox-main-value">$45,280</span>
+                  <span className="sandbox-main-value">
+                    {isLoadingSandboxStats ? (
+                      '—'
+                    ) : (
+                      sandboxStats?.totalSandboxKeys?.value ?? '—'
+                    )}
+                  </span>
                 </div>
-                <div className="sandbox-card-subtitle">$16,789 locked</div>
+                <div className="sandbox-card-subtitle">
+                  {isLoadingSandboxStats ? '—' : (sandboxStats?.totalSandboxKeys?.secondary ?? sandboxStats?.totalSandboxKeys?.period ?? '—')}
+                </div>
               </div>
 
               <div className="sandbox-summary-card">
@@ -562,15 +831,31 @@ const SandboxEnvironment = () => {
                     <div className="sandbox-card-indicator"></div>
                     <h3>Sandbox Transactions</h3>
                   </div>
-                  <span className="sandbox-trend-badge positive">
-                    <TrendingUp size={14} />
-                    +3.1%
-                  </span>
+                  {isLoadingSandboxStats ? (
+                    <span className="sandbox-trend-badge positive">
+                      <LoadingIndicator size="sm" />
+                    </span>
+                  ) : (
+                    (() => {
+                      const tp = Number(sandboxStats?.sandboxTransactions?.trendPercent ?? 0);
+                      const positive = Number.isNaN(tp) ? true : tp >= 0;
+                      return (
+                        <span className={`sandbox-trend-badge ${positive ? 'positive' : 'negative'}`}>
+                          {positive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                          {Number.isNaN(tp) ? '+0.0%' : `${positive ? '+' : ''}${tp}%`}
+                        </span>
+                      );
+                    })()
+                  )}
                 </div>
                 <div className="sandbox-card-value">
-                  <span className="sandbox-main-value">45</span>
+                  <span className="sandbox-main-value">
+                    {isLoadingSandboxStats ? '—' : (sandboxStats?.sandboxTransactions?.value ?? '—')}
+                  </span>
                 </div>
-                <div className="sandbox-card-period">This month</div>
+                <div className="sandbox-card-period">
+                  {isLoadingSandboxStats ? '—' : (sandboxStats?.sandboxTransactions?.period ?? '—')}
+                </div>
               </div>
 
               <div className="sandbox-summary-card">
@@ -581,9 +866,13 @@ const SandboxEnvironment = () => {
                   </div>
                 </div>
                 <div className="sandbox-card-value">
-                  <span className="sandbox-main-value">23</span>
+                  <span className="sandbox-main-value">
+                    {isLoadingSandboxStats ? '—' : (sandboxStats?.errors24h?.value ?? '—')}
+                  </span>
                 </div>
-                <div className="sandbox-card-period">This month</div>
+                <div className="sandbox-card-period">
+                  {isLoadingSandboxStats ? '—' : (sandboxStats?.errors24h?.period ?? '—')}
+                </div>
               </div>
 
               <div className="sandbox-summary-card">
@@ -594,9 +883,13 @@ const SandboxEnvironment = () => {
                   </div>
                 </div>
                 <div className="sandbox-card-value">
-                  <span className="sandbox-main-value">7</span>
+                  <span className="sandbox-main-value">
+                    {isLoadingSandboxStats ? '—' : (sandboxStats?.testWallets?.value ?? '—')}
+                  </span>
                 </div>
-                <div className="sandbox-card-period">This month</div>
+                <div className="sandbox-card-period">
+                  {isLoadingSandboxStats ? '—' : (sandboxStats?.testWallets?.period ?? '—')}
+                </div>
               </div>
             </div>
 
@@ -615,9 +908,10 @@ const SandboxEnvironment = () => {
                       <button 
                         type="button"
                         className="sandbox-test-btn-primary"
-                        onClick={() => handleTestAction('Generate')}
+                        onClick={() => handleTestAction('test-wallet')}
+                        disabled={activeSandboxTest === 'test-wallet'}
                       >
-                        Generate
+                        {activeSandboxTest === 'test-wallet' ? <LoadingIndicator size="sm" /> : 'Generate'}
                       </button>
                       <button 
                         type="button"
@@ -635,9 +929,10 @@ const SandboxEnvironment = () => {
                       <button 
                         type="button"
                         className="sandbox-test-btn-primary"
-                        onClick={() => handleTestAction('Create')}
+                        onClick={() => handleTestAction('test-escrow')}
+                        disabled={activeSandboxTest === 'test-escrow'}
                       >
-                        Create
+                        {activeSandboxTest === 'test-escrow' ? <LoadingIndicator size="sm" /> : 'Create'}
                       </button>
                       <button 
                         type="button"
@@ -655,9 +950,10 @@ const SandboxEnvironment = () => {
                       <button 
                         type="button"
                         className="sandbox-test-btn-primary"
-                        onClick={() => handleTestAction('Simulate')}
+                        onClick={() => handleTestAction('subscription-renewal')}
+                        disabled={activeSandboxTest === 'subscription-renewal'}
                       >
-                        Simulate
+                        {activeSandboxTest === 'subscription-renewal' ? <LoadingIndicator size="sm" /> : 'Simulate'}
                       </button>
                       <button 
                         type="button"
@@ -675,9 +971,10 @@ const SandboxEnvironment = () => {
                       <button 
                         type="button"
                         className="sandbox-test-btn-primary"
-                        onClick={() => handleTestAction('Simulate')}
+                        onClick={() => handleTestAction('dispute')}
+                        disabled={activeSandboxTest === 'dispute'}
                       >
-                        Simulate
+                        {activeSandboxTest === 'dispute' ? <LoadingIndicator size="sm" /> : 'Simulate'}
                       </button>
                       <button 
                         type="button"
@@ -695,9 +992,10 @@ const SandboxEnvironment = () => {
                       <button 
                         type="button"
                         className="sandbox-test-btn-primary"
-                        onClick={() => handleTestAction('Simulate')}
+                        onClick={() => handleTestAction('payment-success')}
+                        disabled={activeSandboxTest === 'payment-success'}
                       >
-                        Simulate
+                        {activeSandboxTest === 'payment-success' ? <LoadingIndicator size="sm" /> : 'Simulate'}
                       </button>
                       <button 
                         type="button"
@@ -715,9 +1013,10 @@ const SandboxEnvironment = () => {
                       <button 
                         type="button"
                         className="sandbox-test-btn-primary"
-                        onClick={() => handleTestAction('Simulate')}
+                        onClick={() => handleTestAction('failed-payment')}
+                        disabled={activeSandboxTest === 'failed-payment'}
                       >
-                        Simulate
+                        {activeSandboxTest === 'failed-payment' ? <LoadingIndicator size="sm" /> : 'Simulate'}
                       </button>
                       <button 
                         type="button"
@@ -769,35 +1068,71 @@ const SandboxEnvironment = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {sandboxKeys.map((key) => (
-                        <tr key={key.id}>
-                          <td>
-                            <input type="checkbox" />
-                          </td>
-                          <td>{key.name}</td>
-                          <td className="sandbox-public-key">{key.publicKey}</td>
-                          <td>
-                            <span className={`sandbox-status ${key.status.toLowerCase()}`}>
-                              {key.status}
-                            </span>
-                          </td>
-                          <td>{key.dateCreated}</td>
-                          <td>
-                            <button 
-                              type="button" 
-                              className="sandbox-action-btn"
-                              onClick={() => {
-                                console.log('View details for:', key.name);
-                              }}
-                            >
-                              <ArrowRight size={16} />
-                            </button>
+                      {isLoadingSandboxKeys ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '1.25rem' }}>
+                            <LoadingIndicator size="md" />
                           </td>
                         </tr>
-                      ))}
+                      ) : sandboxKeysList.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '1.25rem', color: 'var(--text-muted)' }}>
+                            No sandbox keys
+                          </td>
+                        </tr>
+                      ) : (
+                        sandboxKeysList.map((key) => (
+                          <tr key={key.id}>
+                            <td>
+                              <input type="checkbox" />
+                            </td>
+                            <td>{key.name}</td>
+                            <td className="sandbox-public-key">{key.publicKey}</td>
+                            <td>
+                              <span className={`sandbox-status ${String(key.status ?? '').toLowerCase()}`}>
+                                {key.status}
+                              </span>
+                            </td>
+                            <td>{key.dateCreated}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="sandbox-action-btn"
+                                onClick={() => handleViewSandboxKeyDetail(key.id)}
+                              >
+                                <ArrowRight size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {sandboxKeysTotal > 0 && (
+                  <div className="sandbox-keys-pagination">
+                    <button
+                      type="button"
+                      className="sandbox-keys-pagination-btn"
+                      disabled={sandboxKeysPage <= 1}
+                      onClick={() => setSandboxKeysPage((p) => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <span className="sandbox-keys-pagination-info">
+                      Page {sandboxKeysPage} of {Math.max(1, Math.ceil(sandboxKeysTotal / sandboxKeysPageSize))}
+                    </span>
+                    <button
+                      type="button"
+                      className="sandbox-keys-pagination-btn"
+                      disabled={sandboxKeysPage >= Math.ceil(sandboxKeysTotal / sandboxKeysPageSize)}
+                      onClick={() => setSandboxKeysPage((p) => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Sandbox Logs Table */}
@@ -819,23 +1154,66 @@ const SandboxEnvironment = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {sandboxLogs.map((log) => (
-                        <tr key={log.id}>
-                          <td>
-                            <input type="checkbox" />
-                          </td>
-                          <td>{log.time}</td>
-                          <td>{log.event}</td>
-                          <td>
-                            <span className={`sandbox-status ${log.status.toLowerCase()}`}>
-                              {log.status}
-                            </span>
+                      {isLoadingSandboxLogs ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '1.25rem' }}>
+                            <LoadingIndicator size="md" />
                           </td>
                         </tr>
-                      ))}
+                      ) : sandboxLogsList.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '1.25rem', color: 'var(--text-muted)' }}>
+                            No sandbox logs
+                          </td>
+                        </tr>
+                      ) : (
+                        sandboxLogsList.map((log) => {
+                          const fallbackTime = log.createdAt
+                            ? new Date(log.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                            : '—';
+                          return (
+                            <tr key={log.id}>
+                              <td>
+                                <input type="checkbox" />
+                              </td>
+                              <td>{log.time ?? fallbackTime}</td>
+                              <td>{log.event ?? '—'}</td>
+                              <td>
+                                <span className={`sandbox-status ${String(log.status ?? '').toLowerCase()}`}>
+                                  {log.status ?? '—'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {sandboxLogsTotal > 0 && (
+                  <div className="sandbox-keys-pagination">
+                    <button
+                      type="button"
+                      className="sandbox-keys-pagination-btn"
+                      disabled={sandboxLogsPage <= 1}
+                      onClick={() => setSandboxLogsPage((p) => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <span className="sandbox-keys-pagination-info">
+                      Page {sandboxLogsPage} of {Math.max(1, Math.ceil(sandboxLogsTotal / sandboxLogsPageSize))}
+                    </span>
+                    <button
+                      type="button"
+                      className="sandbox-keys-pagination-btn"
+                      disabled={sandboxLogsPage >= Math.ceil(sandboxLogsTotal / sandboxLogsPageSize)}
+                      onClick={() => setSandboxLogsPage((p) => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </main>
@@ -846,12 +1224,78 @@ const SandboxEnvironment = () => {
       <CreateSandboxKeyModal
         isOpen={showCreateSandboxKeyModal}
         onCancel={() => setShowCreateSandboxKeyModal(false)}
-        onSuccess={(data) => {
-          console.log('Create Sandbox Key:', data);
-          // Handle the sandbox key creation logic here
+        onSuccess={() => {
           setShowCreateSandboxKeyModal(false);
+          loadSandboxStats();
+          loadSandboxKeys();
         }}
       />
+
+      {/* Sandbox Key Detail Modal */}
+      {showSandboxKeyDetailModal && (
+        <div
+          className="sandbox-key-detail-overlay"
+          onClick={() => setShowSandboxKeyDetailModal(false)}
+        >
+          <div className="sandbox-key-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sandbox-key-detail-header">
+              <h2 className="sandbox-key-detail-title">Sandbox key details</h2>
+              <button
+                type="button"
+                className="sandbox-key-detail-close"
+                onClick={() => setShowSandboxKeyDetailModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="sandbox-key-detail-body">
+              {isLoadingSandboxKeyDetail ? (
+                <div className="sandbox-key-detail-loading">
+                  <LoadingIndicator size="md" />
+                </div>
+              ) : !sandboxKeyDetail ? (
+                <div className="sandbox-key-detail-empty">Failed to load sandbox key details</div>
+              ) : (
+                <div className="sandbox-key-detail-grid">
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Name</span>
+                    <span className="sandbox-key-detail-value">{sandboxKeyDetail.name ?? '—'}</span>
+                  </div>
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Environment</span>
+                    <span className="sandbox-key-detail-value">{sandboxKeyDetail.environmentName ?? '—'}</span>
+                  </div>
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Purpose</span>
+                    <span className="sandbox-key-detail-value">{sandboxKeyDetail.environmentPurpose ?? '—'}</span>
+                  </div>
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Status</span>
+                    <span className="sandbox-key-detail-value">{sandboxKeyDetail.status ?? '—'}</span>
+                  </div>
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Public Key</span>
+                    <span className="sandbox-key-detail-value sandbox-public-key">{sandboxKeyDetail.publicKey ?? '—'}</span>
+                  </div>
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Permissions</span>
+                    <span className="sandbox-key-detail-value">
+                      {Array.isArray(sandboxKeyDetail.permissions) ? sandboxKeyDetail.permissions.join(', ') : '—'}
+                    </span>
+                  </div>
+                  <div className="sandbox-key-detail-row">
+                    <span className="sandbox-key-detail-label">Created At</span>
+                    <span className="sandbox-key-detail-value">
+                      {sandboxKeyDetail.createdAt ?? sandboxKeyDetail.dateCreated ?? '—'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

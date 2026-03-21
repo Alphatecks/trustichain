@@ -128,6 +128,14 @@ const Payroll = () => {
   const [transactionDetailData, setTransactionDetailData] = useState(null);
   const [isLoadingTransactionDetail, setIsLoadingTransactionDetail] = useState(false);
   const [selectedPayrollDetail, setSelectedPayrollDetail] = useState(null);
+  const [mobilePayrollDetail, setMobilePayrollDetail] = useState(null);
+  const [isLoadingMobilePayrollDetail, setIsLoadingMobilePayrollDetail] = useState(false);
+  const [mobilePayrollTransactions, setMobilePayrollTransactions] = useState([]);
+  const [isLoadingMobilePayrollTransactions, setIsLoadingMobilePayrollTransactions] = useState(false);
+  const [mobileTransactionMonth, setMobileTransactionMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [showAddTeamMember, setShowAddTeamMember] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [showChangeReleaseDateModal, setShowChangeReleaseDateModal] = useState(false);
@@ -369,6 +377,84 @@ const Payroll = () => {
       })
       .finally(() => setIsLoadingTransactionHistory(false));
   }, [transactionHistoryPage, transactionHistoryMonth]);
+
+  useEffect(() => {
+    const id = selectedPayrollDetail?.id;
+    if (!id) {
+      setMobilePayrollDetail(null);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setIsLoadingMobilePayrollDetail(true);
+    setMobilePayrollDetail(null);
+    fetch(getApiUrl(`api/business-suite/payrolls/${id}`), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && result?.data) {
+          setMobilePayrollDetail(result.data);
+        } else {
+          setMobilePayrollDetail(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Mobile payroll detail error:', err);
+        setMobilePayrollDetail(null);
+      })
+      .finally(() => setIsLoadingMobilePayrollDetail(false));
+  }, [selectedPayrollDetail?.id]);
+
+  useEffect(() => {
+    if (!selectedPayrollDetail?.id) {
+      setMobilePayrollTransactions([]);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setIsLoadingMobilePayrollTransactions(true);
+    const month = mobileTransactionMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    fetch(getApiUrl(`api/business-suite/payrolls/transactions?page=1&pageSize=20&month=${month}`), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success && Array.isArray(result?.data?.items)) {
+          const items = result.data.items;
+          const payrollId = selectedPayrollDetail.id;
+          const filtered = items.filter((t) => String(t.payrollId || t.payroll_id || '') === String(payrollId));
+          setMobilePayrollTransactions(filtered.length ? filtered : items);
+        } else {
+          setMobilePayrollTransactions([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Mobile payroll transactions error:', err);
+        setMobilePayrollTransactions([]);
+      })
+      .finally(() => setIsLoadingMobilePayrollTransactions(false));
+  }, [selectedPayrollDetail?.id, mobileTransactionMonth]);
+
+  const formatUsd = (n) =>
+    n == null || Number.isNaN(Number(n))
+      ? '—'
+      : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(Number(n));
+
+  const formatTransactionDate = (item) => {
+    const raw = item?.createdAt ?? item?.transactionDate ?? item?.date ?? item?.created_at;
+    if (!raw) return '—';
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
 
   const formatTransactionAmount = (item) => {
     const hasXrp = item.amountXrp != null && !Number.isNaN(Number(item.amountXrp));
@@ -796,7 +882,8 @@ const Payroll = () => {
         </div>
         )}
 
-        {/* Mobile Payroll Content */}
+        {/* Mobile Payroll Content - list only when no detail selected */}
+        {!selectedPayrollDetail && (
         <div className="payroll-page-mobile">
           {/* Summary Cards - Horizontally Scrollable */}
           {!selectedPayrollDetail && (
@@ -868,27 +955,466 @@ const Payroll = () => {
                     <div 
                       key={payroll.id} 
                       className="payroll-list-item-mobile"
-                      onClick={() => navigate(`/payroll/${payroll.id}`)}
+                      onClick={() => setSelectedPayrollDetail(payroll)}
                     >
                       <div className="payroll-list-item-content-mobile">
                         <h3 className="payroll-list-item-title-mobile">{payroll.name}</h3>
                         <p className="payroll-list-item-subtitle-mobile">Next release {payroll.releaseDate ?? '—'}</p>
                       </div>
-                      <button 
-                        className="payroll-list-item-arrow-mobile"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPayrollDetail(payroll);
-                        }}
-                      >
+                      <span className="payroll-list-item-arrow-mobile" aria-hidden="true">
                         <ArrowRight size={20} />
-                      </button>
+                      </span>
                     </div>
                   ))
                 )}
               </div>
             </>
           )}
+
+          {/* Add New Payroll Modal - Mobile */}
+          {showAddPayrollModalMobile && (
+            <div className="add-new-payroll-modal-mobile">
+              <div className="add-new-payroll-header-mobile">
+                <div className="add-new-payroll-title-wrapper-mobile">
+                  <div className="add-new-payroll-blue-accent-mobile"></div>
+                  <h2 className="add-new-payroll-title-mobile">Add new payroll</h2>
+                </div>
+                <button
+                  className="add-new-payroll-close-mobile"
+                  onClick={() => {
+                    setShowAddPayrollModalMobile(false);
+                    setAddPayrollStep(1);
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Step Indicator */}
+              <div className="add-new-payroll-step-indicator-mobile">
+                <div className="add-new-payroll-step-icon-mobile">
+                  {addPayrollStep === 1 ? <Users size={20} /> : addPayrollStep === 2 ? <FileText size={20} /> : <Check size={20} />}
+                </div>
+                <div className="add-new-payroll-step-content-mobile">
+                  <div className="add-new-payroll-step-number-mobile">Step {addPayrollStep}/3</div>
+                  <div className="add-new-payroll-step-label-mobile">
+                    {addPayrollStep === 1 ? 'Payroll Detail' : addPayrollStep === 2 ? 'Compliance & Documentation' : 'Step 3'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 1: Payroll Detail Form */}
+              {addPayrollStep === 1 && (
+                <div className="add-new-payroll-form-mobile">
+                  <h3 className="add-new-payroll-form-title-mobile">Payroll Detail</h3>
+                  
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Currency</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Add Date"
+                        value={addPayrollForm.currency}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, currency: e.target.value})}
+                      />
+                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Default Salary Type</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Select"
+                        value={addPayrollForm.defaultSalaryType}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, defaultSalaryType: e.target.value})}
+                      />
+                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Salary Amount</label>
+                    <input
+                      type="text"
+                      className="add-new-payroll-input-mobile"
+                      placeholder="Enter phone number"
+                      value={addPayrollForm.salaryAmount}
+                      onChange={(e) => setAddPayrollForm({...addPayrollForm, salaryAmount: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Disbursement Mode</label>
+                    <div className="add-new-payroll-radio-group-mobile">
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="disbursementMode"
+                          value="auto"
+                          checked={addPayrollForm.disbursementMode === 'auto'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
+                        />
+                        <span>Auto Release</span>
+                      </label>
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="disbursementMode"
+                          value="manual"
+                          checked={addPayrollForm.disbursementMode === 'manual'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
+                        />
+                        <span>Manual Release</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Allowance Allocation</label>
+                    <div className="add-new-payroll-toggle-wrapper-mobile">
+                      <span className="add-new-payroll-toggle-text-mobile">Enable Allowances</span>
+                      <label className="add-new-payroll-toggle-mobile">
+                        <input
+                          type="checkbox"
+                          checked={addPayrollForm.allowanceAllocation}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, allowanceAllocation: e.target.checked})}
+                        />
+                        <span className="add-new-payroll-toggle-slider-mobile"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Add Amount</label>
+                    <input
+                      type="text"
+                      className="add-new-payroll-input-mobile"
+                      placeholder="Add amount"
+                      value={addPayrollForm.addAmount}
+                      onChange={(e) => setAddPayrollForm({...addPayrollForm, addAmount: e.target.value})}
+                    />
+                  </div>
+
+                  <button 
+                    className="add-new-payroll-submit-btn-mobile"
+                    onClick={() => setAddPayrollStep(2)}
+                  >
+                    <div className="add-new-payroll-submit-icon-mobile">
+                      <ArrowRight size={16} />
+                    </div>
+                    <span>Submit and Next</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Step 2: Compliance & Documentation Form */}
+              {addPayrollStep === 2 && (
+                <div className="add-new-payroll-form-mobile">
+                  <h3 className="add-new-payroll-form-title-mobile">Compliance & Documentation</h3>
+                  
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Job Title:</label>
+                    <input
+                      type="text"
+                      className="add-new-payroll-input-mobile"
+                      placeholder="Add job title"
+                      value={addPayrollForm.jobTitle}
+                      onChange={(e) => setAddPayrollForm({...addPayrollForm, jobTitle: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Email</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Select"
+                        value={addPayrollForm.email}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, email: e.target.value})}
+                      />
+                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Employment Type:</label>
+                    <div className="add-new-payroll-radio-group-mobile">
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="employmentType"
+                          value="fulltime"
+                          checked={addPayrollForm.employmentType === 'fulltime'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, employmentType: e.target.value})}
+                        />
+                        <span>Full time</span>
+                      </label>
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="employmentType"
+                          value="parttime"
+                          checked={addPayrollForm.employmentType === 'parttime'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, employmentType: e.target.value})}
+                        />
+                        <span>part time</span>
+                      </label>
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="employmentType"
+                          value="contract"
+                          checked={addPayrollForm.employmentType === 'contract'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, employmentType: e.target.value})}
+                        />
+                        <span>contract</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Status</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Select"
+                        value={addPayrollForm.status}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, status: e.target.value})}
+                      />
+                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Date Joined</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Enter phone number"
+                        value={addPayrollForm.dateJoined}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, dateJoined: e.target.value})}
+                      />
+                      <Calendar size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Disbursement Mode</label>
+                    <div className="add-new-payroll-radio-group-mobile">
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="disbursementModeStep2"
+                          value="auto"
+                          checked={addPayrollForm.disbursementMode === 'auto'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
+                        />
+                        <span>Auto Release</span>
+                      </label>
+                      <label className="add-new-payroll-radio-option-mobile">
+                        <input
+                          type="radio"
+                          name="disbursementModeStep2"
+                          value="manual"
+                          checked={addPayrollForm.disbursementMode === 'manual'}
+                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
+                        />
+                        <span>Manual Release</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Default Salary Type</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Select"
+                        value={addPayrollForm.defaultSalaryType}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, defaultSalaryType: e.target.value})}
+                      />
+                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Currency</label>
+                    <div className="add-new-payroll-input-wrapper-mobile">
+                      <input
+                        type="text"
+                        className="add-new-payroll-input-mobile"
+                        placeholder="Add Date"
+                        value={addPayrollForm.currency}
+                        onChange={(e) => setAddPayrollForm({...addPayrollForm, currency: e.target.value})}
+                      />
+                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
+                    </div>
+                  </div>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Salary Amount</label>
+                    <input
+                      type="text"
+                      className="add-new-payroll-input-mobile"
+                      placeholder="Enter Amount"
+                      value={addPayrollForm.salaryAmount}
+                      onChange={(e) => setAddPayrollForm({...addPayrollForm, salaryAmount: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="form-navigation-buttons-mobile">
+                    <button 
+                      className="previous-btn-mobile"
+                      onClick={() => setAddPayrollStep(1)}
+                    >
+                      <div className="previous-icon-mobile">
+                        <ArrowLeft size={16} />
+                      </div>
+                      <span>Previous</span>
+                    </button>
+                    <button 
+                      className="submit-next-btn-mobile"
+                      onClick={() => setAddPayrollStep(3)}
+                    >
+                      <div className="submit-next-icon-mobile">
+                        <ArrowRight size={16} />
+                      </div>
+                      <span>Submit and Next</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Confirmation */}
+              {addPayrollStep === 3 && (
+                <div className="add-new-payroll-form-mobile">
+                  <h3 className="add-new-payroll-form-title-mobile">Confirmation</h3>
+                  
+                  <div className="add-new-payroll-confirmation-section-mobile">
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Company Name:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.companyName}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Company email:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.companyEmail}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Start Date:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.cycleDate}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Start Date:</span>
+                      <div className="add-new-payroll-confirmation-value-with-icon-mobile">
+                        <span>{addPayrollForm.startDate}</span>
+                        <Calendar size={16} />
+                      </div>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">End Date:</span>
+                      <div className="add-new-payroll-confirmation-value-with-icon-mobile">
+                        <span>{addPayrollForm.endDate}</span>
+                        <Calendar size={16} />
+                      </div>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Currency:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.currency || 'Add Date'}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Default Salary Type:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.defaultSalaryType || 'Select'}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Salary Amount:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">${addPayrollForm.salaryAmount || '50'}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Disbursement Mode:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.disbursementMode === 'auto' ? 'Auto Release' : 'Manual Release'}</span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Allowance Allocation:</span>
+                      <span className={`add-new-payroll-confirmation-value-mobile ${addPayrollForm.allowanceAllocation ? 'enabled' : ''}`}>
+                        {addPayrollForm.allowanceAllocation ? 'Enable' : 'Disabled'}
+                      </span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Add Amount:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">${addPayrollForm.addAmount || '20'}</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    className="add-new-payroll-save-lock-btn-mobile"
+                    onClick={() => {
+                      setShowAddPayrollModalMobile(false);
+                      setAddPayrollStep(1);
+                    }}
+                  >
+                    <div className="add-new-payroll-submit-icon-mobile">
+                      <ArrowRight size={16} />
+                    </div>
+                    <span>Save and Lock</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mobile Transaction History Header */}
+          {!selectedPayrollDetail && (
+            <>
+              <div className="transaction-history-header-mobile">
+                <h2 className="transaction-history-title-mobile">Transaction History</h2>
+                <div className="transaction-history-actions-mobile">
+                  <button className="transaction-history-calendar-mobile">
+                    <Clock size={20} />
+                  </button>
+                  <button className="transaction-history-arrow-mobile">
+                    <ArrowRight size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Transaction History List */}
+              <div className="transaction-history-list-mobile">
+                {isLoadingTransactionHistory ? (
+                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+                ) : transactionHistory.length === 0 ? (
+                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>No transactions</div>
+                ) : (
+                  transactionHistory.slice(0, 10).map((tx) => {
+                    const statusClass = (tx.status || '').toLowerCase() === 'pending' ? 'pending' : 'successful';
+                    return (
+                      <div key={tx.id || tx.transactionId} className="transaction-item-mobile" onClick={() => handleViewTransaction(tx.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleViewTransaction(tx.id)}>
+                        <div className="transaction-item-content-mobile">
+                          <div className="transaction-id-mobile">{tx.transactionId ?? '—'}</div>
+                          <div className="transaction-recipient-mobile">{(tx.payrollName || tx.counterpartyName || '—').replace(/ Payroll$/i, '')}</div>
+                        </div>
+                        <div className="transaction-item-right-mobile">
+                          <div className="transaction-amount-mobile">{formatTransactionAmount(tx)}</div>
+                          <span className={`transaction-status-mobile ${statusClass}`}>
+                            {tx.status ?? '—'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        )}
 
           {/* Mobile Payroll Details Screen */}
           {selectedPayrollDetail && (
@@ -906,65 +1432,79 @@ const Payroll = () => {
               </div>
 
               <div className="payroll-details-grid-mobile">
-                {/* Payroll Name Card */}
-                <div className="payroll-detail-card-mobile">
-                  <div className="payroll-detail-card-header-mobile">
-                    <h3 className="payroll-detail-card-title-mobile">Payroll name</h3>
+                {isLoadingMobilePayrollDetail ? (
+                  <div className="payroll-detail-card-mobile" style={{ gridColumn: '1 / -1', padding: '1.5rem', textAlign: 'center' }}>
+                    <LoadingIndicator size="sm" />
                   </div>
-                  <div className="payroll-detail-card-value-mobile">{selectedPayrollDetail.name}</div>
-                  <button className="payroll-detail-card-action-mobile">
-                    <Download size={16} />
-                    <span>Description</span>
-                  </button>
-                </div>
+                ) : !mobilePayrollDetail ? (
+                  <div className="payroll-detail-card-mobile" style={{ gridColumn: '1 / -1', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                    Failed to load payroll details
+                  </div>
+                ) : (
+                  <>
+                    {/* Payroll Name Card */}
+                    <div className="payroll-detail-card-mobile">
+                      <div className="payroll-detail-card-header-mobile">
+                        <h3 className="payroll-detail-card-title-mobile">Payroll name</h3>
+                      </div>
+                      <div className="payroll-detail-card-value-mobile">{mobilePayrollDetail.name ?? selectedPayrollDetail?.name ?? '—'}</div>
+                      <button className="payroll-detail-card-action-mobile">
+                        <Download size={16} />
+                        <span>Description</span>
+                      </button>
+                    </div>
 
-                {/* Team Members Card */}
-                <div className="payroll-detail-card-mobile">
-                  <div className="payroll-detail-card-header-mobile">
-                    <h3 className="payroll-detail-card-title-mobile">Team members</h3>
-                  </div>
-                  <div className="payroll-detail-card-value-mobile">23</div>
-                  <button 
-                  className="payroll-detail-card-action-mobile"
-                  onClick={() => setShowAddTeamMember(true)}
-                >
-                    <Plus size={16} />
-                    <span>Add team member</span>
-                  </button>
-                </div>
+                    {/* Team Members Card */}
+                    <div className="payroll-detail-card-mobile">
+                      <div className="payroll-detail-card-header-mobile">
+                        <h3 className="payroll-detail-card-title-mobile">Team members</h3>
+                      </div>
+                      <div className="payroll-detail-card-value-mobile">
+                        {Array.isArray(mobilePayrollDetail.items) ? mobilePayrollDetail.items.length : (mobilePayrollDetail.teamMemberCount ?? mobilePayrollDetail.memberCount ?? '—')}
+                      </div>
+                      <button 
+                        className="payroll-detail-card-action-mobile"
+                        onClick={() => setShowAddTeamMember(true)}
+                      >
+                        <Plus size={16} />
+                        <span>Add team member</span>
+                      </button>
+                    </div>
 
-                {/* Next Release Date Card */}
-                <div className="payroll-detail-card-mobile">
-                  <div className="payroll-detail-card-header-mobile">
-                    <h3 className="payroll-detail-card-title-mobile">Next release date</h3>
-                  </div>
-                  <div className="payroll-detail-card-value-mobile">31st Nov</div>
-                  <button 
-                    className="payroll-detail-card-action-mobile"
-                    onClick={() => setShowChangeReleaseDateModal(true)}
-                  >
-                    <Pencil size={16} />
-                    <span>Change</span>
-                  </button>
-                </div>
+                    {/* Next Release Date Card */}
+                    <div className="payroll-detail-card-mobile">
+                      <div className="payroll-detail-card-header-mobile">
+                        <h3 className="payroll-detail-card-title-mobile">Next release date</h3>
+                      </div>
+                      <div className="payroll-detail-card-value-mobile">{mobilePayrollDetail.releaseDate ?? '—'}</div>
+                      <button 
+                        className="payroll-detail-card-action-mobile"
+                        onClick={() => setShowChangeReleaseDateModal(true)}
+                      >
+                        <Pencil size={16} />
+                        <span>Change</span>
+                      </button>
+                    </div>
 
-                {/* Payroll Amount Card */}
-                <div className="payroll-detail-card-mobile">
-                  <div className="payroll-detail-card-header-mobile">
-                    <h3 className="payroll-detail-card-title-mobile">Payroll amount</h3>
-                  </div>
-                  <div className="payroll-detail-card-amount-wrapper-mobile">
-                    <div className="payroll-detail-card-value-mobile">$23,000</div>
-                    <div className="payroll-detail-card-amount-secondary-mobile">=$23,000</div>
-                  </div>
-                  <button 
-                    className="payroll-detail-card-action-mobile"
-                    onClick={() => setShowFundWalletModal(true)}
-                  >
-                    <Plus size={16} />
-                    <span>Fund wallet</span>
-                  </button>
-                </div>
+                    {/* Payroll Amount Card */}
+                    <div className="payroll-detail-card-mobile">
+                      <div className="payroll-detail-card-header-mobile">
+                        <h3 className="payroll-detail-card-title-mobile">Payroll amount</h3>
+                      </div>
+                      <div className="payroll-detail-card-amount-wrapper-mobile">
+                        <div className="payroll-detail-card-value-mobile">{formatUsd(mobilePayrollDetail.totalAmountUsd)}</div>
+                        <div className="payroll-detail-card-amount-secondary-mobile">={formatUsd(mobilePayrollDetail.totalAmountUsd)}</div>
+                      </div>
+                      <button 
+                        className="payroll-detail-card-action-mobile"
+                        onClick={() => setShowFundWalletModal(true)}
+                      >
+                        <Plus size={16} />
+                        <span>Fund wallet</span>
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Transaction History Section */}
@@ -981,24 +1521,35 @@ const Payroll = () => {
               </div>
 
               <div className="payroll-details-transaction-list-mobile">
-                {Array(5).fill({
-                  sender: 'Ethel Johnson',
-                  amount: '+50 XRP ($25.00 USD)',
-                  date: '15th July 2025'
-                }).map((transaction, index) => (
-                  <div key={index} className="payroll-details-transaction-item-mobile">
-                    <div className="payroll-details-transaction-content-mobile">
-                      <div className="payroll-details-transaction-sender-mobile">{transaction.sender}</div>
-                      <div className="payroll-details-transaction-amount-mobile">{transaction.amount}</div>
-                    </div>
-                    <div className="payroll-details-transaction-right-mobile">
-                      <div className="payroll-details-transaction-date-mobile">{transaction.date}</div>
-                      <button className="payroll-details-transaction-arrow-btn-mobile">
-                        <ArrowRight size={16} />
-                      </button>
-                    </div>
+                {isLoadingMobilePayrollTransactions ? (
+                  <div className="payroll-details-transaction-item-mobile" style={{ justifyContent: 'center', padding: '1.5rem' }}>
+                    <LoadingIndicator size="sm" />
                   </div>
-                ))}
+                ) : mobilePayrollTransactions.length === 0 ? (
+                  <div className="payroll-details-transaction-item-mobile" style={{ color: 'var(--text-muted)', padding: '1.5rem' }}>
+                    No transactions yet
+                  </div>
+                ) : (
+                  mobilePayrollTransactions.map((tx, index) => (
+                    <div key={tx.id ?? tx.transactionId ?? index} className="payroll-details-transaction-item-mobile">
+                      <div className="payroll-details-transaction-content-mobile">
+                        <div className="payroll-details-transaction-sender-mobile">
+                          {(tx.payrollName ?? tx.counterpartyName ?? tx.sender ?? '—').replace(/ Payroll$/i, '')}
+                        </div>
+                        <div className="payroll-details-transaction-amount-mobile">{formatTransactionAmount(tx)}</div>
+                      </div>
+                      <div className="payroll-details-transaction-right-mobile">
+                        <div className="payroll-details-transaction-date-mobile">{formatTransactionDate(tx)}</div>
+                        <button 
+                          className="payroll-details-transaction-arrow-btn-mobile"
+                          onClick={() => handleViewTransaction(tx.id ?? tx.transactionId)}
+                        >
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Add Team Member Modal */}
@@ -1570,450 +2121,6 @@ const Payroll = () => {
               )}
             </div>
           )}
-
-          {/* Add New Payroll Modal - Mobile */}
-          {showAddPayrollModalMobile && (
-            <div className="add-new-payroll-modal-mobile">
-              <div className="add-new-payroll-header-mobile">
-                <div className="add-new-payroll-title-wrapper-mobile">
-                  <div className="add-new-payroll-blue-accent-mobile"></div>
-                  <h2 className="add-new-payroll-title-mobile">Add new payroll</h2>
-                </div>
-                <button
-                  className="add-new-payroll-close-mobile"
-                  onClick={() => {
-                    setShowAddPayrollModalMobile(false);
-                    setAddPayrollStep(1);
-                  }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Step Indicator */}
-              <div className="add-new-payroll-step-indicator-mobile">
-                <div className="add-new-payroll-step-icon-mobile">
-                  {addPayrollStep === 1 ? <Users size={20} /> : addPayrollStep === 2 ? <FileText size={20} /> : <Check size={20} />}
-                </div>
-                <div className="add-new-payroll-step-content-mobile">
-                  <div className="add-new-payroll-step-number-mobile">Step {addPayrollStep}/3</div>
-                  <div className="add-new-payroll-step-label-mobile">
-                    {addPayrollStep === 1 ? 'Payroll Detail' : addPayrollStep === 2 ? 'Compliance & Documentation' : 'Step 3'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 1: Payroll Detail Form */}
-              {addPayrollStep === 1 && (
-                <div className="add-new-payroll-form-mobile">
-                  <h3 className="add-new-payroll-form-title-mobile">Payroll Detail</h3>
-                  
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Currency</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Add Date"
-                        value={addPayrollForm.currency}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, currency: e.target.value})}
-                      />
-                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Default Salary Type</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Select"
-                        value={addPayrollForm.defaultSalaryType}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, defaultSalaryType: e.target.value})}
-                      />
-                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Salary Amount</label>
-                    <input
-                      type="text"
-                      className="add-new-payroll-input-mobile"
-                      placeholder="Enter phone number"
-                      value={addPayrollForm.salaryAmount}
-                      onChange={(e) => setAddPayrollForm({...addPayrollForm, salaryAmount: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Disbursement Mode</label>
-                    <div className="add-new-payroll-radio-group-mobile">
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="disbursementMode"
-                          value="auto"
-                          checked={addPayrollForm.disbursementMode === 'auto'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
-                        />
-                        <span>Auto Release</span>
-                      </label>
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="disbursementMode"
-                          value="manual"
-                          checked={addPayrollForm.disbursementMode === 'manual'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
-                        />
-                        <span>Manual Release</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Allowance Allocation</label>
-                    <div className="add-new-payroll-toggle-wrapper-mobile">
-                      <span className="add-new-payroll-toggle-text-mobile">Enable Allowances</span>
-                      <label className="add-new-payroll-toggle-mobile">
-                        <input
-                          type="checkbox"
-                          checked={addPayrollForm.allowanceAllocation}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, allowanceAllocation: e.target.checked})}
-                        />
-                        <span className="add-new-payroll-toggle-slider-mobile"></span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Add Amount</label>
-                    <input
-                      type="text"
-                      className="add-new-payroll-input-mobile"
-                      placeholder="Add amount"
-                      value={addPayrollForm.addAmount}
-                      onChange={(e) => setAddPayrollForm({...addPayrollForm, addAmount: e.target.value})}
-                    />
-                  </div>
-
-                  <button 
-                    className="add-new-payroll-submit-btn-mobile"
-                    onClick={() => setAddPayrollStep(2)}
-                  >
-                    <div className="add-new-payroll-submit-icon-mobile">
-                      <ArrowRight size={16} />
-                    </div>
-                    <span>Submit and Next</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Step 2: Compliance & Documentation Form */}
-              {addPayrollStep === 2 && (
-                <div className="add-new-payroll-form-mobile">
-                  <h3 className="add-new-payroll-form-title-mobile">Compliance & Documentation</h3>
-                  
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Job Title:</label>
-                    <input
-                      type="text"
-                      className="add-new-payroll-input-mobile"
-                      placeholder="Add job title"
-                      value={addPayrollForm.jobTitle}
-                      onChange={(e) => setAddPayrollForm({...addPayrollForm, jobTitle: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Email</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Select"
-                        value={addPayrollForm.email}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, email: e.target.value})}
-                      />
-                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Employment Type:</label>
-                    <div className="add-new-payroll-radio-group-mobile">
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="employmentType"
-                          value="fulltime"
-                          checked={addPayrollForm.employmentType === 'fulltime'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, employmentType: e.target.value})}
-                        />
-                        <span>Full time</span>
-                      </label>
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="employmentType"
-                          value="parttime"
-                          checked={addPayrollForm.employmentType === 'parttime'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, employmentType: e.target.value})}
-                        />
-                        <span>part time</span>
-                      </label>
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="employmentType"
-                          value="contract"
-                          checked={addPayrollForm.employmentType === 'contract'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, employmentType: e.target.value})}
-                        />
-                        <span>contract</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Status</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Select"
-                        value={addPayrollForm.status}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, status: e.target.value})}
-                      />
-                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Date Joined</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Enter phone number"
-                        value={addPayrollForm.dateJoined}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, dateJoined: e.target.value})}
-                      />
-                      <Calendar size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Disbursement Mode</label>
-                    <div className="add-new-payroll-radio-group-mobile">
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="disbursementModeStep2"
-                          value="auto"
-                          checked={addPayrollForm.disbursementMode === 'auto'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
-                        />
-                        <span>Auto Release</span>
-                      </label>
-                      <label className="add-new-payroll-radio-option-mobile">
-                        <input
-                          type="radio"
-                          name="disbursementModeStep2"
-                          value="manual"
-                          checked={addPayrollForm.disbursementMode === 'manual'}
-                          onChange={(e) => setAddPayrollForm({...addPayrollForm, disbursementMode: e.target.value})}
-                        />
-                        <span>Manual Release</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Default Salary Type</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Select"
-                        value={addPayrollForm.defaultSalaryType}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, defaultSalaryType: e.target.value})}
-                      />
-                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Currency</label>
-                    <div className="add-new-payroll-input-wrapper-mobile">
-                      <input
-                        type="text"
-                        className="add-new-payroll-input-mobile"
-                        placeholder="Add Date"
-                        value={addPayrollForm.currency}
-                        onChange={(e) => setAddPayrollForm({...addPayrollForm, currency: e.target.value})}
-                      />
-                      <ChevronDown size={18} className="add-new-payroll-input-icon-mobile" />
-                    </div>
-                  </div>
-
-                  <div className="add-new-payroll-field-mobile">
-                    <label className="add-new-payroll-label-mobile">Salary Amount</label>
-                    <input
-                      type="text"
-                      className="add-new-payroll-input-mobile"
-                      placeholder="Enter Amount"
-                      value={addPayrollForm.salaryAmount}
-                      onChange={(e) => setAddPayrollForm({...addPayrollForm, salaryAmount: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="form-navigation-buttons-mobile">
-                    <button 
-                      className="previous-btn-mobile"
-                      onClick={() => setAddPayrollStep(1)}
-                    >
-                      <div className="previous-icon-mobile">
-                        <ArrowLeft size={16} />
-                      </div>
-                      <span>Previous</span>
-                    </button>
-                    <button 
-                      className="submit-next-btn-mobile"
-                      onClick={() => setAddPayrollStep(3)}
-                    >
-                      <div className="submit-next-icon-mobile">
-                        <ArrowRight size={16} />
-                      </div>
-                      <span>Submit and Next</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Confirmation */}
-              {addPayrollStep === 3 && (
-                <div className="add-new-payroll-form-mobile">
-                  <h3 className="add-new-payroll-form-title-mobile">Confirmation</h3>
-                  
-                  <div className="add-new-payroll-confirmation-section-mobile">
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Company Name:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.companyName}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Company email:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.companyEmail}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Start Date:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.cycleDate}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Start Date:</span>
-                      <div className="add-new-payroll-confirmation-value-with-icon-mobile">
-                        <span>{addPayrollForm.startDate}</span>
-                        <Calendar size={16} />
-                      </div>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">End Date:</span>
-                      <div className="add-new-payroll-confirmation-value-with-icon-mobile">
-                        <span>{addPayrollForm.endDate}</span>
-                        <Calendar size={16} />
-                      </div>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Currency:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.currency || 'Add Date'}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Default Salary Type:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.defaultSalaryType || 'Select'}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Salary Amount:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">${addPayrollForm.salaryAmount || '50'}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Disbursement Mode:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.disbursementMode === 'auto' ? 'Auto Release' : 'Manual Release'}</span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Allowance Allocation:</span>
-                      <span className={`add-new-payroll-confirmation-value-mobile ${addPayrollForm.allowanceAllocation ? 'enabled' : ''}`}>
-                        {addPayrollForm.allowanceAllocation ? 'Enable' : 'Disabled'}
-                      </span>
-                    </div>
-                    <div className="add-new-payroll-confirmation-item-mobile">
-                      <span className="add-new-payroll-confirmation-label-mobile">Add Amount:</span>
-                      <span className="add-new-payroll-confirmation-value-mobile">${addPayrollForm.addAmount || '20'}</span>
-                    </div>
-                  </div>
-
-                  <button 
-                    className="add-new-payroll-save-lock-btn-mobile"
-                    onClick={() => {
-                      setShowAddPayrollModalMobile(false);
-                      setAddPayrollStep(1);
-                    }}
-                  >
-                    <div className="add-new-payroll-submit-icon-mobile">
-                      <ArrowRight size={16} />
-                    </div>
-                    <span>Save and Lock</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Mobile Transaction History Header */}
-          {!selectedPayrollDetail && (
-            <>
-              <div className="transaction-history-header-mobile">
-                <h2 className="transaction-history-title-mobile">Transaction History</h2>
-                <div className="transaction-history-actions-mobile">
-                  <button className="transaction-history-calendar-mobile">
-                    <Clock size={20} />
-                  </button>
-                  <button className="transaction-history-arrow-mobile">
-                    <ArrowRight size={20} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Mobile Transaction History List */}
-              <div className="transaction-history-list-mobile">
-                {isLoadingTransactionHistory ? (
-                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>Loading...</div>
-                ) : transactionHistory.length === 0 ? (
-                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>No transactions</div>
-                ) : (
-                  transactionHistory.slice(0, 10).map((tx) => {
-                    const statusClass = (tx.status || '').toLowerCase() === 'pending' ? 'pending' : 'successful';
-                    return (
-                      <div key={tx.id || tx.transactionId} className="transaction-item-mobile" onClick={() => handleViewTransaction(tx.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleViewTransaction(tx.id)}>
-                        <div className="transaction-item-content-mobile">
-                          <div className="transaction-id-mobile">{tx.transactionId ?? '—'}</div>
-                          <div className="transaction-recipient-mobile">{(tx.payrollName || tx.counterpartyName || '—').replace(/ Payroll$/i, '')}</div>
-                        </div>
-                        <div className="transaction-item-right-mobile">
-                          <div className="transaction-amount-mobile">{formatTransactionAmount(tx)}</div>
-                          <span className={`transaction-status-mobile ${statusClass}`}>
-                            {tx.status ?? '—'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          )}
-        </div>
       </div>
 
       <aside className="dashboard-sidebar">

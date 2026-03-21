@@ -20,6 +20,7 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
+  ChevronLeft,
   Plus,
   DollarSign,
   Building2,
@@ -665,6 +666,9 @@ const Dashboard = () => {
   const [walletBalancesRefreshTrigger, setWalletBalancesRefreshTrigger] = useState(0);
   const [escrows, setEscrows] = useState([]);
   const [isLoadingEscrows, setIsLoadingEscrows] = useState(true);
+  const [escrowPage, setEscrowPage] = useState(1);
+  const [escrowPageSize] = useState(10);
+  const [escrowTotalCount, setEscrowTotalCount] = useState(0);
   const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(null);
   const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(true);
   const [userFullName, setUserFullName] = useState('');
@@ -1791,10 +1795,10 @@ const Dashboard = () => {
           return;
         }
 
-        // Fetch escrows to calculate total escrowed amount
-        // Try to get all escrows or use a summary endpoint if available
-        const apiUrl = getApiUrl('api/escrow/list?limit=1000&offset=0');
-        console.log('Fetching escrows for total calculation from:', apiUrl);
+        // Fetch escrows with pagination and total escrowed amount
+        const offset = (escrowPage - 1) * escrowPageSize;
+        const apiUrl = getApiUrl(`api/escrow/list?limit=${escrowPageSize}&offset=${offset}`);
+        console.log('Fetching escrows (page', escrowPage, ') from:', apiUrl);
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -1819,12 +1823,16 @@ const Dashboard = () => {
           });
 
           // Expected shape:
-          // { success: true, data: { escrows: [ ... ], totalEscrowed, total } }
+          // { success: true, data: { escrows: [ ... ], totalEscrowed, total, count } }
           if (result?.success && result?.data) {
-            // Set escrows list
+            // Set escrows list (current page)
             if (Array.isArray(result.data.escrows)) {
               setEscrows(result.data.escrows);
-              console.log('Set escrows array, length:', result.data.escrows.length);
+              const total = result.data.total ?? result.data.count ?? result.data.escrows.length;
+              setEscrowTotalCount(total);
+              console.log('Set escrows array, length:', result.data.escrows.length, 'total:', total);
+            } else {
+              setEscrowTotalCount(0);
             }
 
             // Extract total escrowed amount from API response
@@ -1874,6 +1882,7 @@ const Dashboard = () => {
             }
           } else {
             console.warn('Unexpected escrows response shape. Expected success and data.', result);
+            setEscrowTotalCount(0);
             setTotalEscrowedAmount(0);
           }
         } else {
@@ -1883,10 +1892,12 @@ const Dashboard = () => {
             statusText: response.statusText,
             data: errorData
           });
+          setEscrowTotalCount(0);
           setTotalEscrowedAmount(0);
         }
       } catch (error) {
         console.error('Error fetching escrows:', error);
+        setEscrowTotalCount(0);
         setTotalEscrowedAmount(0);
       } finally {
         setIsLoadingEscrows(false);
@@ -1895,7 +1906,7 @@ const Dashboard = () => {
     };
 
     fetchEscrows();
-  }, [isSessionExpired]);
+  }, [isSessionExpired, escrowPage, escrowPageSize]);
 
   const handleFundWallet = async (e) => {
     e.preventDefault();
@@ -4071,7 +4082,7 @@ const Dashboard = () => {
                   <div className="mobile-escrow-loading"><LoadingIndicator size="md" /></div>
                 </div>
               ) : escrows && escrows.length > 0 ? (
-                escrows.slice(0, 3).map((escrow, index) => {
+                escrows.map((escrow, index) => {
                   const escrowId = escrow.id || escrow.escrowId || escrow._id || `#ESC-2024-${String(index + 1).padStart(3, '0')}`;
                   const payerName = escrow.payerName || escrow.payer?.name || escrow.senderName || 'John Depp';
                   const payerAvatar = escrow.payerAvatar || escrow.payer?.avatar || null;
@@ -4143,6 +4154,31 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
+            {!isLoadingEscrows && escrowTotalCount > 0 && (
+              <div className="dashboard-escrow-pagination mobile-escrow-pagination">
+                <button
+                  type="button"
+                  className="dashboard-escrow-pagination-btn"
+                  onClick={() => setEscrowPage((p) => Math.max(1, p - 1))}
+                  disabled={escrowPage <= 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="dashboard-escrow-pagination-info">
+                  Page {escrowPage} of {Math.max(1, Math.ceil(escrowTotalCount / escrowPageSize))}
+                </span>
+                <button
+                  type="button"
+                  className="dashboard-escrow-pagination-btn"
+                  onClick={() => setEscrowPage((p) => p + 1)}
+                  disabled={escrowPage >= Math.ceil(escrowTotalCount / escrowPageSize)}
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Trusticard Section */}
@@ -4618,6 +4654,31 @@ const Dashboard = () => {
                   </tbody>
                 </table>
               </div>
+              {!isLoadingEscrows && escrowTotalCount > 0 && (
+                <div className="dashboard-escrow-pagination desktop-escrow-pagination">
+                  <button
+                    type="button"
+                    className="dashboard-escrow-pagination-btn"
+                    onClick={() => setEscrowPage((p) => Math.max(1, p - 1))}
+                    disabled={escrowPage <= 1}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="dashboard-escrow-pagination-info">
+                    Page {escrowPage} of {Math.max(1, Math.ceil(escrowTotalCount / escrowPageSize))}
+                  </span>
+                  <button
+                    type="button"
+                    className="dashboard-escrow-pagination-btn"
+                    onClick={() => setEscrowPage((p) => p + 1)}
+                    disabled={escrowPage >= Math.ceil(escrowTotalCount / escrowPageSize)}
+                    aria-label="Next page"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -5907,7 +5968,7 @@ const Dashboard = () => {
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Fund Wallet</h2>
+                <h2>Receive</h2>
               </div>
               <button 
                 type="button" 
@@ -6266,14 +6327,14 @@ const Dashboard = () => {
         walletAddress={walletAddress}
       />
 
-      {/* Fund Wallet Modal */}
+      {/* Fund Wallet Modal (Receive on personal platform) */}
       {showFundWalletModal && (
         <div className="notification-modal-overlay" onClick={() => setShowFundWalletModal(false)}>
           <div className="notification-modal fund-wallet-modal" onClick={(e) => e.stopPropagation()}>
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Fund Wallet</h2>
+                <h2>Receive</h2>
               </div>
               <button 
                 type="button" 
@@ -6605,14 +6666,14 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Withdraw Wallet Modal */}
+      {/* Withdraw Wallet Modal (Send on personal platform) */}
       {showWithdrawWalletModal && (
         <div className="notification-modal-overlay" onClick={() => setShowWithdrawWalletModal(false)}>
           <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Withdraw</h2>
+                <h2>Send</h2>
               </div>
               <button 
                 type="button" 

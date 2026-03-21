@@ -34,7 +34,7 @@ import '../dispute/DisputeDetail.css';
 import './BusinessSuiteDispute.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
-import { getApiUrl } from '../../../utils/config';
+import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -118,6 +118,16 @@ const monthLabelToYYYYMM = (label) => {
   if (!num) return undefined;
   const year = new Date().getFullYear();
   return `${year}-${String(num).padStart(2, '0')}`;
+};
+
+const normalizeCompanyLogoUrl = (data) => {
+  const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${base}${path}`;
 };
 
 const BusinessSuiteDispute = () => {
@@ -308,6 +318,37 @@ const BusinessSuiteDispute = () => {
         setIsLoadingBusinessKyc(false);
       }
     })();
+  }, [isSessionExpired]);
+
+  // Full KYC for header (company name + logo) – same as other Business Suite pages so desktop header loads
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) return;
+    let cancelled = false;
+    setIsLoadingBusinessKyc(true);
+    fetch(getApiUrl('api/business-suite/kyc'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const kycData = result.data;
+          setBusinessCompanyName(kycData.companyName || kycData?.companyName || '');
+          setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBusinessCompanyName('');
+          setBusinessCompanyLogoUrl('');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingBusinessKyc(false);
+      });
+    return () => { cancelled = true; };
   }, [isSessionExpired]);
 
   const uploadEvidenceFile = async (file) => {
