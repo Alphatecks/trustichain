@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -36,6 +36,7 @@ import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateWebhookModal from '../../../components/CreateWebhookModal';
+import toast from 'react-hot-toast';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -88,7 +89,8 @@ const Webhook = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('Monthly');
-  const [webhookUrl, setWebhookUrl] = useState('https://yourserver.com/webhooks/trustichain');
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [isLoadingWebhookUrl, setIsLoadingWebhookUrl] = useState(true);
   const [showCreateWebhookModal, setShowCreateWebhookModal] = useState(false);
   const [eventSubscriptions, setEventSubscriptions] = useState({
     'Escrow Created': true,
@@ -102,6 +104,97 @@ const Webhook = () => {
     'Wallet Updated': true,
     'Payout Completed': true
   });
+
+  const [webhookStats, setWebhookStats] = useState(null);
+  const [isLoadingWebhookStats, setIsLoadingWebhookStats] = useState(true);
+
+  const loadWebhookStats = useCallback(async () => {
+    if (accountType !== 'Business Suite') {
+      setWebhookStats(null);
+      setIsLoadingWebhookStats(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setWebhookStats(null);
+      setIsLoadingWebhookStats(false);
+      return;
+    }
+
+    setIsLoadingWebhookStats(true);
+    try {
+      const res = await fetch(getApiUrl('api/business-suite/sandbox/webhook/stats'), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setWebhookStats(result.data);
+      } else {
+        setWebhookStats(null);
+      }
+    } catch (e) {
+      console.error('Webhook stats error:', e);
+      setWebhookStats(null);
+    } finally {
+      setIsLoadingWebhookStats(false);
+    }
+  }, [accountType]);
+
+  useEffect(() => {
+    loadWebhookStats();
+  }, [loadWebhookStats]);
+
+  const loadWebhookUrl = useCallback(async () => {
+    if (accountType !== 'Business Suite') {
+      setWebhookUrl('');
+      setIsLoadingWebhookUrl(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setWebhookUrl('');
+      setIsLoadingWebhookUrl(false);
+      return;
+    }
+    setIsLoadingWebhookUrl(true);
+    try {
+      const res = await fetch(getApiUrl('api/business-suite/webhook/url'), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data != null) {
+        const url = typeof result.data === 'string'
+          ? result.data
+          : (result.data?.webhookUrl ?? result.data?.url ?? '');
+        setWebhookUrl(typeof url === 'string' ? url.trim() : '');
+      } else {
+        setWebhookUrl('');
+      }
+    } catch (e) {
+      console.error('Webhook URL fetch error:', e);
+      setWebhookUrl('');
+    } finally {
+      setIsLoadingWebhookUrl(false);
+    }
+  }, [accountType]);
+
+  useEffect(() => {
+    loadWebhookUrl();
+  }, [loadWebhookUrl]);
+
+  const [showUpdateWebhookUrlModal, setShowUpdateWebhookUrlModal] = useState(false);
+  const [webhookUrlDraft, setWebhookUrlDraft] = useState('');
+  const [isUpdatingWebhookUrl, setIsUpdatingWebhookUrl] = useState(false);
 
   const formattedToday = useMemo(
     () => new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -172,45 +265,150 @@ const Webhook = () => {
       .finally(() => setIsLoadingUserProfile(false));
   }, [isSessionExpired]);
 
-  // Sample webhook logs data
-  const webhookLogs = [
-    {
-      id: 1,
-      time: '12:11 PM',
-      event: 'Escrow Released',
-      status: 'Sent'
-    },
-    {
-      id: 2,
-      time: '11:11 PM',
-      event: 'Subscription Failed',
-      status: 'Failed'
-    },
-    {
-      id: 3,
-      time: '11:52 AM',
-      event: 'Payment Received',
-      status: 'Sent'
-    },
-    {
-      id: 4,
-      time: '11:52 AM',
-      event: 'Payment Received',
-      status: 'Sent'
-    },
-    {
-      id: 5,
-      time: '11:52 AM',
-      event: 'Payment Received',
-      status: 'Sent'
-    },
-    {
-      id: 6,
-      time: '11:52 AM',
-      event: 'Payment Received',
-      status: 'Sent'
+  // Sandbox Webhook Logs (API-driven)
+  const [webhookLogsList, setWebhookLogsList] = useState([]);
+  const [isLoadingWebhookLogs, setIsLoadingWebhookLogs] = useState(false);
+  const [webhookLogsTotal, setWebhookLogsTotal] = useState(0);
+  const [webhookLogsPage, setWebhookLogsPage] = useState(1);
+  const webhookLogsPageSize = 10;
+
+  const [showWebhookLogDetailModal, setShowWebhookLogDetailModal] = useState(false);
+  const [webhookLogDetail, setWebhookLogDetail] = useState(null);
+  const [isLoadingWebhookLogDetail, setIsLoadingWebhookLogDetail] = useState(false);
+
+  const getPossiblePayload = (d) => {
+    if (!d || typeof d !== 'object') return null;
+    return (
+      d.payload ??
+      d.requestBody ??
+      d.request_payload ??
+      d.body ??
+      d.data ??
+      d.eventPayload ??
+      d.logPayload ??
+      null
+    );
+  };
+
+  const webhookPayload = getPossiblePayload(webhookLogDetail);
+  const webhookPayloadText =
+    typeof webhookPayload === 'string'
+      ? webhookPayload
+      : webhookPayload != null
+        ? JSON.stringify(webhookPayload, null, 2)
+        : '';
+
+  const retryCount =
+    webhookLogDetail?.retryCount ??
+    webhookLogDetail?.retries ??
+    webhookLogDetail?.retry_attempts ??
+    webhookLogDetail?.retryAttempts ??
+    webhookLogDetail?.attemptCount ??
+    null;
+
+  const responseCode =
+    webhookLogDetail?.responseStatusCode ??
+    webhookLogDetail?.responseCode ??
+    webhookLogDetail?.statusCode ??
+    webhookLogDetail?.httpStatus ??
+    null;
+
+  const responseTimeMs =
+    webhookLogDetail?.responseTimeMs ??
+    webhookLogDetail?.response_time_ms ??
+    webhookLogDetail?.durationMs ??
+    webhookLogDetail?.duration ??
+    null;
+
+  const handleReplayWebhookLog = () => {
+    if (!webhookLogDetail?.id) return;
+    toast.error('Replay endpoint not wired yet for webhook logs');
+    // When you provide the backend endpoint, we’ll call it here.
+  };
+
+  const loadWebhookLogs = useCallback(async () => {
+    if (accountType !== 'Business Suite') {
+      setWebhookLogsList([]);
+      setWebhookLogsTotal(0);
+      setIsLoadingWebhookLogs(false);
+      return;
     }
-  ];
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setWebhookLogsList([]);
+      setWebhookLogsTotal(0);
+      setIsLoadingWebhookLogs(false);
+      return;
+    }
+
+    setIsLoadingWebhookLogs(true);
+    try {
+      const res = await fetch(
+        getApiUrl(
+          `api/business-suite/sandbox/webhook/logs?status=all&dateRange=monthly&page=${webhookLogsPage}&pageSize=${webhookLogsPageSize}`
+        ),
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setWebhookLogsList(Array.isArray(result.data.logs) ? result.data.logs : []);
+        setWebhookLogsTotal(Number(result.data.total ?? 0));
+      } else {
+        setWebhookLogsList([]);
+        setWebhookLogsTotal(0);
+      }
+    } catch (e) {
+      console.error('Webhook logs error:', e);
+      setWebhookLogsList([]);
+      setWebhookLogsTotal(0);
+    } finally {
+      setIsLoadingWebhookLogs(false);
+    }
+  }, [accountType, webhookLogsPage]);
+
+  useEffect(() => {
+    loadWebhookLogs();
+  }, [loadWebhookLogs]);
+
+  const handleViewWebhookLogDetail = useCallback(async (logId) => {
+    if (!logId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setShowWebhookLogDetailModal(true);
+    setIsLoadingWebhookLogDetail(true);
+    setWebhookLogDetail(null);
+
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/sandbox/webhook/logs/${logId}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setWebhookLogDetail(result.data);
+      } else {
+        setWebhookLogDetail(null);
+      }
+    } catch (e) {
+      console.error('Webhook log detail error:', e);
+      setWebhookLogDetail(null);
+    } finally {
+      setIsLoadingWebhookLogDetail(false);
+    }
+  }, []);
 
   const handleNavClick = (item) => {
     if (item.label === 'Dashboard') {
@@ -241,8 +439,8 @@ const Webhook = () => {
   };
 
   const handleUpdateUrl = () => {
-    console.log('Update URL clicked');
-    // Placeholder - no actual API call
+    setWebhookUrlDraft(webhookUrl || '');
+    setShowUpdateWebhookUrlModal(true);
   };
 
   const handleEventSubscriptionChange = (event) => {
@@ -479,13 +677,21 @@ const Webhook = () => {
                   </div>
                   <span className="webhook-trend-badge positive">
                     <TrendingUp size={14} />
-                    +3.1%
+                    {isLoadingWebhookStats ? '' : '+0.0%'}
                   </span>
                 </div>
                 <div className="webhook-card-value">
-                  <span className="webhook-main-value">$45,280</span>
+                  <span className="webhook-main-value">
+                    {isLoadingWebhookStats
+                      ? '—'
+                      : `${Number(webhookStats?.totalWebhooks?.value ?? 0).toLocaleString('en-US')}`}
+                  </span>
                 </div>
-                <div className="webhook-card-subtitle">$16,789 locked</div>
+                <div className="webhook-card-subtitle">
+                  {isLoadingWebhookStats
+                    ? '—'
+                    : webhookStats?.totalWebhooks?.secondary ?? '—'}
+                </div>
               </div>
 
               <div className="webhook-summary-card">
@@ -496,13 +702,17 @@ const Webhook = () => {
                   </div>
                   <span className="webhook-trend-badge positive">
                     <TrendingUp size={14} />
-                    +3.1%
+                    {isLoadingWebhookStats ? '' : '+0.0%'}
                   </span>
                 </div>
                 <div className="webhook-card-value">
-                  <span className="webhook-main-value">45</span>
+                  <span className="webhook-main-value">
+                    {isLoadingWebhookStats ? '—' : (webhookStats?.eventsSent?.value ?? '—')}
+                  </span>
                 </div>
-                <div className="webhook-card-period">This month</div>
+                <div className="webhook-card-period">
+                  {isLoadingWebhookStats ? '—' : (webhookStats?.eventsSent?.secondary ?? '—')}
+                </div>
               </div>
 
               <div className="webhook-summary-card">
@@ -513,9 +723,13 @@ const Webhook = () => {
                   </div>
                 </div>
                 <div className="webhook-card-value">
-                  <span className="webhook-main-value">23</span>
+                  <span className="webhook-main-value">
+                    {isLoadingWebhookStats ? '—' : (webhookStats?.failedDeliveries?.value ?? '—')}
+                  </span>
                 </div>
-                <div className="webhook-card-period">This month</div>
+                <div className="webhook-card-period">
+                  {isLoadingWebhookStats ? '—' : (webhookStats?.failedDeliveries?.secondary ?? '—')}
+                </div>
               </div>
 
               <div className="webhook-summary-card">
@@ -526,9 +740,13 @@ const Webhook = () => {
                   </div>
                 </div>
                 <div className="webhook-card-value">
-                  <span className="webhook-main-value">7</span>
+                  <span className="webhook-main-value">
+                    {isLoadingWebhookStats ? '—' : (webhookStats?.lastEventReceived?.value ?? '—')}
+                  </span>
                 </div>
-                <div className="webhook-card-period">This month</div>
+                <div className="webhook-card-period">
+                  {isLoadingWebhookStats ? '—' : (webhookStats?.lastEventReceived?.secondary ?? '—')}
+                </div>
               </div>
             </div>
 
@@ -550,7 +768,15 @@ const Webhook = () => {
                         <Building2 size={16} />
                         <span>Webhook URL</span>
                       </div>
-                      <div className="webhook-url-value">{webhookUrl}</div>
+                      <div className="webhook-url-value">
+                        {isLoadingWebhookUrl ? (
+                          <span className="webhook-url-loading"><LoadingIndicator size="sm" /> Loading…</span>
+                        ) : webhookUrl ? (
+                          webhookUrl
+                        ) : (
+                          <span className="webhook-url-empty">No URL set</span>
+                        )}
+                      </div>
                       <div className="webhook-url-actions">
                         <button 
                           type="button"
@@ -559,10 +785,11 @@ const Webhook = () => {
                         >
                           Update URL
                         </button>
-                        <button 
+                        <button
                           type="button"
                           className="webhook-btn-copy"
                           onClick={handleCopyUrl}
+                          disabled={!webhookUrl}
                         >
                           Copy
                           <Copy size={14} />
@@ -638,63 +865,75 @@ const Webhook = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {webhookLogs.map((log) => (
+                      {isLoadingWebhookLogs ? (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '1.25rem' }}>
+                            <LoadingIndicator size="md" />
+                          </td>
+                        </tr>
+                      ) : webhookLogsList.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            style={{ textAlign: 'center', padding: '1.25rem', color: 'var(--text-muted)' }}
+                          >
+                            No webhook logs
+                          </td>
+                        </tr>
+                      ) : (
+                        webhookLogsList.map((log) => (
                         <tr key={log.id}>
                           <td>
                             <input type="checkbox" />
                           </td>
-                          <td>{log.time}</td>
-                          <td>{log.event}</td>
+                          <td>{log.time ?? (log.createdAt ? new Date(log.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '—')}</td>
+                          <td>{log.event ?? '—'}</td>
                           <td>
-                            <span className={`webhook-status ${log.status.toLowerCase()}`}>
-                              {log.status}
+                            <span className={`webhook-status ${String(log.status ?? '').toLowerCase()}`}>
+                              {log.status ?? '—'}
                             </span>
                           </td>
                           <td>
                             <button 
                               type="button" 
                               className="webhook-action-btn"
-                              onClick={() => {
-                                console.log('View details for:', log.event);
-                              }}
+                              onClick={() => handleViewWebhookLogDetail(log.id)}
                             >
                               <ArrowRight size={16} />
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
                 {/* Pagination */}
-                <div className="webhook-pagination">
-                  <button
-                    type="button"
-                    className="webhook-pagination-link"
-                    onClick={() => {}}
-                  >
-                    ← Prev 10
-                  </button>
-                  <div className="webhook-pagination-numbers">
-                    <span>1</span>
-                    <span>...</span>
-                    <span>11</span>
-                    <span className="active">12</span>
-                    <span>13</span>
-                    <span>14</span>
-                    <span>15</span>
-                    <span>16</span>
-                    <span>17</span>
-                    <span>18</span>
+                {webhookLogsTotal > 0 && (
+                  <div className="webhook-pagination">
+                    <button
+                      type="button"
+                      className="webhook-pagination-link"
+                      onClick={() => setWebhookLogsPage((p) => Math.max(1, p - 1))}
+                      disabled={webhookLogsPage <= 1}
+                    >
+                      ← Prev
+                    </button>
+                    <div className="webhook-pagination-numbers">
+                      <span>
+                        Page {webhookLogsPage} of {Math.max(1, Math.ceil(webhookLogsTotal / webhookLogsPageSize))}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="webhook-pagination-link"
+                      onClick={() => setWebhookLogsPage((p) => p + 1)}
+                      disabled={webhookLogsPage >= Math.ceil(webhookLogsTotal / webhookLogsPageSize)}
+                    >
+                      Next →
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="webhook-pagination-link"
-                    onClick={() => {}}
-                  >
-                    Next 10 →
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </main>
@@ -711,6 +950,193 @@ const Webhook = () => {
           setShowCreateWebhookModal(false);
         }}
       />
+
+      {/* Update Webhook URL Modal */}
+      {showUpdateWebhookUrlModal && (
+        <div
+          className="webhook-update-url-overlay"
+          onClick={() => !isUpdatingWebhookUrl && setShowUpdateWebhookUrlModal(false)}
+        >
+          <div
+            className="webhook-update-url-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="webhook-update-url-header">
+              <h2 className="webhook-update-url-title">Update Webhook URL</h2>
+              <button
+                type="button"
+                className="webhook-update-url-close"
+                onClick={() => !isUpdatingWebhookUrl && setShowUpdateWebhookUrlModal(false)}
+                disabled={isUpdatingWebhookUrl}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="webhook-update-url-body">
+              <label className="webhook-update-url-label">Webhook URL</label>
+              <input
+                type="text"
+                className="webhook-update-url-input"
+                value={webhookUrlDraft}
+                onChange={(e) => setWebhookUrlDraft(e.target.value)}
+                placeholder="https://yourserver.com/webhooks/trustichain"
+                disabled={isUpdatingWebhookUrl}
+              />
+              <p className="webhook-update-url-hint">
+                Make sure you use a publicly reachable HTTPS URL.
+              </p>
+            </div>
+
+            <div className="webhook-update-url-actions">
+              <button
+                type="button"
+                className="webhook-btn-copy"
+                onClick={() => setShowUpdateWebhookUrlModal(false)}
+                disabled={isUpdatingWebhookUrl}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="webhook-btn-primary"
+                onClick={async () => {
+                  const next = webhookUrlDraft.trim();
+                  if (!next) return;
+                  const token = localStorage.getItem('token');
+                  if (!token) {
+                    toast.error('Session expired. Please sign in again.');
+                    return;
+                  }
+                  setIsUpdatingWebhookUrl(true);
+                  try {
+                    const res = await fetch(getApiUrl('api/business-suite/webhook/url'), {
+                      method: 'PATCH',
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ webhookUrl: next }),
+                    });
+                    const result = await res.json().catch(() => ({}));
+                    if (result?.success) {
+                      setWebhookUrl(next);
+                      setShowUpdateWebhookUrlModal(false);
+                      toast.success('Webhook URL saved.');
+                    } else {
+                      toast.error(result?.message || 'Failed to save webhook URL.');
+                    }
+                  } catch (e) {
+                    console.error('Save webhook URL error:', e);
+                    toast.error('Failed to save webhook URL.');
+                  } finally {
+                    setIsUpdatingWebhookUrl(false);
+                  }
+                }}
+                disabled={isUpdatingWebhookUrl || !webhookUrlDraft.trim()}
+              >
+                {isUpdatingWebhookUrl ? <LoadingIndicator size="sm" /> : 'Save URL'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Webhook Log Detail Modal */}
+      {showWebhookLogDetailModal && (
+        <div
+          className="webhook-log-detail-overlay"
+          onClick={() => !isLoadingWebhookLogDetail && setShowWebhookLogDetailModal(false)}
+        >
+          <div
+            className="webhook-log-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="webhook-log-detail-header">
+              <h2 className="webhook-log-detail-title">Webhook Log Details</h2>
+              <button
+                type="button"
+                className="webhook-log-detail-close"
+                onClick={() => !isLoadingWebhookLogDetail && setShowWebhookLogDetailModal(false)}
+                disabled={isLoadingWebhookLogDetail}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="webhook-log-detail-body">
+              {isLoadingWebhookLogDetail ? (
+                <div className="webhook-log-detail-loading">
+                  <LoadingIndicator size="md" />
+                </div>
+              ) : !webhookLogDetail ? (
+                <div className="webhook-log-detail-empty">Failed to load webhook log details</div>
+              ) : (
+                <>
+                  <div className="webhook-log-detail-grid">
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Event</span>
+                    <span className="webhook-log-detail-value">{webhookLogDetail.event ?? '—'}</span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Status</span>
+                    <span className="webhook-log-detail-value">{webhookLogDetail.status ?? '—'}</span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Time</span>
+                    <span className="webhook-log-detail-value">{webhookLogDetail.time ?? '—'}</span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Retry</span>
+                    <span className="webhook-log-detail-value">{retryCount ?? '—'}</span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Response Code</span>
+                    <span className="webhook-log-detail-value">{responseCode ?? '—'}</span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Response Time</span>
+                    <span className="webhook-log-detail-value">
+                      {responseTimeMs != null ? `${responseTimeMs} ms` : '—'}
+                    </span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Created At</span>
+                    <span className="webhook-log-detail-value">
+                      {webhookLogDetail.createdAt
+                        ? new Date(webhookLogDetail.createdAt).toLocaleString('en-US')
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="webhook-log-detail-row">
+                    <span className="webhook-log-detail-label">Log ID</span>
+                    <span className="webhook-log-detail-value">{webhookLogDetail.id ?? '—'}</span>
+                  </div>
+                </div>
+
+                <div className="webhook-log-detail-actions">
+                  <button
+                    type="button"
+                    className="webhook-log-detail-replay-btn"
+                    onClick={handleReplayWebhookLog}
+                    disabled={!webhookLogDetail?.id || isLoadingWebhookLogDetail}
+                  >
+                    Replay Event
+                  </button>
+                </div>
+
+                {webhookPayloadText && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <div className="webhook-log-detail-section-title">Payload</div>
+                    <pre className="webhook-log-detail-payload-pre">{webhookPayloadText}</pre>
+                  </div>
+                )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

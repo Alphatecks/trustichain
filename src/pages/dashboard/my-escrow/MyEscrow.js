@@ -164,6 +164,8 @@ const MyEscrow = () => {
   const [openActionMenu, setOpenActionMenu] = useState(null); // Track which escrow's menu is open
   const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
   const [escrowToCancel, setEscrowToCancel] = useState(null);
+  const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
+  const [selectedEscrow, setSelectedEscrow] = useState(null);
 
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -1742,7 +1744,24 @@ const MyEscrow = () => {
           const statusLower = status.toLowerCase();
           
           return (
-            <div key={escrow.id || escrow.xrplEscrowId || index} className="escrow-history-card">
+            <div
+              key={escrow.id || escrow.xrplEscrowId || index}
+              className="escrow-history-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setSelectedEscrow(escrow);
+                setShowEscrowDetailModal(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedEscrow(escrow);
+                  setShowEscrowDetailModal(true);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="escrow-card-top">
                 <div className="escrow-card-id">{formattedId}</div>
                 <div className="escrow-card-value">
@@ -1846,7 +1865,23 @@ const MyEscrow = () => {
                 : 'View';
               
               return (
-                <tr key={escrow.id || escrow.xrplEscrowId || index}>
+                <tr
+                  key={escrow.id || escrow.xrplEscrowId || index}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedEscrow(escrow);
+                    setShowEscrowDetailModal(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedEscrow(escrow);
+                      setShowEscrowDetailModal(true);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td className="escrow-id">{formattedId}</td>
                   <td className="escrow-parties" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
                     <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
@@ -1872,7 +1907,7 @@ const MyEscrow = () => {
                     <span className="progress-text">{progress}%</span>
                   </td>
                   <td className="escrow-created">{formattedDate}</td>
-                  <td className="escrow-action" style={{ position: 'relative' }}>
+                  <td className="escrow-action" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
                     {hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && (
                       <>
                         <button 
@@ -2746,8 +2781,19 @@ const MyEscrow = () => {
                 className="payment-details-btn"
                 onClick={() => {
                   const escrowId = createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId;
-                  if (escrowId) {
-                    navigate(`/escrow/${escrowId}`);
+                  if (escrowId && createdEscrowData) {
+                    setSelectedEscrow({
+                      id: escrowId,
+                      escrowId,
+                      xrplEscrowId: createdEscrowData?.xrplEscrowId,
+                      counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
+                      userName: createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
+                      amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
+                      status: createdEscrowData?.status || 'active',
+                      progress: createdEscrowData?.progress ?? 0,
+                      createdAt: createdEscrowData?.createdAt || createdEscrowData?.created
+                    });
+                    setShowEscrowDetailModal(true);
                   }
                   setShowSuccessModal(false);
                 }}
@@ -3048,7 +3094,23 @@ const MyEscrow = () => {
                       : 'View';
                     
                     return (
-                      <tr key={escrow.id || escrow.xrplEscrowId || index}>
+                      <tr
+                        key={escrow.id || escrow.xrplEscrowId || index}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          setSelectedEscrow(escrow);
+                          setShowEscrowDetailModal(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedEscrow(escrow);
+                            setShowEscrowDetailModal(true);
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <td className="escrow-id">{formattedId}</td>
                         <td className="escrow-parties" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
                           <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
@@ -3074,7 +3136,7 @@ const MyEscrow = () => {
                           <span className="progress-text">{progress}%</span>
                         </td>
                         <td className="escrow-created">{formattedDate}</td>
-                        <td className="escrow-action" style={{ position: 'relative' }}>
+                        <td className="escrow-action" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
                           {hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && (
                             <>
                               <button 
@@ -3952,8 +4014,19 @@ const MyEscrow = () => {
                 className="payment-details-btn"
                 onClick={() => {
                   const escrowId = createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId;
-                  if (escrowId) {
-                    navigate(`/escrow/${escrowId}`);
+                  if (escrowId && createdEscrowData) {
+                    setSelectedEscrow({
+                      id: escrowId,
+                      escrowId,
+                      xrplEscrowId: createdEscrowData?.xrplEscrowId,
+                      counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
+                      userName: createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
+                      amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
+                      status: createdEscrowData?.status || 'active',
+                      progress: createdEscrowData?.progress ?? 0,
+                      createdAt: createdEscrowData?.createdAt || createdEscrowData?.created
+                    });
+                    setShowEscrowDetailModal(true);
                   }
                   setShowSuccessModal(false);
                 }}
@@ -4068,9 +4141,130 @@ const MyEscrow = () => {
             await handleCancelEscrow(escrowToCancel, reason);
             setShowCancelReasonModal(false);
             setEscrowToCancel(null);
+            setShowEscrowDetailModal(false);
+            setSelectedEscrow(null);
           }
         }}
       />
+
+      {/* Escrow Detail Modal */}
+      {showEscrowDetailModal && selectedEscrow && (
+        <div
+          className="create-escrow-modal-overlay"
+          onClick={() => {
+            setShowEscrowDetailModal(false);
+            setSelectedEscrow(null);
+          }}
+        >
+          <div className="create-escrow-modal escrow-detail-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="create-escrow-modal-header">
+              <h2>Escrow Details</h2>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowEscrowDetailModal(false);
+                  setSelectedEscrow(null);
+                }}
+                aria-label="Close"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="create-escrow-modal-content" style={{ padding: '1.5rem' }}>
+              {(() => {
+                const escrow = selectedEscrow;
+                const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
+                const formattedId = escrowId || '#ESC-N/A';
+                const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
+                const userName = escrow.userName || escrow.user?.name || 'You';
+                const xrpAmount = escrow.amount?.xrp != null ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '0.00';
+                const usdAmount = escrow.amount?.usd != null ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+                const status = escrow.status || 'Unknown';
+                const statusLower = (status || '').toLowerCase();
+                const progress = escrow.progress ?? escrow.milestoneProgress ?? 0;
+                const createdDate = escrow.createdAt || escrow.created || '';
+                const formattedDate = createdDate ? new Date(createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
+                const createdTimestamp = createdDate ? new Date(createdDate).getTime() : null;
+                const timeSinceCreation = createdTimestamp ? (Date.now() - createdTimestamp) / 1000 : null;
+                const RELEASE_DELAY_SECONDS = 40;
+                const timeRemaining = timeSinceCreation != null ? Math.max(0, RELEASE_DELAY_SECONDS - timeSinceCreation) : 0;
+                const canReleaseNow = timeRemaining === 0;
+                const hasXrplEscrowId = !!(escrow.xrplEscrowId || escrow.xrpl_escrow_id);
+                const canRelease = hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && canReleaseNow;
+                return (
+                  <>
+                    <div className="escrow-detail-row">
+                      <span className="escrow-detail-label">Escrow ID</span>
+                      <span className="escrow-detail-value">{formattedId}</span>
+                    </div>
+                    <div className="escrow-detail-row">
+                      <span className="escrow-detail-label">Parties</span>
+                      <span className="escrow-detail-value">
+                        {counterpartyName} <ArrowRight size={14} style={{ verticalAlign: 'middle', margin: '0 4px' }} /> {userName}
+                      </span>
+                    </div>
+                    <div className="escrow-detail-row">
+                      <span className="escrow-detail-label">Amount</span>
+                      <span className="escrow-detail-value">{xrpAmount} XRP ≈ ${usdAmount}</span>
+                    </div>
+                    <div className="escrow-detail-row">
+                      <span className="escrow-detail-label">Status</span>
+                      <span className="escrow-detail-value">
+                        <button type="button" className={`status-btn ${statusLower}`} style={{ cursor: 'default' }}>{status}</button>
+                      </span>
+                    </div>
+                    <div className="escrow-detail-row">
+                      <span className="escrow-detail-label">Progress</span>
+                      <span className="escrow-detail-value">
+                        <div className="progress-bar-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
+                          <div className="progress-bar" style={{ width: `${progress}%`, flex: 1, maxWidth: '100px' }} />
+                          <span className="progress-text">{progress}%</span>
+                        </div>
+                      </span>
+                    </div>
+                    <div className="escrow-detail-row">
+                      <span className="escrow-detail-label">Created</span>
+                      <span className="escrow-detail-value">{formattedDate}</span>
+                    </div>
+                    {(hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release')) && (
+                      <div className="escrow-detail-actions">
+                        <button
+                          type="button"
+                          className="release-btn"
+                          onClick={() => {
+                            if (canReleaseNow) {
+                              handleReleaseEscrow(escrowId);
+                              setShowEscrowDetailModal(false);
+                              setSelectedEscrow(null);
+                            }
+                          }}
+                          disabled={!canReleaseNow}
+                          style={{ opacity: canReleaseNow ? 1 : 0.6, cursor: canReleaseNow ? 'pointer' : 'not-allowed' }}
+                        >
+                          {canRelease ? 'Release' : timeRemaining > 0 ? `Release (${Math.ceil(timeRemaining)}s)` : 'Release'}
+                        </button>
+                        <button
+                          type="button"
+                          className="cancel-btn"
+                          onClick={() => {
+                            setShowEscrowDetailModal(false);
+                            setEscrowToCancel(escrowId);
+                            setShowCancelReasonModal(true);
+                            setSelectedEscrow(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </MyEscrowLayout>
   );
 };

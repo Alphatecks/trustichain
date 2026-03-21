@@ -19,6 +19,53 @@
   width: 100%;
 }
 
+.create-sandbox-key-error {
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  margin-bottom: 0.5rem;
+}
+
+.create-sandbox-key-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.create-sandbox-key-success-icon {
+  color: #10b981;
+}
+
+.create-sandbox-key-success-message {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted, #6b7280);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  max-width: 100%;
+}
+
+.create-sandbox-key-secret-row {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  align-items: center;
+}
+
+.create-sandbox-key-secret-row .create-sandbox-key-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.create-sandbox-key-secret-row .create-sandbox-key-btn {
+  flex-shrink: 0;
+}
+
 .create-sandbox-key-field {
   display: flex;
   flex-direction: column;

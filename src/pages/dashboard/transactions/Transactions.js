@@ -2596,7 +2596,7 @@ const Transactions = () => {
         <div className="mobile-fund-wallet-page-header">
           <div className="mobile-fund-wallet-page-title-wrapper">
             <div className="mobile-section-indicator"></div>
-            <h2>Fund Wallet</h2>
+            <h2>Receive</h2>
           </div>
           <button 
             type="button" 
@@ -5610,7 +5610,7 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Fund Wallet Modal */}
+      {/* Fund Wallet Modal (Receive on personal platform) */}
       {showFundWalletModal && (
         <div className="notification-modal-overlay" onClick={() => {
           if (!isFundingWallet || fundingStep === 'idle') {
@@ -5626,7 +5626,7 @@ const Transactions = () => {
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Fund Wallet</h2>
+                <h2>Receive</h2>
               </div>
               <button 
                 type="button" 
@@ -7055,7 +7055,7 @@ const Transactions = () => {
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Fund Wallet</h2>
+                <h2>Receive</h2>
               </div>
               <button 
                 type="button" 

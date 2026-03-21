@@ -1,72 +1,110 @@
 import React, { useState } from 'react';
-import { X, ArrowRight, Copy } from 'lucide-react';
+import { X, ArrowRight, Copy, CheckCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getApiUrl } from '../../utils/config';
+import LoadingIndicator from '../LoadingIndicator';
 import '../LoadingIndicator/index.css';
 import './index.css';
 
+const PERMISSION_OPTIONS = [
+  { value: 'create_escrow', label: 'Create Escrow' },
+  { value: 'release_escrow', label: 'Release Escrow' },
+  { value: 'cancel_escrow', label: 'Cancel Escrow' },
+  { value: 'create_wallet', label: 'Create Wallet' },
+  { value: 'read_wallet', label: 'Read Wallet' },
+  { value: 'transaction_logs', label: 'Transaction Logs' },
+  { value: 'webhook_test_events', label: 'Webhook Test Events' },
+];
+
+const DEFAULT_PERMISSIONS = ['cancel_escrow', 'create_wallet', 'read_wallet', 'transaction_logs', 'webhook_test_events'];
+
 const CreateSandboxKeyModal = ({ isOpen, onCancel, onSuccess }) => {
   const [environmentName, setEnvironmentName] = useState('Angelo Group');
-  const [environmentPurpose, setEnvironmentPurpose] = useState('');
+  const [environmentPurpose, setEnvironmentPurpose] = useState('Testing');
   const [showPurposeDropdown, setShowPurposeDropdown] = useState(false);
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [ipAllowlist, setIpAllowlist] = useState('');
-  const [secretKey] = useState('sk_live_placeholder_key_1234567890abcdef');
-  const [status] = useState('Active');
-  const [permissions, setPermissions] = useState([
-    'Cancel Escrow',
-    'Create Wallet',
-    'Read Wallet',
-    'Transaction Logs',
-    'Webhook Test Events'
-  ]);
+  const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createdKeyData, setCreatedKeyData] = useState(null);
 
-  const handleCloseModal = () => {
+  const resetForm = () => {
     setEnvironmentName('Angelo Group');
-    setEnvironmentPurpose('');
+    setEnvironmentPurpose('Testing');
     setAutoGenerate(true);
     setIpAllowlist('');
+    setPermissions([...DEFAULT_PERMISSIONS]);
+    setCreateError('');
+    setCreatedKeyData(null);
+  };
+
+  const handleCloseModal = () => {
+    resetForm();
     setShowPurposeDropdown(false);
-    setPermissions([
-      'Cancel Escrow',
-      'Create Wallet',
-      'Read Wallet',
-      'Transaction Logs',
-      'Webhook Test Events'
-    ]);
     onCancel();
   };
 
-  const handlePermissionChange = (permission) => {
-    if (permissions.includes(permission)) {
-      setPermissions(permissions.filter(p => p !== permission));
+  const handlePermissionChange = (value) => {
+    if (permissions.includes(value)) {
+      setPermissions(permissions.filter((p) => p !== value));
     } else {
-      setPermissions([...permissions, permission]);
+      setPermissions([...permissions, value]);
     }
   };
 
-  const handleRegenerateKey = () => {
-    console.log('Regenerate Key clicked');
-    // Placeholder - no actual API call
+  const handleCopyKey = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => toast.success('Copied to clipboard'));
   };
 
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(secretKey).then(() => {
-      console.log('Secret Key copied to clipboard');
-    });
+  const handleGenerate = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+    setCreateError('');
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(getApiUrl('api/business-suite/sandbox/keys'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          environmentName: environmentName.trim() || 'Angelo Group',
+          environmentPurpose: environmentPurpose || 'Testing',
+          autoGenerateKeys: autoGenerate,
+          ipAllowlist: ipAllowlist.trim() || '',
+          permissions: permissions.length ? permissions : DEFAULT_PERMISSIONS,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (result?.success && result?.data) {
+        setCreatedKeyData(result.data);
+        toast.success(result?.message || 'Sandbox key created.');
+      } else {
+        const msg = result?.message || result?.error || 'Failed to create sandbox key';
+        setCreateError(msg);
+        toast.error(msg);
+      }
+    } catch (e) {
+      console.error('Create sandbox key error:', e);
+      setCreateError('Failed to create sandbox key');
+      toast.error('Failed to create sandbox key');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleGenerate = () => {
-    onSuccess({
-      environmentName,
-      environmentPurpose,
-      autoGenerate,
-      ipAllowlist,
-      permissions
-    });
+  const handleDone = () => {
+    if (createdKeyData) onSuccess(createdKeyData);
     handleCloseModal();
   };
 
   const handleTestWebhook = () => {
-    console.log('Test Webhook clicked');
     // Placeholder - no actual API call
   };
 
@@ -74,7 +112,8 @@ const CreateSandboxKeyModal = ({ isOpen, onCancel, onSuccess }) => {
     return null;
   }
 
-  const maskedKey = 'sk_live_' + '•'.repeat(28);
+  const keySecret = createdKeyData?.keySecret ?? createdKeyData?.secretKey ?? '';
+  const keyDisplay = createdKeyData?.keyPrefix ?? createdKeyData?.secretKey ?? keySecret;
 
   return (
     <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
@@ -90,230 +129,191 @@ const CreateSandboxKeyModal = ({ isOpen, onCancel, onSuccess }) => {
 
         {/* Modal Content */}
         <div className="create-escrow-modal-content" style={{ padding: '2rem' }}>
-          <div className="create-sandbox-key-section">
-            {/* Environment Details */}
-            <div className="create-sandbox-key-row">
-              <div className="create-sandbox-key-field create-sandbox-key-field-half">
-                <label className="create-sandbox-key-label">Environment Name</label>
-                <input
-                  type="text"
-                  className="create-sandbox-key-input"
-                  value={environmentName}
-                  onChange={(e) => setEnvironmentName(e.target.value)}
-                  placeholder="Angelo Group"
-                />
+          {createdKeyData ? (
+            <div className="create-sandbox-key-success">
+              <div className="create-sandbox-key-success-icon">
+                <CheckCircle size={48} />
               </div>
-              <div className="create-sandbox-key-field create-sandbox-key-field-half">
-                <label className="create-sandbox-key-label">Environment Purpose</label>
-                <div className="create-sandbox-key-dropdown-wrapper">
+              <p className="create-sandbox-key-success-message">
+                Store the key secret securely; it will not be shown again.
+              </p>
+              <div className="create-sandbox-key-field">
+                <label className="create-sandbox-key-label">Key Secret</label>
+                <div className="create-sandbox-key-secret-row">
+                  <input
+                    type="text"
+                    className="create-sandbox-key-input"
+                    value={keySecret}
+                    readOnly
+                  />
                   <button
                     type="button"
-                    className="create-sandbox-key-dropdown-btn"
-                    onClick={() => {
-                      setShowPurposeDropdown(!showPurposeDropdown);
-                    }}
+                    className="create-sandbox-key-btn create-sandbox-key-btn-secondary"
+                    onClick={() => handleCopyKey(keySecret)}
                   >
-                    <span>{environmentPurpose || 'Select'}</span>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <Copy size={16} />
+                    Copy
                   </button>
-                  {showPurposeDropdown && (
-                    <div className="create-sandbox-key-dropdown">
-                      <button
-                        type="button"
-                        className="create-sandbox-key-dropdown-item"
-                        onClick={() => {
-                          setEnvironmentPurpose('Development');
-                          setShowPurposeDropdown(false);
-                        }}
-                      >
-                        Development
-                      </button>
-                      <button
-                        type="button"
-                        className="create-sandbox-key-dropdown-item"
-                        onClick={() => {
-                          setEnvironmentPurpose('Testing');
-                          setShowPurposeDropdown(false);
-                        }}
-                      >
-                        Testing
-                      </button>
-                      <button
-                        type="button"
-                        className="create-sandbox-key-dropdown-item"
-                        onClick={() => {
-                          setEnvironmentPurpose('Staging');
-                          setShowPurposeDropdown(false);
-                        }}
-                      >
-                        Staging
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Auto Generate Sandbox */}
-            <div className="create-sandbox-key-field">
-              <div className="create-sandbox-key-toggle-wrapper">
-                <div>
-                  <label className="create-sandbox-key-label">Auto-Generate Sandbox API Keys</label>
+              {keyDisplay && keyDisplay !== keySecret && (
+                <div className="create-sandbox-key-field">
+                  <label className="create-sandbox-key-label">Key Prefix</label>
+                  <div className="create-sandbox-key-secret-row">
+                    <input
+                      type="text"
+                      className="create-sandbox-key-input"
+                      value={keyDisplay}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      className="create-sandbox-key-btn create-sandbox-key-btn-secondary"
+                      onClick={() => handleCopyKey(keyDisplay)}
+                    >
+                      <Copy size={16} />
+                      Copy
+                    </button>
+                  </div>
                 </div>
-                <label className="create-sandbox-key-toggle">
+              )}
+            </div>
+          ) : (
+            <div className="create-sandbox-key-section">
+              {createError && (
+                <div className="create-sandbox-key-error" role="alert">
+                  {createError}
+                </div>
+              )}
+              <div className="create-sandbox-key-row">
+                <div className="create-sandbox-key-field create-sandbox-key-field-half">
+                  <label className="create-sandbox-key-label">Environment Name</label>
                   <input
-                    type="checkbox"
-                    checked={autoGenerate}
-                    onChange={(e) => setAutoGenerate(e.target.checked)}
+                    type="text"
+                    className="create-sandbox-key-input"
+                    value={environmentName}
+                    onChange={(e) => setEnvironmentName(e.target.value)}
+                    placeholder="Angelo Group"
                   />
-                  <span className="toggle-slider"></span>
-                </label>
+                </div>
+                <div className="create-sandbox-key-field create-sandbox-key-field-half">
+                  <label className="create-sandbox-key-label">Environment Purpose</label>
+                  <div className="create-sandbox-key-dropdown-wrapper">
+                    <button
+                      type="button"
+                      className="create-sandbox-key-dropdown-btn"
+                      onClick={() => setShowPurposeDropdown(!showPurposeDropdown)}
+                    >
+                      <span>{environmentPurpose || 'Select'}</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {showPurposeDropdown && (
+                      <div className="create-sandbox-key-dropdown">
+                        {['Development', 'Testing', 'Staging'].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className="create-sandbox-key-dropdown-item"
+                            onClick={() => {
+                              setEnvironmentPurpose(p);
+                              setShowPurposeDropdown(false);
+                            }}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* IP Allowlist */}
-            <div className="create-sandbox-key-field">
-              <label className="create-sandbox-key-label">IP Allowlist</label>
-              <input
-                type="text"
-                className="create-sandbox-key-input"
-                value={ipAllowlist}
-                onChange={(e) => setIpAllowlist(e.target.value)}
-                placeholder="Add amount"
-              />
-            </div>
+              <div className="create-sandbox-key-field">
+                <div className="create-sandbox-key-toggle-wrapper">
+                  <div>
+                    <label className="create-sandbox-key-label">Auto-Generate Sandbox API Keys</label>
+                  </div>
+                  <label className="create-sandbox-key-toggle">
+                    <input
+                      type="checkbox"
+                      checked={autoGenerate}
+                      onChange={(e) => setAutoGenerate(e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
 
-            {/* Secret Key & Status */}
-            <div className="create-sandbox-key-row">
-              <div className="create-sandbox-key-field create-sandbox-key-field-half">
-                <label className="create-sandbox-key-label">Secret Key</label>
+              <div className="create-sandbox-key-field">
+                <label className="create-sandbox-key-label">IP Allowlist</label>
                 <input
                   type="text"
                   className="create-sandbox-key-input"
-                  value={maskedKey}
-                  readOnly
+                  value={ipAllowlist}
+                  onChange={(e) => setIpAllowlist(e.target.value)}
+                  placeholder="e.g. 192.168.1.1, 10.0.0.0/24"
                 />
-                <div className="create-sandbox-key-key-actions">
-                  <button 
-                    type="button"
-                    className="create-sandbox-key-btn create-sandbox-key-btn-primary"
-                    onClick={handleRegenerateKey}
-                  >
-                    Regenerate Key
-                  </button>
-                  <button 
-                    type="button"
-                    className="create-sandbox-key-btn create-sandbox-key-btn-secondary"
-                    onClick={handleCopyKey}
-                  >
-                    <Copy size={16} />
-                    Copy Key
-                  </button>
-                </div>
               </div>
-              <div className="create-sandbox-key-field create-sandbox-key-field-half">
-                <label className="create-sandbox-key-label">Status</label>
-                <div className="create-sandbox-key-status">
-                  <span className={`create-sandbox-key-status-text ${status.toLowerCase()}`}>
-                    {status}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Permissions */}
-            <div className="create-sandbox-key-field">
-              <label className="create-sandbox-key-label">Permissions</label>
-              <div className="create-sandbox-key-permissions-group">
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Create Escrow')}
-                    onChange={() => handlePermissionChange('Create Escrow')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Create Escrow</span>
-                </label>
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Release Escrow')}
-                    onChange={() => handlePermissionChange('Release Escrow')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Release Escrow</span>
-                </label>
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Cancel Escrow')}
-                    onChange={() => handlePermissionChange('Cancel Escrow')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Cancel Escrow</span>
-                </label>
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Create Wallet')}
-                    onChange={() => handlePermissionChange('Create Wallet')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Create Wallet</span>
-                </label>
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Read Wallet')}
-                    onChange={() => handlePermissionChange('Read Wallet')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Read Wallet</span>
-                </label>
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Transaction Logs')}
-                    onChange={() => handlePermissionChange('Transaction Logs')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Transaction Logs</span>
-                </label>
-                <label className="create-sandbox-key-permission">
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes('Webhook Test Events')}
-                    onChange={() => handlePermissionChange('Webhook Test Events')}
-                  />
-                  <span className="radio-custom"></span>
-                  <span className="radio-label">Webhook Test Events</span>
-                </label>
+              <div className="create-sandbox-key-field">
+                <label className="create-sandbox-key-label">Permissions</label>
+                <div className="create-sandbox-key-permissions-group">
+                  {PERMISSION_OPTIONS.map(({ value, label }) => (
+                    <label key={value} className="create-sandbox-key-permission">
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes(value)}
+                        onChange={() => handlePermissionChange(value)}
+                      />
+                      <span className="radio-custom"></span>
+                      <span className="radio-label">{label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Modal Footer */}
         <div className="create-sandbox-key-footer">
-          <button 
-            type="button"
-            className="create-sandbox-key-footer-btn create-sandbox-key-footer-btn-primary"
-            onClick={handleGenerate}
-          >
-            Generate
-            <span className="create-sandbox-key-arrow-circle">
-              <ArrowRight size={18} />
-            </span>
-          </button>
-          <button 
-            type="button"
-            className="create-sandbox-key-footer-btn create-sandbox-key-footer-btn-secondary"
-            onClick={handleTestWebhook}
-          >
-            Test Webhook
-          </button>
+          {createdKeyData ? (
+            <button
+              type="button"
+              className="create-sandbox-key-footer-btn create-sandbox-key-footer-btn-primary"
+              onClick={handleDone}
+            >
+              Done
+              <span className="create-sandbox-key-arrow-circle">
+                <ArrowRight size={18} />
+              </span>
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="create-sandbox-key-footer-btn create-sandbox-key-footer-btn-primary"
+                onClick={handleGenerate}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <LoadingIndicator size="sm" /> : 'Generate'}
+                {!isSubmitting && (
+                  <span className="create-sandbox-key-arrow-circle">
+                    <ArrowRight size={18} />
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                className="create-sandbox-key-footer-btn create-sandbox-key-footer-btn-secondary"
+                onClick={handleTestWebhook}
+              >
+                Test Webhook
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

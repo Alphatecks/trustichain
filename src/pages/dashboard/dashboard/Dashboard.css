@@ -2894,6 +2894,54 @@
   color: #ffffff;
 }
 
+/* Live Escrow pagination (personal dashboard) */
+.dashboard-escrow-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-escrow-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.dashboard-escrow-pagination-btn:hover:not(:disabled) {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
+.dashboard-escrow-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dashboard-escrow-pagination-info {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.desktop-escrow-pagination {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .trusticard-card h3 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
@@ -4589,6 +4637,12 @@
     color: var(--text-muted);
     font-size: 0.85rem;
     font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .mobile-escrow-pagination {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
   }
 
   /* Trusticard Section */
