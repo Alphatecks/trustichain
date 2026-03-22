@@ -3,6 +3,49 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../utils/config';
 
+/**
+ * Keep local dashboard prefs in sync with auth API (parity with Signup.js for new users).
+ * Dashboard reads kycComplete from localStorage on load.
+ */
+function applyDashboardPrefsFromAuthResponse(data) {
+  if (!data || typeof data !== 'object') {
+    localStorage.setItem('kycComplete', 'false');
+    return;
+  }
+
+  const user = data.user ?? data.data?.user;
+  const nested = data.data && typeof data.data === 'object' ? data.data : null;
+
+  let kycComplete = false;
+
+  const truthy = (v) => v === true || v === 'true' || v === 1;
+  const userKycVerified =
+    user &&
+    typeof user === 'object' &&
+    (truthy(user.kycComplete) ||
+      truthy(user.kycVerified) ||
+      truthy(user.isKycVerified) ||
+      truthy(user.kyc_completed));
+
+  if (userKycVerified) {
+    kycComplete = true;
+  } else if (nested && truthy(nested.kycComplete)) {
+    kycComplete = true;
+  } else if (truthy(data.kycComplete)) {
+    kycComplete = true;
+  } else {
+    // New Google sign-ups (and unknown shape): match email signup — prompt KYC on dashboard
+    kycComplete = false;
+  }
+
+  localStorage.setItem('kycComplete', kycComplete ? 'true' : 'false');
+}
+
+const goToDashboard = (navigate, message) => {
+  if (message) toast.success(message);
+  navigate('/dashboard', { replace: true });
+};
+
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -24,7 +67,7 @@ const OAuthCallback = () => {
 
       if (!response.ok || !data.success) {
         toast.error(data.message || data.error || 'Failed to complete Google sign in');
-        navigate('/login');
+        navigate('/login', { replace: true });
         return;
       }
 
@@ -71,6 +114,10 @@ const OAuthCallback = () => {
         localStorage.setItem('token', data.data.accessToken);
         console.log('Token stored from data.data.accessToken');
         tokenFound = true;
+      } else if (data.data?.access_token) {
+        localStorage.setItem('token', data.data.access_token);
+        console.log('Token stored from data.data.access_token');
+        tokenFound = true;
       }
       
       if (!tokenFound) {
@@ -83,14 +130,29 @@ const OAuthCallback = () => {
           console.warn('data.user keys:', Object.keys(data.user));
         }
         console.warn('Full response object:', JSON.stringify(data, null, 2));
+        toast.error(
+          data.message || 'Sign-in succeeded but no session token was returned. Please try again.'
+        );
+        navigate('/login', { replace: true });
+        return;
       }
 
-      toast.success('Successfully signed in with Google!');
-      navigate('/dashboard');
+      applyDashboardPrefsFromAuthResponse(data);
+
+      const isNew =
+        data.isNewUser === true ||
+        data.user?.isNewUser === true ||
+        data.data?.isNewUser === true ||
+        data.data?.user?.isNewUser === true;
+
+      goToDashboard(
+        navigate,
+        isNew ? 'Account created! Welcome to TrustiChain.' : 'Successfully signed in with Google!'
+      );
     } catch (error) {
       console.error('OAuth callback error:', error);
       toast.error('An error occurred during authentication');
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
@@ -101,7 +163,7 @@ const OAuthCallback = () => {
 
     if (error || errorMessage) {
       toast.error(errorMessage || error || 'OAuth authentication failed');
-      navigate('/login');
+      navigate('/login', { replace: true });
       return;
     }
 
@@ -116,16 +178,23 @@ const OAuthCallback = () => {
       const token = searchParams.get('token');
       const success = searchParams.get('success');
       
-      if (token || success) {
-        // Store token if provided
-        if (token) {
-          localStorage.setItem('token', token);
+      if (token) {
+        localStorage.setItem('token', token);
+        const kyc = searchParams.get('kycComplete') || searchParams.get('kyc');
+        if (kyc === '1' || kyc === 'true') {
+          localStorage.setItem('kycComplete', 'true');
+        } else if (kyc === '0' || kyc === 'false') {
+          localStorage.setItem('kycComplete', 'false');
+        } else {
+          applyDashboardPrefsFromAuthResponse({});
         }
-        toast.success('Successfully signed in with Google!');
-        navigate('/dashboard');
+        goToDashboard(navigate, 'Successfully signed in with Google!');
+      } else if (success && localStorage.getItem('token')) {
+        applyDashboardPrefsFromAuthResponse({});
+        goToDashboard(navigate, 'Successfully signed in with Google!');
       } else {
-        toast.error('Missing authorization code. Please try signing in again.');
-        navigate('/login');
+        toast.error('Missing authorization code or token. Please try signing in again.');
+        navigate('/login', { replace: true });
       }
     }
   }, [searchParams, navigate, handleOAuthCallback]);
