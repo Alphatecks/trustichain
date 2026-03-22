@@ -13,8 +13,11 @@ import {
   Bell,
   LogOut,
   User,
-  ChevronDown,
+  Users,
+  Menu,
+  X,
   Pencil,
+  ChevronDown,
   Globe,
   KeyRound,
   Upload,
@@ -27,6 +30,17 @@ import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+
+const normalizeCompanyLogoUrl = (data) => {
+  const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${base}${path}`;
+};
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -43,29 +57,383 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck }
 ];
 
+const SettingsUserProfileImage = ({ profileImage, userInitials, onImageChange }) => (
+  <div className="settings-profile-image-section">
+    <div className="settings-profile-image-wrapper">
+      {profileImage ? (
+        <img src={profileImage} alt="Profile" className="settings-profile-image" />
+      ) : (
+        <div className="settings-profile-image-placeholder">{userInitials}</div>
+      )}
+      <label className="settings-profile-edit-btn">
+        <input type="file" accept="image/*" onChange={onImageChange} style={{ display: 'none' }} />
+        <Pencil size={14} />
+      </label>
+    </div>
+    <h3 className="settings-upload-text">Upload your Image</h3>
+  </div>
+);
+
+const readFileAsDataUrl = (file, onResult) => {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onloadend = () => onResult(reader.result);
+  reader.readAsDataURL(file);
+};
+
+const SettingsKycEditorBody = ({
+  idSuffix = '',
+  selfieImage,
+  setSelfieImage,
+  fullName,
+  setFullName,
+  nationality,
+  setNationality,
+  nidPassportNumber,
+  setNidPassportNumber,
+  dob,
+  setDob,
+  frontNidImage,
+  setFrontNidImage,
+  backNidImage,
+  setBackNidImage,
+  selfieDocImage,
+  setSelfieDocImage,
+  xumm,
+  setXumm,
+  metamask,
+  setMetamask,
+}) => {
+  const frontId = `front-nid-upload${idSuffix}`;
+  const backId = `back-nid-upload${idSuffix}`;
+  const selfieDocId = `selfie-doc-upload${idSuffix}`;
+
+  return (
+    <>
+      <div className="settings-kyc-selfie-section">
+        <div className="settings-kyc-image-wrapper">
+          {selfieImage ? (
+            <img src={selfieImage} alt="Selfie" className="settings-kyc-image" />
+          ) : (
+            <div className="settings-kyc-image-placeholder">
+              <ImageIcon size={32} />
+            </div>
+          )}
+          <label className="settings-kyc-edit-btn">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => readFileAsDataUrl(e.target.files[0], setSelfieImage)}
+              style={{ display: 'none' }}
+            />
+            <Pencil size={18} />
+          </label>
+        </div>
+        <div className="settings-kyc-selfie-info">
+          <h3 className="settings-kyc-selfie-title">Selfie</h3>
+          <p className="settings-kyc-selfie-subtitle">Max upto 5mb</p>
+        </div>
+      </div>
+
+      <div className="settings-kyc-section">
+        <h2 className="settings-kyc-section-title">Proof of identity</h2>
+        <div className="settings-form-row">
+          <div className="settings-form-field">
+            <label className="settings-form-label">Full name</label>
+            <input
+              type="text"
+              className="settings-form-input"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          <div className="settings-form-field">
+            <label className="settings-form-label">Nationality</label>
+            <input
+              type="text"
+              className="settings-form-input"
+              value={nationality}
+              onChange={(e) => setNationality(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="settings-form-row">
+          <div className="settings-form-field">
+            <label className="settings-form-label">NID/Passport Number</label>
+            <input
+              type="text"
+              className="settings-form-input"
+              value={nidPassportNumber}
+              onChange={(e) => setNidPassportNumber(e.target.value)}
+            />
+          </div>
+          <div className="settings-form-field">
+            <label className="settings-form-label">DOB</label>
+            <input
+              type="text"
+              className="settings-form-input"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-kyc-section">
+        <h2 className="settings-kyc-section-title">Document upload</h2>
+        <p className="settings-kyc-approval-text">Approval Workflow</p>
+        <div className="settings-kyc-documents-grid">
+          <div className="settings-kyc-document-item">
+            <label className="settings-kyc-document-label">Front NID</label>
+            <div className="settings-kyc-document-upload">
+              {frontNidImage ? (
+                <img src={frontNidImage} alt="Front NID" className="settings-kyc-document-image" />
+              ) : (
+                <div className="settings-kyc-document-placeholder">
+                  <Upload size={24} />
+                  <span>Upload</span>
+                </div>
+              )}
+              <input
+                id={frontId}
+                type="file"
+                accept="image/*"
+                onChange={(e) => readFileAsDataUrl(e.target.files[0], setFrontNidImage)}
+                style={{ display: 'none' }}
+              />
+              <label htmlFor={frontId} className="settings-kyc-document-upload-label" />
+            </div>
+          </div>
+          <div className="settings-kyc-document-item">
+            <label className="settings-kyc-document-label">Back NID</label>
+            <div className="settings-kyc-document-upload">
+              {backNidImage ? (
+                <img src={backNidImage} alt="Back NID" className="settings-kyc-document-image" />
+              ) : (
+                <div className="settings-kyc-document-placeholder">
+                  <Upload size={24} />
+                  <span>Upload</span>
+                </div>
+              )}
+              <input
+                id={backId}
+                type="file"
+                accept="image/*"
+                onChange={(e) => readFileAsDataUrl(e.target.files[0], setBackNidImage)}
+                style={{ display: 'none' }}
+              />
+              <label htmlFor={backId} className="settings-kyc-document-upload-label" />
+            </div>
+          </div>
+          <div className="settings-kyc-document-item">
+            <label className="settings-kyc-document-label">selfie</label>
+            <div className="settings-kyc-document-upload">
+              {selfieDocImage ? (
+                <img src={selfieDocImage} alt="Selfie document" className="settings-kyc-document-image" />
+              ) : (
+                <div className="settings-kyc-document-placeholder">
+                  <Upload size={24} />
+                  <span>Upload</span>
+                </div>
+              )}
+              <input
+                id={selfieDocId}
+                type="file"
+                accept="image/*"
+                onChange={(e) => readFileAsDataUrl(e.target.files[0], setSelfieDocImage)}
+                style={{ display: 'none' }}
+              />
+              <label htmlFor={selfieDocId} className="settings-kyc-document-upload-label" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-kyc-section settings-kyc-compliance-section">
+        <h2 className="settings-kyc-section-title">Compliance Settings</h2>
+        <div className="settings-form-row">
+          <div className="settings-form-field">
+            <label className="settings-form-label">XUMM</label>
+            <input
+              type="text"
+              className="settings-form-input"
+              value={xumm}
+              onChange={(e) => setXumm(e.target.value)}
+            />
+          </div>
+          <div className="settings-form-field">
+            <label className="settings-form-label">Metamask</label>
+            <input
+              type="text"
+              className="settings-form-input"
+              value={metamask}
+              onChange={(e) => setMetamask(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="settings-kyc-compliance-edit-section">
+          <button
+            type="button"
+            className="settings-kyc-edit-btn"
+            onClick={() => {
+              console.log('Edit KYC clicked');
+            }}
+          >
+            <Pencil size={18} />
+            Edit
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const SettingsUserAccountForm = ({
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
+  email,
+  setEmail,
+  language,
+  setLanguage,
+  showLanguageDropdown,
+  setShowLanguageDropdown,
+  onSave,
+}) => (
+  <div className="settings-form">
+    <div className="settings-form-row">
+      <div className="settings-form-field">
+        <label className="settings-form-label">First Name</label>
+        <input
+          type="text"
+          className="settings-form-input"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+        />
+      </div>
+      <div className="settings-form-field">
+        <label className="settings-form-label">Last Name</label>
+        <input
+          type="text"
+          className="settings-form-input"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+        />
+      </div>
+    </div>
+
+    <div className="settings-form-field">
+      <label className="settings-form-label">Email Address</label>
+      <input
+        type="email"
+        className="settings-form-input"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+    </div>
+
+    <div className="settings-form-field">
+      <label className="settings-form-label">Language</label>
+      <div className="settings-dropdown-wrapper">
+        <button
+          type="button"
+          className="settings-dropdown-btn"
+          onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+        >
+          <Globe size={16} />
+          <span>{language}</span>
+          <ChevronDown size={16} />
+        </button>
+        {showLanguageDropdown && (
+          <div className="settings-dropdown">
+            <button
+              type="button"
+              className="settings-dropdown-item"
+              onClick={() => {
+                setLanguage('English');
+                setShowLanguageDropdown(false);
+              }}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              className="settings-dropdown-item"
+              onClick={() => {
+                setLanguage('Spanish');
+                setShowLanguageDropdown(false);
+              }}
+            >
+              Spanish
+            </button>
+            <button
+              type="button"
+              className="settings-dropdown-item"
+              onClick={() => {
+                setLanguage('French');
+                setShowLanguageDropdown(false);
+              }}
+            >
+              French
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div className="settings-form-actions">
+      <button type="button" className="settings-save-btn" onClick={onSave}>
+        Save
+      </button>
+    </div>
+  </div>
+);
+
 const Settings = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const [accountType, setAccountType] = useState('Personal');
+  const [accountType, setAccountType] = useState(() => {
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') return stored;
+    return 'Personal';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [userFullName, setUserFullName] = useState('Sarah Chen');
-  const [userInitials, setUserInitials] = useState('SC');
-  const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(false);
+  const [userFullName, setUserFullName] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [userRole, setUserRole] = useState('');
+  const [userAvatar, setUserAvatar] = useState(null);
+  const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [formattedToday, setFormattedToday] = useState('');
-  const [kycComplete] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('User');
+  const [kycComplete] = useState(() => {
+    const stored = localStorage.getItem('kycComplete');
+    return stored ? JSON.parse(stored) : true;
+  });
+  const [businessKycComplete, setBusinessKycComplete] = useState(() => {
+    const stored = localStorage.getItem('businessKycComplete');
+    return stored ? JSON.parse(stored) : false;
+  });
+  const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
+  const [businessCompanyName, setBusinessCompanyName] = useState('');
+  const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(min-width: 769px)').matches) {
+      setSelectedCategory('User');
+    }
+  }, []);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
-  
-  // User profile form state
   const [firstName, setFirstName] = useState('Shivani');
   const [lastName, setLastName] = useState('Chauhan');
   const [email, setEmail] = useState('helloshivani24@gmail.com');
   const [language, setLanguage] = useState('English');
-  const [profileImage, setProfileImage] = useState(null);
-  
+
   // KYC Verification state
   const [selfieImage, setSelfieImage] = useState(null);
   const [fullName, setFullName] = useState('TechFlow Solutions');
@@ -79,7 +447,10 @@ const Settings = () => {
   const [xumm, setXumm] = useState('Trustichain Mediation');
   const [metamask, setMetamask] = useState('$10000');
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   const handleNavClick = (item) => {
+    closeMobileMenu();
     if (item.label === 'Dashboard') {
       navigate('/dashboard');
     } else if (item.label === 'My Escrow') {
@@ -94,21 +465,12 @@ const Settings = () => {
   };
 
   const handleSupportNavClick = (item) => {
+    closeMobileMenu();
     if (item.label === 'Settings') {
       navigate('/settings');
     } else if (item.label === 'Security') {
       navigate('/security');
     }
-  };
-
-  const handleSave = () => {
-    console.log('Save settings:', {
-      firstName,
-      lastName,
-      email,
-      language
-    });
-    // Placeholder - no actual API call
   };
 
   const handleImageUpload = (e) => {
@@ -120,6 +482,15 @@ const Settings = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSave = () => {
+    console.log('Save settings:', {
+      firstName,
+      lastName,
+      email,
+      language
+    });
   };
 
   // Real-time date formatting - updates every minute
@@ -142,11 +513,244 @@ const Settings = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const isKycCompleteForAccount =
+    accountType === 'Business Suite' ? businessKycComplete : kycComplete;
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_account_type', accountType);
+  }, [accountType]);
+
+  useEffect(() => {
+    if (location.state?.accountType) {
+      setAccountType(location.state.accountType);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (accountType !== 'Business Suite') return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setBusinessKycComplete(false);
+      localStorage.removeItem('businessKycComplete');
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingBusinessKyc(true);
+    fetch(getApiUrl('api/business-suite/kyc'), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const kycData = result.data;
+          const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
+          const status = statusRaw.replace(/_/g, ' ').toLowerCase();
+          const verifiedStatuses = ['verified', 'approved', 'complete'];
+          const isKycVerified = verifiedStatuses.includes(status);
+          if (isKycVerified) {
+            setBusinessKycComplete(true);
+            setBusinessCompanyName(kycData.companyName || '');
+            setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+            localStorage.setItem('businessKycComplete', 'true');
+          } else {
+            setBusinessKycComplete(false);
+            setBusinessCompanyName(kycData?.companyName || '');
+            setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+            localStorage.removeItem('businessKycComplete');
+          }
+        } else {
+          setBusinessKycComplete(false);
+          setBusinessCompanyName('');
+          setBusinessCompanyLogoUrl('');
+          localStorage.removeItem('businessKycComplete');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBusinessKycComplete(false);
+          setBusinessCompanyName('');
+          setBusinessCompanyLogoUrl('');
+          localStorage.removeItem('businessKycComplete');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingBusinessKyc(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accountType]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (isSessionExpired) {
+        setUserFullName('');
+        setUserInitials('');
+        setUserRole('');
+        setUserAvatar(null);
+        setIsLoadingUserProfile(false);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsLoadingUserProfile(false);
+          return;
+        }
+
+        const apiUrl = getApiUrl('api/user/profile');
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result?.success && result?.data) {
+            const data = result.data;
+            const fullName =
+              data.fullName ||
+              [data.firstName, data.lastName].filter(Boolean).join(' ') ||
+              data.name ||
+              '';
+
+            if (fullName && typeof fullName === 'string') {
+              setUserFullName(fullName);
+            }
+
+            const firstName = data.firstName || '';
+            const lastName = data.lastName || '';
+            let initials = '';
+
+            if (firstName && lastName) {
+              initials = `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+            } else if (fullName && typeof fullName === 'string') {
+              const nameParts = fullName.trim().split(/\s+/);
+              if (nameParts.length >= 2) {
+                initials = `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`;
+              } else if (nameParts.length === 1) {
+                initials = nameParts[0].charAt(0).toUpperCase();
+              }
+            }
+
+            setUserInitials(initials);
+
+            const role = data.role || data.userType || data.accountType || '';
+            setUserRole(role);
+
+            const avatar = data.avatar || data.profilePicture || data.image || data.photo || null;
+            setUserAvatar(avatar);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setIsLoadingUserProfile(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [isSessionExpired]);
+
+  useEffect(() => {
+    const sheetOpen =
+      selectedCategory === 'User' || selectedCategory === 'KYC Verification';
+    if (!sheetOpen) return undefined;
+
+    const applyBodyScrollLock = () => {
+      const mobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+      document.body.style.overflow = mobile ? 'hidden' : '';
+    };
+
+    applyBodyScrollLock();
+    window.addEventListener('resize', applyBodyScrollLock);
+    return () => {
+      window.removeEventListener('resize', applyBodyScrollLock);
+      document.body.style.overflow = '';
+    };
+  }, [selectedCategory]);
+
+  const userEditorProps = {
+    profileImage,
+    userInitials,
+    onImageChange: handleImageUpload,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    email,
+    setEmail,
+    language,
+    setLanguage,
+    showLanguageDropdown,
+    setShowLanguageDropdown,
+    onSave: handleSave,
+  };
+
+  const kycEditorProps = {
+    selfieImage,
+    setSelfieImage,
+    fullName,
+    setFullName,
+    nationality,
+    setNationality,
+    nidPassportNumber,
+    setNidPassportNumber,
+    dob,
+    setDob,
+    frontNidImage,
+    setFrontNidImage,
+    backNidImage,
+    setBackNidImage,
+    selfieDocImage,
+    setSelfieDocImage,
+    xumm,
+    setXumm,
+    metamask,
+    setMetamask,
+  };
+
   return (
     <div className="dashboard settings-dashboard">
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar">
-            <div className="sidebar-branding">
+      {isMobileMenuOpen && (
+        <div
+          className="settings-sidebar-overlay"
+          role="presentation"
+          onClick={closeMobileMenu}
+        />
+      )}
+      {/* Sidebar: do not use global class "mobile-sidebar-drawer" on this aside — MyEscrow.css hides
+          .mobile-sidebar-drawer on desktop for the whole app, which would remove the Settings sidebar. */}
+      <aside
+        className={`dashboard-sidebar settings-sidebar-aside${isMobileMenuOpen ? ' settings-sidebar-aside--open' : ''}`}
+      >
+            <div className="mobile-sidebar-header settings-sidebar-drawer-header-mobile">
+              <div className="mobile-sidebar-branding">
+                <img src={logo} alt="TrustiChain" className="mobile-sidebar-logo" />
+                <div className="mobile-sidebar-branding-text">
+                  <span className="mobile-sidebar-title">TrustiChain</span>
+                  <span className="mobile-sidebar-tagline">Secure escrow platform</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mobile-sidebar-close"
+                aria-label="Close menu"
+                onClick={closeMobileMenu}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="sidebar-branding settings-sidebar-brand-desktop">
               <img src={logo} alt="TrustiChain" className="sidebar-logo" />
               <div className="sidebar-branding-text">
                 <span className="sidebar-title">TrustiChain</span>
@@ -217,7 +821,14 @@ const Settings = () => {
                 <span className="sidebar-trustiscore-label">Trustiscore</span>
                 <span className="sidebar-trustiscore-badge">97</span>
               </div>
-              <button type="button" className="sidebar-logout" onClick={handleLogout}>
+              <button
+                type="button"
+                className="sidebar-logout"
+                onClick={() => {
+                  closeMobileMenu();
+                  handleLogout();
+                }}
+              >
                 <LogOut size={18} />
                 <span>Logout</span>
               </button>
@@ -226,6 +837,61 @@ const Settings = () => {
 
           {/* Main Content */}
           <main className="dashboard-main">
+            <div className="mobile-dashboard-header settings-mobile-dashboard-header" aria-label="Profile">
+              <div className="mobile-header-left">
+                <div className="mobile-user-avatar">
+                  {accountType === 'Business Suite' ? (
+                    businessCompanyLogoUrl ? (
+                      <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
+                    ) : isLoadingBusinessKyc ? (
+                      <LoadingIndicator size="sm" />
+                    ) : (
+                      businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                    )
+                  ) : userAvatar ? (
+                    <img src={userAvatar} alt={userFullName || 'User'} />
+                  ) : (
+                    userInitials
+                  )}
+                </div>
+                <div className="mobile-user-info">
+                  <span className="mobile-user-name">
+                    {accountType === 'Business Suite' ? (
+                      isLoadingBusinessKyc || !businessCompanyName ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        businessCompanyName
+                      )
+                    ) : isLoadingUserProfile ? (
+                      <LoadingIndicator size="sm" />
+                    ) : (
+                      userFullName
+                    )}
+                    <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
+                  </span>
+                  <span className="mobile-user-role">
+                    {accountType === 'Business Suite'
+                      ? 'Business'
+                      : isLoadingUserProfile
+                        ? <LoadingIndicator size="sm" />
+                        : userRole}
+                  </span>
+                </div>
+              </div>
+              <div className="mobile-header-right">
+                <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
+                  <Bell size={20} />
+                </button>
+                <button
+                  type="button"
+                  className="mobile-header-menu"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                  <Menu size={20} />
+                </button>
+              </div>
+            </div>
+
             {/* Header */}
             <header className="dashboard-header" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '1.5rem', alignItems: 'center', width: '100%' }}>
               <div className="header-info">
@@ -244,7 +910,7 @@ const Settings = () => {
               </div>
 
               <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end', justifySelf: 'end', marginLeft: 'auto' }}>
-                {kycComplete ? (
+                {isKycCompleteForAccount ? (
                   <div className="account-type-display">
                     <span className="account-type-label">{accountType}</span>
                   </div>
@@ -259,13 +925,31 @@ const Settings = () => {
                   <Bell size={18} />
                 </button>
                 <div className="header-user">
-                  <div className="user-avatar">{userInitials}</div>
+                  <div className="user-avatar">
+                    {accountType === 'Business Suite' ? (
+                      businessCompanyLogoUrl ? (
+                        <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
+                      ) : isLoadingBusinessKyc ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
+                      )
+                    ) : userAvatar ? (
+                      <img src={userAvatar} alt={userFullName || 'User'} className="user-avatar-img" />
+                    ) : (
+                      userInitials
+                    )}
+                  </div>
                   <div className="user-info">
                     <span className="user-name">
-                      {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                      {accountType === 'Business Suite' ? (
+                        isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
+                      ) : (
+                        isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
+                      )}
                       <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                     </span>
-                    <small>Freelancer</small>
+                    <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
                   </div>
                 </div>
               </div>
@@ -307,7 +991,7 @@ const Settings = () => {
                   className={`settings-category-btn ${selectedCategory === 'Business Suite' ? 'active' : ''}`}
                   onClick={() => setSelectedCategory('Business Suite')}
                 >
-                  <Briefcase size={18} />
+                  <Users size={18} />
                   Business Suite
                 </button>
                 <button
@@ -320,349 +1004,144 @@ const Settings = () => {
                 </button>
               </div>
 
-              {/* Right Panel - User Profile Details */}
+              {/* Right Panel - User Profile Details (desktop) + full-screen sheet (mobile only via CSS) */}
               {selectedCategory === 'User' && (
-                <div className="settings-details-panel">
-                  {/* Profile Image Section */}
-                  <div className="settings-profile-image-section">
-                    <div className="settings-profile-image-wrapper">
-                      {profileImage ? (
-                        <img src={profileImage} alt="Profile" className="settings-profile-image" />
-                      ) : (
-                        <div className="settings-profile-image-placeholder">
-                          {userInitials}
-                        </div>
-                      )}
-                      <label className="settings-profile-edit-btn">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          style={{ display: 'none' }}
-                        />
-                        <Pencil size={14} />
-                      </label>
-                    </div>
-                    <h3 className="settings-upload-text">Upload your Image</h3>
-                  </div>
-
-                  {/* User Information Fields */}
-                  <div className="settings-form">
-                    <div className="settings-form-row">
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">First Name</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                        />
-                      </div>
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">Last Name</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="settings-form-field">
-                      <label className="settings-form-label">Email Address</label>
-                      <input
-                        type="email"
-                        className="settings-form-input"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                <>
+                  <div className="settings-details-panel settings-user-panel">
+                    <SettingsUserProfileImage
+                      profileImage={userEditorProps.profileImage}
+                      userInitials={userEditorProps.userInitials}
+                      onImageChange={userEditorProps.onImageChange}
+                    />
+                    <div className="settings-user-form-desktop">
+                      <SettingsUserAccountForm
+                        firstName={userEditorProps.firstName}
+                        setFirstName={userEditorProps.setFirstName}
+                        lastName={userEditorProps.lastName}
+                        setLastName={userEditorProps.setLastName}
+                        email={userEditorProps.email}
+                        setEmail={userEditorProps.setEmail}
+                        language={userEditorProps.language}
+                        setLanguage={userEditorProps.setLanguage}
+                        showLanguageDropdown={userEditorProps.showLanguageDropdown}
+                        setShowLanguageDropdown={userEditorProps.setShowLanguageDropdown}
+                        onSave={userEditorProps.onSave}
                       />
                     </div>
+                  </div>
 
-                    <div className="settings-form-field">
-                      <label className="settings-form-label">Language</label>
-                      <div className="settings-dropdown-wrapper">
+                  <div
+                    className="settings-user-mobile-sheet"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="settings-user-sheet-title"
+                  >
+                    <div className="settings-user-mobile-sheet-inner">
+                      <header className="settings-user-mobile-sheet-header">
+                        <span className="settings-user-mobile-sheet-accent" aria-hidden />
+                        <h2 id="settings-user-sheet-title" className="settings-user-mobile-sheet-title">
+                          User
+                        </h2>
                         <button
                           type="button"
-                          className="settings-dropdown-btn"
-                          onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                          className="settings-user-mobile-sheet-close"
+                          aria-label="Close"
+                          onClick={() => setSelectedCategory('')}
                         >
-                          <Globe size={16} />
-                          <span>{language}</span>
-                          <ChevronDown size={16} />
+                          <X size={22} />
                         </button>
-                        {showLanguageDropdown && (
-                          <div className="settings-dropdown">
-                            <button
-                              type="button"
-                              className="settings-dropdown-item"
-                              onClick={() => {
-                                setLanguage('English');
-                                setShowLanguageDropdown(false);
-                              }}
-                            >
-                              English
-                            </button>
-                            <button
-                              type="button"
-                              className="settings-dropdown-item"
-                              onClick={() => {
-                                setLanguage('Spanish');
-                                setShowLanguageDropdown(false);
-                              }}
-                            >
-                              Spanish
-                            </button>
-                            <button
-                              type="button"
-                              className="settings-dropdown-item"
-                              onClick={() => {
-                                setLanguage('French');
-                                setShowLanguageDropdown(false);
-                              }}
-                            >
-                              French
-                            </button>
-                          </div>
-                        )}
+                      </header>
+                      <div className="settings-user-mobile-sheet-card">
+                        <SettingsUserProfileImage
+                          profileImage={userEditorProps.profileImage}
+                          userInitials={userEditorProps.userInitials}
+                          onImageChange={userEditorProps.onImageChange}
+                        />
+                        <SettingsUserAccountForm
+                          firstName={userEditorProps.firstName}
+                          setFirstName={userEditorProps.setFirstName}
+                          lastName={userEditorProps.lastName}
+                          setLastName={userEditorProps.setLastName}
+                          email={userEditorProps.email}
+                          setEmail={userEditorProps.setEmail}
+                          language={userEditorProps.language}
+                          setLanguage={userEditorProps.setLanguage}
+                          showLanguageDropdown={userEditorProps.showLanguageDropdown}
+                          setShowLanguageDropdown={userEditorProps.setShowLanguageDropdown}
+                          onSave={userEditorProps.onSave}
+                        />
                       </div>
                     </div>
-
-                    {/* Save Button */}
-                    <div className="settings-form-actions">
-                      <button
-                        type="button"
-                        className="settings-save-btn"
-                        onClick={handleSave}
-                      >
-                        Save
-                      </button>
-                    </div>
                   </div>
-                </div>
+                </>
               )}
 
-              {/* KYC Verification Section */}
+              {/* KYC Verification — desktop panel + mobile full-screen sheet */}
               {selectedCategory === 'KYC Verification' && (
-                <div className="settings-details-panel">
-                  {/* Selfie Section */}
-                  <div className="settings-kyc-selfie-section">
-                    <div className="settings-kyc-image-wrapper">
-                      {selfieImage ? (
-                        <img src={selfieImage} alt="Selfie" className="settings-kyc-image" />
-                      ) : (
-                        <div className="settings-kyc-image-placeholder">
-                          <ImageIcon size={32} />
-                        </div>
-                      )}
-                      <label className="settings-kyc-edit-btn">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setSelfieImage(reader.result);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          style={{ display: 'none' }}
-                        />
-                        <Pencil size={18} />
-                      </label>
-                    </div>
-                    <div className="settings-kyc-selfie-info">
-                      <h3 className="settings-kyc-selfie-title">Selfie</h3>
-                      <p className="settings-kyc-selfie-subtitle">Max upto 5mb</p>
-                    </div>
+                <>
+                  <div className="settings-details-panel settings-kyc-panel">
+                    <SettingsKycEditorBody idSuffix="" {...kycEditorProps} />
                   </div>
 
-                  {/* Proof of Identity Section */}
-                  <div className="settings-kyc-section">
-                    <h2 className="settings-kyc-section-title">Proof of identity</h2>
-                    <div className="settings-form-row">
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">Full name</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                        />
-                      </div>
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">Nationality</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={nationality}
-                          onChange={(e) => setNationality(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="settings-form-row">
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">NID/Passport Number</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={nidPassportNumber}
-                          onChange={(e) => setNidPassportNumber(e.target.value)}
-                        />
-                      </div>
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">DOB</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={dob}
-                          onChange={(e) => setDob(e.target.value)}
-                        />
+                  <div
+                    className="settings-user-mobile-sheet settings-kyc-mobile-sheet"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="settings-kyc-sheet-title"
+                  >
+                    <div className="settings-user-mobile-sheet-inner">
+                      <header className="settings-user-mobile-sheet-header">
+                        <span className="settings-user-mobile-sheet-accent" aria-hidden />
+                        <h2 id="settings-kyc-sheet-title" className="settings-user-mobile-sheet-title">
+                          KYC Verification
+                        </h2>
+                        <button
+                          type="button"
+                          className="settings-user-mobile-sheet-close"
+                          aria-label="Close"
+                          onClick={() => setSelectedCategory('')}
+                        >
+                          <X size={22} />
+                        </button>
+                      </header>
+                      <div className="settings-user-mobile-sheet-card settings-kyc-mobile-sheet-card">
+                        <SettingsKycEditorBody idSuffix="-m" {...kycEditorProps} />
                       </div>
                     </div>
                   </div>
-
-                  {/* Document Upload Section */}
-                  <div className="settings-kyc-section">
-                    <h2 className="settings-kyc-section-title">Document upload</h2>
-                    <p className="settings-kyc-approval-text">Approval Workflow</p>
-                    <div className="settings-kyc-documents-grid">
-                      <div className="settings-kyc-document-item">
-                        <label className="settings-kyc-document-label">Front NID</label>
-                        <div className="settings-kyc-document-upload">
-                          {frontNidImage ? (
-                            <img src={frontNidImage} alt="Front NID" className="settings-kyc-document-image" />
-                          ) : (
-                            <div className="settings-kyc-document-placeholder">
-                              <Upload size={24} />
-                              <span>Upload</span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setFrontNidImage(reader.result);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            style={{ display: 'none' }}
-                            id="front-nid-upload"
-                          />
-                          <label htmlFor="front-nid-upload" className="settings-kyc-document-upload-label"></label>
-                        </div>
-                      </div>
-                      <div className="settings-kyc-document-item">
-                        <label className="settings-kyc-document-label">Back NID</label>
-                        <div className="settings-kyc-document-upload">
-                          {backNidImage ? (
-                            <img src={backNidImage} alt="Back NID" className="settings-kyc-document-image" />
-                          ) : (
-                            <div className="settings-kyc-document-placeholder">
-                              <Upload size={24} />
-                              <span>Upload</span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setBackNidImage(reader.result);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            style={{ display: 'none' }}
-                            id="back-nid-upload"
-                          />
-                          <label htmlFor="back-nid-upload" className="settings-kyc-document-upload-label"></label>
-                        </div>
-                      </div>
-                      <div className="settings-kyc-document-item">
-                        <label className="settings-kyc-document-label">selfie</label>
-                        <div className="settings-kyc-document-upload">
-                          {selfieDocImage ? (
-                            <img src={selfieDocImage} alt="Selfie" className="settings-kyc-document-image" />
-                          ) : (
-                            <div className="settings-kyc-document-placeholder">
-                              <Upload size={24} />
-                              <span>Upload</span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setSelfieDocImage(reader.result);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            style={{ display: 'none' }}
-                            id="selfie-doc-upload"
-                          />
-                          <label htmlFor="selfie-doc-upload" className="settings-kyc-document-upload-label"></label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Compliance Settings Section */}
-                  <div className="settings-kyc-section settings-kyc-compliance-section">
-                    <h2 className="settings-kyc-section-title">Compliance Settings</h2>
-                    <div className="settings-form-row">
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">XUMM</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={xumm}
-                          onChange={(e) => setXumm(e.target.value)}
-                        />
-                      </div>
-                      <div className="settings-form-field">
-                        <label className="settings-form-label">Metamask</label>
-                        <input
-                          type="text"
-                          className="settings-form-input"
-                          value={metamask}
-                          onChange={(e) => setMetamask(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="settings-kyc-compliance-edit-section">
-                      <button
-                        type="button"
-                        className="settings-kyc-edit-btn"
-                        onClick={() => {
-                          console.log('Edit KYC clicked');
-                        }}
-                      >
-                        <Pencil size={18} />
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                </>
               )}
             </div>
           </main>
+
+      {showNotificationModal && (
+        <div
+          className="settings-notification-backdrop"
+          role="presentation"
+          onClick={() => setShowNotificationModal(false)}
+        >
+          <div
+            className="settings-notification-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-notifications-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-notification-sheet-head">
+              <h2 id="settings-notifications-title">Notifications</h2>
+              <button
+                type="button"
+                className="settings-notification-close"
+                aria-label="Close"
+                onClick={() => setShowNotificationModal(false)}
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <p className="settings-notification-empty">You&apos;re all caught up.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

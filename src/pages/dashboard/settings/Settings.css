@@ -5,34 +5,44 @@
 
 /* Remove custom dashboard-main styles - use default from Dashboard.css */
 
-.settings-dashboard .dashboard-header {
-  display: grid !important;
-  grid-template-columns: auto 1fr auto !important;
-  align-items: center !important;
-  gap: 1.5rem !important;
-  width: 100% !important;
+/* Desktop only: Settings was forcing grid with !important, which overrode
+   Dashboard.css hiding .dashboard-header on mobile (lower specificity). */
+@media (min-width: 769px) {
+  .settings-dashboard .dashboard-header {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    align-items: center !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+
+  .settings-dashboard .header-info {
+    justify-self: start;
+    flex-shrink: 0;
+  }
+
+  .settings-dashboard .header-search-group {
+    justify-self: flex-start;
+    max-width: 400px;
+    flex-shrink: 1;
+  }
+
+  .settings-dashboard .header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    justify-content: flex-end !important;
+    justify-self: end !important;
+    margin-left: 0 !important;
+    width: auto !important;
+    flex-shrink: 0;
+  }
 }
 
-.settings-dashboard .header-info {
-  justify-self: start;
-  flex-shrink: 0;
-}
-
-.settings-dashboard .header-search-group {
-  justify-self: flex-start;
-  max-width: 400px;
-  flex-shrink: 1;
-}
-
-.settings-dashboard .header-actions {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.75rem !important;
-  justify-content: flex-end !important;
-  justify-self: end !important;
-  margin-left: 0 !important;
-  width: auto !important;
-  flex-shrink: 0;
+@media (max-width: 768px) {
+  .settings-dashboard .dashboard-header {
+    display: none !important;
+  }
 }
 
 @media (min-width: 1920px) {
@@ -614,5 +624,367 @@
   .settings-details-panel {
     padding: 1.5rem;
   }
+}
+
+/* —— Settings mobile: same header + drawer pattern as Dashboard (Dashboard.css) —— */
+.settings-user-mobile-sheet {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .settings-dashboard .settings-mobile-dashboard-header {
+    display: none !important;
+  }
+
+  .settings-dashboard .settings-sidebar-drawer-header-mobile {
+    display: none !important;
+  }
+
+  .settings-dashboard .settings-user-mobile-sheet {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-dashboard .settings-sidebar-brand-desktop {
+    display: none !important;
+  }
+
+  /* Mobile drawer: scoped class names only (avoid .mobile-sidebar-drawer — MyEscrow.css does
+     @media (min-width: 769px) { .mobile-sidebar-drawer { display: none !important } } globally). */
+  .settings-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    animation: settings-sidebar-fade-in 0.2s ease;
+  }
+
+  @keyframes settings-sidebar-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .settings-dashboard .dashboard-sidebar.settings-sidebar-aside {
+    display: flex !important;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    max-width: 85vw;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .settings-dashboard .dashboard-sidebar.settings-sidebar-aside.settings-sidebar-aside--open {
+    transform: translateX(0);
+  }
+
+  .settings-dashboard .mobile-dashboard-header.settings-mobile-dashboard-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .settings-dashboard .dashboard-main {
+    width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--white);
+  }
+
+  .settings-dashboard .settings-page-title {
+    display: none;
+  }
+
+  /* Desktop User panel only: hide on small screens (mobile uses full-screen User sheet) */
+  .settings-dashboard .settings-user-panel .settings-profile-image-section {
+    display: none !important;
+  }
+
+  .settings-dashboard .settings-user-panel .settings-user-form-desktop {
+    display: none !important;
+  }
+
+  .settings-dashboard .settings-user-panel {
+    display: none !important;
+  }
+
+  .settings-dashboard .settings-kyc-panel {
+    display: none !important;
+  }
+
+  /* Mobile User sheet when User row is selected */
+  .settings-dashboard .settings-user-mobile-sheet {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    flex-direction: column;
+    background: #f4f6fa;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-user-mobile-sheet-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+    min-height: min-content;
+    padding: 0 1rem 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .settings-user-mobile-sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    padding: 0.35rem 0 0.15rem;
+  }
+
+  .settings-user-mobile-sheet-accent {
+    width: 4px;
+    height: 28px;
+    border-radius: 4px;
+    background: var(--blue-600);
+    flex-shrink: 0;
+  }
+
+  .settings-user-mobile-sheet-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    font-family: 'Satoshi', 'Inter', sans-serif;
+  }
+
+  .settings-user-mobile-sheet-close {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--blue-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+
+  .settings-user-mobile-sheet-close:hover {
+    background: var(--blue-100);
+  }
+
+  .settings-user-mobile-sheet-card {
+    background: var(--white);
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.25rem 1.75rem;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--border);
+    flex: 1;
+    min-height: 0;
+  }
+
+  .settings-dashboard .settings-user-mobile-sheet .settings-profile-image-section {
+    display: flex !important;
+    flex-direction: row;
+    margin-bottom: 1.5rem;
+  }
+
+  .settings-dashboard .settings-user-mobile-sheet .settings-form-actions {
+    margin-top: 0.5rem;
+  }
+
+  .settings-dashboard .settings-user-mobile-sheet .settings-save-btn {
+    width: 100%;
+  }
+
+  /* KYC mobile sheet: single-column document uploads (mockup) */
+  .settings-dashboard .settings-kyc-mobile-sheet-card .settings-kyc-documents-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .settings-dashboard .settings-kyc-mobile-sheet-card .settings-kyc-document-upload {
+    max-width: 100%;
+  }
+
+  .settings-dashboard .settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 0;
+    padding: 0 1.25rem 1rem;
+    max-width: 100%;
+  }
+
+  .settings-dashboard .settings-categories {
+    flex-direction: column !important;
+    overflow: visible;
+    padding-bottom: 0;
+    gap: 0;
+  }
+
+  .settings-dashboard .settings-category-btn,
+  .settings-dashboard .settings-category-item {
+    width: 100%;
+    flex-shrink: 1;
+    white-space: normal;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #f0f2f7;
+    padding: 1.125rem 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .settings-dashboard .settings-category-btn:last-child,
+  .settings-dashboard .settings-category-item:last-child {
+    border-bottom: none;
+  }
+
+  .settings-dashboard .settings-category-btn svg,
+  .settings-dashboard .settings-category-item svg {
+    color: #9ca3af;
+    stroke: #9ca3af;
+  }
+
+  .settings-dashboard .settings-category-label {
+    color: #374151;
+  }
+
+  .settings-dashboard .settings-category-btn {
+    color: #374151;
+  }
+
+  .settings-dashboard .settings-category-btn.active {
+    background: transparent;
+    color: var(--blue-600);
+    font-weight: 600;
+  }
+
+  .settings-dashboard .settings-category-btn.active svg {
+    color: var(--blue-600);
+    stroke: var(--blue-600);
+  }
+
+  .settings-dashboard .settings-details-panel {
+    margin-top: 0.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+  }
+}
+
+@keyframes settings-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Notifications sheet (mobile-first; usable on all sizes) */
+.settings-notification-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: settings-overlay-in 0.2s ease;
+}
+
+.settings-notification-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 70vh;
+  background: var(--white);
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding: 1.25rem 1.25rem 1.5rem;
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.12);
+}
+
+@media (min-width: 481px) {
+  .settings-notification-backdrop {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .settings-notification-sheet {
+    border-radius: 1rem;
+    max-height: min(420px, 80vh);
+  }
+}
+
+.settings-notification-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-notification-sheet-head h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.settings-notification-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.settings-notification-close:hover {
+  background: #e5e7eb;
+}
+
+.settings-notification-empty {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
