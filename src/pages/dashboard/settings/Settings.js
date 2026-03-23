@@ -13,7 +13,6 @@ import {
   Bell,
   LogOut,
   User,
-  Users,
   Menu,
   X,
   Pencil,
@@ -436,6 +435,12 @@ const Settings = () => {
       setSelectedCategory('User');
     }
   }, []);
+
+  useEffect(() => {
+    if (selectedCategory === 'Business Suite') {
+      setSelectedCategory('User');
+    }
+  }, [selectedCategory]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   /** Local preview (data URL) for a file chosen but not yet uploaded via Save */
   const [localPhotoPreview, setLocalPhotoPreview] = useState(null);
@@ -1098,14 +1103,6 @@ const Settings = () => {
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
-                <button
-                  type="button"
-                  className={`settings-category-btn ${selectedCategory === 'Business Suite' ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory('Business Suite')}
-                >
-                  <Users size={18} />
-                  Business Suite
-                </button>
                 <button
                   type="button"
                   className={`settings-category-btn ${selectedCategory === 'KYC Verification' ? 'active' : ''}`}
