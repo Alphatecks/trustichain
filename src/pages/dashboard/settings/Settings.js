@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -31,6 +31,8 @@ import { useSession } from '../../../context/SessionContext';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
+import toast from 'react-hot-toast';
 
 const normalizeCompanyLogoUrl = (data) => {
   const raw = data?.companyLogoUrl ?? data?.logoUrl ?? data?.company_logo_url ?? data?.logo_url ?? data?.url ?? '';
@@ -57,7 +59,7 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck }
 ];
 
-const SettingsUserProfileImage = ({ profileImage, userInitials, onImageChange }) => (
+const SettingsUserProfileImage = ({ profileImage, userInitials, onImageChange, fileInputRef }) => (
   <div className="settings-profile-image-section">
     <div className="settings-profile-image-wrapper">
       {profileImage ? (
@@ -66,7 +68,13 @@ const SettingsUserProfileImage = ({ profileImage, userInitials, onImageChange })
         <div className="settings-profile-image-placeholder">{userInitials}</div>
       )}
       <label className="settings-profile-edit-btn">
-        <input type="file" accept="image/*" onChange={onImageChange} style={{ display: 'none' }} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={onImageChange}
+          style={{ display: 'none' }}
+        />
         <Pencil size={14} />
       </label>
     </div>
@@ -300,6 +308,7 @@ const SettingsUserAccountForm = ({
   showLanguageDropdown,
   setShowLanguageDropdown,
   onSave,
+  isSaving,
 }) => (
   <div className="settings-form">
     <div className="settings-form-row">
@@ -383,8 +392,13 @@ const SettingsUserAccountForm = ({
     </div>
 
     <div className="settings-form-actions">
-      <button type="button" className="settings-save-btn" onClick={onSave}>
-        Save
+      <button
+        type="button"
+        className="settings-save-btn"
+        onClick={onSave}
+        disabled={isSaving}
+      >
+        {isSaving ? 'Saving…' : 'Save'}
       </button>
     </div>
   </div>
@@ -423,11 +437,15 @@ const Settings = () => {
     }
   }, []);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [profileImage, setProfileImage] = useState(null);
+  /** Local preview (data URL) for a file chosen but not yet uploaded via Save */
+  const [localPhotoPreview, setLocalPhotoPreview] = useState(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
+  const [isSavingUserProfile, setIsSavingUserProfile] = useState(false);
+  const profilePhotoInputRef = useRef(null);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
-  const [firstName, setFirstName] = useState('Shivani');
-  const [lastName, setLastName] = useState('Chauhan');
-  const [email, setEmail] = useState('helloshivani24@gmail.com');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [language, setLanguage] = useState('English');
 
   // KYC Verification state
@@ -470,23 +488,74 @@ const Settings = () => {
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingPhotoFile(file);
+    readFileAsDataUrl(file, setLocalPhotoPreview);
   };
 
-  const handleSave = () => {
-    console.log('Save settings:', {
-      firstName,
-      lastName,
-      email,
-      language
-    });
+  const handleSave = async () => {
+    const token = localStorage.getItem('token');
+    if (isSessionExpired || !token) {
+      toast.error('Please sign in to save.');
+      return;
+    }
+    if (!pendingPhotoFile) {
+      toast('Select a profile photo, then click Save to upload.');
+      return;
+    }
+
+    setIsSavingUserProfile(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', pendingPhotoFile);
+
+      const response = await fetch(getApiUrl('api/user/profile/photo'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result?.success) {
+        const nextUrl = result?.data?.avatarUrl;
+        if (nextUrl) {
+          setUserAvatar(nextUrl);
+        } else {
+          try {
+            const profileRes = await fetch(getApiUrl('api/user/profile'), {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            const profileJson = await profileRes.json().catch(() => ({}));
+            const refreshed = getProfileAvatarUrl(profileJson?.data);
+            if (refreshed) setUserAvatar(refreshed);
+          } catch {
+            /* keep prior avatar */
+          }
+        }
+        setLocalPhotoPreview(null);
+        setPendingPhotoFile(null);
+        if (profilePhotoInputRef.current) {
+          profilePhotoInputRef.current.value = '';
+        }
+        toast.success(result.message || 'Profile photo updated');
+      } else {
+        toast.error(
+          result?.message || result?.error || 'Failed to upload profile photo.'
+        );
+      }
+    } catch {
+      toast.error('Failed to upload profile photo.');
+    } finally {
+      setIsSavingUserProfile(false);
+    }
   };
 
   // Real-time date formatting - updates every minute
@@ -589,6 +658,12 @@ const Settings = () => {
         setUserInitials('');
         setUserRole('');
         setUserAvatar(null);
+        setLocalPhotoPreview(null);
+        setPendingPhotoFile(null);
+        if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = '';
+        setFirstName('');
+        setLastName('');
+        setEmail('');
         setIsLoadingUserProfile(false);
         return;
       }
@@ -596,6 +671,12 @@ const Settings = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
+          setFirstName('');
+          setLastName('');
+          setEmail('');
+          setLocalPhotoPreview(null);
+          setPendingPhotoFile(null);
+          if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = '';
           setIsLoadingUserProfile(false);
           return;
         }
@@ -643,8 +724,39 @@ const Settings = () => {
             const role = data.role || data.userType || data.accountType || '';
             setUserRole(role);
 
-            const avatar = data.avatar || data.profilePicture || data.image || data.photo || null;
-            setUserAvatar(avatar);
+            setUserAvatar(getProfileAvatarUrl(data));
+
+            let fn = (data.firstName || '').trim();
+            let ln = (data.lastName || '').trim();
+            if (!fn && !ln && fullName && typeof fullName === 'string') {
+              const parts = fullName.trim().split(/\s+/).filter(Boolean);
+              if (parts.length >= 2) {
+                fn = parts[0];
+                ln = parts.slice(1).join(' ');
+              } else if (parts.length === 1) {
+                fn = parts[0];
+              }
+            }
+            setFirstName(fn);
+            setLastName(ln);
+            setEmail(
+              String(
+                data.email ??
+                  data.emailAddress ??
+                  data.userEmail ??
+                  data.user?.email ??
+                  ''
+              ).trim()
+            );
+
+            const lang =
+              data.language ||
+              data.preferredLanguage ||
+              data.locale ||
+              data.settings?.language;
+            if (lang && typeof lang === 'string') {
+              setLanguage(lang);
+            }
           }
         }
       } catch (error) {
@@ -675,10 +787,13 @@ const Settings = () => {
     };
   }, [selectedCategory]);
 
+  const displayProfileImage = localPhotoPreview || userAvatar;
+
   const userEditorProps = {
-    profileImage,
+    profileImage: displayProfileImage,
     userInitials,
     onImageChange: handleImageUpload,
+    fileInputRef: profilePhotoInputRef,
     firstName,
     setFirstName,
     lastName,
@@ -690,6 +805,7 @@ const Settings = () => {
     showLanguageDropdown,
     setShowLanguageDropdown,
     onSave: handleSave,
+    isSaving: isSavingUserProfile,
   };
 
   const kycEditorProps = {
@@ -1008,6 +1124,7 @@ const Settings = () => {
                       profileImage={userEditorProps.profileImage}
                       userInitials={userEditorProps.userInitials}
                       onImageChange={userEditorProps.onImageChange}
+                      fileInputRef={userEditorProps.fileInputRef}
                     />
                     <div className="settings-user-form-desktop">
                       <SettingsUserAccountForm
@@ -1022,6 +1139,7 @@ const Settings = () => {
                         showLanguageDropdown={userEditorProps.showLanguageDropdown}
                         setShowLanguageDropdown={userEditorProps.setShowLanguageDropdown}
                         onSave={userEditorProps.onSave}
+                        isSaving={userEditorProps.isSaving}
                       />
                     </div>
                   </div>
@@ -1052,6 +1170,7 @@ const Settings = () => {
                           profileImage={userEditorProps.profileImage}
                           userInitials={userEditorProps.userInitials}
                           onImageChange={userEditorProps.onImageChange}
+                          fileInputRef={userEditorProps.fileInputRef}
                         />
                         <SettingsUserAccountForm
                           firstName={userEditorProps.firstName}
@@ -1065,6 +1184,7 @@ const Settings = () => {
                           showLanguageDropdown={userEditorProps.showLanguageDropdown}
                           setShowLanguageDropdown={userEditorProps.setShowLanguageDropdown}
                           onSave={userEditorProps.onSave}
+                          isSaving={userEditorProps.isSaving}
                         />
                       </div>
                     </div>

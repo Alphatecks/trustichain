@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -579,6 +580,7 @@ const MyEscrow = () => {
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
         setUserRole('Freelancer');
+        setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
       }
@@ -630,7 +632,7 @@ const MyEscrow = () => {
             
             setUserInitials(initials);
             setUserRole(data.role || 'Freelancer');
-            if (data.avatar) setUserAvatar(data.avatar);
+            setUserAvatar(getProfileAvatarUrl(data));
           }
         }
       } catch (error) {

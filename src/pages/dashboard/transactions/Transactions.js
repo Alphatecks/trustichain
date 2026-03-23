@@ -54,6 +54,7 @@ import './Transactions.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -771,6 +772,7 @@ const Transactions = () => {
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
         setUserRole('Freelancer');
+        setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
       }
@@ -778,6 +780,7 @@ const Transactions = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
+          setUserAvatar(null);
           setIsLoadingUserProfile(false);
           return;
         }
@@ -816,6 +819,7 @@ const Transactions = () => {
             // Set user role if available
             const role = data.role || data.userRole || 'Freelancer';
             setUserRole(role);
+            setUserAvatar(getProfileAvatarUrl(data));
           }
         }
       } catch (error) {
@@ -3065,7 +3069,13 @@ const Transactions = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
                   {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
@@ -4756,7 +4766,13 @@ const Transactions = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
                   {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}

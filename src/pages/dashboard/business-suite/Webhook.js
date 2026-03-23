@@ -33,6 +33,7 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateWebhookModal from '../../../components/CreateWebhookModal';
@@ -258,7 +259,7 @@ const Webhook = () => {
           }
           setUserInitials(initials);
           setUserRole(data.role || data.userType || data.accountType || '');
-          setUserAvatar(data.avatar || data.profilePicture || data.image || data.photo || null);
+          setUserAvatar(getProfileAvatarUrl(data));
         }
       })
       .catch(() => {})

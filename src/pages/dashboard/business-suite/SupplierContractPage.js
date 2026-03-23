@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import SupplierContract from './SupplierContract';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
@@ -584,8 +585,7 @@ const SupplierContractPage = () => {
             setUserInitials(initials);
             const role = data.role || data.userType || data.accountType || '';
             setUserRole(role);
-            const avatar = data.avatar || data.profilePicture || data.image || null;
-            setUserAvatar(avatar);
+            setUserAvatar(getProfileAvatarUrl(data));
           }
         }
       } catch (error) {

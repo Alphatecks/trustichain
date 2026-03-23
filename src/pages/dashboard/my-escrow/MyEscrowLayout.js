@@ -28,6 +28,7 @@ import {
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -103,6 +104,7 @@ const MyEscrowLayout = ({ children }) => {
   const [kycComplete] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
+  const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [formattedToday, setFormattedToday] = useState('');
 
@@ -223,6 +225,7 @@ const MyEscrowLayout = ({ children }) => {
         console.log('Session expired, using fallback user profile');
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
+        setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
       }
@@ -282,6 +285,7 @@ const MyEscrowLayout = ({ children }) => {
             }
             
             setUserInitials(initials);
+            setUserAvatar(getProfileAvatarUrl(data));
           } else {
             console.warn('Unexpected user profile response shape. Expected success and data.', result);
           }
@@ -455,7 +459,13 @@ const MyEscrowLayout = ({ children }) => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
                   {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}

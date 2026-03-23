@@ -56,6 +56,7 @@ import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -1231,9 +1232,7 @@ const Dashboard = () => {
             const role = data.role || data.userType || data.accountType || '';
             setUserRole(role);
 
-            // Extract user avatar/image from profile data
-            const avatar = data.avatar || data.profilePicture || data.image || data.photo || null;
-            setUserAvatar(avatar);
+            setUserAvatar(getProfileAvatarUrl(data));
           } else {
             console.warn('Unexpected user profile response shape. Expected success and data.', result);
           }

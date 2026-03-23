@@ -387,6 +387,15 @@
   background: var(--blue-500);
 }
 
+.settings-save-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.settings-save-btn:disabled:hover {
+  background: var(--blue-600);
+}
+
 /* KYC Verification Styles */
 .settings-kyc-selfie-section {
   display: flex;
