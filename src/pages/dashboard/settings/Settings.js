@@ -407,10 +407,6 @@ const Settings = () => {
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [formattedToday, setFormattedToday] = useState('');
-  const [kycComplete] = useState(() => {
-    const stored = localStorage.getItem('kycComplete');
-    return stored ? JSON.parse(stored) : true;
-  });
   const [businessKycComplete, setBusinessKycComplete] = useState(() => {
     const stored = localStorage.getItem('businessKycComplete');
     return stored ? JSON.parse(stored) : false;
@@ -514,7 +510,7 @@ const Settings = () => {
   }, []);
 
   const isKycCompleteForAccount =
-    accountType === 'Business Suite' ? businessKycComplete : kycComplete;
+    accountType === 'Business Suite' ? businessKycComplete : true;
 
   useEffect(() => {
     localStorage.setItem('dashboard_account_type', accountType);

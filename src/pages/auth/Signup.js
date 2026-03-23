@@ -62,9 +62,8 @@ const Signup = () => {
         return;
       }
 
-      toast.success('Registration successful! Please complete KYC verification.');
-      // Set KYC as incomplete for new users
-      localStorage.setItem('kycComplete', 'false');
+      toast.success('Registration successful! Welcome to TrustiChain.');
+      localStorage.setItem('kycComplete', 'true');
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.message || 'An error occurred during registration');
