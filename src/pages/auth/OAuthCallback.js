@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../utils/config';
 
@@ -71,8 +71,54 @@ function looksLikeJwt(value) {
 }
 
 function looksLikeTokenString(value) {
-  if (typeof value !== 'string' || value.length < 20) return false;
+  if (typeof value !== 'string' || value.length < 10) return false;
   return looksLikeJwt(value) || /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(value);
+}
+
+/** Strip trailing slashes for redirect_uri parity with OAuth authorize request. */
+function normalizeCallbackPathname(pathname) {
+  if (!pathname || pathname === '/') return '/';
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
+function buildOAuthRedirectUri(pathname) {
+  if (typeof window === 'undefined') return '';
+  const p = normalizeCallbackPathname(pathname);
+  return `${window.location.origin}${p}`;
+}
+
+/**
+ * Deep scan for session strings (handles nested data.tokens.accessToken, etc.)
+ */
+function deepFindAuthToken(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 6) return null;
+  const priorityKeys = [
+    'accessToken',
+    'access_token',
+    'token',
+    'jwt',
+    'idToken',
+    'id_token',
+    'authToken',
+    'bearerToken',
+    'sessionToken',
+    'session_token',
+  ];
+  for (const k of priorityKeys) {
+    if (!(k in obj)) continue;
+    const v = obj[k];
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t.length >= 8) return t;
+    }
+  }
+  for (const v of Object.values(obj)) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      const t = deepFindAuthToken(v, depth + 1);
+      if (t) return t;
+    }
+  }
+  return null;
 }
 
 /**
@@ -125,16 +171,30 @@ function extractAndStoreToken(data) {
     data.session?.accessToken ||
     data.session?.access_token;
 
+  if (typeof token === 'string') {
+    token = token.trim();
+  }
+
   if (typeof token === 'string' && token.length > 0) {
     localStorage.setItem('token', token);
     return token;
   }
 
+  const deep = deepFindAuthToken(data);
+  if (deep) {
+    localStorage.setItem('token', deep);
+    console.log('OAuth: token stored via deep key scan');
+    return deep;
+  }
+
   const fallback = extractTokenFallback(data);
   if (fallback) {
-    localStorage.setItem('token', fallback);
-    console.log('OAuth: token stored via fallback key scan');
-    return fallback;
+    const t = typeof fallback === 'string' ? fallback.trim() : fallback;
+    if (t) {
+      localStorage.setItem('token', t);
+      console.log('OAuth: token stored via fallback key scan');
+      return t;
+    }
   }
   return null;
 }
@@ -227,16 +287,25 @@ async function verifySessionThenDashboard(navigate, oauthData, successMessage) {
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const handleOAuthCallback = useCallback(
-    async (code) => {
+    async (code, exchangeMeta) => {
+      const redirect_uri =
+        exchangeMeta?.redirectUri || buildOAuthRedirectUri(location.pathname);
+      const state = exchangeMeta?.state;
       try {
         const response = await fetch(getApiUrl('api/auth/google/callback'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({
+            code,
+            redirect_uri,
+            redirectUri: redirect_uri,
+            ...(state ? { state } : {}),
+          }),
         });
 
         let data = {};
@@ -289,7 +358,7 @@ const OAuthCallback = () => {
         navigate('/login', { replace: true });
       }
     },
-    [navigate]
+    [navigate, location.pathname]
   );
 
   useEffect(() => {
@@ -308,7 +377,9 @@ const OAuthCallback = () => {
         return;
       }
       oauthCodeExchangeStarted.add(code);
-      handleOAuthCallback(code);
+      const redirectUri = buildOAuthRedirectUri(location.pathname);
+      const state = searchParams.get('state') || undefined;
+      handleOAuthCallback(code, { redirectUri, state });
       return;
     }
 
@@ -346,7 +417,7 @@ const OAuthCallback = () => {
       toast.error('Missing authorization code or token. Please try signing in again.');
       navigate('/login', { replace: true });
     }
-  }, [searchParams, navigate, handleOAuthCallback]);
+  }, [searchParams, navigate, handleOAuthCallback, location.pathname]);
 
   return (
     <div

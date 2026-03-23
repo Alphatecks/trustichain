@@ -54,7 +54,9 @@ function AppContent() {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
     if (!code || code.length < 10) return;
-    const fallbackPaths = ['/', '/dashboard', '/login', '/signup', '/auth/callback'];
+    // Do not rewrite /auth/callback here: Google issues the code for an exact redirect_uri;
+    // rewriting would break token exchange (invalid JWT on profile).
+    const fallbackPaths = ['/', '/dashboard', '/login', '/signup'];
     if (!fallbackPaths.includes(path)) return;
     navigate(`/auth/google/callback${location.search}${location.hash || ''}`, { replace: true });
   }, [path, location.search, location.hash, navigate]);
