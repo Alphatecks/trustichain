@@ -141,6 +141,19 @@ const businessSteps = [
   { label: 'Compliance', detail: 'Compliance' }
 ];
 
+function readStoredBoolean(key, defaultValue) {
+  try {
+    const s = localStorage.getItem(key);
+    if (s == null || s === '') return defaultValue;
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    const parsed = JSON.parse(s);
+    return typeof parsed === 'boolean' ? parsed : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
   const date = new Date(isoString);
@@ -176,15 +189,12 @@ const Dashboard = () => {
   const { isSessionExpired } = useSession();
   const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
   const [currentStep, setCurrentStep] = useState(0);
-  const [kycComplete, setKycComplete] = useState(() => {
-    // Check localStorage first, default to true if KYC was previously completed
-    const stored = localStorage.getItem('kycComplete');
-    return stored ? JSON.parse(stored) : true;
-  });
-  const [businessKycComplete, setBusinessKycComplete] = useState(() => {
-    const stored = localStorage.getItem('businessKycComplete');
-    return stored ? JSON.parse(stored) : false;
-  });
+  const [kycComplete, setKycComplete] = useState(() =>
+    readStoredBoolean('kycComplete', true)
+  );
+  const [businessKycComplete, setBusinessKycComplete] = useState(() =>
+    readStoredBoolean('businessKycComplete', false)
+  );
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [isSubmittingBusinessKyc, setIsSubmittingBusinessKyc] = useState(false);
   const [businessCompanyName, setBusinessCompanyName] = useState('');

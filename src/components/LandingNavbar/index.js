@@ -6,6 +6,7 @@ import './index.css';
 
 const LandingNavbar = () => {
   const location = useLocation();
+  const path = (location.pathname || '/').replace(/\/+$/, '') || '/';
   const { toggleTheme, isDark } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -29,9 +30,9 @@ const LandingNavbar = () => {
   };
 
   // Hide navbar on dashboard pages (dashboard, my-escrow, transactions)
-  const isDashboardPage = location.pathname === '/dashboard' || 
-                          location.pathname === '/my-escrow' || 
-                          location.pathname === '/transactions' ||
+  const isDashboardPage = path === '/dashboard' ||
+                          path === '/my-escrow' ||
+                          path === '/transactions' ||
                           location.pathname.startsWith('/escrow/');
 
   if (isDashboardPage) {

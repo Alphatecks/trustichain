@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
 import { ThemeProvider } from './context/ThemeContext';
@@ -37,21 +37,68 @@ import useAutoLogout from './hooks/useAutoLogout';
 import BusinessEmailGate from './components/BusinessEmailGate';
 import './App.css';
 
+/** Strip trailing slashes for stable route checks (e.g. /dashboard/ vs /dashboard). */
+function normalizePathname(pathname) {
+  if (!pathname || pathname === '/') return '/';
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
 function AppContent() {
   const location = useLocation();
-  
+  const navigate = useNavigate();
+  const path = normalizePathname(location.pathname);
+
+  // If Google redirects to the wrong URL (e.g. /dashboard?code=...), send the code to the real handler.
+  useEffect(() => {
+    if (path === '/auth/google/callback') return;
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    if (!code || code.length < 10) return;
+    const fallbackPaths = ['/', '/dashboard', '/login', '/signup'];
+    if (!fallbackPaths.includes(path)) return;
+    navigate(`/auth/google/callback${location.search}${location.hash || ''}`, { replace: true });
+  }, [path, location.search, location.hash, navigate]);
+
   // Enable auto-logout after 3600 seconds (1 hour) of inactivity
   useAutoLogout(3600000);
-  
+
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname]);
-  
+
   // Hide navbar on auth pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/forgot-password' || location.pathname === '/two-factor' || location.pathname === '/otp' || location.pathname === '/auth/google/callback' || location.pathname === '/dashboard' || location.pathname === '/my-escrow' || location.pathname === '/transactions' || location.pathname === '/savings' || location.pathname === '/dispute' || location.pathname.startsWith('/dispute/') || location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/') || location.pathname === '/trusticard' || location.pathname === '/payroll' || location.pathname.startsWith('/payroll/') || location.pathname === '/supplier-contract' || location.pathname === '/api-keys' || location.pathname === '/sandbox-environment' || location.pathname === '/webhook' || location.pathname === '/settings';
+  const isAuthPage =
+    path === '/login' ||
+    path === '/signup' ||
+    path === '/forgot-password' ||
+    path === '/two-factor' ||
+    path === '/otp' ||
+    path === '/auth/google/callback' ||
+    path === '/dashboard' ||
+    path === '/my-escrow' ||
+    path === '/transactions' ||
+    path === '/savings' ||
+    path === '/dispute' ||
+    location.pathname.startsWith('/dispute/') ||
+    path === '/business-dispute' ||
+    location.pathname.startsWith('/business-dispute/') ||
+    path === '/trusticard' ||
+    path === '/payroll' ||
+    location.pathname.startsWith('/payroll/') ||
+    path === '/supplier-contract' ||
+    path === '/api-keys' ||
+    path === '/sandbox-environment' ||
+    path === '/webhook' ||
+    path === '/settings';
   // Use LandingNavbar for landing pages, Navbar for app pages
-  const isLandingPage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/pricing' || location.pathname === '/waitlist' || location.pathname === '/learn-more' || location.pathname === '/privacy-policy';
+  const isLandingPage =
+    path === '/' ||
+    path === '/features' ||
+    path === '/pricing' ||
+    path === '/waitlist' ||
+    path === '/learn-more' ||
+    path === '/privacy-policy';
   const NavbarComponent = isLandingPage ? LandingNavbar : Navbar;
 
   return (

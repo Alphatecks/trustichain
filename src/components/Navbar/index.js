@@ -11,6 +11,7 @@ const Navbar = () => {
   const { toggleTheme, isDark } = useTheme();
   const location = useLocation();
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const path = (location.pathname || '/').replace(/\/+$/, '') || '/';
 
   const formatAddress = (address) => {
     if (!address) return '';
@@ -18,9 +19,9 @@ const Navbar = () => {
   };
 
   // Hide navbar on dashboard pages (dashboard, my-escrow, transactions)
-  const isDashboardPage = location.pathname === '/dashboard' || 
-                          location.pathname === '/my-escrow' || 
-                          location.pathname === '/transactions' ||
+  const isDashboardPage = path === '/dashboard' ||
+                          path === '/my-escrow' ||
+                          path === '/transactions' ||
                           location.pathname.startsWith('/escrow/');
 
   if (isDashboardPage) {
