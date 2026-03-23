@@ -2980,8 +2980,9 @@ const Dashboard = () => {
     return mockIllustration;
   }, [currentStep, accountType]);
 
+  // Personal suite: skip KYC wizard and go straight to the dashboard. Business Suite still uses business KYC.
   const isKycCompleteForAccount =
-    accountType === 'Business Suite' ? businessKycComplete : kycComplete;
+    accountType === 'Business Suite' ? businessKycComplete : true;
 
   const steps = useMemo(() => {
     return accountType === 'Business Suite' ? businessSteps : personalSteps;
