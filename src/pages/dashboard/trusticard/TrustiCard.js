@@ -46,6 +46,7 @@ import { useSession } from '../../../context/SessionContext';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 
@@ -357,6 +358,7 @@ const TrustiCard = () => {
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
         setUserRole('User');
+        setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
       }
@@ -364,6 +366,7 @@ const TrustiCard = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
+          setUserAvatar(null);
           setIsLoadingUserProfile(false);
           return;
         }
@@ -403,8 +406,7 @@ const TrustiCard = () => {
             const role = data.role || data.userRole || 'User';
             setUserRole(role);
             
-            // Set avatar if available
-            setUserAvatar(data.avatar || null);
+            setUserAvatar(getProfileAvatarUrl(data));
           }
         }
       } catch (error) {
@@ -1124,7 +1126,13 @@ const TrustiCard = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
                   {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}

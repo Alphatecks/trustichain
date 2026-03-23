@@ -37,6 +37,7 @@ import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -436,12 +437,14 @@ const DisputeDetail = () => {
     const fetchUserProfile = async () => {
       try {
         if (isSessionExpired) {
+          setUserAvatar(null);
           setIsLoadingUserProfile(false);
           return;
         }
 
         const token = localStorage.getItem('token');
         if (!token) {
+          setUserAvatar(null);
           setIsLoadingUserProfile(false);
           return;
         }
@@ -466,7 +469,7 @@ const DisputeDetail = () => {
 
             setUserFullName(fullName);
             setUserInitials(getInitials(fullName));
-            setUserAvatar(profile.avatar || null);
+            setUserAvatar(getProfileAvatarUrl(profile));
             setUserRole(profile.role || profile.userRole || '');
           }
         }
@@ -1384,7 +1387,13 @@ const DisputeDetail = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
             </div>
           </div>
         </header>

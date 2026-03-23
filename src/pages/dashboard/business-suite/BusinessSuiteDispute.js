@@ -35,6 +35,7 @@ import './BusinessSuiteDispute.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -284,6 +285,7 @@ const BusinessSuiteDispute = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token || isSessionExpired) {
+      setUserAvatar(null);
       setIsLoadingUserProfile(false);
       return;
     }
@@ -301,7 +303,7 @@ const BusinessSuiteDispute = () => {
           setUserFullName(name);
           const parts = name.trim().split(/\s+/);
           setUserInitials(parts.length >= 2 ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() : (parts[0]?.[0] || '')?.toUpperCase() || '');
-          setUserAvatar(d.avatar || null);
+          setUserAvatar(getProfileAvatarUrl(d));
           setUserRole(d.role || d.userRole || '');
         }
         if (kyc?.success && kyc?.data) {

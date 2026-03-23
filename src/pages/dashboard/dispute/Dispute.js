@@ -56,6 +56,7 @@ import './DisputeDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
+import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -786,6 +787,7 @@ const Dispute = () => {
         setUserFullName('Sarah Chen');
         setUserInitials('SC');
         setUserRole('Personal Account');
+        setUserAvatar(null);
         setIsLoadingUserProfile(false);
         return;
       }
@@ -793,6 +795,7 @@ const Dispute = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
+          setUserAvatar(null);
           setIsLoadingUserProfile(false);
           return;
         }
@@ -832,8 +835,7 @@ const Dispute = () => {
             const role = data.role || data.userRole || 'Personal Account';
             setUserRole(role);
             
-            // Set avatar if available
-            setUserAvatar(data.avatar || null);
+            setUserAvatar(getProfileAvatarUrl(data));
           }
         }
       } catch (error) {
@@ -1128,7 +1130,13 @@ const Dispute = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                ) : (
+                  userInitials
+                )}
+              </div>
               <div className="user-info">
                 <span className="user-name">
                   {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
