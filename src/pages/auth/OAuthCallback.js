@@ -286,6 +286,35 @@ function parseHashParams() {
   return new URLSearchParams(raw);
 }
 
+/** Strip #fragment from URL without navigation (tokens leave the visible URL). */
+function clearOAuthHashFromUrl() {
+  if (typeof window === 'undefined') return;
+  const { pathname, search } = window.location;
+  window.history.replaceState(null, '', `${pathname}${search}`);
+}
+
+async function postEnsureProfile(accessToken) {
+  const t = normalizeBearerToken(accessToken);
+  if (!t) return { ok: false };
+  try {
+    const res = await fetch(getApiUrl('api/auth/ensure-profile'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${t}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.warn('ensure-profile:', res.status, body);
+    }
+    return { ok: res.ok, body };
+  } catch (e) {
+    console.warn('ensure-profile request failed:', e);
+    return { ok: false };
+  }
+}
+
 /** Only treat explicit success values as true (avoid truthy "false"). */
 function isQueryParamSuccessTrue(raw) {
   if (raw == null || raw === '') return false;
@@ -484,13 +513,31 @@ const OAuthCallback = () => {
     }
 
     const hashParams = parseHashParams();
-    const hashAccess = hashParams.get('access_token') || hashParams.get('id_token');
+    const hashAccess =
+      hashParams.get('access_token') || hashParams.get('id_token');
+    const hashRefresh = hashParams.get('refresh_token');
     if (hashAccess && !oauthHashTokenHandled.has(hashAccess)) {
       oauthHashTokenHandled.add(hashAccess);
       storeSessionToken(hashAccess);
-      logBearerTokenForDebug('Google sign-in (hash fragment) — token stored');
-      applyDashboardPrefsFromAuthResponse({});
-      verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
+      if (hashRefresh) {
+        localStorage.setItem(
+          'refresh_token',
+          normalizeBearerToken(hashRefresh)
+        );
+      }
+      clearOAuthHashFromUrl();
+      (async () => {
+        await postEnsureProfile(hashAccess);
+        logBearerTokenForDebug(
+          'Google sign-in (hash: access_token / refresh_token) — token stored'
+        );
+        applyDashboardPrefsFromAuthResponse({});
+        await verifySessionThenDashboard(
+          navigate,
+          {},
+          'Successfully signed in with Google!'
+        );
+      })();
       return;
     }
 
