@@ -145,6 +145,23 @@ function parseHashParams() {
   return new URLSearchParams(raw);
 }
 
+/** Only treat explicit success values as true (avoid truthy "false"). */
+function isQueryParamSuccessTrue(raw) {
+  if (raw == null || raw === '') return false;
+  if (raw === true) return true;
+  const s = String(raw).trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes';
+}
+
+function getOAuthTokenFromSearchParams(searchParams) {
+  const keys = ['token', 'access_token', 'accessToken', 'jwt', 'id_token'];
+  for (const k of keys) {
+    const v = searchParams.get(k);
+    if (typeof v === 'string' && v.length > 0) return v;
+  }
+  return null;
+}
+
 const goToDashboard = (navigate, message) => {
   if (message) toast.success(message);
   navigate('/dashboard', { replace: true });
@@ -305,11 +322,11 @@ const OAuthCallback = () => {
       return;
     }
 
-    const token = searchParams.get('token');
-    const success = searchParams.get('success');
+    const tokenFromQuery = getOAuthTokenFromSearchParams(searchParams);
+    const successOk = isQueryParamSuccessTrue(searchParams.get('success'));
 
-    if (token) {
-      localStorage.setItem('token', token);
+    if (tokenFromQuery) {
+      localStorage.setItem('token', tokenFromQuery);
       const kyc = searchParams.get('kycComplete') || searchParams.get('kyc');
       if (kyc === '1' || kyc === 'true') {
         localStorage.setItem('kycComplete', 'true');
@@ -319,9 +336,12 @@ const OAuthCallback = () => {
         applyDashboardPrefsFromAuthResponse({});
       }
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
-    } else if (success && localStorage.getItem('token')) {
+    } else if (successOk && localStorage.getItem('token')) {
       applyDashboardPrefsFromAuthResponse({});
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
+    } else if (successOk) {
+      navigate('/dashboard', { replace: true });
+      return;
     } else if (!hashAccess) {
       toast.error('Missing authorization code or token. Please try signing in again.');
       navigate('/login', { replace: true });
