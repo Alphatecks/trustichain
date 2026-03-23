@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -48,6 +49,26 @@ import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import AddPayrollModal from '../../../components/AddPayrollModal';
 import TransactionDetailModal from './TransactionDetailModal';
+
+const INITIAL_ADD_PAYROLL_FORM = {
+  name: '',
+  currency: '',
+  defaultSalaryType: '',
+  salaryAmount: '',
+  disbursementMode: 'auto',
+  allowanceAllocation: false,
+  addAmount: '',
+  jobTitle: '',
+  email: '',
+  employmentType: 'fulltime',
+  status: '',
+  dateJoined: '',
+  companyName: 'Angelo Group',
+  companyEmail: 'angelogroup@trustichain.org',
+  cycleDate: 'Monthly',
+  startDate: '3rd Dec 2025',
+  endDate: '25 Dec 2026',
+};
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -142,24 +163,7 @@ const Payroll = () => {
   const [showAddPayrollModalMobile, setShowAddPayrollModalMobile] = useState(false);
   const [fundAmount, setFundAmount] = useState('24,567.89');
   const [addPayrollStep, setAddPayrollStep] = useState(1);
-  const [addPayrollForm, setAddPayrollForm] = useState({
-    currency: '',
-    defaultSalaryType: '',
-    salaryAmount: '',
-    disbursementMode: 'auto',
-    allowanceAllocation: false,
-    addAmount: '',
-    jobTitle: '',
-    email: '',
-    employmentType: 'fulltime',
-    status: '',
-    dateJoined: '',
-    companyName: 'Angelo Group',
-    companyEmail: 'angelogroup@trustichain.org',
-    cycleDate: 'Monthly',
-    startDate: '3rd Dec 2025',
-    endDate: '25 Dec 2026'
-  });
+  const [addPayrollForm, setAddPayrollForm] = useState(() => ({ ...INITIAL_ADD_PAYROLL_FORM }));
   const [teamMemberStep, setTeamMemberStep] = useState(1);
   const [teamMemberForm, setTeamMemberForm] = useState({
     name: '',
@@ -539,6 +543,24 @@ const Payroll = () => {
     const result = await res.json().catch(() => ({}));
     if (!result?.success) throw new Error(result?.message || 'Failed to create payroll');
     setPayrollsRefreshKey((k) => k + 1);
+  };
+
+  const buildMobileAddPayrollPayload = () => ({
+    name: addPayrollForm.name.trim() || addPayrollForm.companyName || 'New Payroll',
+    companyName: addPayrollForm.companyName,
+    companyEmail: addPayrollForm.companyEmail,
+    payrollCycle: addPayrollForm.cycleDate || 'Monthly',
+    payrollAmount: addPayrollForm.salaryAmount || '0',
+    startDate: addPayrollForm.startDate,
+    endDate: addPayrollForm.endDate,
+    releaseDate: addPayrollForm.endDate,
+    items: [],
+  });
+
+  const closeAddPayrollModalMobile = () => {
+    setShowAddPayrollModalMobile(false);
+    setAddPayrollStep(1);
+    setAddPayrollForm({ ...INITIAL_ADD_PAYROLL_FORM });
   };
 
   const handleReleasePayroll = (payrollId) => {
@@ -980,11 +1002,9 @@ const Payroll = () => {
                   <h2 className="add-new-payroll-title-mobile">Add new payroll</h2>
                 </div>
                 <button
+                  type="button"
                   className="add-new-payroll-close-mobile"
-                  onClick={() => {
-                    setShowAddPayrollModalMobile(false);
-                    setAddPayrollStep(1);
-                  }}
+                  onClick={closeAddPayrollModalMobile}
                 >
                   <X size={20} />
                 </button>
@@ -1007,6 +1027,20 @@ const Payroll = () => {
               {addPayrollStep === 1 && (
                 <div className="add-new-payroll-form-mobile">
                   <h3 className="add-new-payroll-form-title-mobile">Payroll Detail</h3>
+
+                  <div className="add-new-payroll-field-mobile">
+                    <label className="add-new-payroll-label-mobile">Payroll name</label>
+                    <input
+                      type="text"
+                      className="add-new-payroll-input-mobile"
+                      placeholder="e.g. Engineering — March 2025"
+                      value={addPayrollForm.name}
+                      onChange={(e) =>
+                        setAddPayrollForm({ ...addPayrollForm, name: e.target.value })
+                      }
+                      autoComplete="off"
+                    />
+                  </div>
                   
                   <div className="add-new-payroll-field-mobile">
                     <label className="add-new-payroll-label-mobile">Currency</label>
@@ -1099,9 +1133,16 @@ const Payroll = () => {
                     />
                   </div>
 
-                  <button 
+                  <button
+                    type="button"
                     className="add-new-payroll-submit-btn-mobile"
-                    onClick={() => setAddPayrollStep(2)}
+                    onClick={() => {
+                      if (!addPayrollForm.name.trim()) {
+                        toast.error('Please enter a payroll name');
+                        return;
+                      }
+                      setAddPayrollStep(2);
+                    }}
                   >
                     <div className="add-new-payroll-submit-icon-mobile">
                       <ArrowRight size={16} />
@@ -1300,6 +1341,12 @@ const Payroll = () => {
                   
                   <div className="add-new-payroll-confirmation-section-mobile">
                     <div className="add-new-payroll-confirmation-item-mobile">
+                      <span className="add-new-payroll-confirmation-label-mobile">Payroll name:</span>
+                      <span className="add-new-payroll-confirmation-value-mobile">
+                        {addPayrollForm.name.trim() || '—'}
+                      </span>
+                    </div>
+                    <div className="add-new-payroll-confirmation-item-mobile">
                       <span className="add-new-payroll-confirmation-label-mobile">Company Name:</span>
                       <span className="add-new-payroll-confirmation-value-mobile">{addPayrollForm.companyName}</span>
                     </div>
@@ -1353,11 +1400,21 @@ const Payroll = () => {
                     </div>
                   </div>
 
-                  <button 
+                  <button
+                    type="button"
                     className="add-new-payroll-save-lock-btn-mobile"
-                    onClick={() => {
-                      setShowAddPayrollModalMobile(false);
-                      setAddPayrollStep(1);
+                    onClick={async () => {
+                      if (!addPayrollForm.name.trim()) {
+                        toast.error('Please enter a payroll name');
+                        return;
+                      }
+                      try {
+                        await handleCreatePayroll(buildMobileAddPayrollPayload());
+                        toast.success('Payroll created');
+                        closeAddPayrollModalMobile();
+                      } catch (err) {
+                        toast.error(err?.message || 'Failed to create payroll');
+                      }
                     }}
                   >
                     <div className="add-new-payroll-submit-icon-mobile">
