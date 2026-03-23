@@ -75,6 +75,60 @@ function looksLikeTokenString(value) {
   return looksLikeJwt(value) || /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(value);
 }
 
+/** Avoid "Bearer Bearer xxx" when sending Authorization headers. */
+function normalizeBearerToken(raw) {
+  if (typeof raw !== 'string') return '';
+  let s = raw.trim();
+  while (/^bearer\s+/i.test(s)) {
+    s = s.replace(/^bearer\s+/i, '').trim();
+  }
+  return s;
+}
+
+function storeSessionToken(raw) {
+  const t = normalizeBearerToken(raw);
+  if (!t) return null;
+  localStorage.setItem('token', t);
+  return t;
+}
+
+/** Debug: log JWT after Google sign-in (remove or gate for production if you no longer need it). */
+function logBearerTokenForDebug(context) {
+  const t = normalizeBearerToken(localStorage.getItem('token') || '');
+  if (!t) return;
+  console.log(`[TrustiChain auth] ${context}`);
+  console.log('  Bearer token:', t);
+  console.log('  Authorization header:', `Bearer ${t}`);
+}
+
+/**
+ * Last resort: find a JWT-shaped string in the JSON tree, preferring keys that look like auth fields.
+ */
+function findApiJwtInObject(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 12) return null;
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const t = findApiJwtInObject(item, depth + 1);
+      if (t) return t;
+    }
+    return null;
+  }
+  const keys = Object.keys(obj);
+  const score = (k) => (/token|jwt|access|bearer|auth|session|credential/i.test(k) ? 1 : 0);
+  keys.sort((a, b) => score(b) - score(a));
+  for (const k of keys) {
+    const v = obj[k];
+    if (typeof v === 'string') {
+      const t = normalizeBearerToken(v);
+      if (looksLikeJwt(t)) return t;
+    } else if (v && typeof v === 'object') {
+      const t = findApiJwtInObject(v, depth + 1);
+      if (t) return t;
+    }
+  }
+  return null;
+}
+
 /** Strip trailing slashes for redirect_uri parity with OAuth authorize request. */
 function normalizeCallbackPathname(pathname) {
   if (!pathname || pathname === '/') return '/';
@@ -95,6 +149,8 @@ function deepFindAuthToken(obj, depth = 0) {
   const priorityKeys = [
     'accessToken',
     'access_token',
+    'authentication_token',
+    'auth_token',
     'token',
     'jwt',
     'idToken',
@@ -108,12 +164,21 @@ function deepFindAuthToken(obj, depth = 0) {
     if (!(k in obj)) continue;
     const v = obj[k];
     if (typeof v === 'string') {
-      const t = v.trim();
+      const t = normalizeBearerToken(v);
       if (t.length >= 8) return t;
     }
   }
   for (const v of Object.values(obj)) {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (item && typeof item === 'object') {
+          const t = deepFindAuthToken(item, depth + 1);
+          if (t) return t;
+        }
+      }
+      continue;
+    }
+    if (v && typeof v === 'object') {
       const t = deepFindAuthToken(v, depth + 1);
       if (t) return t;
     }
@@ -133,6 +198,7 @@ function extractTokenFallback(data) {
     data.auth,
     data.result,
     data.session,
+    data.tokens,
     data.session && typeof data.session === 'object' ? data.session : null,
   ].filter((x) => x && typeof x === 'object');
 
@@ -142,7 +208,7 @@ function extractTokenFallback(data) {
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value !== 'string') continue;
       if (!keyPattern.test(key)) continue;
-      if (looksLikeTokenString(value)) return value;
+      if (looksLikeTokenString(value)) return normalizeBearerToken(value);
     }
   }
   return null;
@@ -150,52 +216,67 @@ function extractTokenFallback(data) {
 
 function extractAndStoreToken(data) {
   if (!data || typeof data !== 'object') {
-    return extractTokenFallback(data);
+    const fb = extractTokenFallback(data);
+    return fb ? storeSessionToken(fb) : null;
   }
 
-  let token =
+  let raw =
     data.token ||
     data.accessToken ||
     data.access_token ||
+    data.authentication_token ||
+    data.auth_token ||
     data.jwt ||
     data.data?.token ||
     data.data?.jwt ||
     data.data?.accessToken ||
     data.data?.access_token ||
+    data.data?.authentication_token ||
+    data.data?.auth_token ||
     data.user?.token ||
     data.user?.accessToken ||
     data.user?.access_token ||
+    data.user?.authentication_token ||
     data.auth?.token ||
     data.result?.token ||
     data.session?.token ||
     data.session?.accessToken ||
-    data.session?.access_token;
+    data.session?.access_token ||
+    data.tokens?.access_token ||
+    data.tokens?.accessToken;
 
-  if (typeof token === 'string') {
-    token = token.trim();
-  }
-
-  if (typeof token === 'string' && token.length > 0) {
-    localStorage.setItem('token', token);
-    return token;
+  if (typeof raw === 'string') {
+    const stored = storeSessionToken(raw);
+    if (stored) return stored;
   }
 
   const deep = deepFindAuthToken(data);
   if (deep) {
-    localStorage.setItem('token', deep);
-    console.log('OAuth: token stored via deep key scan');
-    return deep;
+    const stored = storeSessionToken(deep);
+    if (stored) {
+      console.log('OAuth: token stored via deep key scan');
+      return stored;
+    }
   }
 
   const fallback = extractTokenFallback(data);
   if (fallback) {
-    const t = typeof fallback === 'string' ? fallback.trim() : fallback;
-    if (t) {
-      localStorage.setItem('token', t);
+    const stored = storeSessionToken(fallback);
+    if (stored) {
       console.log('OAuth: token stored via fallback key scan');
-      return t;
+      return stored;
     }
   }
+
+  const jwtScan = findApiJwtInObject(data);
+  if (jwtScan) {
+    const stored = storeSessionToken(jwtScan);
+    if (stored) {
+      console.log('OAuth: token stored via JWT scan of callback JSON');
+      return stored;
+    }
+  }
+
   return null;
 }
 
@@ -236,7 +317,11 @@ function pickProfileUserFromBody(body) {
 }
 
 async function verifySessionThenDashboard(navigate, oauthData, successMessage) {
-  const token = localStorage.getItem('token');
+  const rawStored = localStorage.getItem('token') || '';
+  const token = normalizeBearerToken(rawStored);
+  if (token && token !== rawStored) {
+    localStorage.setItem('token', token);
+  }
   if (!token) {
     toast.error('No session token. Please sign in again.');
     navigate('/login', { replace: true });
@@ -308,16 +393,30 @@ const OAuthCallback = () => {
           }),
         });
 
+        const rawText = (await response.text()) || '';
         let data = {};
-        try {
-          data = await response.json();
-        } catch {
-          data = {};
+        let token = null;
+        const trimmedBody = rawText.trim();
+        const bodyAsJwt = trimmedBody ? normalizeBearerToken(trimmedBody) : '';
+        if (bodyAsJwt && looksLikeJwt(bodyAsJwt)) {
+          token = storeSessionToken(bodyAsJwt);
+        } else if (trimmedBody) {
+          try {
+            data = JSON.parse(rawText);
+          } catch {
+            data = {};
+          }
         }
 
         console.log('OAuth callback response:', data);
 
-        const token = extractAndStoreToken(data);
+        if (!token) {
+          token = extractAndStoreToken(data);
+        }
+        if (!token && trimmedBody) {
+          const t = normalizeBearerToken(trimmedBody);
+          if (looksLikeJwt(t)) token = storeSessionToken(t);
+        }
         const successFlag = isApiSuccessFlag(data);
         const treatAsSuccess = response.ok && (successFlag || !!token);
 
@@ -350,6 +449,7 @@ const OAuthCallback = () => {
           ? 'Account created! Welcome to TrustiChain.'
           : 'Successfully signed in with Google!';
 
+        logBearerTokenForDebug('Google sign-in (OAuth code exchange) — token stored');
         await verifySessionThenDashboard(navigate, data, msg);
       } catch (error) {
         console.error('OAuth callback error:', error);
@@ -387,7 +487,8 @@ const OAuthCallback = () => {
     const hashAccess = hashParams.get('access_token') || hashParams.get('id_token');
     if (hashAccess && !oauthHashTokenHandled.has(hashAccess)) {
       oauthHashTokenHandled.add(hashAccess);
-      localStorage.setItem('token', hashAccess);
+      storeSessionToken(hashAccess);
+      logBearerTokenForDebug('Google sign-in (hash fragment) — token stored');
       applyDashboardPrefsFromAuthResponse({});
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
       return;
@@ -397,7 +498,8 @@ const OAuthCallback = () => {
     const successOk = isQueryParamSuccessTrue(searchParams.get('success'));
 
     if (tokenFromQuery) {
-      localStorage.setItem('token', tokenFromQuery);
+      storeSessionToken(tokenFromQuery);
+      logBearerTokenForDebug('Google sign-in (URL query token) — token stored');
       const kyc = searchParams.get('kycComplete') || searchParams.get('kyc');
       if (kyc === '1' || kyc === 'true') {
         localStorage.setItem('kycComplete', 'true');
@@ -408,6 +510,7 @@ const OAuthCallback = () => {
       }
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
     } else if (successOk && localStorage.getItem('token')) {
+      logBearerTokenForDebug('Google sign-in (success + existing session token)');
       applyDashboardPrefsFromAuthResponse({});
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
     } else if (successOk) {
