@@ -33,6 +33,7 @@ export const handleLogout = async () => {
   } finally {
     // Clear token and session data from localStorage
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('sessionExpired');
     
     // Redirect to login page
