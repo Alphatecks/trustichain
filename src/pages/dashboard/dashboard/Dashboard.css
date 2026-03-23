@@ -3546,6 +3546,31 @@
     font-family: 'Satoshi', 'Inter', sans-serif;
   }
 
+  /* All sidebar/mobile layouts: same header name size as main dashboard; allow ellipsis for long names */
+  .mobile-dashboard-header .mobile-header-left {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .mobile-dashboard-header .mobile-user-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .mobile-dashboard-header .mobile-user-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .mobile-header-right {
     display: flex;
     align-items: center;

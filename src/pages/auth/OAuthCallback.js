@@ -92,15 +92,6 @@ function storeSessionToken(raw) {
   return t;
 }
 
-/** Debug: log JWT after Google sign-in (remove or gate for production if you no longer need it). */
-function logBearerTokenForDebug(context) {
-  const t = normalizeBearerToken(localStorage.getItem('token') || '');
-  if (!t) return;
-  console.log(`[TrustiChain auth] ${context}`);
-  console.log('  Bearer token:', t);
-  console.log('  Authorization header:', `Bearer ${t}`);
-}
-
 /**
  * Last resort: find a JWT-shaped string in the JSON tree, preferring keys that look like auth fields.
  */
@@ -478,7 +469,6 @@ const OAuthCallback = () => {
           ? 'Account created! Welcome to TrustiChain.'
           : 'Successfully signed in with Google!';
 
-        logBearerTokenForDebug('Google sign-in (OAuth code exchange) — token stored');
         await verifySessionThenDashboard(navigate, data, msg);
       } catch (error) {
         console.error('OAuth callback error:', error);
@@ -528,9 +518,6 @@ const OAuthCallback = () => {
       clearOAuthHashFromUrl();
       (async () => {
         await postEnsureProfile(hashAccess);
-        logBearerTokenForDebug(
-          'Google sign-in (hash: access_token / refresh_token) — token stored'
-        );
         applyDashboardPrefsFromAuthResponse({});
         await verifySessionThenDashboard(
           navigate,
@@ -546,7 +533,6 @@ const OAuthCallback = () => {
 
     if (tokenFromQuery) {
       storeSessionToken(tokenFromQuery);
-      logBearerTokenForDebug('Google sign-in (URL query token) — token stored');
       const kyc = searchParams.get('kycComplete') || searchParams.get('kyc');
       if (kyc === '1' || kyc === 'true') {
         localStorage.setItem('kycComplete', 'true');
@@ -557,7 +543,6 @@ const OAuthCallback = () => {
       }
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
     } else if (successOk && localStorage.getItem('token')) {
-      logBearerTokenForDebug('Google sign-in (success + existing session token)');
       applyDashboardPrefsFromAuthResponse({});
       verifySessionThenDashboard(navigate, {}, 'Successfully signed in with Google!');
     } else if (successOk) {
