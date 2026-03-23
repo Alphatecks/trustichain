@@ -54,7 +54,7 @@ function AppContent() {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
     if (!code || code.length < 10) return;
-    const fallbackPaths = ['/', '/dashboard', '/login', '/signup'];
+    const fallbackPaths = ['/', '/dashboard', '/login', '/signup', '/auth/callback'];
     if (!fallbackPaths.includes(path)) return;
     navigate(`/auth/google/callback${location.search}${location.hash || ''}`, { replace: true });
   }, [path, location.search, location.hash, navigate]);
@@ -75,6 +75,7 @@ function AppContent() {
     path === '/two-factor' ||
     path === '/otp' ||
     path === '/auth/google/callback' ||
+    path === '/auth/callback' ||
     path === '/dashboard' ||
     path === '/my-escrow' ||
     path === '/transactions' ||
@@ -118,6 +119,7 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/two-factor" element={<TwoFactor />} />
           <Route path="/otp" element={<Otp />} />
+          <Route path="/auth/callback" element={<OAuthCallback />} />
           <Route path="/auth/google/callback" element={<OAuthCallback />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/my-escrow" element={<MyEscrow />} />
