@@ -36,6 +36,8 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeDetail } from '../../../utils/disputesApi';
@@ -44,18 +46,15 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
-  { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
+  { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
-  { label: 'Dispute', icon: CreditCard, badge: 23 },
-  { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
-const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
-];
+const supportNav = [{ label: 'Settings', icon: Settings }];
 
 const toNumberOrNull = (value) => {
   const num = typeof value === 'number' ? value : Number(value);
@@ -86,6 +85,9 @@ const DisputeDetail = () => {
   const location = useLocation();
   const { id } = useParams();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const [accountType, setAccountType] = useState('Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [userFullName, setUserFullName] = useState('');
@@ -1206,9 +1208,10 @@ const DisputeDetail = () => {
                   } else if (item.label === 'Dispute') {
                     navigate('/dispute');
                   } else if (item.label === 'Trusticard') {
-                    navigate('/trusticard');
+                    return;
                   }
                 };
+                const navBadge = getNavBadge(item);
                 return (
                   <button
                     key={item.label}
@@ -1218,7 +1221,9 @@ const DisputeDetail = () => {
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
-                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                    {navBadge != null && navBadge !== '' ? (
+                      <span className="mobile-sidebar-badge">{navBadge}</span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -1259,7 +1264,7 @@ const DisputeDetail = () => {
 
             <div className="mobile-sidebar-trustiscore">
               <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-              <span className="mobile-sidebar-trustiscore-badge">850</span>
+              <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
             </div>
 
             <button 
@@ -1304,9 +1309,10 @@ const DisputeDetail = () => {
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
                 } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
+                  return;
                 }
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -1316,7 +1322,9 @@ const DisputeDetail = () => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -1352,7 +1360,7 @@ const DisputeDetail = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

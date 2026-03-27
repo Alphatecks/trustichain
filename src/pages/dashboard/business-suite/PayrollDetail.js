@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   LayoutDashboard,
-  ShieldCheck,
   CreditCard,
   Briefcase,
   Settings,
@@ -38,6 +37,7 @@ import './PayrollDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
@@ -61,8 +61,7 @@ const developersNav = [
 ];
 
 const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
+  { label: 'Settings', icon: Settings }
 ];
 
 const normalizeCompanyLogoUrl = (data) => {
@@ -80,6 +79,8 @@ const PayrollDetail = () => {
   const location = useLocation();
   const { payrollId } = useParams();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
     if (stored === 'Business Suite' || stored === 'Personal') return stored;
@@ -310,7 +311,7 @@ const PayrollDetail = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

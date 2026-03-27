@@ -2,7 +2,7 @@
 
 /* Overview Cards - New Design */
 .overview-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -263,7 +263,7 @@
 }
 
 .total-supply-btn.fund-btn {
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: #2A74E9;
   border: 1px solid rgba(45, 116, 233, 0.2);
 }
@@ -325,7 +325,7 @@
 /* Supplier Details Section */
 #supplier-details-section.supplier-details-section,
 .supplier-details-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -350,7 +350,7 @@
 .supplier-details-section .section-header h3 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   margin: 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
@@ -362,7 +362,7 @@
 }
 
 .supplier-detail-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.25rem;
@@ -457,7 +457,7 @@
 
 /* Transaction History Section */
 .transaction-history-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -498,7 +498,7 @@
 .transaction-history-section .section-header h3 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   margin: 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
@@ -514,7 +514,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -534,7 +534,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   cursor: pointer;
@@ -576,6 +576,15 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-family: 'Poppins', sans-serif;
+}
+
+[data-theme="dark"] .transaction-table thead {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .transaction-table th,
+[data-theme="dark"] .transaction-history-section .section-header h3 {
+  color: var(--white);
 }
 
 .transaction-table td {
@@ -629,7 +638,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 50%;
   cursor: pointer;
@@ -653,7 +662,7 @@
 
 .pagination-btn {
   padding: 0.5rem 1rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -845,7 +854,7 @@
   }
 
   .supplier-fund-wallet-btn-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     color: #2A74E9;
   }
 
@@ -890,7 +899,7 @@
   .supplier-total-supplier-card-mobile,
   .supplier-pending-supplier-card-mobile,
   .supplier-total-supplier-amount-card-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 1.25rem;
@@ -1077,7 +1086,7 @@
   }
 
   .upcoming-supply-card-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     padding: 1.25rem;
@@ -1220,7 +1229,7 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
   }
@@ -1286,7 +1295,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1339,7 +1348,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1355,7 +1364,7 @@
   }
 
   .fund-supply-account-amount-section-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border-radius: 0.75rem;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1379,7 +1388,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 1.5rem;
     cursor: pointer;
@@ -1469,7 +1478,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1522,7 +1531,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1538,7 +1547,7 @@
   }
 
   .withdraw-supply-account-amount-section-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border-radius: 0.75rem;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1562,7 +1571,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 999px;
     cursor: pointer;
@@ -1633,7 +1642,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     cursor: pointer;
@@ -1698,7 +1707,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1751,7 +1760,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1782,7 +1791,7 @@
   .create-new-supplier-input-mobile {
     width: 100%;
     padding: 1rem;
-    background: var(--gray-50);
+    background: var(--blue-100);
     border: none;
     border-radius: 0.75rem;
     font-size: 0.9rem;
@@ -1792,7 +1801,7 @@
   }
 
   .create-new-supplier-input-mobile::placeholder {
-    color: var(--text-gray);
+    color: var(--text-muted);
     opacity: 0.6;
   }
 
@@ -1813,7 +1822,7 @@
   .create-new-supplier-input-icon-mobile {
     position: absolute;
     right: 1rem;
-    color: var(--text-gray);
+    color: var(--text-muted);
     pointer-events: none;
   }
 
@@ -1842,13 +1851,13 @@
   }
 
   .create-new-supplier-amount-input-mobile::placeholder {
-    color: var(--text-gray);
+    color: var(--text-muted);
     opacity: 0.5;
   }
 
   .create-new-supplier-balance-mobile {
     font-size: 0.85rem;
-    color: var(--text-gray);
+    color: var(--text-muted);
     font-family: 'Satoshi', 'Inter', sans-serif;
   }
 
@@ -1875,19 +1884,19 @@
     align-items: flex-start;
     gap: 0.75rem;
     padding: 1rem;
-    background: var(--gray-50);
+    background: var(--blue-100);
     border-radius: 0.75rem;
   }
 
   .create-new-supplier-info-mobile svg {
-    color: var(--text-gray);
+    color: var(--text-muted);
     flex-shrink: 0;
     margin-top: 0.125rem;
   }
 
   .create-new-supplier-info-mobile span {
     font-size: 0.85rem;
-    color: var(--text-gray);
+    color: var(--text-muted);
     line-height: 1.5;
     font-family: 'Satoshi', 'Inter', sans-serif;
   }
@@ -1911,11 +1920,11 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 1rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     font-size: 0.9rem;
-    color: var(--text-gray);
+    color: var(--text-muted);
     font-weight: 500;
     cursor: pointer;
     font-family: 'Satoshi', 'Inter', sans-serif;
@@ -1923,7 +1932,7 @@
   }
 
   .create-new-supplier-account-type-btn-mobile svg {
-    color: var(--text-gray);
+    color: var(--text-muted);
   }
 
   .create-new-supplier-account-type-btn-mobile.active {
@@ -1943,7 +1952,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1996,7 +2005,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);

@@ -1,6 +1,34 @@
 /* Import custom fonts */
 @import './assets/fonts/fonts.css';
 
+:root {
+  --blue-100: #f3f7ff;
+  --blue-200: #e6efff;
+  --blue-400: #4e91ff;
+  --blue-500: #2376ff;
+  --blue-600: #0c64ff;
+  --text-dark: #0b1c2e;
+  --text-muted: #8a96a6;
+  --border: #e3e8f5;
+  --white: #ffffff;
+  --surface: #ffffff;
+  --help-icon-bg: #0b1c2e;
+}
+
+html[data-theme="dark"] {
+  --blue-100: #1e293b;
+  --blue-200: #334155;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --text-dark: #e5e7eb;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --white: #ffffff;
+  --surface: #111827;
+  --help-icon-bg: #1f2937;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -26,6 +54,7 @@ body {
 
 [data-theme="dark"] body {
   background: #0a1929;
+  color: var(--text-dark);
 }
 
 code {

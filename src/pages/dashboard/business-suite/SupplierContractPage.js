@@ -18,6 +18,7 @@ import {
   Bell
 } from 'lucide-react';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
@@ -63,6 +64,8 @@ const SupplierContractPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
 
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
@@ -709,7 +712,7 @@ const SupplierContractPage = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

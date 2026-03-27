@@ -125,7 +125,12 @@ const BusinessDashboard = ({
     if (!item?.path) return;
     // Compliance/Security are placeholders in this repo; avoid navigating to dead routes.
     if (item.path === '/compliance' || item.path === '/security') return;
-    navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+    navigate(
+      item.path,
+      item.path === '/dashboard' || item.path === '/settings'
+        ? { state: { accountType: 'Business Suite' } }
+        : undefined
+    );
   };
 
   const handleDevelopersNavClick = (item) => {
@@ -242,7 +247,12 @@ const BusinessDashboard = ({
                     if (isDisabled) return;
                     setIsMobileMenuOpen(false);
                     if (item.path === '/compliance') return;
-                    navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+                    navigate(
+                      item.path,
+                      item.path === '/dashboard' || item.path === '/settings'
+                        ? { state: { accountType: 'Business Suite' } }
+                        : undefined
+                    );
                   };
                   return (
                     <button
@@ -299,7 +309,10 @@ const BusinessDashboard = ({
                       key={item.label} 
                       type="button" 
                       className="mobile-sidebar-nav-item"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleNavClick(item);
+                      }}
                     >
                       <Icon size={18} />
                       <span>{item.label}</span>

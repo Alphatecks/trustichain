@@ -25,7 +25,7 @@
 }
 
 .dispute-party-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -80,7 +80,7 @@
 }
 
 .seller-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -165,7 +165,7 @@
   border-radius: 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--blue-600);
   font-family: 'Satoshi', 'Inter', sans-serif;
   white-space: nowrap;
@@ -233,7 +233,7 @@
 
 /* Details Card */
 .dispute-details-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -315,7 +315,7 @@
 
 /* Mediator Card */
 .dispute-mediator-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -455,7 +455,7 @@
 
 /* Section Styles */
 .dispute-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -529,7 +529,7 @@
   width: 40px;
   height: 40px;
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -890,7 +890,7 @@
 }
 
 .add-evidence-modal {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border-radius: 1rem;
   width: 90%;
   max-width: 500px;
@@ -959,7 +959,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
 }
@@ -1005,7 +1005,7 @@
   padding: 0.625rem 1.5rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   font-weight: 500;

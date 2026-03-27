@@ -40,11 +40,14 @@ import {
 import MyEscrowLayout from './MyEscrowLayout';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
+import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CancelReasonModal from '../../../components/CancelReasonModal';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import toast from 'react-hot-toast';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
@@ -53,11 +56,11 @@ import './MyEscrow.css';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
-  { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
+  { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
-  { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -76,10 +79,7 @@ const developersNav = [
   { label: 'Web hook', icon: Link, badge: null }
 ];
 
-const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
-];
+const supportNav = [{ label: 'Settings', icon: Settings }];
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -111,6 +111,9 @@ const MyEscrow = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedMonth] = useState('This month');
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
@@ -604,6 +607,7 @@ const MyEscrow = () => {
         if (response.ok) {
           const result = await response.json();
           if (result?.success && result?.data) {
+            persistTrustitagFromProfileResponse(result);
             const data = result.data;
             const fullName =
               data.fullName ||
@@ -1393,9 +1397,10 @@ const MyEscrow = () => {
                       } else if (item.label === 'Savings') {
                         navigate('/savings');
                       } else if (item.label === 'Trusticard') {
-                        navigate('/trusticard');
+                        return;
                       }
                     };
+                    const navBadge = getNavBadge(item);
                     return (
                       <button
                         key={item.label}
@@ -1405,7 +1410,9 @@ const MyEscrow = () => {
                       >
                         <Icon size={18} />
                         <span>{item.label}</span>
-                        {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                        {navBadge != null && navBadge !== '' ? (
+                          <span className="mobile-sidebar-badge">{navBadge}</span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -1443,8 +1450,6 @@ const MyEscrow = () => {
                       setIsMobileMenuOpen(false);
                       if (item.label === 'Settings') {
                         navigate('/settings');
-                      } else if (item.label === 'Security') {
-                        navigate('/security');
                       }
                     };
                     return (
@@ -1476,7 +1481,7 @@ const MyEscrow = () => {
 
                 <div className="mobile-sidebar-trustiscore">
                   <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-                  <span className="mobile-sidebar-trustiscore-badge">850</span>
+                  <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
                 </div>
 
                 <button 
@@ -1731,7 +1736,9 @@ const MyEscrow = () => {
           
           // Get parties
           const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-          const userFullName = escrow.userName || escrow.user?.name || 'You';
+          const userFullName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+          const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
+          const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
           
           // Format amounts
           const xrpAmount = escrow.amount?.xrp 
@@ -1772,9 +1779,19 @@ const MyEscrow = () => {
               </div>
               <div className="escrow-card-bottom">
                 <div className="escrow-card-parties">
-                  <span className="escrow-card-party-from">{counterpartyName}</span>
+                  <span className="escrow-party-with-avatar">
+                    {counterpartyAvatar
+                      ? <img src={counterpartyAvatar} alt="" className="escrow-party-avatar" />
+                      : <span className="escrow-party-avatar escrow-party-avatar--initials">{(counterpartyName || '?').charAt(0).toUpperCase()}</span>}
+                    <span className="escrow-card-party-from">{counterpartyName}</span>
+                  </span>
                   <span className="escrow-card-party-arrow">→</span>
-                  <span className="escrow-card-party-to">{userFullName}</span>
+                  <span className="escrow-party-with-avatar">
+                    {initiatorAvatar
+                      ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
+                      : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userFullName || '?').charAt(0).toUpperCase()}</span>}
+                    <span className="escrow-card-party-to">{userFullName}</span>
+                  </span>
                 </div>
                 <button type="button" className={`escrow-card-status ${statusLower}`}>
                   {status}
@@ -1821,7 +1838,9 @@ const MyEscrow = () => {
               
               // Get parties
               const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-              const userFullName = escrow.userName || escrow.user?.name || 'You';
+              const userFullName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+              const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
+              const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
               
               // Format amounts
               const xrpAmount = escrow.amount?.xrp 
@@ -1886,9 +1905,19 @@ const MyEscrow = () => {
                 >
                   <td className="escrow-id">{formattedId}</td>
                   <td className="escrow-parties" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                    <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
+                    <span className="escrow-party-with-avatar">
+                      {counterpartyAvatar
+                        ? <img src={counterpartyAvatar} alt="" className="escrow-party-avatar" />
+                        : <span className="escrow-party-avatar escrow-party-avatar--initials">{(counterpartyName || '?').charAt(0).toUpperCase()}</span>}
+                      <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
+                    </span>
                     <span className="party-arrow" style={{ color: 'var(--text-muted)' }}>›</span>
-                    <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                    <span className="escrow-party-with-avatar">
+                      {initiatorAvatar
+                        ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
+                        : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userFullName || '?').charAt(0).toUpperCase()}</span>}
+                      <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                    </span>
                   </td>
                   <td className="escrow-amount">
                     <span className="amount-single-line">
@@ -2789,7 +2818,9 @@ const MyEscrow = () => {
                       escrowId,
                       xrplEscrowId: createdEscrowData?.xrplEscrowId,
                       counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
-                      userName: createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
+                      initiatorName: createdEscrowData?.initiatorName || createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
+                      counterpartyAvatarUrl: createdEscrowData?.counterpartyAvatarUrl || createdEscrowData?.counterpartyAvatar || createdEscrowData?.counterparty?.avatar || null,
+                      initiatorAvatarUrl: createdEscrowData?.initiatorAvatarUrl || createdEscrowData?.initiatorAvatar || createdEscrowData?.user?.avatar || null,
                       amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
                       status: createdEscrowData?.status || 'active',
                       progress: createdEscrowData?.progress ?? 0,
@@ -3051,7 +3082,9 @@ const MyEscrow = () => {
                     
                     // Get parties
                     const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-                    const userFullName = escrow.userName || escrow.user?.name || 'You';
+                    const userFullName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+                    const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
+                    const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                     
                     // Format amounts
                     const xrpAmount = escrow.amount?.xrp 
@@ -3115,9 +3148,19 @@ const MyEscrow = () => {
                       >
                         <td className="escrow-id">{formattedId}</td>
                         <td className="escrow-parties" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                          <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
+                          <span className="escrow-party-with-avatar">
+                            {counterpartyAvatar
+                              ? <img src={counterpartyAvatar} alt="" className="escrow-party-avatar" />
+                              : <span className="escrow-party-avatar escrow-party-avatar--initials">{(counterpartyName || '?').charAt(0).toUpperCase()}</span>}
+                            <span className="party-from" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{counterpartyName}</span>
+                          </span>
                           <span className="party-arrow" style={{ color: 'var(--text-muted)' }}>›</span>
-                          <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                          <span className="escrow-party-with-avatar">
+                            {initiatorAvatar
+                              ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
+                              : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userFullName || '?').charAt(0).toUpperCase()}</span>}
+                            <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                          </span>
                         </td>
                         <td className="escrow-amount">
                           <span className="amount-single-line">
@@ -4022,7 +4065,9 @@ const MyEscrow = () => {
                       escrowId,
                       xrplEscrowId: createdEscrowData?.xrplEscrowId,
                       counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
-                      userName: createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
+                      initiatorName: createdEscrowData?.initiatorName || createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
+                      counterpartyAvatarUrl: createdEscrowData?.counterpartyAvatarUrl || createdEscrowData?.counterpartyAvatar || createdEscrowData?.counterparty?.avatar || null,
+                      initiatorAvatarUrl: createdEscrowData?.initiatorAvatarUrl || createdEscrowData?.initiatorAvatar || createdEscrowData?.user?.avatar || null,
                       amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
                       status: createdEscrowData?.status || 'active',
                       progress: createdEscrowData?.progress ?? 0,
@@ -4179,7 +4224,9 @@ const MyEscrow = () => {
                 const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
                 const formattedId = escrowId || '#ESC-N/A';
                 const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-                const userName = escrow.userName || escrow.user?.name || 'You';
+                const userName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+                const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
+                const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                 const xrpAmount = escrow.amount?.xrp != null ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '0.00';
                 const usdAmount = escrow.amount?.usd != null ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
                 const status = escrow.status || 'Unknown';
@@ -4202,8 +4249,20 @@ const MyEscrow = () => {
                     </div>
                     <div className="escrow-detail-row">
                       <span className="escrow-detail-label">Parties</span>
-                      <span className="escrow-detail-value">
-                        {counterpartyName} <ArrowRight size={14} style={{ verticalAlign: 'middle', margin: '0 4px' }} /> {userName}
+                      <span className="escrow-detail-value" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span className="escrow-party-with-avatar">
+                          {counterpartyAvatar
+                            ? <img src={counterpartyAvatar} alt="" className="escrow-party-avatar" />
+                            : <span className="escrow-party-avatar escrow-party-avatar--initials">{(counterpartyName || '?').charAt(0).toUpperCase()}</span>}
+                          <span>{counterpartyName}</span>
+                        </span>
+                        <ArrowRight size={14} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+                        <span className="escrow-party-with-avatar">
+                          {initiatorAvatar
+                            ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
+                            : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userName || '?').charAt(0).toUpperCase()}</span>}
+                          <span>{userName}</span>
+                        </span>
                       </span>
                     </div>
                     <div className="escrow-detail-row">

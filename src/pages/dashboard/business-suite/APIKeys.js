@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  ShieldCheck,
   CreditCard,
   Settings,
   Search,
@@ -30,6 +29,7 @@ import './APIKeys.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
@@ -52,8 +52,7 @@ const developersNav = [
 ];
 
 const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
+  { label: 'Settings', icon: Settings, path: '/settings' }
 ];
 
 const normalizeCompanyLogoUrl = (data) => {
@@ -70,6 +69,8 @@ const APIKeys = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
     if (stored === 'Business Suite' || stored === 'Personal') return stored;
@@ -391,8 +392,18 @@ const APIKeys = () => {
               <nav className="sidebar-nav">
                 {supportNav.map((item) => {
                   const Icon = item.icon;
+                  const isActive = item.path && location.pathname === item.path;
                   return (
-                    <button key={item.label} type="button" className="sidebar-nav-item">
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        if (item.path === '/settings') {
+                          navigate('/settings', { state: { accountType: 'Business Suite' } });
+                        }
+                      }}
+                    >
                       <Icon size={18} />
                       <span>{item.label}</span>
                     </button>
@@ -415,7 +426,7 @@ const APIKeys = () => {
             <div className="sidebar-footer">
               <div className="sidebar-trustiscore">
                 <span className="sidebar-trustiscore-label">Trustiscore</span>
-                <span className="sidebar-trustiscore-badge">97</span>
+                <span className="sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
               </div>
               <button type="button" className="sidebar-logout" onClick={handleLogout}>
                 <LogOut size={18} />

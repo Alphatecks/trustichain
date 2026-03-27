@@ -11,6 +11,7 @@ import encryptionIcon from '../../assets/images/icons/Encryption.png';
 import kycIcon from '../../assets/images/icons/kyc.png';
 import auditIcon from '../../assets/images/icons/audit.png';
 import { getApiUrl } from '../../utils/config';
+import { extractTrustitagFromLoginResponse, queueTrustitagWelcomeModal } from '../../utils/trustitag';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -42,25 +43,80 @@ const Login = () => {
       console.log('Login response keys:', Object.keys(data));
       console.log('Login response JSON:', JSON.stringify(data, null, 2));
 
+      const requiresMfa =
+        data.requiresMfa === true ||
+        data.requires_mfa === true ||
+        data.requiresTwoFactor === true ||
+        data.requires_two_factor === true ||
+        data.mfaRequired === true ||
+        data.requireMfa === true ||
+        data.data?.requiresMfa === true ||
+        data.data?.requires_mfa === true ||
+        data.data?.requiresTwoFactor === true;
+
+      const nested = data.data && typeof data.data === 'object' ? data.data : {};
+      const mfaToken =
+        data.mfaToken ||
+        data.twoFactorToken ||
+        data.tempToken ||
+        data.mfa_token ||
+        data.two_factor_token ||
+        nested.mfaToken ||
+        nested.twoFactorToken ||
+        nested.mfa_token ||
+        nested.tempToken ||
+        nested.two_factor_token ||
+        data.data?.mfaToken ||
+        data.data?.twoFactorToken ||
+        data.data?.tempToken ||
+        data.data?.mfa_token;
+
+      if (requiresMfa) {
+        if (!mfaToken) {
+          toast.error(data.message || 'Two-factor sign-in is required but the server did not send a verification token.');
+          return;
+        }
+        try {
+          sessionStorage.setItem('mfa_login_token', String(mfaToken).trim());
+          sessionStorage.setItem('mfa_login_email', String(email || '').trim());
+        } catch (_) {
+          /* ignore quota / private mode */
+        }
+        navigate('/two-factor', { state: { mfaToken: String(mfaToken).trim(), email } });
+        return;
+      }
+
       if (!response.ok || !data.success) {
         toast.error(data.message || data.error || 'Login failed');
         return;
       }
 
-      // Store token if provided (check multiple possible field names and nested paths)
+      // Store access + refresh (backend: data.accessToken / data.refreshToken)
       let tokenFound = false;
-      
-      if (data.token) {
+
+      const storePair = (access, refresh) => {
+        if (!access) return false;
+        localStorage.setItem('token', access);
+        if (refresh) localStorage.setItem('refresh_token', refresh);
+        else localStorage.removeItem('refresh_token');
+        return true;
+      };
+
+      if (data.data?.accessToken) {
+        tokenFound = storePair(data.data.accessToken, data.data.refreshToken);
+        if (tokenFound) console.log('Token stored from data.data.accessToken');
+      } else if (data.data?.access_token) {
+        tokenFound = storePair(data.data.access_token, data.data.refresh_token);
+        if (tokenFound) console.log('Token stored from data.data.access_token');
+      } else if (data.accessToken) {
+        tokenFound = storePair(data.accessToken, data.refreshToken);
+        if (tokenFound) console.log('Token stored from data.accessToken');
+      } else if (data.access_token) {
+        tokenFound = storePair(data.access_token, data.refresh_token);
+        if (tokenFound) console.log('Token stored from data.access_token');
+      } else if (data.token) {
         localStorage.setItem('token', data.token);
         console.log('Token stored from data.token');
-        tokenFound = true;
-      } else if (data.accessToken) {
-        localStorage.setItem('token', data.accessToken);
-        console.log('Token stored from data.accessToken');
-        tokenFound = true;
-      } else if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        console.log('Token stored from data.access_token');
         tokenFound = true;
       } else if (data.data?.token) {
         localStorage.setItem('token', data.data.token);
@@ -86,12 +142,8 @@ const Login = () => {
         localStorage.setItem('token', data.user.access_token);
         console.log('Token stored from data.user.access_token');
         tokenFound = true;
-      } else if (data.data?.accessToken) {
-        localStorage.setItem('token', data.data.accessToken);
-        console.log('Token stored from data.data.accessToken');
-        tokenFound = true;
       }
-      
+
       if (!tokenFound) {
         console.warn('No token found in login response. Full response structure:');
         console.warn('Response keys:', Object.keys(data));
@@ -102,6 +154,16 @@ const Login = () => {
           console.warn('data.user keys:', Object.keys(data.user));
         }
         console.warn('Full response object:', JSON.stringify(data, null, 2));
+      }
+
+      const trustitag = extractTrustitagFromLoginResponse(data);
+      if (trustitag) {
+        try {
+          localStorage.setItem('trustitag', trustitag);
+        } catch (_) {
+          /* ignore */
+        }
+        queueTrustitagWelcomeModal(trustitag);
       }
 
       toast.success('Login successful!');

@@ -46,7 +46,7 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--text-dark);
@@ -80,7 +80,7 @@
 }
 
 .escrow-metric-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -212,7 +212,7 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--text-dark);
@@ -231,7 +231,7 @@
 
 /* Table Section */
 .escrow-table-container {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   overflow: hidden;
@@ -243,7 +243,7 @@
 }
 
 .escrow-data-table thead {
-  background: #f8f9fa;
+  background: var(--blue-100);
 }
 
 .escrow-data-table th {
@@ -261,7 +261,7 @@
 }
 
 .escrow-data-table tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--blue-100);
 }
 
 .escrow-data-table tbody tr:last-child {
@@ -296,6 +296,32 @@
 .party-arrow {
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+.escrow-party-with-avatar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.escrow-party-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.escrow-party-avatar--initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-200);
+  color: var(--blue-600);
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
 .escrow-amount {
@@ -373,7 +399,7 @@
 .progress-bar-wrapper {
   flex: 1;
   height: 8px;
-  background: #e5e7eb;
+  background: var(--border);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -497,7 +523,7 @@
 }
 
 .create-escrow-modal {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border-radius: 1.5rem;
   width: 100%;
   max-width: 900px;
@@ -555,7 +581,7 @@
   padding: 2rem;
   margin: 0 2rem;
   position: relative;
-  background: #f8faff;
+  background: var(--blue-100);
   border-radius: 0.5rem;
 }
 
@@ -576,7 +602,7 @@
 .step-divider {
   width: 1px;
   height: 60px;
-  background: #e5e7eb;
+  background: var(--border);
   margin: 0 1rem;
   flex-shrink: 0;
 }
@@ -590,8 +616,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--border);
+  color: var(--text-muted);
   z-index: 0;
   position: static;
   flex-shrink: 0;
@@ -606,13 +632,13 @@
 }
 
 .step-indicator:not(.active) .step-icon {
-  background: #e5e7eb !important;
-  color: #6b7280 !important;
+  background: var(--border) !important;
+  color: var(--text-muted) !important;
 }
 
 .step-indicator:not(.active) .step-icon svg {
-  color: #6b7280 !important;
-  stroke: #6b7280 !important;
+  color: var(--text-muted) !important;
+  stroke: var(--text-muted) !important;
 }
 
 .step-indicator.active .step-icon {
@@ -662,7 +688,7 @@
 
 .step-number {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted);
   font-weight: 400;
   font-family: 'Satoshi', 'Inter', sans-serif;
   position: relative;
@@ -684,14 +710,14 @@
 .step-title {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   /* Step 1 title is BLACK and BOLD */
 }
 
 .step-indicator.active .step-title {
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-dark);
   /* Even when active, keep it black and bold */
 }
 
@@ -733,7 +759,7 @@
   padding: 0.8rem 1.3rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-weight: 500;
   font-size: 0.9rem;
@@ -799,7 +825,7 @@
   border-radius: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   font-family: 'Satoshi', 'Inter', sans-serif;
   transition: border-color 0.2s ease;
 }
@@ -829,7 +855,7 @@
   padding: 0.8rem 1.3rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-weight: 500;
   font-size: 0.9rem;
@@ -926,7 +952,7 @@
   border-radius: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   font-family: 'Satoshi', 'Inter', sans-serif;
   transition: border-color 0.2s ease;
 }
@@ -958,7 +984,7 @@
   border-radius: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   font-family: 'Satoshi', 'Inter', sans-serif;
   transition: border-color 0.2s ease;
   resize: vertical;
@@ -994,7 +1020,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
@@ -1045,7 +1071,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1286,7 +1312,7 @@
   }
 
   .escrow-metric-card {
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
     padding: 1rem 0.875rem !important;
@@ -1455,7 +1481,7 @@
   }
 
   .escrow-history-card {
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
     padding: 1rem !important;
@@ -1725,7 +1751,7 @@
     width: 280px;
     max-width: 85vw;
     height: 100vh;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
@@ -1748,7 +1774,7 @@
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 10;
   }
 
@@ -1859,7 +1885,7 @@
 
   .mobile-sidebar-badge {
     margin-left: auto;
-    background: var(--white);
+    background: var(--surface, var(--white));
     color: var(--blue-600);
     font-size: 0.75rem;
     font-weight: 600;
@@ -1923,7 +1949,7 @@
     display: flex !important;
     align-items: center !important;
     gap: 0.75rem !important;
-    background: #f8faff !important;
+    background: var(--blue-100) !important;
     border-radius: 0.5rem !important;
     padding: 1rem !important;
   }
@@ -2064,7 +2090,7 @@
   .create-escrow-modal-footer {
     padding: 1rem !important;
     border-top: 1px solid var(--border) !important;
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
   }
 
   .submit-next-btn {
@@ -2376,7 +2402,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  border-bottom: 1px solid var(--border);
   gap: 1rem;
 }
 .escrow-detail-modal .escrow-detail-row:last-of-type {
@@ -2397,7 +2423,7 @@
   gap: 0.75rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #e8e8e8);
+  border-top: 1px solid var(--border);
 }
 .escrow-detail-modal .escrow-detail-actions .release-btn,
 .escrow-detail-modal .escrow-detail-actions .cancel-btn {
@@ -2415,5 +2441,5 @@
 .escrow-detail-modal .escrow-detail-actions .cancel-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border);
 }

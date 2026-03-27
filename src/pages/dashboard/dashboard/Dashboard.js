@@ -60,6 +60,8 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import ConnectedWalletModal from '../../../components/ConnectedWalletModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -69,6 +71,12 @@ import BusinessDashboard from '../business-suite/BusinessDashboard';
 import SupplierContractContent from '../business-suite/SupplierContractContent';
 import TeamDetailModal from '../business-suite/TeamDetailModal';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
+import TrustitagWelcomeModal from '../../../components/TrustitagWelcomeModal/TrustitagWelcomeModal';
+import {
+  peekTrustitagWelcomePending,
+  clearTrustitagWelcomePending,
+  persistTrustitagFromProfileResponse,
+} from '../../../utils/trustitag';
 import BusinessSuitePinModal from '../../../components/BusinessSuitePinModal';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
@@ -102,11 +110,11 @@ const isBusinessEmailSet = (result) => {
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
-  { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
+  { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
-  { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -125,10 +133,7 @@ const developersNav = [
   { label: 'Web hook', icon: Link, badge: null }
 ];
 
-const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
-];
+const supportNav = [{ label: 'Settings', icon: Settings }];
 
 const personalSteps = [
   { label: 'Proof of identity', detail: 'Proof of identity' },
@@ -188,6 +193,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, level: trustiscoreLevel, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
   const [currentStep, setCurrentStep] = useState(0);
   const [kycComplete, setKycComplete] = useState(() =>
@@ -220,11 +228,26 @@ const Dashboard = () => {
   };
   const [pendingAccountSwitch, setPendingAccountSwitch] = useState(false);
   const [showConnectedWalletModal, setShowConnectedWalletModal] = useState(false);
+  const [showTrustitagWelcome, setShowTrustitagWelcome] = useState(false);
+  const [welcomeTrustitag, setWelcomeTrustitag] = useState('');
 
   // Persist account type so it survives reload
   useEffect(() => {
     localStorage.setItem('dashboard_account_type', accountType);
   }, [accountType]);
+
+  useEffect(() => {
+    const pending = peekTrustitagWelcomePending();
+    if (pending) {
+      setWelcomeTrustitag(pending);
+      setShowTrustitagWelcome(true);
+    }
+  }, []);
+
+  const handleCloseTrustitagWelcome = useCallback(() => {
+    clearTrustitagWelcomePending();
+    setShowTrustitagWelcome(false);
+  }, []);
 
   // When on Supplier Contract route, ensure Business Suite is selected (same header/sidebar)
   useEffect(() => {
@@ -691,6 +714,8 @@ const Dashboard = () => {
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
+  const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
+  const [selectedEscrowDetail, setSelectedEscrowDetail] = useState(null);
   const [showFundMethodModal, setShowFundMethodModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
@@ -1198,6 +1223,7 @@ const Dashboard = () => {
           console.log('User profile API response data:', result);
 
           if (result?.success && result?.data) {
+            persistTrustitagFromProfileResponse(result);
             const data = result.data;
             const fullName =
               data.fullName ||
@@ -1684,13 +1710,12 @@ const Dashboard = () => {
               xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
               usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
               usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0,
-              rippleUsd: balances.rippleUsd !== undefined && balances.rippleUsd !== null ? Number(balances.rippleUsd) : (balances.xrpusd !== undefined && balances.xrpusd !== null ? Number(balances.xrpusd) : 0)
             };
             console.log('Setting normalized wallet balances:', normalizedBalances);
             setWalletBalances(normalizedBalances);
           } else {
             console.warn('Could not extract wallet balances from API response:', result);
-            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
+            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -1699,7 +1724,7 @@ const Dashboard = () => {
             statusText: response.statusText,
             data: errorData
           });
-          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
+          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
           if (accountType === 'Business Suite') {
             setWalletAddress('');
             setHasWallet(false);
@@ -1707,7 +1732,7 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching wallet balances:', error);
-        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 });
+        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
         if (accountType === 'Business Suite') {
           setWalletAddress('');
           setHasWallet(false);
@@ -1752,11 +1777,10 @@ const Dashboard = () => {
               xrp: data.xrp ?? data.XRP ?? 0,
               usdt: data.usdt ?? data.USDT ?? 0,
               usdc: data.usdc ?? data.USDC ?? 0,
-              rippleUsd: data.rippleUsd ?? data.xrpusd ?? 0,
             };
           }
         } else if (result?.success && Array.isArray(result?.data?.wallets)) {
-          balances = { xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 };
+          balances = { xrp: 0, usdt: 0, usdc: 0 };
           result.data.wallets.forEach((wallet) => {
             const currency = (wallet.currency || wallet.code || '').toLowerCase();
             const balance = Number(wallet.balance ?? wallet.amount ?? 0);
@@ -1772,11 +1796,10 @@ const Dashboard = () => {
               xrp: Number(balances.xrp ?? 0),
               usdt: Number(balances.usdt ?? 0),
               usdc: Number(balances.usdc ?? 0),
-              rippleUsd: Number(balances.rippleUsd ?? balances.xrpusd ?? 0),
             }
           : null;
         if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
-          setBusinessSuiteWalletModalData({ address: address.trim(), balances: normalized || { xrp: 0, usdt: 0, usdc: 0, rippleUsd: 0 } });
+          setBusinessSuiteWalletModalData({ address: address.trim(), balances: normalized || { xrp: 0, usdt: 0, usdc: 0 } });
         } else if (normalized) {
           setBusinessSuiteWalletModalData({ address: null, balances: normalized });
         } else {
@@ -1821,6 +1844,7 @@ const Dashboard = () => {
 
         if (response.ok) {
           const result = await response.json();
+          console.log('Live Escrow History API response:', result);
           console.log('Escrows API response data:', result);
           console.log('Escrows API response structure:', {
             hasSuccess: !!result?.success,
@@ -3383,13 +3407,14 @@ const Dashboard = () => {
                       } else if (item.label === 'Savings') {
                         navigate('/savings');
                       } else if (item.label === 'Trusticard') {
-                        navigate('/trusticard');
+                        return;
                       } else if (item.label === 'Payroll') {
                         navigate('/payroll');
                       } else if (item.label === 'Supplier Contract') {
                         navigate('/supplier-contract');
                       }
                     };
+                    const navBadge = getNavBadge(item);
                     return (
                       <button
                         key={item.label}
@@ -3400,7 +3425,9 @@ const Dashboard = () => {
                       >
                         <Icon size={18} />
                         <span>{item.label}</span>
-                        {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                        {navBadge != null && navBadge !== '' ? (
+                          <span className="mobile-sidebar-badge">{navBadge}</span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -3447,9 +3474,12 @@ const Dashboard = () => {
                       if (isDisabled) return;
                       setIsMobileMenuOpen(false);
                       if (item.label === 'Settings') {
-                        navigate('/settings');
-                      } else if (item.label === 'Security') {
-                        navigate('/security');
+                        navigate(
+                          '/settings',
+                          accountType === 'Business Suite'
+                            ? { state: { accountType: 'Business Suite' } }
+                            : undefined
+                        );
                       }
                     };
                     return (
@@ -3495,9 +3525,7 @@ const Dashboard = () => {
                 <div className="mobile-sidebar-trustiscore">
                   <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
                   <span className="mobile-sidebar-trustiscore-badge">
-                    {dashboardData?.trustiscore?.score !== undefined 
-                      ? dashboardData.trustiscore.score 
-                      : (isLoadingDashboard ? '...' : '97')}
+                    {trustiscoreBadgeText}
                   </span>
                 </div>
 
@@ -3623,15 +3651,21 @@ const Dashboard = () => {
                 <span>Trustiscore</span>
               </div>
               <div className="mobile-metric-value">
-                {dashboardData?.trustiscore?.score !== undefined 
-                  ? dashboardData.trustiscore.score 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
+                {isTrustiscoreLoading ? (
+                  <LoadingIndicator size="sm" />
+                ) : trustiscoreScore != null && Number.isFinite(Number(trustiscoreScore)) ? (
+                  trustiscoreScore
+                ) : (
+                  '—'
+                )}
                 <span className="mobile-metric-suffix">/100</span>
               </div>
               <div className="mobile-metric-subvalue">
-                {dashboardData?.trustiscore?.level !== undefined 
-                  ? dashboardData.trustiscore.level 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+                {isTrustiscoreLoading ? (
+                  <LoadingIndicator size="sm" />
+                ) : (
+                  trustiscoreLevel || '—'
+                )}
               </div>
               <button type="button" className="mobile-metric-btn">
                 View Level
@@ -4039,44 +4073,6 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="mobile-wallet-item">
-                <div className="mobile-wallet-icon-group">
-                  <div className="mobile-wallet-icon">
-                    <img 
-                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                      alt="Ripple USD" 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                    />
-                  </div>
-                  <div className="mobile-wallet-icon-info">
-                    <span className="mobile-wallet-name">Ripple USD</span>
-                    <span className="mobile-wallet-crypto">
-                      {showBalance 
-                        ? (isLoadingWalletBalances 
-                            ? <LoadingIndicator size="sm" />
-                            : (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null && walletBalances.rippleUsd > 0
-                                ? `${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRPUSD`
-                                : '0.00 XRPUSD'))
-                        : '••••••'}
-                    </span>
-                  </div>
-                </div>
-                <div className="mobile-wallet-value-change">
-                  <span className="mobile-wallet-amount">
-                    {showBalance 
-                      ? (isLoadingWalletBalances 
-                          ? <LoadingIndicator size="sm" />
-                          : (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null && walletBalances.rippleUsd > 0
-                              ? `$${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : '$0.00'))
-                      : '••••••'}
-                  </span>
-                  <div className="mobile-wallet-change positive">
-                    <TrendingUp size={14} />
-                    <span>+1.2%</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -4094,12 +4090,12 @@ const Dashboard = () => {
               ) : escrows && escrows.length > 0 ? (
                 escrows.map((escrow, index) => {
                   const escrowId = escrow.id || escrow.escrowId || escrow._id || `#ESC-2024-${String(index + 1).padStart(3, '0')}`;
-                  const payerName = escrow.payerName || escrow.payer?.name || escrow.senderName || 'John Depp';
-                  const payerAvatar = escrow.payerAvatar || escrow.payer?.avatar || null;
-                  const payerInitials = payerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  const initiatorName = escrow.initiatorName || escrow.payerName || escrow.payer?.name || escrow.senderName || 'Unknown';
+                  const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.payerAvatar || escrow.payer?.avatar || null;
+                  const initiatorInitials = initiatorName.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '??';
                   const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Sarah Wilson';
-                  const counterpartyAvatar = escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
-                  const counterpartyInitials = counterpartyName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
+                  const counterpartyInitials = counterpartyName.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '??';
                   
                   // Get amount - try XRP first, then USD
                   const xrpAmount = escrow.amount?.xrp || escrow.amount?.XRP || escrow.xrpAmount || null;
@@ -4121,16 +4117,33 @@ const Dashboard = () => {
                   const statusClass = status.toLowerCase().replace(/[\s_]/g, '_');
                   
                   return (
-                    <div key={escrowId || index} className="mobile-escrow-item">
+                    <div
+                      key={escrowId || index}
+                      className="mobile-escrow-item"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedEscrowDetail(escrow);
+                        setShowEscrowDetailModal(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedEscrowDetail(escrow);
+                          setShowEscrowDetailModal(true);
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="mobile-escrow-id">{escrowId}</div>
                       <div className="mobile-escrow-parties">
                         <div className="mobile-escrow-party">
-                          {payerAvatar ? (
-                            <img src={payerAvatar} alt={payerName} className="mobile-escrow-avatar" />
+                          {initiatorAvatar ? (
+                            <img src={initiatorAvatar} alt={initiatorName} className="mobile-escrow-avatar" />
                           ) : (
-                            <div className="mobile-escrow-avatar-initials">{payerInitials}</div>
+                            <div className="mobile-escrow-avatar-initials">{initiatorInitials}</div>
                           )}
-                          <span className="mobile-escrow-party-name">{payerName}</span>
+                          <span className="mobile-escrow-party-name">{initiatorName}</span>
                         </div>
                         <ArrowRight size={16} className="mobile-escrow-arrow" />
                         <div className="mobile-escrow-party">
@@ -4152,7 +4165,11 @@ const Dashboard = () => {
                           </div>
                         )}
                       </div>
-                      <button className={`mobile-escrow-status ${statusClass}`}>
+                      <button
+                        type="button"
+                        className={`mobile-escrow-status ${statusClass}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {statusText}
                       </button>
                     </div>
@@ -4322,15 +4339,21 @@ const Dashboard = () => {
             </div>
             <div className="summary-card-value-row">
               <div className="summary-card-value">
-                {dashboardData?.trustiscore?.score !== undefined 
-                  ? dashboardData.trustiscore.score 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 70)}
+                {isTrustiscoreLoading ? (
+                  <LoadingIndicator size="sm" />
+                ) : trustiscoreScore != null && Number.isFinite(Number(trustiscoreScore)) ? (
+                  trustiscoreScore
+                ) : (
+                  '—'
+                )}
                 <span className="summary-card-value-suffix">/100</span>
               </div>
               <div className="summary-card-subvalue">
-                {dashboardData?.trustiscore?.level !== undefined 
-                  ? dashboardData.trustiscore.level 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 'Platinum')}
+                {isTrustiscoreLoading ? (
+                  <LoadingIndicator size="sm" />
+                ) : (
+                  trustiscoreLevel || '—'
+                )}
               </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Level</button>
@@ -4595,8 +4618,11 @@ const Dashboard = () => {
                       // Format escrow ID (use short version or format)
                       const escrowId = escrow.id ? `#${escrow.id.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
                       
-                      // Get counterparty name
-                      const counterpartyName = escrow.counterpartyName || 'Unknown';
+                      // Get parties from escrow list payload
+                      const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
+                      const initiatorName = escrow.initiatorName || escrow.payerName || escrow.payer?.name || escrow.senderName || 'You';
+                      const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
+                      const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.payerAvatar || escrow.payer?.avatar || null;
                       
                       // Generate initials for avatar
                       const getInitials = (name) => {
@@ -4635,17 +4661,44 @@ const Dashboard = () => {
                       const statusBadge = getStatusBadge(escrow.status);
                       
                       return (
-                        <tr key={escrow.id || escrow.xrplEscrowId}>
+                        <tr
+                          key={escrow.id || escrow.xrplEscrowId}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setSelectedEscrowDetail(escrow);
+                            setShowEscrowDetailModal(true);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedEscrowDetail(escrow);
+                              setShowEscrowDetailModal(true);
+                            }
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td>{escrowId}</td>
                           <td>
                             <div className="party-info">
                               <div className="party-main">
-                                <div className="party-avatar">{getInitials(counterpartyName)}</div>
+                                {counterpartyAvatar ? (
+                                  <img src={counterpartyAvatar} alt={counterpartyName} className="party-avatar" />
+                                ) : (
+                                  <div className="party-avatar">{getInitials(counterpartyName)}</div>
+                                )}
                                 <span>{counterpartyName}</span>
                               </div>
                               <div className="party-subtitle">
                                 <ArrowRight size={14} />
-                                <span>{userFullName || 'You'}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  {initiatorAvatar ? (
+                                    <img src={initiatorAvatar} alt={initiatorName} className="party-avatar" style={{ width: '20px', height: '20px' }} />
+                                  ) : (
+                                    <span className="party-avatar" style={{ width: '20px', height: '20px', fontSize: '0.65rem' }}>{getInitials(initiatorName)}</span>
+                                  )}
+                                  <span>{initiatorName}</span>
+                                </span>
                               </div>
                             </div>
                           </td>
@@ -4875,40 +4928,6 @@ const Dashboard = () => {
                   <div className="wallet-change positive">
                     <TrendingUp size={14} />
                     <span>+0.1%</span>
-                  </div>
-                </div>
-                <div className="wallet-item">
-                  <div className="wallet-icon-group">
-                    <div className="wallet-icon">
-                      <img 
-                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                        alt="Ripple USD" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                      />
-                    </div>
-                    <div className="wallet-icon-info">
-                      <span className="wallet-name">Ripple USD</span>
-                      <span className="wallet-crypto">
-                        {showBalance 
-                          ? (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null
-                              ? `${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRPUSD`
-                              : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '0.00 XRPUSD'))
-                          : '••••••'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="wallet-value-change">
-                    <span className="wallet-amount">
-                      {showBalance 
-                        ? (walletBalances?.rippleUsd !== undefined && walletBalances?.rippleUsd !== null
-                            ? `$${Number(walletBalances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
-                        : '••••••'}
-                    </span>
-                    <div className="wallet-change positive">
-                      <TrendingUp size={14} />
-                      <span>+1.2%</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -5409,7 +5428,7 @@ const Dashboard = () => {
                 Transaction: '/transactions',
                 Dispute: accountType === 'Business Suite' ? '/business-dispute' : '/dispute',
                 Savings: '/savings',
-                Trusticard: '/trusticard',
+                Trusticard: null,
                 Payroll: '/payroll',
                 'Supplier Contract': '/supplier-contract',
               };
@@ -5432,6 +5451,7 @@ const Dashboard = () => {
                 if (!targetPath) return;
                 navigate(targetPath);
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -5442,7 +5462,9 @@ const Dashboard = () => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -5519,9 +5541,12 @@ const Dashboard = () => {
               const handleSupportNavClick = () => {
                 if (isDisabled) return;
                 if (item.label === 'Settings') {
-                  navigate('/settings');
-                } else if (item.label === 'Security') {
-                  navigate('/security');
+                  navigate(
+                    '/settings',
+                    accountType === 'Business Suite'
+                      ? { state: { accountType: 'Business Suite' } }
+                      : undefined
+                  );
                 }
               };
               const isActive = item.label === 'Settings' && location.pathname === '/settings';
@@ -5556,9 +5581,7 @@ const Dashboard = () => {
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
             <span className="trustiscore-badge">
-              {dashboardData?.trustiscore?.score !== undefined 
-                ? dashboardData.trustiscore.score 
-                : (isLoadingDashboard ? '...' : '97')}
+              {trustiscoreBadgeText}
             </span>
           </div>
 
@@ -5961,6 +5984,132 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Live Escrow detail (tap row / card on dashboard) */}
+      {showEscrowDetailModal && selectedEscrowDetail && (
+        <div
+          className="notification-modal-overlay"
+          onClick={() => {
+            setShowEscrowDetailModal(false);
+            setSelectedEscrowDetail(null);
+          }}
+        >
+          <div
+            className="notification-modal escrow-detail-dashboard-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="notification-modal-header escrow-detail-dashboard-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent" />
+                <h2>Escrow details</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={() => {
+                  setShowEscrowDetailModal(false);
+                  setSelectedEscrowDetail(null);
+                }}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="escrow-detail-dashboard-content">
+              {(() => {
+                const escrow = selectedEscrowDetail;
+                const rawId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
+                const formattedId = rawId ? String(rawId) : '—';
+                const counterpartyName =
+                  escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Unknown';
+                const payerLabel =
+                  escrow.initiatorName || escrow.payerName || escrow.payer?.name || escrow.senderName || '—';
+                const xrpRaw = escrow.amount?.xrp ?? escrow.amount?.XRP ?? escrow.xrpAmount;
+                const usdRaw = escrow.amount?.usd ?? escrow.amount?.USD ?? escrow.usdAmount ?? escrow.totalAmount;
+                const xrpAmount =
+                  xrpRaw != null && xrpRaw !== ''
+                    ? Number(xrpRaw).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 6,
+                      })
+                    : '0.00';
+                let usdDisplay = usdRaw;
+                if (usdDisplay == null && xrpRaw != null && exchangeRates?.length) {
+                  const xrpRate = exchangeRates.find(
+                    (r) => (r.currency || r.code || '').toUpperCase() === 'XRP'
+                  );
+                  if (xrpRate?.rate) {
+                    usdDisplay = Number(xrpRaw) * Number(xrpRate.rate);
+                  }
+                }
+                const usdAmount =
+                  usdDisplay != null && usdDisplay !== ''
+                    ? Number(usdDisplay).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    : '0.00';
+                const status = escrow.status || escrow.escrowStatus || 'Unknown';
+                const progress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0) || 0;
+                const createdDate = escrow.createdAt || escrow.created || '';
+                const formattedDate = createdDate
+                  ? new Date(createdDate).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })
+                  : 'N/A';
+                const detailRow = (label, value) => (
+                  <div
+                    key={label}
+                    className="escrow-detail-dashboard-row"
+                  >
+                    <span className="escrow-detail-dashboard-label">{label}</span>
+                    <span className="escrow-detail-dashboard-value">{value}</span>
+                  </div>
+                );
+                return (
+                  <>
+                    {detailRow('Escrow ID', formattedId)}
+                    {detailRow('From (payer)', payerLabel)}
+                    {detailRow('To (counterparty)', counterpartyName)}
+                    {detailRow('Amount', `${xrpAmount} XRP ≈ $${usdAmount}`)}
+                    {detailRow('Status', status)}
+                    {detailRow(
+                      'Progress',
+                      `${Math.min(100, Math.max(0, Math.round(progress)))}%`
+                    )}
+                    {detailRow('Created', formattedDate)}
+                    <div className="escrow-detail-dashboard-actions">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowEscrowDetailModal(false);
+                          setSelectedEscrowDetail(null);
+                          navigate('/my-escrow');
+                        }}
+                        className="escrow-detail-dashboard-manage-btn"
+                      >
+                        Manage in My Escrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowEscrowDetailModal(false);
+                          setSelectedEscrowDetail(null);
+                        }}
+                        className="escrow-detail-dashboard-close-btn"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Escrow Modal (Dashboard-scoped, reusing shared form) */}
       <CreateEscrowForm
         isOpen={showCreateEscrowModal}
@@ -6191,12 +6340,6 @@ const Dashboard = () => {
                           <span style={{ fontSize: '0.9rem' }}>USDC</span>
                           <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        {(businessSuiteWalletModalData.balances.rippleUsd ?? 0) > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0' }}>
-                            <span style={{ fontSize: '0.9rem' }}>XRPUSD</span>
-                            <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.rippleUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -6275,6 +6418,12 @@ const Dashboard = () => {
         mode={businessSuitePinMode}
         onClose={handleClosePinModal}
         onVerify={handleBusinessSuitePinSubmit}
+      />
+
+      <TrustitagWelcomeModal
+        isOpen={showTrustitagWelcome}
+        trustitag={welcomeTrustitag}
+        onClose={handleCloseTrustitagWelcome}
       />
 
       {/* KYC Status Dialog: In review / Rejected */}

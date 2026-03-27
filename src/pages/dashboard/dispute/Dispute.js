@@ -57,26 +57,26 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
+import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
-  { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
+  { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
-  { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
 
-const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
-];
+const supportNav = [{ label: 'Settings', icon: Settings }];
 
 const MONTH_LABEL_TO_NUMBER = {
   january: 1,
@@ -167,6 +167,9 @@ const Dispute = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const [accountType, setAccountType] = useState('Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [kycComplete] = useState(true);
@@ -812,6 +815,7 @@ const Dispute = () => {
         if (response.ok) {
           const result = await response.json();
           if (result?.success && result?.data) {
+            persistTrustitagFromProfileResponse(result);
             const data = result.data;
             const fullName = data.fullName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.name || 'Sarah Chen';
             setUserFullName(fullName);
@@ -935,9 +939,10 @@ const Dispute = () => {
                   } else if (item.label === 'Dispute') {
                     navigate('/dispute');
                   } else if (item.label === 'Trusticard') {
-                    navigate('/trusticard');
+                    return;
                   }
                 };
+                const navBadge = getNavBadge(item);
                 return (
                   <button
                     key={item.label}
@@ -947,7 +952,9 @@ const Dispute = () => {
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
-                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                    {navBadge != null && navBadge !== '' ? (
+                      <span className="mobile-sidebar-badge">{navBadge}</span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -988,7 +995,7 @@ const Dispute = () => {
 
             <div className="mobile-sidebar-trustiscore">
               <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-              <span className="mobile-sidebar-trustiscore-badge">850</span>
+              <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
             </div>
 
             <button 
@@ -1039,9 +1046,10 @@ const Dispute = () => {
                 } else if (item.label === 'Savings') {
                   navigate('/savings');
                 } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
+                  return;
                 }
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -1051,7 +1059,9 @@ const Dispute = () => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -1087,7 +1097,7 @@ const Dispute = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

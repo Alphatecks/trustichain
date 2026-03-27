@@ -9,7 +9,7 @@
     display: block !important;
     width: 100%;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     font-family: 'Satoshi', 'Inter', sans-serif;
     box-sizing: border-box;
   }
@@ -24,7 +24,7 @@
 
   .payroll-page-mobile {
     padding: 1rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
   }
 
   .payroll-summary-cards-wrapper-mobile {
@@ -55,7 +55,7 @@
   }
 
   .payroll-summary-card-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 1rem;
@@ -148,7 +148,7 @@
   }
 
   .payroll-card-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 1.25rem;
@@ -363,7 +363,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     padding: 1rem;
@@ -476,7 +476,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     padding: 1rem;
@@ -547,7 +547,7 @@
     height: 100vh;
     padding: 1rem;
     padding-bottom: 2rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     overflow-y: auto;
     overflow-x: hidden;
@@ -597,7 +597,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -619,7 +619,7 @@
   }
 
   .payroll-detail-card-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     padding: 1rem;
@@ -846,7 +846,7 @@
     height: 100vh;
     padding: 1rem;
     padding-bottom: 2rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1002;
     overflow-y: auto;
     overflow-x: hidden;
@@ -896,7 +896,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1061,7 +1061,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--white);
+    background: var(--surface, var(--white));
     color: var(--blue-600);
   }
 
@@ -1185,7 +1185,7 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 1rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--gray-200);
     border-radius: 0.75rem;
     font-size: 0.9rem;
@@ -1241,7 +1241,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--white);
+    background: var(--surface, var(--white));
   }
 
   .add-team-member-final-icon-mobile svg {
@@ -1255,7 +1255,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1308,7 +1308,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1324,7 +1324,7 @@
   }
 
   .fund-wallet-amount-section-mobile {
-    background: var(--white);
+    background: var(--surface, var(--white));
     border-radius: 0.75rem;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1348,7 +1348,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 1.5rem;
     cursor: pointer;
@@ -1462,7 +1462,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1515,7 +1515,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1619,7 +1619,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -1672,7 +1672,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     border: 1px solid var(--border);
     border-radius: 50%;
     color: var(--blue-600);
@@ -1847,7 +1847,7 @@
     width: 18px;
     left: 3px;
     bottom: 3px;
-    background-color: var(--white);
+    background-color: var(--surface, var(--white));
     transition: 0.3s;
     border-radius: 50%;
   }
@@ -1890,7 +1890,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--white);
+    background: var(--surface, var(--white));
   }
 
   .add-new-payroll-submit-icon-mobile svg {
@@ -1990,7 +1990,7 @@
     bottom: 0;
     width: 85%;
     max-width: 400px;
-    background: var(--white);
+    background: var(--surface, var(--white));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -2212,7 +2212,7 @@
 }
 
 .payroll-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -2407,7 +2407,7 @@
 }
 
 .payroll-summary-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -2486,7 +2486,7 @@
 
 /* Transaction History Section */
 .transaction-history-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -2535,7 +2535,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.9rem;
@@ -2557,7 +2557,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   color: var(--text-dark);
@@ -2581,7 +2581,7 @@
 }
 
 .transaction-table thead {
-  background: #f9fafb;
+  background: var(--blue-100);
 }
 
 .transaction-table th {
@@ -2608,7 +2608,7 @@
 }
 
 .transaction-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--blue-100);
 }
 
 .transaction-table td {
@@ -2663,7 +2663,7 @@
 
 .pagination-btn {
   padding: 0.5rem 1rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.9rem;
