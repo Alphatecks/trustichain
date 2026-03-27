@@ -120,6 +120,11 @@
   object-fit: contain;
 }
 
+.login-social-btn .login-apple-logo {
+  width: 30px;
+  height: 30px;
+}
+
 .login-social-btn:hover {
   border-color: #0c63ff;
   transform: translateY(-2px);

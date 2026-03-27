@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './Login.css';
 import logo from '../../assets/images/icons/logo.png';
@@ -281,12 +281,16 @@ const Login = () => {
                 {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
               </button>
               <button type="button" className="login-social-btn">
-                <KeyRound size={18} />
-                Sign in with passkey
+                <img
+                  className="login-apple-logo"
+                  src="https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png"
+                  alt="Apple"
+                />
+                Sign in with Apple
               </button>
               <button type="button" className="login-social-btn">
-                <Shield size={18} />
-                Sign in with SSO
+                <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/X-Logo-Round-Color.png" alt="X" />
+                Sign in with X
               </button>
             </div>
 
