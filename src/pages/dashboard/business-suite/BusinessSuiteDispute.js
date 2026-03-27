@@ -11,7 +11,6 @@ import {
   Box,
   Link,
   Settings,
-  ShieldCheck,
   HelpCircle,
   Search,
   Bell,
@@ -39,6 +38,8 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const businessSuiteNav = [
@@ -56,8 +57,7 @@ const developersNav = [
 ];
 
 const supportNav = [
-  { label: 'Settings', icon: Settings, path: '/settings' },
-  { label: 'Security', icon: ShieldCheck, path: '/security' }
+  { label: 'Settings', icon: Settings, path: '/settings' }
 ];
 
 const MONTH_LABEL_TO_NUMBER = {
@@ -135,6 +135,9 @@ const BusinessSuiteDispute = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showPayrollModal, setShowPayrollModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -526,8 +529,13 @@ const BusinessSuiteDispute = () => {
 
   const handleNavClick = (item) => {
     if (!item?.path) return;
-    if (item.path === '/compliance' || item.path === '/security') return;
-    navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+    if (item.path === '/compliance') return;
+    navigate(
+      item.path,
+      item.path === '/dashboard' || item.path === '/settings'
+        ? { state: { accountType: 'Business Suite' } }
+        : undefined
+    );
   };
 
   const totalPages = Math.max(1, 78);
@@ -576,6 +584,7 @@ const BusinessSuiteDispute = () => {
               {businessSuiteNav.map((item) => {
                 const Icon = item.icon;
                 const isActive = item.path ? (item.path === '/business-dispute' || item.path === '/payroll' ? (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)) : location.pathname === item.path) : false;
+                const navBadge = getNavBadge(item);
                 return (
                   <button
                     key={item.label}
@@ -583,11 +592,20 @@ const BusinessSuiteDispute = () => {
                     className={`mobile-sidebar-nav-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      if (item.path && item.path !== '/compliance') navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+                      if (item.path && item.path !== '/compliance') {
+                        navigate(
+                          item.path,
+                          item.path === '/dashboard' || item.path === '/settings'
+                            ? { state: { accountType: 'Business Suite' } }
+                            : undefined
+                        );
+                      }
                     }}
                   >
                     <Icon size={18} /><span>{item.label}</span>
-                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                    {navBadge != null && navBadge !== '' ? (
+                      <span className="mobile-sidebar-badge">{navBadge}</span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -599,7 +617,15 @@ const BusinessSuiteDispute = () => {
               {supportNav.map((item) => {
                 const SupportIcon = item.icon;
                 return (
-                  <button key={item.label} type="button" className="mobile-sidebar-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="mobile-sidebar-nav-item"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleNavClick(item);
+                    }}
+                  >
                     <SupportIcon size={18} /><span>{item.label}</span>
                   </button>
                 );
@@ -627,6 +653,7 @@ const BusinessSuiteDispute = () => {
                 (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                 (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
                 (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -635,7 +662,9 @@ const BusinessSuiteDispute = () => {
                   onClick={() => handleNavClick(item)}
                 >
                   <Icon size={18} /><span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -667,8 +696,16 @@ const BusinessSuiteDispute = () => {
           <nav className="sidebar-nav">
             {supportNav.map((item) => {
               const SupportIcon = item.icon;
+              const isActive =
+                (item.label === 'Settings' && location.pathname === '/settings') ||
+                (item.path && location.pathname === item.path);
               return (
-                <button key={item.label} type="button" className="sidebar-nav-item">
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => handleNavClick(item)}
+                >
                   <SupportIcon size={18} /><span>{item.label}</span>
                 </button>
               );
@@ -684,7 +721,7 @@ const BusinessSuiteDispute = () => {
           </div>
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
           <button type="button" className="sidebar-logout" onClick={handleLogout}><LogOut size={18} /><span>Logout</span></button>
         </div>

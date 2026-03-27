@@ -2,10 +2,26 @@ import React, { useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../utils/config';
+import { queueTrustitagWelcomeModal } from '../../utils/trustitag';
+
+/**
+ * Google OAuth + MFA (server redirect flow)
+ * -----------------------------------------
+ * The backend does NOT return `requires_mfa` / `mfa_token` as a normal JSON login body.
+ * After `GET /api/auth/google/callback?code=...`, the API responds with **302** whose
+ * `Location` is your SPA, e.g.:
+ *   {FRONTEND_URL}/auth/callback?success=true&provider=google#requires_mfa=true&mfa_token=<...>&user_email=...&user_id=...
+ * MFA flags live in the **URL fragment** (hash), snake_case. This component reads them via
+ * `window.location.hash` / `parseHashParams()` — not from a JSON response body.
+ *
+ * Email/password login still uses `POST /api/auth/login` JSON with `requiresMfa` + `mfaToken` when applicable.
+ */
 
 /** Survives React Strict Mode remount (refs reset); prevents double POST of the same OAuth code. */
 const oauthCodeExchangeStarted = new Set();
 const oauthHashTokenHandled = new Set();
+/** Prevents double navigation when hash has requires_mfa + mfa_token (Strict Mode). */
+const oauthMfaFragmentHandled = new Set();
 
 /**
  * Keep local dashboard prefs in sync with auth API (parity with Signup.js for new users).
@@ -56,6 +72,16 @@ function applyDashboardPrefsFromProfileUser(user) {
     truthy(user.isKycVerified) ||
     truthy(user.kyc_completed);
   localStorage.setItem('kycComplete', kyc ? 'true' : 'false');
+
+  const tag = user.trustitag ?? user.trustiTag;
+  if (typeof tag === 'string' && tag.trim()) {
+    try {
+      localStorage.setItem('trustitag', tag.trim());
+    } catch (_) {
+      /* ignore */
+    }
+    queueTrustitagWelcomeModal(tag.trim());
+  }
 }
 
 function isApiSuccessFlag(data) {
@@ -271,6 +297,10 @@ function extractAndStoreToken(data) {
   return null;
 }
 
+/**
+ * Parse `#requires_mfa=true&mfa_token=...&user_email=...` from the OAuth redirect fragment.
+ * (Fragment is not sent to the server; only the browser sees it.)
+ */
 function parseHashParams() {
   if (typeof window === 'undefined') return new URLSearchParams();
   const raw = window.location.hash?.replace(/^#/, '') || '';
@@ -503,9 +533,56 @@ const OAuthCallback = () => {
     }
 
     const hashParams = parseHashParams();
+    const requiresMfaFragment =
+      hashParams.get('requires_mfa') === 'true' ||
+      hashParams.get('requiresMfa') === 'true' ||
+      hashParams.get('requires_mfa') === '1' ||
+      hashParams.get('requiresMfa') === '1';
+    const mfaTokenFragment =
+      hashParams.get('mfa_token') || hashParams.get('mfaToken') || '';
     const hashAccess =
       hashParams.get('access_token') || hashParams.get('id_token');
     const hashRefresh = hashParams.get('refresh_token');
+
+    // Google OAuth server redirect: MFA required — no access_token until TOTP succeeds
+    if ((requiresMfaFragment || mfaTokenFragment) && !hashAccess) {
+      if (!mfaTokenFragment) {
+        toast.error('Additional verification required but MFA token is missing.');
+        navigate('/login', { replace: true });
+        return;
+      }
+      const dedupeKey = `mfa:${mfaTokenFragment.length}:${mfaTokenFragment.slice(0, 48)}`;
+      if (oauthMfaFragmentHandled.has(dedupeKey)) {
+        return;
+      }
+      oauthMfaFragmentHandled.add(dedupeKey);
+      const ue =
+        hashParams.get('user_email') ||
+        hashParams.get('email') ||
+        hashParams.get('userEmail') ||
+        '';
+      try {
+        sessionStorage.setItem('mfa_login_token', String(mfaTokenFragment).trim());
+        sessionStorage.setItem('mfa_login_email', String(ue).trim());
+      } catch (_) {
+        /* ignore */
+      }
+      clearOAuthHashFromUrl();
+      navigate('/two-factor', {
+        replace: true,
+        state: {
+          mfaToken: String(mfaTokenFragment).trim(),
+          email: ue,
+          oauthMeta: {
+            userId: hashParams.get('user_id') || hashParams.get('userId') || '',
+            fullName: hashParams.get('full_name') || hashParams.get('fullName') || '',
+            country: hashParams.get('country') || '',
+          },
+        },
+      });
+      return;
+    }
+
     if (hashAccess && !oauthHashTokenHandled.has(hashAccess)) {
       oauthHashTokenHandled.add(hashAccess);
       storeSessionToken(hashAccess);
@@ -552,7 +629,7 @@ const OAuthCallback = () => {
       toast.error('Missing authorization code or token. Please try signing in again.');
       navigate('/login', { replace: true });
     }
-  }, [searchParams, navigate, handleOAuthCallback, location.pathname]);
+  }, [searchParams, navigate, handleOAuthCallback, location.pathname, location.hash]);
 
   return (
     <div

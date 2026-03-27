@@ -48,6 +48,7 @@ import { getApiUrl } from '../../../utils/config';
 import toast from 'react-hot-toast';
 import { handleLogout } from '../../../utils/logout';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (s) => typeof s === 'string' && UUID_REGEX.test(s.trim());
@@ -130,6 +131,8 @@ const SupplierContract = ({
   onRefetchSupplyContractsForSupplier,
   onRefetchSupplyContractsForContractor
 }) => {
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const [transactionFilter, setTransactionFilter] = useState(transactionHistoryStatus ? 'Successful' : 'All');
   const [showViewSupplyStatusModal, setShowViewSupplyStatusModal] = useState(false);
   const [releasingContractId, setReleasingContractId] = useState(null);
@@ -780,9 +783,7 @@ const SupplierContract = ({
               <div className="mobile-sidebar-trustiscore">
                 <span className="mobile-sidebar-trustiscore-label">Active Supplier</span>
                 <span className="mobile-sidebar-trustiscore-badge">
-                  {dashboardData?.trustiscore?.score !== undefined 
-                    ? dashboardData.trustiscore.score 
-                    : (isLoadingDashboard ? '...' : '97')}
+                  {trustiscoreBadgeText}
                 </span>
               </div>
 

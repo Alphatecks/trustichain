@@ -1163,20 +1163,27 @@
 
 /* Mobile: full-screen modal, mobile step indicator, single column */
 @media (max-width: 768px) {
-  .add-supplier-modal-overlay {
-    padding: 0;
-    align-items: stretch;
+  .add-supplier-modal-overlay.create-escrow-modal-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    inset: 0 !important;
   }
 
   .add-supplier-modal-overlay .add-supplier-modal,
   .add-supplier-modal-overlay .create-new-supplier-modal {
-    max-width: none;
-    width: 100%;
-    max-height: none;
-    height: 100%;
-    min-height: 100dvh;
-    border-radius: 0;
-    box-shadow: none;
+    position: fixed !important;
+    inset: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    background: var(--surface, var(--white)) !important;
+    color: var(--text-dark) !important;
   }
 
   .add-supplier-modal .create-escrow-steps-mobile {
@@ -1222,4 +1229,131 @@
     width: 100%;
     justify-content: center;
   }
+
+  /* Force dark/light tokens for mobile create supplier modal */
+  .add-supplier-modal .create-escrow-modal-header,
+  .add-supplier-modal .create-escrow-modal-content,
+  .add-supplier-modal .create-escrow-modal-footer {
+    background: var(--surface, var(--white)) !important;
+    color: var(--text-dark) !important;
+  }
+
+  .add-supplier-modal .create-escrow-steps-mobile,
+  .add-supplier-modal .create-escrow-steps,
+  .add-supplier-modal .create-supplier-step-indicator {
+    background: var(--blue-100) !important;
+  }
+
+  .add-supplier-modal .step-title-mobile,
+  .add-supplier-modal .step-title,
+  .add-supplier-modal .step-number-mobile,
+  .add-supplier-modal .step-number,
+  .add-supplier-modal .create-supplier-label,
+  .add-supplier-modal .create-supplier-section-title,
+  .add-supplier-modal .create-supplier-step-label {
+    color: var(--text-dark) !important;
+  }
+
+  .add-supplier-modal .create-supplier-hint,
+  .add-supplier-modal .create-supplier-optional,
+  .add-supplier-modal .create-supplier-upload-hint,
+  .add-supplier-modal .create-supplier-step-num {
+    color: var(--text-muted) !important;
+  }
+
+  .add-supplier-modal .create-supplier-input,
+  .add-supplier-modal .create-supplier-dropdown-btn,
+  .add-supplier-modal .create-supplier-dropdown,
+  .add-supplier-modal .create-supplier-dropdown-item,
+  .add-supplier-modal .create-supplier-textarea,
+  .add-supplier-modal .create-supplier-tag,
+  .add-supplier-modal .create-supplier-cancel-btn,
+  .add-supplier-modal .add-supplier-dropdown-btn,
+  .add-supplier-modal .add-supplier-dropdown,
+  .add-supplier-modal .add-supplier-dropdown-item,
+  .add-supplier-modal .payment-summary-block,
+  .add-supplier-modal .add-supplier-upload-zone,
+  .add-supplier-modal .add-supplier-fund-escrow-summary {
+    background: var(--surface, var(--white)) !important;
+    border-color: var(--border) !important;
+    color: var(--text-dark) !important;
+  }
+
+  .add-supplier-modal .create-supplier-dropdown-item:hover,
+  .add-supplier-modal .add-supplier-dropdown-item:hover,
+  .add-supplier-modal .create-supplier-cancel-btn:hover,
+  .add-supplier-modal .create-supplier-tag:hover,
+  .add-supplier-modal .create-supplier-step-dot.active,
+  .add-supplier-modal .add-supplier-upload-zone:hover {
+    background: var(--blue-100) !important;
+  }
+}
+
+/* Theme compliance overrides for supplier contract modal */
+.add-supplier-modal-overlay .add-supplier-modal,
+.add-supplier-modal-overlay .create-new-supplier-modal {
+  background: var(--surface, var(--white));
+  color: var(--text-dark);
+}
+
+.add-supplier-modal .create-escrow-steps-mobile,
+.add-supplier-modal .create-escrow-steps {
+  background: var(--blue-100) !important;
+}
+
+.add-supplier-modal .step-divider,
+.add-supplier-modal .step-icon,
+.add-supplier-modal .step-indicator:not(.active):not(.completed) .step-icon {
+  background: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+.add-supplier-modal .step-number,
+.add-supplier-modal .step-title,
+.add-supplier-modal .step-title-mobile,
+.add-supplier-modal .create-supplier-label,
+.add-supplier-modal .create-supplier-step-label,
+.add-supplier-modal .create-supplier-radio,
+.add-supplier-modal .create-supplier-section-title {
+  color: var(--text-dark) !important;
+}
+
+.add-supplier-modal .create-supplier-hint,
+.add-supplier-modal .create-supplier-optional,
+.add-supplier-modal .create-supplier-upload-hint,
+.add-supplier-modal .create-supplier-step-num,
+.add-supplier-modal .add-supplier-upload-zone > span,
+.add-supplier-modal .add-supplier-uploaded-names {
+  color: var(--text-muted) !important;
+}
+
+.add-supplier-modal .previous-btn,
+.add-supplier-modal .add-supplier-dropdown-btn,
+.add-supplier-modal .add-supplier-dropdown,
+.add-supplier-modal .add-supplier-dropdown-item,
+.add-supplier-modal .create-supplier-input,
+.add-supplier-modal .create-supplier-dropdown-btn,
+.add-supplier-modal .create-supplier-dropdown,
+.add-supplier-modal .create-supplier-dropdown-item,
+.add-supplier-modal .create-supplier-tag,
+.add-supplier-modal .create-supplier-cancel-btn,
+.add-supplier-modal .create-supplier-textarea,
+.add-supplier-modal .add-supplier-upload-zone,
+.add-supplier-modal .payment-summary-block,
+.add-supplier-modal .add-supplier-fund-escrow-summary,
+.add-supplier-modal .create-supplier-step-indicator,
+.add-supplier-modal .create-supplier-step-dot {
+  background: var(--surface, var(--white)) !important;
+  border-color: var(--border) !important;
+  color: var(--text-dark) !important;
+}
+
+.add-supplier-modal .previous-btn:hover,
+.add-supplier-modal .add-supplier-dropdown-item:hover,
+.add-supplier-modal .create-supplier-dropdown-item:hover,
+.add-supplier-modal .create-supplier-cancel-btn:hover,
+.add-supplier-modal .create-supplier-tag:hover,
+.add-supplier-modal .create-supplier-step-dot.active,
+.add-supplier-modal .create-supplier-upload-zone:hover {
+  background: var(--blue-100) !important;
 }

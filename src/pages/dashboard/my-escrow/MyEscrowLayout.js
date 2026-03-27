@@ -29,9 +29,12 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
+import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import '../dashboard/Dashboard.css';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 
@@ -63,10 +66,10 @@ const getNotificationIconConfig = (type) => {
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
-  { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
+  { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
-  { label: 'Dispute', icon: CreditCard, badge: 23 },
-  { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -85,15 +88,15 @@ const developersNav = [
   { label: 'Web hook', icon: Link, badge: null }
 ];
 
-const supportNav = [
-  { label: 'Settings', icon: Settings, badge: null },
-  { label: 'Security', icon: ShieldCheck, badge: null }
-];
+const supportNav = [{ label: 'Settings', icon: Settings, badge: null }];
 
 const MyEscrowLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [notifications, setNotifications] = useState([]);
@@ -256,6 +259,7 @@ const MyEscrowLayout = ({ children }) => {
           console.log('User profile API response data:', result);
 
           if (result?.success && result?.data) {
+            persistTrustitagFromProfileResponse(result);
             const data = result.data;
             const fullName =
               data.fullName ||
@@ -338,9 +342,10 @@ const MyEscrowLayout = ({ children }) => {
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
                 } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
+                  return;
                 }
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -350,7 +355,9 @@ const MyEscrowLayout = ({ children }) => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -382,8 +389,6 @@ const MyEscrowLayout = ({ children }) => {
               const handleSupportNavClick = () => {
                 if (item.label === 'Settings') {
                   navigate('/settings');
-                } else if (item.label === 'Security') {
-                  navigate('/security');
                 }
               };
               const isActive = item.label === 'Settings' && location.pathname === '/settings';
@@ -416,7 +421,7 @@ const MyEscrowLayout = ({ children }) => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

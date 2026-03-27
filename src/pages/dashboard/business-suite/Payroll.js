@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   LayoutDashboard,
-  ShieldCheck,
   CreditCard,
   Briefcase,
   Settings,
@@ -44,6 +43,7 @@ import './Payroll.css';
 import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
@@ -86,8 +86,7 @@ const developersNav = [
 ];
 
 const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
+  { label: 'Settings', icon: Settings }
 ];
 
 const normalizeCompanyLogoUrl = (data) => {
@@ -104,6 +103,8 @@ const Payroll = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
     if (stored === 'Business Suite' || stored === 'Personal') return stored;
@@ -863,9 +864,7 @@ const Payroll = () => {
                   const handleSupportNavClick = () => {
                     setIsMobileMenuOpen(false);
                     if (item.label === 'Settings') {
-                      navigate('/settings');
-                    } else if (item.label === 'Security') {
-                      navigate('/security');
+                      navigate('/settings', { state: { accountType: 'Business Suite' } });
                     }
                   };
                   return (
@@ -887,7 +886,7 @@ const Payroll = () => {
           <div className="mobile-sidebar-bottom">
             <div className="mobile-sidebar-trustiscore">
               <span className="mobile-sidebar-trustiscore-label">Active Supplier</span>
-              <span className="mobile-sidebar-trustiscore-badge">97</span>
+              <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
             </div>
 
             <button 
@@ -2257,8 +2256,19 @@ const Payroll = () => {
           <nav className="sidebar-nav">
             {supportNav.map((item) => {
               const Icon = item.icon;
+              const handleSupportClick = () => {
+                if (item.label === 'Settings') {
+                  navigate('/settings', { state: { accountType: 'Business Suite' } });
+                }
+              };
+              const isActive = item.label === 'Settings' && location.pathname === '/settings';
               return (
-                <button key={item.label} type="button" className="sidebar-nav-item">
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleSupportClick}
+                >
                   <Icon size={18} />
                   <span>{item.label}</span>
                 </button>
@@ -2281,7 +2291,7 @@ const Payroll = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

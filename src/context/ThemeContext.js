@@ -18,14 +18,23 @@ export const ThemeProvider = ({ children }) => {
 
   const [isMobile, setIsMobile] = useState(getIsMobile());
 
-  const [theme, setTheme] = useState(() => {
-    // Use saved preference if present, otherwise default to light
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      return savedTheme;
+  const [theme, setThemeState] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        return savedTheme;
+      }
+    } catch {
+      /* ignore */
     }
     return 'light';
   });
+
+  const setTheme = (next) => {
+    if (next === 'light' || next === 'dark') {
+      setThemeState(next);
+    }
+  };
 
   useEffect(() => {
     // Track viewport changes to determine mobile/desktop
@@ -45,11 +54,12 @@ export const ThemeProvider = ({ children }) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    setThemeState((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
   const value = {
     theme,
+    setTheme,
     toggleTheme,
     isDark: theme === 'dark',
     isMobile,

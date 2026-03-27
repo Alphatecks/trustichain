@@ -36,7 +36,7 @@
 }
 
 .bs-dashboard .bs-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -87,7 +87,7 @@
   color: var(--white);
 }
 .bs-dashboard .bs-card-balance .bs-btn-primary {
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: #0671FF;
 }
 .bs-dashboard .bs-card-balance .bs-btn-primary svg {
@@ -97,7 +97,7 @@
   background: rgba(255,255,255,0.3);
 }
 .bs-dashboard .bs-card-balance .bs-btn-primary:hover {
-  background: var(--white);
+  background: var(--surface, var(--white));
 }
 .bs-dashboard .bs-card-balance .bs-btn-primary:hover svg {
   color: #0671FF;
@@ -211,7 +211,7 @@
 
 /* Portfolio chart */
 .bs-dashboard .bs-portfolio-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -382,7 +382,7 @@
 
 /* My Teams */
 .bs-dashboard .bs-teams-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -447,7 +447,7 @@
 .bs-dashboard .bs-team-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #000;
+  color: var(--text-dark);
 }
 .bs-dashboard .bs-team-next-date {
   font-size: 0.85rem;
@@ -478,7 +478,7 @@
   border-radius: 0.5rem;
   font-size: 0.85rem;
   font-weight: 500;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--blue-600);
   border: 1px solid var(--blue-600);
   cursor: pointer;
@@ -502,7 +502,7 @@
 
 /* Alert card (in right column under My Teams) */
 .bs-dashboard .bs-alert-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -571,7 +571,7 @@
   min-width: 0;
 }
 .bs-dashboard .bs-list-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -683,7 +683,7 @@
   color: var(--text-muted);
 }
 .bs-mobile .bs-mobile-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.25rem;
@@ -712,7 +712,7 @@
   color: var(--white);
 }
 .bs-mobile .bs-mobile-card-balance .bs-mobile-btn-primary {
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: #0671FF;
 }
 .bs-mobile .bs-mobile-title { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem; }
@@ -771,7 +771,7 @@
 .mobile-dashboard .mobile-team-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #000;
+  color: var(--text-dark);
 }
 .mobile-dashboard .mobile-team-next-date {
   font-size: 0.85rem;
@@ -801,7 +801,7 @@
   border-radius: 0.5rem;
   font-size: 0.85rem;
   font-weight: 500;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--blue-600);
   border: 1px solid var(--blue-600);
   cursor: pointer;
@@ -832,7 +832,7 @@
 .bs-mobile .bs-mobile-team-meta,
 .bs-mobile .bs-mobile-list-meta { font-size: 0.85rem; color: var(--text-muted); }
 .bs-mobile .bs-mobile-alert {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.25rem;

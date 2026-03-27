@@ -1,9 +1,12 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
 import { ThemeProvider } from './context/ThemeContext';
 import { SessionProvider } from './context/SessionContext';
+import { EscrowMetricsProvider } from './context/EscrowMetricsContext';
+import { DisputeMetricsProvider } from './context/DisputeMetricsContext';
+import { TrustiscoreProvider } from './context/TrustiscoreContext';
 import LandingNavbar from './components/LandingNavbar';
 import Navbar from './components/Navbar';
 import Home from './pages/home/Home';
@@ -25,7 +28,6 @@ import Dispute from './pages/dashboard/dispute/Dispute';
 import DisputeDetail from './pages/dashboard/dispute/DisputeDetail';
 import BusinessSuiteDispute from './pages/dashboard/business-suite/BusinessSuiteDispute';
 import BusinessSuiteDisputeDetail from './pages/dashboard/business-suite/BusinessSuiteDisputeDetail';
-import TrustiCard from './pages/dashboard/trusticard/TrustiCard';
 import Savings from './pages/dashboard/savings/Savings';
 import Payroll from './pages/dashboard/business-suite/Payroll';
 import PayrollDetail from './pages/dashboard/business-suite/PayrollDetail';
@@ -131,7 +133,7 @@ function AppContent() {
           <Route path="/dispute/:id" element={<DisputeDetail />} />
           <Route path="/business-dispute" element={<BusinessSuiteDispute />} />
           <Route path="/business-dispute/:id" element={<BusinessSuiteDisputeDetail />} />
-          <Route path="/trusticard" element={<TrustiCard />} />
+          <Route path="/trusticard" element={<Navigate to="/dashboard" replace />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/payroll/:payrollId" element={<PayrollDetail />} />
           <Route path="/supplier-contract" element={<Dashboard />} />
@@ -161,7 +163,13 @@ function App() {
       <Web3Provider>
         <SessionProvider>
           <Router>
-            <AppContent />
+            <EscrowMetricsProvider>
+              <DisputeMetricsProvider>
+                <TrustiscoreProvider>
+                  <AppContent />
+                </TrustiscoreProvider>
+              </DisputeMetricsProvider>
+            </EscrowMetricsProvider>
           </Router>
         </SessionProvider>
       </Web3Provider>

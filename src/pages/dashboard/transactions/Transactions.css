@@ -85,7 +85,7 @@ body.transactions-page-active .landing-navbar {
 
 /* Section Cards with Blue Indicator */
 .transactions-section-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -332,7 +332,7 @@ body.transactions-page-active .landing-navbar {
 
 /* Wallet Overview Cards - New Design */
 .wallet-overview-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -593,7 +593,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   cursor: pointer;
@@ -609,7 +609,7 @@ body.transactions-page-active .landing-navbar {
   height: 40px;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -647,6 +647,14 @@ body.transactions-page-active .landing-navbar {
   color: var(--text-dark);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+
+[data-theme="dark"] .transaction-table thead {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .transaction-table th {
+  color: var(--white);
 }
 
 .transaction-table th:first-child {
@@ -815,7 +823,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   font-weight: 500;
@@ -847,7 +855,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   font-weight: 500;
@@ -987,7 +995,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
   border-radius: 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s ease;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -1157,7 +1165,7 @@ body.transactions-page-active .landing-navbar {
     position: fixed;
     inset: 0;
     padding: 0 !important;
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     align-items: stretch !important;
     justify-content: stretch !important;
     z-index: 1000;
@@ -1178,7 +1186,7 @@ body.transactions-page-active .landing-navbar {
 
   /* Update header for full-screen mobile view */
   .swap-modal .notification-modal-header {
-    background: var(--white);
+    background: var(--surface, var(--white));
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
   }
@@ -1217,7 +1225,7 @@ body.transactions-page-active .landing-navbar {
   .swap-currency-selector {
     border: 2px solid var(--blue-600);
     border-radius: 2rem;
-    background: var(--white);
+    background: var(--surface, var(--white));
     padding: 0.75rem 1rem;
   }
 
@@ -1296,7 +1304,7 @@ body.transactions-page-active .landing-navbar {
   /* Swap Preview Modal - Full Screen on Mobile */
   .swap-preview-overlay {
     padding: 0 !important;
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     align-items: stretch !important;
     justify-content: stretch !important;
   }
@@ -1312,7 +1320,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .swap-preview-modal .notification-modal-header {
-    background: var(--white);
+    background: var(--surface, var(--white));
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
   }
@@ -1354,7 +1362,7 @@ body.transactions-page-active .landing-navbar {
     flex-shrink: 0;
     border: 1px solid var(--border) !important;
     border-radius: 2rem !important;
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     padding: 0.5rem 0.75rem !important;
     white-space: nowrap;
     display: flex;
@@ -1404,35 +1412,294 @@ body.transactions-page-active .landing-navbar {
   }
 }
 
-/* Send Modal Styles */
-.send-modal {
-  max-width: 800px;
-  width: 90%;
+/* Send Modal — Trustitag send flow */
+.send-modal-overlay {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.send-modal.send-modal--trustitag {
+  --send-accent: #0066ff;
+  --send-accent-mid: #0d6bff;
+  --send-accent-end: #0980ff;
+  max-width: 720px;
+  width: 92%;
   font-family: 'Satoshi', 'Inter', sans-serif;
+  border-radius: 1.25rem;
+  box-shadow:
+    0 4px 6px -1px rgba(15, 23, 42, 0.08),
+    0 24px 48px -12px rgba(15, 23, 42, 0.18);
 }
 
 .send-modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  background: var(--white);
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem 1.25rem;
+  background: linear-gradient(180deg, var(--blue-100) 0%, var(--surface, var(--white)) 100%);
+  border-bottom: 1px solid var(--border);
+}
+
+.send-modal-header-main {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+}
+
+.send-modal-header-accent {
+  width: 4px;
+  min-height: 3rem;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--send-accent-mid) 0%, var(--send-accent) 100%);
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.send-modal-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--send-accent);
+  font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
 .send-modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #000000;
+  margin: 0 0 0.5rem;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.send-modal-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-weight: 500;
+  max-width: 38rem;
+}
+
+.send-modal-close {
+  flex-shrink: 0;
+  margin-top: -0.15rem;
 }
 
 .send-modal-content {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
+  background: var(--surface, var(--white));
+}
+
+.send-modal-panel {
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem 1.2rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.send-modal-panel-label {
+  margin: 0 0 0.85rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.send-modal-panel--conversion .send-modal-panel-label {
+  margin-bottom: 0.75rem;
+}
+
+.send-modal-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.send-modal-panel-head .send-modal-panel-label {
+  margin-bottom: 0.15rem;
+}
+
+.send-modal-panel-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.send-modal-panel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  background: rgba(0, 102, 255, 0.1);
+  color: var(--send-accent);
+}
+
+.send-trustitag-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.4rem;
+}
+
+.send-optional {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.send-trustitag-input {
+  width: 100%;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  color: var(--text-dark);
+  background: var(--blue-100);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 0.85rem;
+}
+
+.send-trustitag-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.send-trustitag-input:focus {
+  outline: none;
+  border-color: var(--send-accent);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+  background: var(--surface, var(--white));
+}
+
+.send-form-note-input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  background: var(--surface, var(--white));
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s;
+}
+
+.send-form-note-input:focus {
+  outline: none;
+  border-color: var(--send-accent);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+}
+
+.send-wallet-selector--dropdown {
+  position: relative;
+}
+
+.send-to-currency-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.send-modal-currency-dropdown {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  right: 0;
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.35rem;
+}
+
+.send-modal-currency-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  transition: background 0.15s;
+}
+
+.send-modal-currency-option:hover {
+  background: var(--blue-100);
+}
+
+.send-modal-currency-option.is-active {
+  background: rgba(0, 102, 255, 0.08);
+  color: var(--send-accent);
+  font-weight: 600;
+}
+
+.send-modal--trustitag .send-wallet-selector {
+  border-radius: 12px;
+}
+
+.send-modal--trustitag .send-currency-badge {
+  background: linear-gradient(135deg, var(--send-accent-mid) 0%, var(--send-accent-end) 100%);
+}
+
+.send-modal--trustitag .send-arrow-btn {
+  background: linear-gradient(135deg, var(--send-accent-mid) 0%, var(--send-accent-end) 100%);
+}
+
+.send-modal--trustitag .send-arrow-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 8px 22px rgba(0, 102, 255, 0.35);
+}
+
+.send-modal--trustitag .send-info-icon {
+  color: var(--send-accent);
+  background: rgba(0, 102, 255, 0.12);
+}
+
+.send-modal--trustitag .send-preview-btn {
+  background: linear-gradient(135deg, #0d6bff 0%, #0980ff 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(9, 128, 255, 0.35);
+}
+
+.send-modal--trustitag .send-preview-btn:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 8px 24px rgba(9, 128, 255, 0.42);
 }
 
 /* Transfer Details Section */
@@ -1464,7 +1731,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
   border-radius: 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -1530,7 +1797,7 @@ body.transactions-page-active .landing-navbar {
 .send-amount-display {
   font-size: 1.75rem;
   font-weight: 500;
-  color: #000000;
+  color: var(--text-dark);
   line-height: 1.2;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
@@ -1538,7 +1805,7 @@ body.transactions-page-active .landing-navbar {
 .send-amount-input {
   font-size: 1.75rem;
   font-weight: 500;
-  color: #000000;
+  color: var(--text-dark);
   line-height: 1.2;
   font-family: 'Satoshi', 'Inter', sans-serif;
   border: none;
@@ -1626,7 +1893,7 @@ body.transactions-page-active .landing-navbar {
   border-radius: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   transition: border-color 0.2s;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
@@ -1647,8 +1914,14 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding-top: 1rem;
+  padding: 1.1rem 1rem 0;
+  margin: 0 -0.25rem;
   border-top: 1px solid var(--border);
+  background: transparent;
+}
+
+.send-modal--trustitag .send-bottom-section {
+  border-top-color: var(--border);
 }
 
 .send-info-message {
@@ -1663,7 +1936,7 @@ body.transactions-page-active .landing-navbar {
   height: 24px;
   border-radius: 50%;
   background: var(--blue-100);
-  color: #2F74FF;
+  color: var(--blue-600);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1697,6 +1970,38 @@ body.transactions-page-active .landing-navbar {
 
 /* Responsive adjustments for send modal */
 @media (max-width: 768px) {
+  /* Full-screen send modal (overlay padding removed; modal fixed like fund-wallet) */
+  .notification-modal-overlay.send-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .send-modal.send-modal--trustitag {
+    position: fixed;
+    inset: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    margin: 0;
+    box-shadow: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .send-modal--trustitag .send-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-top: calc(1.35rem + env(safe-area-inset-top, 0px));
+    padding-left: calc(1.5rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1.5rem + env(safe-area-inset-right, 0px));
+  }
+
   .send-transfer-section {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -1719,9 +2024,11 @@ body.transactions-page-active .landing-navbar {
     width: 100%;
   }
 
-  .send-modal {
-    width: 95%;
-    max-width: 100%;
+  .send-modal--trustitag .send-modal-content {
+    flex: 1;
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(1.5rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1.5rem + env(safe-area-inset-right, 0px));
   }
 }
 
@@ -1737,14 +2044,14 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
 }
 
 .transaction-summary-header h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
@@ -1786,6 +2093,24 @@ body.transactions-page-active .landing-navbar {
   font-weight: 400;
   color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-detail-item--trustitag {
+  align-items: flex-start;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.transaction-detail-trustitag {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  word-break: break-all;
+  text-align: right;
+  max-width: 62%;
+  color: #0066ff;
+  line-height: 1.35;
 }
 
 .transaction-divider {
@@ -1908,7 +2233,7 @@ body.transactions-page-active .landing-navbar {
   /* Swap Summary Modal - Full Screen on Mobile */
   .swap-summary-overlay {
     padding: 0 !important;
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     align-items: stretch !important;
     justify-content: stretch !important;
   }
@@ -1927,7 +2252,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .swap-summary-modal .transaction-summary-header {
-    background: var(--white);
+    background: var(--surface, var(--white));
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
@@ -1952,7 +2277,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
 }
 
 .fund-wallet-transfer-modal-header h2 {
@@ -1991,7 +2316,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
   border-radius: 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -2038,7 +2363,7 @@ body.transactions-page-active .landing-navbar {
   border-radius: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   transition: border-color 0.2s;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
@@ -2068,7 +2393,7 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--white);
+  background: var(--surface, var(--white));
   padding: 0.5rem;
 }
 
@@ -2097,7 +2422,7 @@ body.transactions-page-active .landing-navbar {
   height: 40px;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   cursor: pointer;
   transition: all 0.2s;
@@ -2193,7 +2518,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
 }
 
 .savings-modal-header h2 {
@@ -2239,7 +2564,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
   border-radius: 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -2307,7 +2632,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
   border-radius: 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -2536,7 +2861,7 @@ body.transactions-page-active .landing-navbar {
 /* Mobile Savings Full Page */
 .mobile-savings-full-page {
   min-height: 100vh;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   flex-direction: column;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -2548,7 +2873,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--surface, var(--white));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -2632,7 +2957,7 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 2rem;
   width: fit-content;
@@ -2829,7 +3154,7 @@ body.transactions-page-active .landing-navbar {
 /* Mobile Fund Wallet Full Page */
 .mobile-fund-wallet-full-page {
   min-height: 100vh;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   flex-direction: column;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -2841,7 +3166,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--surface, var(--white));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -2918,7 +3243,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.875rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -2975,7 +3300,7 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   padding: 0.875rem 1rem;
   transition: border-color 0.2s;
 }
@@ -3019,7 +3344,7 @@ body.transactions-page-active .landing-navbar {
   border-radius: 0.75rem;
   font-size: 0.9rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   transition: border-color 0.2s;
 }
@@ -3054,7 +3379,7 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--white);
+  background: var(--surface, var(--white));
   padding: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -3091,7 +3416,7 @@ body.transactions-page-active .landing-navbar {
   height: 40px;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   cursor: pointer;
   transition: all 0.2s;
@@ -3170,7 +3495,7 @@ body.transactions-page-active .landing-navbar {
 /* Mobile Fund Wallet Summary Page */
 .mobile-fund-wallet-summary-page {
   min-height: 100vh;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   flex-direction: column;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -3182,7 +3507,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--surface, var(--white));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -3323,7 +3648,7 @@ body.transactions-page-active .landing-navbar {
 /* Mobile Send Full Page */
 .mobile-send-full-page {
   min-height: 100vh;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   flex-direction: column;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -3335,7 +3660,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--surface, var(--white));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -3363,6 +3688,20 @@ body.transactions-page-active .landing-navbar {
   color: var(--text-dark);
   margin: 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-page-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.mobile-send-trustitag-input {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-weight: 600;
 }
 
 .mobile-send-close-btn {
@@ -3414,7 +3753,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.875rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -3563,7 +3902,7 @@ body.transactions-page-active .landing-navbar {
   border-radius: 0.75rem;
   font-size: 0.9rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   transition: border-color 0.2s;
 }
@@ -3643,7 +3982,7 @@ body.transactions-page-active .landing-navbar {
 /* Mobile Savings Summary Page */
 .mobile-savings-summary-page {
   min-height: 100vh;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   flex-direction: column;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -3655,7 +3994,7 @@ body.transactions-page-active .landing-navbar {
   justify-content: space-between;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--surface, var(--white));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -3806,7 +4145,7 @@ body.transactions-page-active .landing-navbar {
     padding: 1rem;
     border-bottom: 1px solid var(--border);
     margin-bottom: 0;
-    background: var(--white);
+    background: var(--surface, var(--white));
     position: sticky;
     top: 0;
     z-index: 100;
@@ -3978,193 +4317,10 @@ body.transactions-page-active .landing-navbar {
     flex-shrink: 0 !important;
   }
 
-  /* Container for My Goals and My Savings - side by side */
-  .mobile-goals-savings-container {
-    display: flex !important;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  /* My Goals Card - Mobile Only */
-  .mobile-goals-card {
-    display: block !important;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    padding: 0.75rem;
-    flex: 1;
-    min-width: 0;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-goals-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .mobile-goals-header .mobile-section-indicator {
-    width: 4px;
-    height: 0.875rem;
-    background: var(--blue-600);
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
-  .mobile-goals-header .mobile-section-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    margin: 0;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-goals-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-goals-progress {
-    font-size: 0.7rem;
-    font-weight: 500;
-    color: #f59e0b;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-goals-amount {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--blue-600);
-    line-height: 1.2;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-goals-target {
-    font-size: 0.7rem;
-    font-weight: 400;
-    color: var(--text-muted);
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  /* My Savings Card - Mobile Only */
-  .mobile-savings-card {
-    display: block !important;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    padding: 0.75rem;
-    flex: 1;
-    min-width: 0;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-savings-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.75rem;
-  }
-
-  .mobile-savings-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .mobile-savings-title-wrapper .mobile-section-indicator {
-    width: 4px;
-    height: 0.875rem;
-    background: var(--blue-600);
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
-  .mobile-savings-title-wrapper .mobile-section-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    margin: 0;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-savings-arrow {
-    color: var(--blue-600);
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    transition: transform 0.2s, color 0.2s;
-  }
-
-  .mobile-savings-arrow:hover {
-    color: var(--blue-500);
-    transform: translateX(2px);
-  }
-
-  .mobile-savings-arrow:active {
-    transform: translateX(4px);
-  }
-
-  .mobile-savings-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-savings-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    background: #d1fae5;
-    color: #10b981;
-    border-radius: 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 500;
-    width: fit-content;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-savings-badge svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .mobile-savings-amount {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--blue-600);
-    line-height: 1.2;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-savings-wallets {
-    padding: 0.5rem 0.75rem;
-    background: #f3f4f6;
-    border-radius: 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 400;
-    color: var(--text-muted);
-    width: fit-content;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
 }
 
 /* Hide mobile cards on desktop */
 @media (min-width: 769px) {
-  .mobile-goals-savings-container {
-    display: none !important;
-  }
-
-  .mobile-goals-card,
-  .mobile-savings-card {
-    display: none !important;
-  }
-
   .mobile-transaction-cards {
     display: none !important;
   }
@@ -4237,13 +4393,15 @@ body.transactions-page-active .landing-navbar {
   }
 
   .mobile-transaction-card {
-    background: #f3f4f6 !important;
+    background: var(--blue-100) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
     padding: 1rem !important;
     display: flex !important;
     align-items: flex-start !important;
     gap: 0.75rem !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
+    transition: background 0.2s ease, border-color 0.2s ease !important;
   }
 
   .mobile-transaction-left {
@@ -4264,7 +4422,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .mobile-transaction-icon.received {
-    background: #dbeafe !important;
+    background: var(--blue-200) !important;
     color: var(--blue-600) !important;
   }
 
@@ -4329,11 +4487,6 @@ body.transactions-page-active .landing-navbar {
     display: none !important;
   }
 
-  /* Hide mobile goals and savings on desktop */
-  .mobile-goals-savings-container {
-    display: none !important;
-  }
-
   /* Desktop: Wallet Cards Grid - 3 columns horizontal layout */
   .dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid {
     flex: 1 !important;
@@ -4360,204 +4513,6 @@ body.transactions-page-active .landing-navbar {
     grid-column: 3 !important;
     grid-row: 1 !important;
   }
-
-  /* Hide mobile goals and savings on desktop */
-  .mobile-goals-savings-container {
-    display: none !important;
-  }
-
-  /* Desktop Goals and Savings Container */
-  .desktop-goals-savings-container {
-    display: flex !important;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-  }
-
-  /* Desktop My Goals Card */
-  .desktop-goals-card {
-    flex: 1;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .desktop-goals-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-      repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(0, 0, 0, 0.02) 20px, rgba(0, 0, 0, 0.02) 40px),
-      repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(0, 0, 0, 0.02) 20px, rgba(0, 0, 0, 0.02) 40px);
-    background-size: 40px 40px;
-    opacity: 0.5;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .desktop-goals-card > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .desktop-goals-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .desktop-section-indicator {
-    width: 4px;
-    height: 1rem;
-    background: var(--blue-600);
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
-  .desktop-section-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    margin: 0;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .desktop-goals-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .desktop-goals-progress {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #f59e0b;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    margin-bottom: 0.25rem;
-  }
-
-  .desktop-goals-amount {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--blue-600);
-    line-height: 1.2;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    margin: 0.25rem 0;
-  }
-
-  .desktop-goals-target {
-    font-size: 0.9rem;
-    font-weight: 400;
-    color: var(--text-muted);
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    margin-top: 0.25rem;
-  }
-
-  /* Desktop My Savings Card */
-  .desktop-savings-card {
-    flex: 1;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .desktop-savings-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-      repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(0, 0, 0, 0.02) 20px, rgba(0, 0, 0, 0.02) 40px),
-      repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(0, 0, 0, 0.02) 20px, rgba(0, 0, 0, 0.02) 40px);
-    background-size: 40px 40px;
-    opacity: 0.5;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .desktop-savings-card > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .desktop-savings-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .desktop-savings-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .desktop-savings-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-  }
-
-  .desktop-savings-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    background: #d1fae5;
-    color: #10b981;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    width: fit-content;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    margin-bottom: 0.25rem;
-  }
-
-  .desktop-savings-badge svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-
-  .desktop-savings-amount {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--blue-600);
-    line-height: 1.2;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    margin: 0.25rem 0;
-  }
-
-  .desktop-savings-wallets {
-    padding: 0.625rem 0.875rem;
-    background: #dbeafe;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: var(--blue-600);
-    width: fit-content;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    margin-top: 0.25rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .desktop-goals-savings-container {
-    display: none !important;
-  }
 }
 
 /* Desktop Savings Dashboard */
@@ -4575,7 +4530,7 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border-bottom: 1px solid var(--border);
   gap: 2rem;
 }
@@ -4656,7 +4611,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .desktop-savings-nav-tab.active {
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--blue-600);
 }
 
@@ -4761,7 +4716,7 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
   gap: 0.5rem;
   padding: 1rem 2rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border-bottom: 1px solid var(--border);
   font-size: 0.875rem;
   color: var(--text-muted);
@@ -4803,7 +4758,7 @@ body.transactions-page-active .landing-navbar {
 
 /* Section Cards */
 .desktop-savings-section-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -4992,7 +4947,7 @@ body.transactions-page-active .landing-navbar {
 .desktop-savings-wallet-title {
   font-size: 1rem;
   font-weight: 500;
-  color: #000000;
+  color: var(--text-dark);
   margin: 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
   line-height: 1.2;
@@ -5023,7 +4978,8 @@ body.transactions-page-active .landing-navbar {
 }
 
 .desktop-savings-wallet-card {
-  background: var(--white);
+  position: relative;
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.5rem;
@@ -5036,8 +4992,72 @@ body.transactions-page-active .landing-navbar {
   transition: box-shadow 0.2s;
 }
 
+.desktop-savings-plan-delete-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.desktop-savings-plan-delete-btn:hover:not(:disabled) {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.desktop-savings-plan-delete-btn:focus-visible {
+  outline: 2px solid var(--blue-600);
+  outline-offset: 2px;
+}
+
+.desktop-savings-plan-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.desktop-savings-wallet-card--has-delete {
+  padding-top: 2.25rem;
+}
+
 .desktop-savings-wallet-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.desktop-savings-wallet-card--interactive {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s ease;
+}
+
+.desktop-savings-wallet-card--interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.desktop-savings-wallet-card--interactive:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
+}
+
+.savings-add-money-selected-hint {
+  margin: 0 1.5rem 0.75rem;
+  padding: 0 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.savings-add-money-selected-hint strong {
+  color: var(--text-primary, #111827);
 }
 
 .desktop-savings-wallet-icon-container {
@@ -5074,7 +5094,7 @@ body.transactions-page-active .landing-navbar {
 .desktop-savings-wallet-name {
   font-size: 1rem;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   margin: 0;
 }
@@ -5098,7 +5118,7 @@ body.transactions-page-active .landing-navbar {
 .desktop-savings-wallet-amount {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   margin: 0;
   line-height: 1.2;
@@ -5184,7 +5204,7 @@ body.transactions-page-active .landing-navbar {
 
 /* Cashflow Section - Copied from TrustiCard */
 .cashflow-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -5223,12 +5243,20 @@ body.transactions-page-active .landing-navbar {
   align-items: center;
 }
 
+.cashflow-range-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .period-select {
   appearance: none;
   padding: 0.5rem 2rem 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.85rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -5305,14 +5333,20 @@ body.transactions-page-active .landing-navbar {
   flex-direction: column;
   flex: 1;
   position: relative;
+  --cashflow-col-max: 40px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chart-bars-container {
   display: flex;
   align-items: flex-end;
-  gap: 1rem;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
   height: 280px;
   position: relative;
+  min-width: min-content;
 }
 
 .chart-bars-container::before {
@@ -5337,7 +5371,9 @@ body.transactions-page-active .landing-navbar {
 }
 
 .chart-month {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: var(--cashflow-col-max);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5350,14 +5386,17 @@ body.transactions-page-active .landing-navbar {
 .chart-bars {
   display: flex;
   align-items: flex-end;
-  gap: 0.375rem;
+  justify-content: center;
+  gap: 0.25rem;
   width: 100%;
+  max-width: var(--cashflow-col-max);
   height: 100%;
   position: relative;
 }
 
 .chart-bar {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   border-radius: 6px 6px 0 0;
   min-height: 4px;
   transition: height 0.3s;
@@ -5375,13 +5414,18 @@ body.transactions-page-active .landing-navbar {
 
 .chart-labels-row {
   display: flex;
-  gap: 1rem;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
   margin-top: 0.75rem;
   padding-top: 0.5rem;
+  min-width: min-content;
 }
 
 .chart-label-wrapper {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: var(--cashflow-col-max);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5398,7 +5442,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   cursor: pointer;
@@ -5529,7 +5573,7 @@ body.transactions-page-active .landing-navbar {
 .desktop-savings-history-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   margin: 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
   line-height: 1.2;
@@ -5545,7 +5589,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   cursor: pointer;
@@ -5562,7 +5606,7 @@ body.transactions-page-active .landing-navbar {
   height: 40px;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5599,6 +5643,14 @@ body.transactions-page-active .landing-navbar {
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+[data-theme="dark"] .desktop-savings-history-table thead {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .desktop-savings-history-table th {
+  color: var(--white);
 }
 
 .desktop-savings-history-table th:first-child {
@@ -5702,7 +5754,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   font-weight: 500;
@@ -5729,7 +5781,7 @@ body.transactions-page-active .landing-navbar {
   padding: 0 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.9rem;
   font-weight: 500;
@@ -5770,6 +5822,11 @@ body.transactions-page-active .landing-navbar {
   .dashboard.transactions-page:has(.desktop-savings-content) {
     display: flex !important;
     flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 
   /* Show mobile header on savings details page */
@@ -5787,27 +5844,97 @@ body.transactions-page-active .landing-navbar {
     display: none !important;
   }
 
-  /* Show desktop savings main content on mobile */
+  /* Show desktop savings main content on mobile — contain width, no horizontal overflow */
   .dashboard.transactions-page:has(.desktop-savings-content) .dashboard-main {
     display: block !important;
     width: 100% !important;
+    max-width: 100% !important;
     padding: 0 !important;
+    margin-left: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .dashboard-main .transactions-content {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
   }
 
   /* Mobile Savings Allocation Redesign */
   .desktop-savings-content {
     grid-template-columns: 1fr !important;
-    padding: 0.5rem 1rem 1rem 0 !important;
+    padding: 0.5rem 0 1rem 0 !important;
     gap: 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .desktop-savings-section-card {
-    padding: 0.75rem 1rem 1.25rem 0 !important;
+    padding: 0.75rem 0 1.25rem 0 !important;
     border-radius: 0 !important;
     border: none !important;
     margin-bottom: 1rem !important;
-    margin-left: -0.5rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     margin-top: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .desktop-savings-section-content {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .desktop-savings-allocation-item {
+    min-width: 0 !important;
+    max-width: 88% !important;
+    width: 88% !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .desktop-savings-allocation-name {
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .desktop-savings-allocation-item-details {
+    flex-shrink: 0 !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .desktop-savings-wallet-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    /* Two equal columns so cards can grow with the row (max-content + vw cap was blocking width changes) */
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    justify-content: stretch !important;
+    justify-items: center !important;
+    column-gap: 0.5rem !important;
+    row-gap: 1rem !important;
+  }
+
+  .dashboard.transactions-page:has(.desktop-savings-content) .desktop-savings-wallet-card {
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    width: 80% !important;
+    max-width: 100% !important;
+    justify-self: center !important;
   }
 
   /* Hide desktop section indicator on mobile */
@@ -5862,7 +5989,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .desktop-savings-total-amount {
-    font-size: 1.75rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     color: var(--blue-600) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
@@ -5908,8 +6035,10 @@ body.transactions-page-active .landing-navbar {
     border-radius: 0 !important;
     margin-bottom: 1rem !important;
     background: transparent !important;
-    width: 98% !important;
-    max-width: 98% !important;
+    width: 88% !important;
+    max-width: 88% !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
     display: flex !important;
     gap: 0.375rem !important;
   }
@@ -5930,8 +6059,10 @@ body.transactions-page-active .landing-navbar {
     flex-direction: row !important;
     align-items: center !important;
     gap: 0.5rem !important;
-    width: 98% !important;
-    max-width: 98% !important;
+    width: 88% !important;
+    max-width: 88% !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
     justify-content: space-between !important;
   }
 
@@ -5987,10 +6118,18 @@ body.transactions-page-active .landing-navbar {
   /* Mobile Savings Wallet Section Redesign */
   .desktop-savings-wallet-header {
     margin-bottom: 1rem !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    box-sizing: border-box !important;
   }
 
   .desktop-savings-wallet-title-wrapper {
     gap: 0.5rem !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
 
   .desktop-savings-wallet-indicator {
@@ -6003,8 +6142,10 @@ body.transactions-page-active .landing-navbar {
   .desktop-savings-wallet-title {
     font-size: 1rem !important;
     font-weight: 500 !important;
-    color: #000000 !important;
+    color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
   }
 
   .desktop-savings-add-wallet-btn {
@@ -6013,18 +6154,26 @@ body.transactions-page-active .landing-navbar {
     padding: 0 !important;
     background: none !important;
     border: none !important;
+    transform: translateX(-0.4rem) !important;
+    flex-shrink: 0 !important;
   }
 
   .desktop-savings-wallet-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 1.5rem !important;
-    row-gap: 1.5rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    justify-content: stretch !important;
+    justify-items: center !important;
+    column-gap: 0.5rem !important;
+    row-gap: 1rem !important;
     margin-bottom: 1.5rem !important;
     max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
   }
 
   .desktop-savings-wallet-card {
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
     padding: 0.625rem !important;
@@ -6032,14 +6181,31 @@ body.transactions-page-active .landing-navbar {
     flex-direction: column !important;
     gap: 0.5rem !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    width: 100% !important;
+    width: 80% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    justify-self: center !important;
+  }
+
+  .desktop-savings-wallet-card--has-delete {
+    padding-top: 1.75rem !important;
+  }
+
+  .desktop-savings-plan-delete-btn {
+    top: 0.25rem !important;
+    right: 0.25rem !important;
+    width: 1.75rem !important;
+    height: 1.75rem !important;
   }
 
   .desktop-savings-wallet-card-top {
     display: flex !important;
     align-items: center !important;
     gap: 0.75rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .desktop-savings-wallet-icon-container {
@@ -6066,14 +6232,18 @@ body.transactions-page-active .landing-navbar {
     flex-direction: column !important;
     gap: 0.25rem !important;
     flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
 
   .desktop-savings-wallet-name {
     font-size: 0.875rem !important;
     font-weight: 500 !important;
-    color: #000000 !important;
+    color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
     margin: 0 !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
   }
 
   .desktop-savings-wallet-percentage {
@@ -6082,6 +6252,8 @@ body.transactions-page-active .landing-navbar {
     color: var(--text-muted) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
     margin: 0 !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
   }
 
   .desktop-savings-wallet-card-bottom {
@@ -6101,17 +6273,25 @@ body.transactions-page-active .landing-navbar {
   .desktop-savings-wallet-amount {
     font-size: 1.25rem !important;
     font-weight: 700 !important;
-    color: #000000 !important;
+    color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
     margin: 0 !important;
     line-height: 1.2 !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    min-width: 0 !important;
   }
 
   .desktop-savings-actions-bottom {
     display: flex !important;
     align-items: center !important;
-    gap: 1rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.75rem !important;
     margin-top: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .desktop-savings-add-money-btn {
@@ -6125,6 +6305,9 @@ body.transactions-page-active .landing-navbar {
     display: flex !important;
     align-items: center !important;
     gap: 0.25rem !important;
+    transform: translateX(-0.4rem) !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
   }
 
   .desktop-savings-withdraw-btn {
@@ -6132,7 +6315,7 @@ body.transactions-page-active .landing-navbar {
     color: var(--white) !important;
     border: none !important;
     border-radius: 0.5rem !important;
-    padding: 0.75rem 1.5rem !important;
+    padding: 0.5rem 1rem !important;
     font-size: 0.875rem !important;
     font-weight: 500 !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
@@ -6141,6 +6324,10 @@ body.transactions-page-active .landing-navbar {
     gap: 0.5rem !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
     cursor: pointer !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .desktop-savings-withdraw-btn svg {
@@ -6184,8 +6371,10 @@ body.transactions-page-active .landing-navbar {
     padding-left: 0 !important;
     margin-left: 0 !important;
     display: flex !important;
-    align-items: center !important;
-    gap: 0.75rem !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 0.5rem 0.75rem !important;
+    width: 100% !important;
   }
 
   .mobile-cashflow-section .section-indicator {
@@ -6193,6 +6382,7 @@ body.transactions-page-active .landing-navbar {
     height: 1rem !important;
     background: var(--blue-600) !important;
     border-radius: 0 !important;
+    margin-top: 0.2rem !important;
   }
 
   .mobile-cashflow-section .section-title {
@@ -6200,16 +6390,43 @@ body.transactions-page-active .landing-navbar {
     font-weight: 600 !important;
     color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .mobile-cashflow-section .cashflow-range-selectors {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
   }
 
   .mobile-cashflow-section .period-selector {
-    font-size: 0.875rem !important;
+    font-size: 0.8125rem !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .mobile-cashflow-section .period-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0.4rem 1.75rem 0.4rem 0.5rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .mobile-cashflow-section .period-selector svg {
+    right: 0.5rem !important;
+    width: 14px !important;
+    height: 14px !important;
   }
 
   .mobile-cashflow-section .cashflow-legend {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
     gap: 1rem !important;
     display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
   }
 
   .mobile-cashflow-section .legend-item {
@@ -6223,62 +6440,94 @@ body.transactions-page-active .landing-navbar {
     gap: 0.5rem !important;
     margin-left: 0 !important;
     padding-left: 0 !important;
+    padding-right: 0 !important;
     padding-top: 0.5rem !important;
-    padding-bottom: 1rem !important;
-    width: 55% !important;
-    max-width: 55% !important;
+    padding-bottom: 0.5rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
     display: flex !important;
     align-items: flex-start !important;
     min-height: 200px !important;
+    box-sizing: border-box !important;
   }
 
   .mobile-cashflow-section .chart-y-axis {
-    font-size: 0.7rem !important;
+    font-size: 0.65rem !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
     height: 200px !important;
     flex-shrink: 0 !important;
+    padding-right: 0.35rem !important;
+    width: auto !important;
+    min-width: 1.75rem !important;
+  }
+
+  .mobile-cashflow-section .y-axis-label {
+    font-size: 0.65rem !important;
+    line-height: 1 !important;
   }
 
   .mobile-cashflow-section .cashflow-chart {
+    --cashflow-col-max: 19px;
     width: 100% !important;
+    min-width: 0 !important;
     margin-left: 0 !important;
     padding-left: 0 !important;
+    padding-bottom: 0.25rem !important;
     display: flex !important;
     flex-direction: column !important;
     flex: 1 !important;
     max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
   }
 
   .mobile-cashflow-section .chart-bars-container {
     display: flex !important;
     align-items: flex-end !important;
-    gap: 0.5rem !important;
+    justify-content: flex-start !important;
+    gap: 0.35rem !important;
     height: 200px !important;
     min-height: 200px !important;
-    width: 100% !important;
+    width: max-content !important;
+    min-width: min-content !important;
+    box-sizing: border-box !important;
   }
 
   .mobile-cashflow-section .chart-labels-row {
     display: flex !important;
-    justify-content: space-around !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
     margin-top: 0.5rem !important;
+    width: max-content !important;
+    min-width: min-content !important;
+    padding-bottom: 0.25rem !important;
   }
 
   .mobile-cashflow-section .chart-label-wrapper {
     display: flex !important;
     justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: var(--cashflow-col-max) !important;
+    min-width: var(--cashflow-col-max) !important;
+    max-width: var(--cashflow-col-max) !important;
   }
 
   .mobile-cashflow-section .chart-label {
-    font-size: 0.7rem !important;
+    font-size: 0.6rem !important;
     display: block !important;
+    text-align: center !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
   }
 
   .mobile-cashflow-section .chart-bar {
-    min-width: 16px !important;
-    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
     display: block !important;
   }
 
@@ -6286,13 +6535,17 @@ body.transactions-page-active .landing-navbar {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    flex: 1 !important;
+    flex: 0 0 auto !important;
+    width: var(--cashflow-col-max) !important;
+    min-width: var(--cashflow-col-max) !important;
+    max-width: var(--cashflow-col-max) !important;
   }
 
   .mobile-cashflow-section .chart-bars {
     display: flex !important;
-    gap: 0.25rem !important;
+    gap: 0.2rem !important;
     width: 100% !important;
+    max-width: 100% !important;
     justify-content: center !important;
   }
 
@@ -6327,7 +6580,7 @@ body.transactions-page-active .landing-navbar {
   .desktop-savings-history-title {
     font-size: 1rem !important;
     font-weight: 600 !important;
-    color: #000000 !important;
+    color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
     margin: 0 !important;
   }
@@ -6345,7 +6598,8 @@ body.transactions-page-active .landing-navbar {
   }
 
   .mobile-savings-history-card {
-    background: #f3f4f6 !important;
+    background: var(--blue-100) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
     padding: 1rem !important;
     display: flex !important;
@@ -6388,7 +6642,7 @@ body.transactions-page-active .landing-navbar {
   .mobile-savings-history-type {
     font-size: 0.875rem !important;
     font-weight: 500 !important;
-    color: #000000 !important;
+    color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
   }
 
@@ -6418,7 +6672,7 @@ body.transactions-page-active .landing-navbar {
   .mobile-savings-history-date {
     font-size: 0.75rem !important;
     font-weight: 400 !important;
-    color: #000000 !important;
+    color: var(--text-dark) !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
   }
 
@@ -6461,7 +6715,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .savings-withdraw-modal-close {
-    background: #f3f4f6 !important;
+    background: var(--blue-100) !important;
     border-radius: 50% !important;
     width: 32px !important;
     height: 32px !important;
@@ -6487,7 +6741,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .savings-withdraw-wallet-card {
-    background: #f3f4f6 !important;
+    background: var(--blue-100) !important;
     border-radius: 0.75rem !important;
     padding: 1rem !important;
     gap: 0.75rem !important;
@@ -6557,7 +6811,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .savings-withdraw-confirm-card {
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     border-radius: 0.75rem !important;
     padding: 1.25rem !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
@@ -6635,7 +6889,7 @@ body.transactions-page-active .landing-navbar {
   }
 
   .savings-add-money-card {
-    background: var(--white) !important;
+    background: var(--surface, var(--white)) !important;
     border-radius: 0.75rem !important;
     padding: 1.25rem !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
@@ -6753,7 +7007,7 @@ body.transactions-page-active .landing-navbar {
 
   /* Desktop Add Money Modal Styling */
   .savings-add-money-card {
-    background: #f3f4f6 !important;
+    background: var(--blue-100) !important;
   }
 
   .savings-add-money-modal-content {
@@ -6830,7 +7084,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .savings-withdraw-modal {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border-radius: 1rem;
   width: 100%;
   max-width: 480px;
@@ -6868,7 +7122,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .savings-withdraw-modal-close {
-  background: #f3f4f6;
+  background: var(--blue-100);
   border: none;
   cursor: pointer;
   color: var(--blue-600);
@@ -6908,7 +7162,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .savings-withdraw-wallet-card {
-  background: #f3f4f6;
+  background: var(--blue-100);
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 0.75rem;
@@ -6958,7 +7212,7 @@ body.transactions-page-active .landing-navbar {
 
 .savings-withdraw-wallet-card.selected {
   border-color: var(--blue-600);
-  background: var(--blue-50);
+  background: var(--blue-200);
   box-shadow: 
     0 4px 8px rgba(47, 116, 255, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -7000,7 +7254,7 @@ body.transactions-page-active .landing-navbar {
 .savings-withdraw-wallet-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   margin: 0;
 }
@@ -7024,7 +7278,7 @@ body.transactions-page-active .landing-navbar {
 .savings-withdraw-wallet-amount {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   margin: 0;
   line-height: 1.2;
@@ -7092,7 +7346,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .savings-withdraw-confirm-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -7143,7 +7397,7 @@ body.transactions-page-active .landing-navbar {
 .savings-withdraw-confirm-wallet-name {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   margin: 0;
 }
@@ -7181,7 +7435,7 @@ body.transactions-page-active .landing-navbar {
 .savings-withdraw-confirm-balance-amount {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   line-height: 1.2;
 }
@@ -7214,7 +7468,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .savings-add-money-card {
-  background: #f3f4f6;
+  background: var(--blue-100);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -7270,6 +7524,28 @@ body.transactions-page-active .landing-navbar {
   border-color: var(--blue-300);
 }
 
+.savings-add-money-wallet-selector--static {
+  cursor: default;
+  pointer-events: none;
+}
+
+.savings-add-money-wallet-selector--static:hover {
+  border-color: var(--border);
+}
+
+.savings-add-money-amount-suffix {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark, #111827);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.savings-add-money-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .savings-add-money-wallet-icon {
   width: 32px;
   height: 32px;
@@ -7301,7 +7577,7 @@ body.transactions-page-active .landing-navbar {
 .savings-add-money-amount-display {
   font-size: 2rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   line-height: 1.2;
 }
@@ -7315,7 +7591,7 @@ body.transactions-page-active .landing-navbar {
 .savings-add-money-amount-currency {
   font-size: 2rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   line-height: 1.2;
 }
@@ -7323,7 +7599,7 @@ body.transactions-page-active .landing-navbar {
 .savings-add-money-amount-input {
   font-size: 2rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   line-height: 1.2;
   border: none;
@@ -7546,7 +7822,7 @@ body.transactions-page-active .landing-navbar {
   font-size: 0.9rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   transition: border-color 0.2s;
 }
 
@@ -7588,7 +7864,7 @@ body.transactions-page-active .landing-navbar {
   border-radius: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-dark);
-  background: var(--white);
+  background: var(--surface, var(--white));
   font-family: 'Satoshi', 'Inter', sans-serif;
   transition: border-color 0.2s;
   outline: none;

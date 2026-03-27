@@ -49,7 +49,7 @@
 
 /* Help Center Widget */
 .api-keys-dashboard .sidebar-help-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
+  background: linear-gradient(180deg, var(--surface, var(--white)) 0%, var(--blue-100) 100%);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 1.5rem;
@@ -65,7 +65,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--text-dark);
+  background: var(--help-icon-bg);
   color: var(--white);
 }
 
@@ -144,7 +144,7 @@
 }
 
 .api-keys-summary-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -263,7 +263,7 @@
 
 /* Table Section */
 .api-keys-table-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -292,7 +292,7 @@
 .api-keys-tab {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--blue-600);
   font-size: 0.875rem;
   font-weight: 500;
@@ -326,7 +326,7 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.875rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -353,7 +353,7 @@
 }
 
 .api-keys-table thead {
-  background: #F9FAFB;
+  background: var(--blue-100);
 }
 
 .api-keys-table th {
@@ -377,7 +377,15 @@
 }
 
 .api-keys-table tbody tr:hover {
-  background: #F9FAFB;
+  background: var(--blue-100);
+}
+
+[data-theme="dark"] .api-keys-table thead {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .api-keys-table th {
+  color: var(--white);
 }
 
 .api-keys-table tbody tr:last-child td {
@@ -452,7 +460,7 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   color: var(--text-dark);
   font-size: 0.875rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -507,6 +515,11 @@
 }
 
 @media (max-width: 768px) {
+  .api-keys-dashboard .dashboard-content,
+  .api-keys-dashboard .dashboard-layout {
+    display: flex !important;
+  }
+
   .api-keys-summary-cards {
     grid-template-columns: 1fr;
   }

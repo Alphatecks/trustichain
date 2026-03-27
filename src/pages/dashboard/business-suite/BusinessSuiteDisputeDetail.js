@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   LayoutDashboard,
-  ShieldCheck,
   CreditCard,
   Briefcase,
   DollarSign,
@@ -37,6 +36,7 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeDetail } from '../../../utils/disputesApi';
@@ -52,8 +52,7 @@ const businessSuiteNav = [
 ];
 
 const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
+  { label: 'Settings', icon: Settings }
 ];
 
 const toNumberOrNull = (value) => {
@@ -85,6 +84,8 @@ const BusinessSuiteDisputeDetail = () => {
   const location = useLocation();
   const { id } = useParams();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const [accountType, setAccountType] = useState('Business Suite');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [userFullName, setUserFullName] = useState('');
@@ -1247,7 +1248,7 @@ const BusinessSuiteDisputeDetail = () => {
 
             <div className="mobile-sidebar-trustiscore">
               <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-              <span className="mobile-sidebar-trustiscore-badge">850</span>
+              <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
             </div>
 
             <button 
@@ -1330,7 +1331,7 @@ const BusinessSuiteDisputeDetail = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

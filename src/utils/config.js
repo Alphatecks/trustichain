@@ -1,5 +1,7 @@
-// API Configuration
-export const API_BASE_URL = 'https://trustichain-backend.onrender.com';
+// API Configuration — set REACT_APP_API_BASE_URL (e.g. http://localhost:3000) for local backend
+const trimTrailingSlash = (url) => (typeof url === 'string' ? url.replace(/\/$/, '') : url);
+export const API_BASE_URL =
+  trimTrailingSlash(process.env.REACT_APP_API_BASE_URL) || 'https://trustichain-backend.onrender.com';
 
 // Helper function to get full API endpoint
 export const getApiUrl = (endpoint) => {

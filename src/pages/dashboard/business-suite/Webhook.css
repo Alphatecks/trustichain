@@ -47,7 +47,7 @@
 
 /* Help Center Widget */
 .webhook-dashboard .sidebar-help-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
+  background: linear-gradient(180deg, var(--surface, var(--white)) 0%, var(--blue-100) 100%);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 1.5rem;
@@ -63,7 +63,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--text-dark);
+  background: var(--help-icon-bg);
   color: var(--white);
 }
 
@@ -137,7 +137,7 @@
 }
 
 .webhook-summary-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -269,7 +269,7 @@
 }
 
 .webhook-section-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -384,7 +384,7 @@
 .webhook-update-url-modal {
   width: 100%;
   max-width: 560px;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
@@ -472,7 +472,7 @@
 .webhook-log-detail-modal {
   width: 100%;
   max-width: 640px;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
@@ -631,9 +631,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1rem;
-  background: #F5F5F5;
+  background: var(--blue-100);
   color: var(--text-dark);
-  border: 1px solid #E0E0E0;
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -643,8 +643,8 @@
 }
 
 .webhook-btn-copy:hover {
-  background: #E5E5E5;
-  border-color: #D0D0D0;
+  background: var(--blue-200);
+  border-color: var(--blue-400);
 }
 
 /* Event Subscriptions */
@@ -720,8 +720,17 @@
 
 .radio-label {
   font-size: 0.9rem;
-  color: #000000;
+  color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Keep webhook event labels theme-aware even if other generic .radio-label rules load later. */
+.webhook-events-list .webhook-event-item .radio-label {
+  color: var(--text-dark) !important;
+}
+
+[data-theme="dark"] .webhook-events-list .webhook-event-item .radio-label {
+  color: var(--white) !important;
 }
 
 /* Table Styles */
@@ -736,9 +745,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border: 1px solid #E0E0E0;
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: #F5F5F5;
+  background: var(--blue-100);
   color: var(--text-dark);
   font-size: 0.875rem;
   font-weight: 400;
@@ -749,7 +758,7 @@
 
 .webhook-filter-btn:hover {
   border-color: var(--blue-600);
-  background: var(--blue-50);
+  background: var(--blue-200);
 }
 
 .webhook-filter-icon-btn {
@@ -758,9 +767,9 @@
   justify-content: center;
   width: 2.25rem;
   height: 2.25rem;
-  border: 1px solid #E0E0E0;
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: #F5F5F5;
+  background: var(--blue-100);
   color: var(--text-dark);
   cursor: pointer;
   transition: all 0.2s;
@@ -768,7 +777,7 @@
 
 .webhook-filter-icon-btn:hover {
   border-color: var(--blue-600);
-  background: var(--blue-50);
+  background: var(--blue-200);
 }
 
 .webhook-table-wrapper {
@@ -781,7 +790,7 @@
 }
 
 .webhook-table thead {
-  background: #F9FAFB;
+  background: var(--blue-100);
 }
 
 .webhook-table th {
@@ -793,7 +802,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-family: 'Satoshi', 'Inter', sans-serif;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid var(--border);
 }
 
 .webhook-table th:first-child {
@@ -812,7 +821,7 @@
   font-size: 0.875rem;
   color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid var(--border);
 }
 
 .webhook-table td:first-child {
@@ -822,7 +831,15 @@
 }
 
 .webhook-table tbody tr:hover {
-  background: #F9FAFB;
+  background: var(--blue-100);
+}
+
+[data-theme="dark"] .webhook-table thead {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .webhook-table th {
+  color: var(--white);
 }
 
 .webhook-table tbody tr:last-child td {
@@ -938,6 +955,11 @@
 }
 
 @media (max-width: 768px) {
+  .webhook-dashboard .dashboard-content,
+  .webhook-dashboard .dashboard-layout {
+    display: flex !important;
+  }
+
   .webhook-summary-cards {
     grid-template-columns: 1fr;
   }

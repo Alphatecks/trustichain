@@ -8,7 +8,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.9rem;
@@ -35,7 +35,7 @@
 }
 
 .payroll-detail-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.5rem;
@@ -120,7 +120,7 @@
 
 /* Team Details Section */
 .team-details-section {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -170,7 +170,7 @@
 }
 
 .team-details-table thead {
-  background: #f9fafb;
+  background: var(--blue-100);
 }
 
 .team-details-table th {
@@ -189,7 +189,7 @@
 }
 
 .team-details-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--blue-100);
 }
 
 .team-details-table td {
@@ -259,7 +259,7 @@
 
 .pagination-btn {
   padding: 0.5rem 1rem;
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   font-size: 0.9rem;

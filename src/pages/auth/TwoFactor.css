@@ -66,7 +66,19 @@
 .twofactor-brand-name{ font-weight:700; font-size:1.125rem; }
 .twofactor-tagline{ font-weight:400; font-size:.75rem; }
 
-.twofactor-card { background:#fff; border-radius:1rem; padding:2.5rem; max-width:520px; width:100%; box-shadow:0 10px 40px rgba(0,0,0,.1); position:relative; z-index:2; }
+.twofactor-card {
+  background:#fff;
+  border-radius:1rem;
+  padding:2.5rem;
+  max-width:520px;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  box-shadow:0 10px 40px rgba(0,0,0,.1);
+  position:relative;
+  z-index:2;
+  overflow-x:hidden;
+}
 [data-theme="dark"] .twofactor-card { background:#1a2332; box-shadow:0 10px 40px rgba(0,0,0,.3); }
 
 .twofactor-header { font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-weight:700; font-size:1.875rem; color:#021129; margin:0 0 1rem 0; }
@@ -74,10 +86,32 @@
 .twofactor-description { font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:1rem; color:#666; margin:0 0 1.5rem 0; }
 [data-theme="dark"] .twofactor-description { color:#cbd5e1; }
 
-.twofactor-form{ display:flex; flex-direction:column; gap:1.5rem; }
-.twofactor-inputs{ display:flex; align-items:center; gap:.75rem; }
-.twofactor-input{ width:48px; height:56px; text-align:center; font-size:1.5rem; border:1px solid #d1d5db; border-radius:.5rem; outline:none; transition:border .2s, box-shadow .2s; }
-.twofactor-input.spaced{ margin-left:.75rem; }
+.twofactor-form{ display:flex; flex-direction:column; gap:1.5rem; min-width:0; width:100%; }
+.twofactor-inputs{
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:clamp(0.25rem, 2vw, 0.5rem);
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.twofactor-input{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  aspect-ratio:1;
+  height:auto;
+  min-height:44px;
+  max-height:56px;
+  text-align:center;
+  font-size:clamp(1rem, 4.5vw, 1.5rem);
+  border:1px solid #d1d5db;
+  border-radius:.5rem;
+  outline:none;
+  transition:border .2s, box-shadow .2s;
+  box-sizing:border-box;
+}
 .twofactor-input:focus{ border-color:#0066ff; box-shadow:0 0 0 3px rgba(0,102,255,.1); }
 [data-theme="dark"] .twofactor-input{ background:#2a3442; border-color:#3a4552; color:#fff; }
 
@@ -89,4 +123,10 @@
 .twofactor-footer-link{ color:#0066ff; text-decoration:none; font-weight:600; }
 .twofactor-footer-link:hover{ opacity:.8; }
 
-@media (max-width:768px){ .twofactor-page{ padding:1rem;} .twofactor-logo-container{ position:static; margin-bottom:2rem; justify-content:center;} .twofactor-card{ padding:2rem 1.5rem;} .twofactor-header{ font-size:1.5rem;} }
+@media (max-width:768px){
+  .twofactor-page{ padding:1rem; box-sizing:border-box; }
+  .twofactor-logo-container{ position:static; margin-bottom:2rem; justify-content:center; width:100%; }
+  .twofactor-card{ padding:1.5rem 1rem; }
+  .twofactor-header{ font-size:1.5rem; word-wrap:break-word; }
+  .twofactor-description{ font-size:0.9375rem; }
+}

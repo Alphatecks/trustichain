@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
@@ -44,10 +44,12 @@ import {
   CheckCircle,
   Package,
   Trophy,
+  Tag,
   ShoppingBag,
   Home,
   Calendar,
-  PiggyBank
+  PiggyBank,
+  Trash2
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './Transactions.css';
@@ -55,9 +57,12 @@ import logo from '../../../assets/images/icons/logo.png';
 import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
+import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
@@ -89,13 +94,96 @@ const getNotificationIconConfig = (type) => {
   return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
 };
 
+/** Short month names for cashflow X-axis (Jan–Dec). */
+const CASHFLOW_MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** 0–11 or null — prefers period/label before dates so rows don’t all inherit the same endDate month. */
+const parseCashflowPeriodToMonthIndex = (raw) => {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+
+  if (/^\d{1,2}$/.test(s)) {
+    const m = parseInt(s, 10);
+    if (m >= 1 && m <= 12) return m - 1;
+  }
+
+  const head3 = s.slice(0, 3).toLowerCase();
+  const byAbbr = CASHFLOW_MONTH_SHORT.findIndex((abbr) => abbr.toLowerCase() === head3);
+  if (byAbbr >= 0) return byAbbr;
+
+  const ym = s.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+  if (ym) {
+    const m = parseInt(ym[2], 10) - 1;
+    if (m >= 0 && m <= 11) return m;
+  }
+
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return d.getMonth();
+
+  return null;
+};
+
+const cashflowPointMonthIndex = (point) => {
+  const candidates = [
+    point?.period,
+    point?.label,
+    point?.month,
+    point?.monthLabel,
+    point?.startDate,
+    point?.endDate,
+    point?.start,
+    point?.end,
+  ];
+  for (const c of candidates) {
+    const idx = parseCashflowPeriodToMonthIndex(c);
+    if (idx !== null) return idx;
+  }
+  return null;
+};
+
+/**
+ * Merge API points into 12 calendar months (Jan–Dec). Sums USD when several rows hit one month.
+ * If there are exactly 12 rows and every row parses to the same month (or none parse), treat as Jan–Dec in order.
+ */
+const mergeCashflowPointsIntoCalendarMonths = (points) => {
+  const slots = Array.from({ length: 12 }, (_, monthIndex) => ({
+    monthIndex,
+    receivedUsd: 0,
+    spentUsd: 0,
+  }));
+
+  if (!Array.isArray(points) || points.length === 0) return slots;
+
+  const indices = points.map((p) => cashflowPointMonthIndex(p));
+  const nonNull = indices.filter((x) => x !== null);
+  const uniqueNonNull = new Set(nonNull);
+
+  const forceSequentialJanDec =
+    points.length === 12 && (nonNull.length === 0 || (nonNull.length === 12 && uniqueNonNull.size === 1));
+
+  points.forEach((p, i) => {
+    let mi = cashflowPointMonthIndex(p);
+    if (forceSequentialJanDec) {
+      mi = i;
+    }
+    if (mi === null || mi < 0 || mi > 11) return;
+    const receivedUsd = typeof p?.receivedUsd === 'number' ? p.receivedUsd : Number(p?.receivedUsd) || 0;
+    const spentUsd = typeof p?.spentUsd === 'number' ? p.spentUsd : Number(p?.spentUsd) || 0;
+    slots[mi].receivedUsd += receivedUsd;
+    slots[mi].spentUsd += spentUsd;
+  });
+
+  return slots;
+};
+
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
-  { label: 'My Escrow', icon: ShieldCheck, badge: 23 },
+  { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
-  { label: 'Dispute', icon: CreditCard, badge: 23 },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -114,15 +202,15 @@ const developersNav = [
   { label: 'Web hook', icon: Link, badge: null }
 ];
 
-const supportNav = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Security', icon: ShieldCheck }
-];
+const supportNav = [{ label: 'Settings', icon: Settings }];
 
 const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
+  const getNavBadge = useSidebarNavBadges();
   const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState(location.state?.accountType || 'Personal');
@@ -229,7 +317,12 @@ const Transactions = () => {
   const [exchangeRates, setExchangeRates] = useState([]);
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [walletBalances, setWalletBalances] = useState(null);
+  /** Custodial wallet UUIDs from GET api/wallet/balance when provided (for savings transfer sourceWalletId). */
+  const [custodialWalletIds, setCustodialWalletIds] = useState({ xrp: '', usdt: '' });
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
+  const [isSubmittingSavingsTransfer, setIsSubmittingSavingsTransfer] = useState(false);
+  const [isSubmittingSavingsWithdraw, setIsSubmittingSavingsWithdraw] = useState(false);
+  const [deletingSavingsWalletId, setDeletingSavingsWalletId] = useState(null);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
   const [userInitials, setUserInitials] = useState('SC');
   const [userRole, setUserRole] = useState('Freelancer');
@@ -269,8 +362,8 @@ const Transactions = () => {
   const [showSavingsAddMoneyModal, setShowSavingsAddMoneyModal] = useState(false);
   const [savingsAddMoneyForm, setSavingsAddMoneyForm] = useState({
     amount: '',
-    sourceWallet: 'XRP',
-    savingAccount: 'My Goals'
+    savingAccount: 'My Goals',
+    walletId: '',
   });
   const [showAddSavingsAccountModal, setShowAddSavingsAccountModal] = useState(false);
   const [addSavingsAccountForm, setAddSavingsAccountForm] = useState({
@@ -310,7 +403,9 @@ const Transactions = () => {
   const [showSavingsSummary, setShowSavingsSummary] = useState(false);
   const [showDesktopSavingsDashboard, setShowDesktopSavingsDashboard] = useState(location.pathname === '/savings');
   const [savingsAmount, setSavingsAmount] = useState('');
-  const [cashflowPeriod, setCashflowPeriod] = useState('Monthly');
+  /** Savings cashflow: GET api/savings/cashflow?range=...&interval=weekly (interval optional) */
+  const [cashflowRange, setCashflowRange] = useState('this_month');
+  const [cashflowInterval, setCashflowInterval] = useState('monthly'); // monthly | weekly
   const [showFundWalletPage, setShowFundWalletPage] = useState(false);
   const [showFundWalletSummary, setShowFundWalletSummary] = useState(false);
   const [fundWalletNetwork, setFundWalletNetwork] = useState('');
@@ -320,9 +415,7 @@ const Transactions = () => {
     fromAmount: '',
     toCurrency: 'EUR',
     toAmount: '',
-    fullName: '',
-    phoneNumber: '',
-    walletAddress: '',
+    recipientTrustitag: '',
     reason: ''
   });
   const [sendExchangeRate, setSendExchangeRate] = useState(null);
@@ -432,33 +525,62 @@ const Transactions = () => {
     });
   }, [savingsSummary, savingsWalletColorById]);
 
+  /** Bar height = % of total savings (same basis as allocation %). X-axis = full Jan–Dec with data merged per month. */
   const cashflowData = useMemo(() => {
     const points = Array.isArray(savingsCashflow?.points) ? savingsCashflow.points : [];
-    const values = points.flatMap((p) => [
-      typeof p?.receivedUsd === 'number' ? p.receivedUsd : Number(p?.receivedUsd) || 0,
-      typeof p?.spentUsd === 'number' ? p.spentUsd : Number(p?.spentUsd) || 0,
-    ]);
-    const max = Math.max(...values, 0);
-    return points.map((p) => {
-      const receivedUsd = typeof p?.receivedUsd === 'number' ? p.receivedUsd : Number(p?.receivedUsd) || 0;
-      const spentUsd = typeof p?.spentUsd === 'number' ? p.spentUsd : Number(p?.spentUsd) || 0;
+    const slots = mergeCashflowPointsIntoCalendarMonths(points);
+
+    const totalUsdFromSummary =
+      typeof savingsSummary?.totalUsd === 'number' ? savingsSummary.totalUsd : Number(savingsSummary?.totalUsd) || 0;
+    const totalFromAllocationAmounts = savingsAllocation.reduce(
+      (sum, row) => sum + (typeof row.amount === 'number' ? row.amount : Number(row.amount) || 0),
+      0,
+    );
+    const allocationPercentTotal = savingsAllocation.reduce(
+      (sum, row) => sum + (typeof row.percentage === 'number' ? row.percentage : Number(row.percentage) || 0),
+      0,
+    );
+    const totalUsdDenominator = totalUsdFromSummary > 0 ? totalUsdFromSummary : totalFromAllocationAmounts;
+    const useAllocationBasedScale = totalUsdDenominator > 0;
+    const yAxisPercentScale = allocationPercentTotal > 0 ? allocationPercentTotal : 100;
+
+    const values = slots.flatMap((s) => [s.receivedUsd, s.spentUsd]);
+    const maxInSeries = Math.max(...values, 0);
+
+    return slots.map((slot) => {
+      const { monthIndex, receivedUsd, spentUsd } = slot;
+
+      let received;
+      let spent;
+      if (useAllocationBasedScale) {
+        const r = (receivedUsd / totalUsdDenominator) * yAxisPercentScale;
+        const s = (spentUsd / totalUsdDenominator) * yAxisPercentScale;
+        received = Math.min(100, Math.max(0, r));
+        spent = Math.min(100, Math.max(0, s));
+      } else {
+        received = maxInSeries > 0 ? (receivedUsd / maxInSeries) * 100 : 0;
+        spent = maxInSeries > 0 ? (spentUsd / maxInSeries) * 100 : 0;
+      }
+
       return {
-        month: p?.period || '—',
-        received: max > 0 ? (receivedUsd / max) * 100 : 0,
-        spent: max > 0 ? (spentUsd / max) * 100 : 0,
+        month: CASHFLOW_MONTH_SHORT[monthIndex],
+        received,
+        spent,
         receivedUsd,
         spentUsd,
       };
     });
-  }, [savingsCashflow]);
+  }, [savingsCashflow, savingsSummary, savingsAllocation]);
 
-  const toISODate = (date) => {
-    try {
-      return new Date(date).toISOString().slice(0, 10);
-    } catch {
-      return undefined;
-    }
-  };
+  useEffect(() => {
+    if (!isSavingsDashboardActive) return;
+    console.log('[TrustiChain] Savings cashflow chart', {
+      range: cashflowRange,
+      interval: cashflowInterval,
+      rawApi: savingsCashflow,
+      seriesForBars: cashflowData,
+    });
+  }, [isSavingsDashboardActive, cashflowRange, cashflowInterval, savingsCashflow, cashflowData]);
 
   const savingsWalletStylePresets = [
     { icon: Trophy, color: '#2F74FF' },
@@ -497,6 +619,33 @@ const Transactions = () => {
       targetAmountUsd,
     };
   };
+
+  const resetSavingsAddMoneyForm = useCallback(() => {
+    setSavingsAddMoneyForm({
+      amount: '',
+      savingAccount: 'My Goals',
+      walletId: '',
+    });
+  }, []);
+
+  const openSavingsAddMoneyForWallet = useCallback((wallet) => {
+    if (wallet?.isPlaceholder) return;
+    setSavingsAddMoneyForm({
+      amount: '',
+      savingAccount: wallet?.name || 'My Goals',
+      walletId: wallet?.id ? String(wallet.id) : '',
+    });
+    setShowSavingsAddMoneyModal(true);
+  }, []);
+
+  const openSavingsAddMoneyDefault = useCallback(() => {
+    if (savingsWallets.length > 0 && !savingsWallets[0].isPlaceholder) {
+      openSavingsAddMoneyForWallet(savingsWallets[0]);
+    } else {
+      resetSavingsAddMoneyForm();
+      setShowSavingsAddMoneyModal(true);
+    }
+  }, [savingsWallets, openSavingsAddMoneyForWallet, resetSavingsAddMoneyForm]);
 
   // Update accountType from location state
   useEffect(() => {
@@ -605,24 +754,20 @@ const Transactions = () => {
     if (!token) return;
 
     const controller = new AbortController();
+    let cancelled = false;
 
     const fetchSavingsCashflow = async () => {
       setIsLoadingSavingsCashflow(true);
       try {
-        const to = new Date();
-        const from = new Date();
-        const monthsBack = cashflowPeriod === 'Yearly' ? 11 : 5;
-        from.setMonth(to.getMonth() - monthsBack);
-        from.setDate(1);
-
         const params = new URLSearchParams();
-        params.set('interval', 'monthly');
-        const fromIso = toISODate(from);
-        const toIso = toISODate(to);
-        if (fromIso) params.set('from', fromIso);
-        if (toIso) params.set('to', toIso);
+        params.set('range', cashflowRange);
+        if (cashflowInterval === 'weekly') {
+          params.set('interval', 'weekly');
+        }
 
         const apiUrl = `${getApiUrl('api/savings/cashflow')}?${params.toString()}`;
+        console.log('[TrustiChain] Savings cashflow request', { url: apiUrl, range: cashflowRange, interval: cashflowInterval });
+
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
@@ -630,24 +775,41 @@ const Transactions = () => {
             'Content-Type': 'application/json',
           },
           signal: controller.signal,
+          cache: 'no-store',
         });
 
         const result = await response.json().catch(() => ({}));
+        if (cancelled) return;
+
+        console.log('[TrustiChain] Savings cashflow response', {
+          ok: response.ok,
+          status: response.status,
+          success: result?.success,
+          data: result?.data,
+        });
+
         if (response.ok && result?.success && result?.data) {
           setSavingsCashflow(result.data);
+        } else {
+          setSavingsCashflow({ interval: cashflowInterval, points: [] });
         }
       } catch (error) {
-        if (error?.name !== 'AbortError') {
+        if (error?.name === 'AbortError') return;
+        if (!cancelled) {
           console.error('Error fetching savings cashflow:', error);
+          setSavingsCashflow({ interval: cashflowInterval, points: [] });
         }
       } finally {
-        setIsLoadingSavingsCashflow(false);
+        if (!cancelled) setIsLoadingSavingsCashflow(false);
       }
     };
 
     fetchSavingsCashflow();
-    return () => controller.abort();
-  }, [isSavingsDashboardActive, isSessionExpired, cashflowPeriod]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [isSavingsDashboardActive, isSessionExpired, cashflowRange, cashflowInterval]);
 
   useEffect(() => {
     if (!isSavingsDashboardActive) return;
@@ -797,6 +959,7 @@ const Transactions = () => {
         if (response.ok) {
           const result = await response.json();
           if (result?.success && result?.data) {
+            persistTrustitagFromProfileResponse(result);
             const data = result.data;
             const fullName = data.fullName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.name || 'Sarah Chen';
             setUserFullName(fullName);
@@ -893,16 +1056,16 @@ const Transactions = () => {
     setLastEditedField(null); // Reset edit tracking when currency changes
   };
 
-  // Handle send transfer - call withdrawal API
+  // POST /api/wallet/send/trustitag — send to recipient by Trustitag
   const handleSendTransfer = async () => {
-    // Validation
     if (!sendForm.fromAmount || parseFloat(sendForm.fromAmount) <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
 
-    if (!sendForm.walletAddress || sendForm.walletAddress.trim().length < 10) {
-      toast.error('Please enter a valid wallet address or bank account');
+    const tag = sendForm.recipientTrustitag.trim();
+    if (!tag || tag.length < 5) {
+      toast.error('Please enter a valid Trustitag');
       return;
     }
 
@@ -916,50 +1079,49 @@ const Transactions = () => {
         return;
       }
 
-      const apiUrl = getApiUrl('api/wallet/withdraw');
+      const apiUrl = getApiUrl('api/wallet/send/trustitag');
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          trustitag: tag,
           amount: parseFloat(sendForm.fromAmount),
           currency: sendForm.fromWallet,
-          destinationAddress: sendForm.walletAddress.trim(),
         }),
       });
 
       const result = await response.json().catch(() => ({}));
-      console.log('Send Transfer API response:', result);
+      console.log('Trustitag send API response:', result);
 
-      if (response.ok && result.success) {
-        toast.success('Transfer completed successfully!');
-        setShowTransactionSummaryModal(false);
-        // Reset form
-        setSendForm({
-          fromWallet: 'XRP',
-          fromAmount: '',
-          toCurrency: 'EUR',
-          toAmount: '',
-          fullName: '',
-          phoneNumber: '',
-          walletAddress: '',
-          reason: ''
-        });
-        // Refresh wallet balances
-        await fetchWalletBalances();
-        // Note: Transactions will refresh automatically via useEffect
+      if (response.ok) {
+        if (result.success === false) {
+          toast.error(result.message || 'Failed to process transfer. Please try again.');
+        } else {
+          toast.success('Transfer completed successfully!');
+          setShowTransactionSummaryModal(false);
+          setSendForm({
+            fromWallet: 'XRP',
+            fromAmount: '',
+            toCurrency: 'EUR',
+            toAmount: '',
+            recipientTrustitag: '',
+            reason: '',
+          });
+          await fetchWalletBalances();
+        }
       } else {
         toast.error(result.message || 'Failed to process transfer. Please try again.');
       }
-      } catch (error) {
+    } catch (error) {
       console.error('Error processing transfer:', error);
       toast.error('An error occurred while processing your transfer. Please try again.');
-      } finally {
+    } finally {
       setIsProcessingTransfer(false);
-      }
-    };
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1015,9 +1177,24 @@ const Transactions = () => {
 
       if (response.ok) {
         const result = await response.json();
-        
+        const d = result?.data && typeof result.data === 'object' ? result.data : {};
+
+        const nextCustodial = { xrp: '', usdt: '' };
+        if (d.xrpWalletId) nextCustodial.xrp = String(d.xrpWalletId);
+        if (d.usdtWalletId) nextCustodial.usdt = String(d.usdtWalletId);
+        if (d.xrp_wallet_id && !nextCustodial.xrp) nextCustodial.xrp = String(d.xrp_wallet_id);
+        if (d.usdt_wallet_id && !nextCustodial.usdt) nextCustodial.usdt = String(d.usdt_wallet_id);
+        if (Array.isArray(d.wallets)) {
+          d.wallets.forEach((w) => {
+            const c = String(w.currency || w.code || '').toLowerCase();
+            if (c === 'xrp' && w.id) nextCustodial.xrp = String(w.id);
+            if (c === 'usdt' && w.id) nextCustodial.usdt = String(w.id);
+          });
+        }
+        setCustodialWalletIds(nextCustodial);
+
         // Extract XRPL address if available
-        const existingAddress = result?.data?.xrplAddress;
+        const existingAddress = d.xrplAddress ?? d.xrpl_address ?? result?.xrplAddress;
         if (
           existingAddress &&
           typeof existingAddress === 'string' &&
@@ -1249,6 +1426,185 @@ const Transactions = () => {
       const match = dateString.match(/(\d{4}-\d{2}-\d{2})/);
       return match ? match[1] : dateString;
     }
+  };
+
+  const renderTransactionDetailsModal = () => {
+    if (!showTransactionDetailsModal || !selectedTransaction) return null;
+    return (
+      <div className="notification-modal-overlay transaction-details-modal-overlay" onClick={() => setShowTransactionDetailsModal(false)}>
+        <div className="notification-modal transaction-summary-modal transaction-details-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="transaction-summary-header">
+            <h2>Transaction Details</h2>
+            <button
+              type="button"
+              className="modal-close-btn"
+              onClick={() => setShowTransactionDetailsModal(false)}
+            >
+              <X size={24} />
+            </button>
+          </div>
+          <div className="transaction-summary-content" style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+            {(() => {
+              const tx = selectedTransaction;
+              const transactionId = tx.id || tx.transactionId || 'N/A';
+              const type = tx.type || tx.transactionType || 'N/A';
+              const rawAmount = tx.amount?.xrp ?? tx.amountXrp ?? tx.amount ?? 0;
+              const amountXrp =
+                typeof rawAmount === 'string'
+                  ? parseFloat(String(rawAmount).replace(/[^0-9.-]/g, '')) || 0
+                  : Number(rawAmount) || 0;
+              const amountUsd = tx.amount?.usd || tx.amountUsd || (Number.isFinite(amountXrp) ? amountXrp * 0.5 : 0);
+              const status = tx.status || 'N/A';
+              const date = tx.date || tx.createdAt || tx.timestamp || 'N/A';
+              const isReceived =
+                type.toLowerCase().includes('received') ||
+                type.toLowerCase() === 'credit' ||
+                tx.direction === 'received';
+              const direction = tx.direction || (isReceived ? 'received' : 'sent');
+              const fromAddress = tx.from || tx.fromAddress || tx.sender || 'N/A';
+              const toAddress = tx.to || tx.toAddress || tx.recipient || 'N/A';
+              const description = tx.description || tx.reason || tx.note || 'N/A';
+              const fee = tx.fee || tx.transactionFee || 'N/A';
+              const network = tx.network || tx.blockchain || 'XRP Ledger';
+              const hash = tx.hash || tx.txHash || tx.transactionHash || 'N/A';
+              const blockNumber = tx.blockNumber || tx.block || 'N/A';
+              const confirmations = tx.confirmations || 'N/A';
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`} style={{ width: '48px', height: '48px' }}>
+                        {isReceived ? <ArrowDown size={24} /> : <ArrowUp size={24} />}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-dark)' }}>{type}</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                          {direction === 'received' ? 'Received' : direction === 'spent' ? 'Sent' : 'Transaction'}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`status-badge ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
+                      {status}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '1rem', background: 'var(--blue-100)', borderRadius: '0.5rem' }}>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Amount</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 600, color: isReceived ? '#10b981' : '#ef4444' }}>
+                      {isReceived ? '+' : '-'}
+                      {Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP
+                    </div>
+                    <div style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      ≈ ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Transaction Information</div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Transaction ID</span>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
+                        {formatTransactionId(transactionId)}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Date</span>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{formatDate(date)}</span>
+                    </div>
+
+                    {fromAddress !== 'N/A' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>From</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
+                          {fromAddress}
+                        </span>
+                      </div>
+                    )}
+
+                    {toAddress !== 'N/A' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>To</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
+                          {toAddress}
+                        </span>
+                      </div>
+                    )}
+
+                    {description !== 'N/A' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Description</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{description}</span>
+                      </div>
+                    )}
+
+                    {fee !== 'N/A' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Transaction Fee</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>
+                          {typeof fee === 'number' ? `${fee} XRP` : fee}
+                        </span>
+                      </div>
+                    )}
+
+                    {hash !== 'N/A' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Transaction Hash</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                            {hash}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(String(hash));
+                              toast.success('Transaction hash copied to clipboard');
+                            }}
+                            style={{
+                              padding: '0.25rem 0.5rem',
+                              background: 'var(--blue-100)',
+                              border: 'none',
+                              borderRadius: '0.25rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Network</span>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{network}</span>
+                    </div>
+
+                    {blockNumber !== 'N/A' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Block Number</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{blockNumber}</span>
+                      </div>
+                    )}
+
+                    {confirmations !== 'N/A' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Confirmations</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{confirmations}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Pagination logic
@@ -1739,6 +2095,275 @@ const Transactions = () => {
     if (!walletBalances) return 0;
     const currencyKey = currency.toLowerCase();
     return walletBalances[currencyKey] || 0;
+  };
+
+  const submitSavingsTransfer = async () => {
+    if (isSessionExpired) {
+      toast.error('Session expired. Please sign in again.');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    const savingsWalletId = String(savingsAddMoneyForm.walletId || '').trim();
+    if (!savingsWalletId || savingsWalletId.startsWith('wallet-')) {
+      toast.error('Select a savings wallet to add funds to.');
+      return;
+    }
+    const rawAmount = String(savingsAddMoneyForm.amount || '').replace(/,/g, '').trim();
+    const amountXrp = parseFloat(rawAmount);
+    if (!Number.isFinite(amountXrp) || amountXrp <= 0) {
+      toast.error('Enter a valid XRP amount.');
+      return;
+    }
+    const xrpBalance = getCurrencyBalance('XRP');
+    if (amountXrp > xrpBalance + 1e-10) {
+      toast.error('Insufficient XRP balance.');
+      return;
+    }
+
+    const body = {
+      savingsWalletId,
+      amountXrp,
+    };
+    if (custodialWalletIds.xrp) {
+      body.sourceWalletId = custodialWalletIds.xrp;
+    }
+
+    setIsSubmittingSavingsTransfer(true);
+    try {
+      const res = await fetch(getApiUrl('api/savings/transfer'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || payload?.success === false) {
+        toast.error(payload?.message || payload?.error || 'Transfer failed');
+        return;
+      }
+      toast.success(payload?.message || 'Funds moved to savings');
+      setShowSavingsAddMoneyModal(false);
+      resetSavingsAddMoneyForm();
+      await fetchWalletBalances();
+      if (isSavingsDashboardActive) {
+        try {
+          const wRes = await fetch(getApiUrl('api/savings/wallets'), {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const wJson = await wRes.json().catch(() => ({}));
+          if (wRes.ok && wJson?.success && Array.isArray(wJson?.data?.wallets)) {
+            setSavingsWallets(
+              wJson.data.wallets.map((w, idx) => mapSavingsWalletApiToUi(w, idx))
+            );
+          }
+        } catch (_) {
+          /* ignore refresh errors */
+        }
+      }
+    } catch (err) {
+      console.error('Savings transfer:', err);
+      toast.error(err?.message || 'Network error');
+    } finally {
+      setIsSubmittingSavingsTransfer(false);
+    }
+  };
+
+  const submitSavingsWithdraw = async () => {
+    if (isSessionExpired) {
+      toast.error('Session expired. Please sign in again.');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+    if (selectedWithdrawWallet == null) return;
+    const wallet = savingsWallets[selectedWithdrawWallet];
+    if (!wallet || wallet.isPlaceholder) {
+      toast.error('Select a valid savings wallet.');
+      return;
+    }
+    const savingsWalletId = String(wallet.id || '').trim();
+    if (!savingsWalletId || savingsWalletId.startsWith('wallet-') || savingsWalletId.startsWith('na-')) {
+      toast.error('Invalid savings wallet.');
+      return;
+    }
+
+    setIsSubmittingSavingsWithdraw(true);
+    try {
+      const res = await fetch(getApiUrl('api/savings/withdraw'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          savingsWalletId,
+          withdrawAll: true,
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || payload?.success === false) {
+        toast.error(payload?.message || payload?.error || 'Withdrawal failed');
+        return;
+      }
+      toast.success(payload?.message || 'Withdrawal submitted');
+      setShowSavingsWithdrawConfirmModal(false);
+      setSelectedWithdrawWallet(null);
+      await fetchWalletBalances();
+      if (isSavingsDashboardActive) {
+        try {
+          const params = new URLSearchParams();
+          if (savingsSummaryRange) params.set('range', savingsSummaryRange);
+          const summaryUrl = `${getApiUrl('api/savings/summary')}${params.toString() ? `?${params.toString()}` : ''}`;
+          const [wRes, sRes] = await Promise.all([
+            fetch(getApiUrl('api/savings/wallets'), {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }),
+            fetch(summaryUrl, {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }),
+          ]);
+          const wJson = await wRes.json().catch(() => ({}));
+          if (wRes.ok && wJson?.success && Array.isArray(wJson?.data?.wallets)) {
+            setSavingsWallets(wJson.data.wallets.map((w, idx) => mapSavingsWalletApiToUi(w, idx)));
+          }
+          const sJson = await sRes.json().catch(() => ({}));
+          if (sRes.ok && sJson?.success && sJson?.data) {
+            setSavingsSummary(sJson.data);
+          }
+        } catch (_) {
+          /* ignore refresh errors */
+        }
+      }
+    } catch (err) {
+      console.error('Savings withdraw:', err);
+      toast.error(err?.message || 'Network error');
+    } finally {
+      setIsSubmittingSavingsWithdraw(false);
+    }
+  };
+
+  const isDeletableSavingsPlan = (wallet) => {
+    if (!wallet || wallet.isPlaceholder) return false;
+    const id = String(wallet.id || '').trim();
+    if (!id || id.startsWith('wallet-') || id.startsWith('na-')) return false;
+    return true;
+  };
+
+  const deleteSavingsPlan = async (wallet) => {
+    if (!isDeletableSavingsPlan(wallet)) return;
+    const planId = String(wallet.id).trim();
+    if (
+      !window.confirm(
+        `Delete savings plan "${wallet.name}"? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    if (isSessionExpired) {
+      toast.error('Session expired. Please sign in again.');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in');
+      return;
+    }
+
+    setDeletingSavingsWalletId(planId);
+    try {
+      const res = await fetch(
+        getApiUrl(`api/savings/wallets/${encodeURIComponent(planId)}`),
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        let errMsg = 'Could not delete savings plan';
+        try {
+          const err = await res.json();
+          errMsg = err?.message || err?.error || errMsg;
+        } catch (_) {
+          /* empty body */
+        }
+        toast.error(errMsg);
+        return;
+      }
+      let payload = {};
+      try {
+        const text = await res.text();
+        if (text) payload = JSON.parse(text);
+      } catch (_) {
+        /* 204 or non-JSON success */
+      }
+      if (payload && Object.keys(payload).length > 0 && payload.success === false) {
+        toast.error(payload?.message || payload?.error || 'Could not delete savings plan');
+        return;
+      }
+      toast.success(payload?.message || 'Savings plan deleted');
+      await fetchWalletBalances();
+      if (isSavingsDashboardActive) {
+        try {
+          const params = new URLSearchParams();
+          if (savingsSummaryRange) params.set('range', savingsSummaryRange);
+          const summaryUrl = `${getApiUrl('api/savings/summary')}${params.toString() ? `?${params.toString()}` : ''}`;
+          const [wRes, sRes] = await Promise.all([
+            fetch(getApiUrl('api/savings/wallets'), {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }),
+            fetch(summaryUrl, {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }),
+          ]);
+          const wJson = await wRes.json().catch(() => ({}));
+          if (wRes.ok && wJson?.success && Array.isArray(wJson?.data?.wallets)) {
+            setSavingsWallets(wJson.data.wallets.map((w, idx) => mapSavingsWalletApiToUi(w, idx)));
+          }
+          const sJson = await sRes.json().catch(() => ({}));
+          if (sRes.ok && sJson?.success && sJson?.data) {
+            setSavingsSummary(sJson.data);
+          }
+        } catch (_) {
+          /* ignore refresh errors */
+        }
+      }
+    } catch (err) {
+      console.error('Delete savings plan:', err);
+      toast.error(err?.message || 'Network error');
+    } finally {
+      setDeletingSavingsWalletId(null);
+    }
   };
 
   // Fetch exchange rate from external API for send modal
@@ -2438,11 +3063,14 @@ const Transactions = () => {
   // Render mobile send full page
   if (showSendPage) {
     return (
-      <div className="mobile-send-full-page">
+        <div className="mobile-send-full-page">
         <div className="mobile-send-page-header">
           <div className="mobile-send-page-title-wrapper">
             <div className="mobile-section-indicator"></div>
-            <h2>Send</h2>
+            <div>
+              <h2>Send via Trustitag</h2>
+              <p className="mobile-send-page-subtitle">Send to another user with their Trustitag</p>
+            </div>
           </div>
           <button 
             type="button" 
@@ -2519,49 +3147,31 @@ const Transactions = () => {
             <div className="mobile-send-balance-text">Balance: 24,567.89 USDT</div>
           </div>
 
-          {/* Recipient Details */}
+          {/* Recipient — Trustitag */}
           <div className="mobile-send-recipient-section">
             <div className="mobile-send-form-group">
-              <label className="mobile-send-form-label">Full Name</label>
+              <label className="mobile-send-form-label">Recipient Trustitag</label>
               <input
                 type="text"
-                className="mobile-send-form-input"
-                placeholder="Enter your name"
-                value={sendForm.fullName}
-                onChange={(e) => setSendForm(prev => ({ ...prev, fullName: e.target.value }))}
+                className="mobile-send-form-input mobile-send-trustitag-input"
+                placeholder="e.g. tc_a1b2c3d4e5"
+                autoComplete="off"
+                spellCheck={false}
+                value={sendForm.recipientTrustitag}
+                onChange={(e) =>
+                  setSendForm((prev) => ({ ...prev, recipientTrustitag: e.target.value.trimStart() }))
+                }
               />
             </div>
 
             <div className="mobile-send-form-group">
-              <label className="mobile-send-form-label">Phone Number</label>
+              <label className="mobile-send-form-label">Note (optional)</label>
               <input
                 type="text"
                 className="mobile-send-form-input"
-                placeholder="(+44)"
-                value={sendForm.phoneNumber}
-                onChange={(e) => setSendForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-              />
-            </div>
-
-            <div className="mobile-send-form-group">
-              <label className="mobile-send-form-label">Wallet Address or Bank Account</label>
-              <input
-                type="text"
-                className="mobile-send-form-input"
-                placeholder="Enter Wallet Address or Bank Account"
-                value={sendForm.walletAddress}
-                onChange={(e) => setSendForm(prev => ({ ...prev, walletAddress: e.target.value }))}
-              />
-            </div>
-
-            <div className="mobile-send-form-group">
-              <label className="mobile-send-form-label">Reason for transfer (optional)</label>
-              <input
-                type="text"
-                className="mobile-send-form-input"
-                placeholder="Enter description"
+                placeholder="What's this for?"
                 value={sendForm.reason}
-                onChange={(e) => setSendForm(prev => ({ ...prev, reason: e.target.value }))}
+                onChange={(e) => setSendForm((prev) => ({ ...prev, reason: e.target.value }))}
               />
             </div>
           </div>
@@ -2832,10 +3442,11 @@ const Transactions = () => {
                   setShowDesktopSavingsDashboard(true);
                   navigate('/savings');
                 } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
+                  return;
                   setShowDesktopSavingsDashboard(false);
                 }
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -2845,7 +3456,9 @@ const Transactions = () => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="mobile-sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -2878,8 +3491,6 @@ const Transactions = () => {
                 setIsMobileMenuOpen(false);
                 if (item.label === 'Settings') {
                   navigate('/settings');
-                } else if (item.label === 'Security') {
-                  navigate('/security');
                 }
               };
               return (
@@ -2911,7 +3522,7 @@ const Transactions = () => {
 
           <div className="mobile-sidebar-trustiscore">
             <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-            <span className="mobile-sidebar-trustiscore-badge">97</span>
+            <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="mobile-sidebar-logout" onClick={handleLogout}>
@@ -2956,9 +3567,10 @@ const Transactions = () => {
                   setShowDesktopSavingsDashboard(true);
                   navigate('/savings');
                 } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
+                  return;
                 }
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -2968,7 +3580,9 @@ const Transactions = () => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -3000,8 +3614,6 @@ const Transactions = () => {
               const handleSupportNavClick = () => {
                 if (item.label === 'Settings') {
                   navigate('/settings');
-                } else if (item.label === 'Security') {
-                  navigate('/security');
                 }
               };
               const isActive = item.label === 'Settings' && location.pathname === '/settings';
@@ -3034,7 +3646,7 @@ const Transactions = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>
@@ -3163,14 +3775,14 @@ const Transactions = () => {
                 <div className="desktop-savings-wallet-header">
                   <div className="desktop-savings-wallet-title-wrapper">
                     <div className="desktop-savings-wallet-indicator"></div>
-                    <h3 className="desktop-savings-wallet-title">Savings wallet</h3>
+                    <h3 className="desktop-savings-wallet-title">Savings plan</h3>
                   </div>
                   <button 
                     type="button" 
                     className="desktop-savings-add-wallet-btn"
                     onClick={() => setShowAddSavingsAccountModal(true)}
                   >
-                    + Add wallet
+                    + Add plan
                   </button>
                 </div>
                 <div className="desktop-savings-wallet-grid">
@@ -3191,7 +3803,34 @@ const Transactions = () => {
                     const backgroundColor = hexToRgba(wallet.color, 0.2);
                     
                     return (
-                      <div key={index} className="desktop-savings-wallet-card">
+                      <div
+                        key={wallet.id || index}
+                        role={wallet.isPlaceholder ? undefined : 'button'}
+                        tabIndex={wallet.isPlaceholder ? -1 : 0}
+                        className={`desktop-savings-wallet-card${wallet.isPlaceholder ? '' : ' desktop-savings-wallet-card--interactive'}${isDeletableSavingsPlan(wallet) ? ' desktop-savings-wallet-card--has-delete' : ''}`}
+                        onClick={() => openSavingsAddMoneyForWallet(wallet)}
+                        onKeyDown={(e) => {
+                          if (wallet.isPlaceholder) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openSavingsAddMoneyForWallet(wallet);
+                          }
+                        }}
+                      >
+                        {isDeletableSavingsPlan(wallet) ? (
+                          <button
+                            type="button"
+                            className="desktop-savings-plan-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSavingsPlan(wallet);
+                            }}
+                            disabled={deletingSavingsWalletId === String(wallet.id)}
+                            aria-label={`Delete savings plan ${wallet.name}`}
+                          >
+                            <Trash2 size={18} aria-hidden />
+                          </button>
+                        ) : null}
                         <div className="desktop-savings-wallet-card-top">
                           <div className="desktop-savings-wallet-icon-container">
                             <svg className="desktop-savings-wallet-progress-circle" width="48" height="48">
@@ -3240,7 +3879,7 @@ const Transactions = () => {
                   <button 
                     type="button" 
                     className="desktop-savings-add-money-btn"
-                    onClick={() => setShowSavingsAddMoneyModal(true)}
+                    onClick={openSavingsAddMoneyDefault}
                   >
                     + Add money
                   </button>
@@ -3264,16 +3903,32 @@ const Transactions = () => {
                   <div className="section-header">
                     <div className="section-indicator"></div>
                     <h2 className="section-title">Cashflow</h2>
-                    <div className="period-selector">
-                      <select 
-                        value={cashflowPeriod} 
-                        onChange={(e) => setCashflowPeriod(e.target.value)}
-                        className="period-select"
-                      >
-                        <option value="Monthly">Monthly</option>
-                        <option value="Yearly">Yearly</option>
-                      </select>
-                      <ChevronDown size={16} />
+                    <div className="cashflow-range-selectors">
+                      <div className="period-selector">
+                        <select 
+                          value={cashflowRange} 
+                          onChange={(e) => setCashflowRange(e.target.value)}
+                          className="period-select"
+                          aria-label="Cashflow date range"
+                        >
+                          <option value="this_month">This month</option>
+                          <option value="last_month">Last month</option>
+                          <option value="this_year">This year</option>
+                        </select>
+                        <ChevronDown size={16} />
+                      </div>
+                      <div className="period-selector">
+                        <select 
+                          value={cashflowInterval} 
+                          onChange={(e) => setCashflowInterval(e.target.value)}
+                          className="period-select"
+                          aria-label="Cashflow bucket size"
+                        >
+                          <option value="monthly">By month</option>
+                          <option value="weekly">By week</option>
+                        </select>
+                        <ChevronDown size={16} />
+                      </div>
                     </div>
                   </div>
                   <div className="cashflow-legend">
@@ -3335,16 +3990,32 @@ const Transactions = () => {
               <div className="section-header">
                 <div className="section-indicator"></div>
                 <h2 className="section-title">Cashflow</h2>
-                <div className="period-selector">
-                  <select 
-                    value={cashflowPeriod} 
-                    onChange={(e) => setCashflowPeriod(e.target.value)}
-                    className="period-select"
-                  >
-                    <option value="Monthly">Monthly</option>
-                    <option value="Yearly">Yearly</option>
-                  </select>
-                  <ChevronDown size={16} />
+                <div className="cashflow-range-selectors">
+                  <div className="period-selector">
+                    <select 
+                      value={cashflowRange} 
+                      onChange={(e) => setCashflowRange(e.target.value)}
+                      className="period-select"
+                      aria-label="Cashflow date range"
+                    >
+                      <option value="this_month">This month</option>
+                      <option value="last_month">Last month</option>
+                      <option value="this_year">This year</option>
+                    </select>
+                    <ChevronDown size={16} />
+                  </div>
+                  <div className="period-selector">
+                    <select 
+                      value={cashflowInterval} 
+                      onChange={(e) => setCashflowInterval(e.target.value)}
+                      className="period-select"
+                      aria-label="Cashflow bucket size"
+                    >
+                      <option value="monthly">By month</option>
+                      <option value="weekly">By week</option>
+                    </select>
+                    <ChevronDown size={16} />
+                  </div>
                 </div>
               </div>
               <div className="cashflow-legend">
@@ -3763,11 +4434,7 @@ const Transactions = () => {
       {showSavingsAddMoneyModal && (
         <div className="savings-withdraw-modal-overlay" onClick={() => {
           setShowSavingsAddMoneyModal(false);
-          setSavingsAddMoneyForm({
-            amount: '',
-            sourceWallet: 'XRP',
-            savingAccount: 'My Goals'
-          });
+          resetSavingsAddMoneyForm();
         }}>
           <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <div className="savings-withdraw-modal-header">
@@ -3777,60 +4444,50 @@ const Transactions = () => {
                 className="savings-withdraw-modal-close" 
                 onClick={() => {
                   setShowSavingsAddMoneyModal(false);
-                  setSavingsAddMoneyForm({
-                    amount: '',
-                    sourceWallet: 'XRP',
-                    savingAccount: 'My Goals'
-                  });
+                  resetSavingsAddMoneyForm();
                 }}
               >
                 <X size={20} />
               </button>
             </div>
+            {savingsAddMoneyForm.walletId ? (
+              <p className="savings-add-money-selected-hint">
+                To: <strong>{savingsAddMoneyForm.savingAccount}</strong>
+              </p>
+            ) : null}
 
             <div className="savings-add-money-modal-content">
               <div className="savings-add-money-card">
                 <div className="savings-add-money-amount-section">
                   <div className="savings-add-money-amount-header">
-                    <label className="savings-add-money-label">Amount</label>
-                    <button 
-                      type="button"
-                      className="savings-add-money-wallet-selector"
-                      onClick={() => {
-                        // Handle wallet selection
-                      }}
-                    >
+                    <label className="savings-add-money-label">Amount (XRP)</label>
+                    <div className="savings-add-money-wallet-selector savings-add-money-wallet-selector--static">
                       <div className="savings-add-money-wallet-icon">
                         <img
-                          src={savingsAddMoneyForm.sourceWallet === 'XRP' 
-                            ? "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                            : "https://assets.coingecko.com/coins/images/325/small/Tether.png?1668148663"
-                          }
-                          alt={savingsAddMoneyForm.sourceWallet}
+                          src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                          alt="XRP"
                           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                         />
                       </div>
-                      <span className="savings-add-money-wallet-name">
-                        {savingsAddMoneyForm.sourceWallet === 'XRP' ? 'XRP wallet' : 'USDT wallet'}
-                      </span>
-                      <ChevronDown size={16} />
-                    </button>
+                      <span className="savings-add-money-wallet-name">From custodial XRP balance</span>
+                    </div>
                   </div>
                   <div className="savings-add-money-amount-display">
                     <div className="savings-add-money-amount-input-wrapper">
-                      <span className="savings-add-money-amount-currency">$</span>
                       <input
                         type="text"
                         className="savings-add-money-amount-input"
                         value={savingsAddMoneyForm.amount}
                         onChange={(e) => {
                           let value = e.target.value;
-                          // Allow numbers, decimal point, and commas
                           value = value.replace(/[^0-9.,]/g, '');
                           setSavingsAddMoneyForm(prev => ({ ...prev, amount: value }));
                         }}
                         placeholder="0.00"
+                        inputMode="decimal"
+                        disabled={isSubmittingSavingsTransfer}
                       />
+                      <span className="savings-add-money-amount-suffix">XRP</span>
                     </div>
                   </div>
                   <div className="savings-add-money-balance-info">
@@ -3838,13 +4495,12 @@ const Transactions = () => {
                       <LoadingIndicator size="sm" />
                     ) : (
                       (() => {
-                        const currency = savingsAddMoneyForm.sourceWallet === 'XRP' ? 'XRP' : 'USDT';
-                        const balance = getCurrencyBalance(currency);
-                        const formattedBalance = Number(balance).toLocaleString('en-US', { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: currency === 'XRP' ? 6 : 2 
+                        const balance = getCurrencyBalance('XRP');
+                        const formattedBalance = Number(balance).toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 6,
                         });
-                        return `${formattedBalance} ${currency}`;
+                        return `${formattedBalance} XRP`;
                       })()
                     )}
                   </div>
@@ -3867,18 +4523,10 @@ const Transactions = () => {
                 <button
                   type="button"
                   className="savings-add-money-submit-btn"
-                  onClick={() => {
-                    // Handle add funds
-                    setShowSavingsAddMoneyModal(false);
-                    toast.success('Funds added successfully');
-                    setSavingsAddMoneyForm({
-                      amount: '',
-                      sourceWallet: 'XRP',
-                      savingAccount: 'My Goals'
-                    });
-                  }}
+                  onClick={() => submitSavingsTransfer()}
+                  disabled={isSubmittingSavingsTransfer}
                 >
-                  Transfer
+                  {isSubmittingSavingsTransfer ? 'Transferring…' : 'Transfer'}
                 </button>
 
                 <div className="savings-withdraw-info-message">
@@ -4163,14 +4811,10 @@ const Transactions = () => {
                 <button
                   type="button"
                   className="savings-withdraw-confirm-btn"
-                  onClick={() => {
-                    // Handle withdrawal
-                    setShowSavingsWithdrawConfirmModal(false);
-                    setSelectedWithdrawWallet(null);
-                    toast.success('Withdrawal processed successfully');
-                  }}
+                  onClick={() => submitSavingsWithdraw()}
+                  disabled={isSubmittingSavingsWithdraw}
                 >
-                  Withdraw
+                  {isSubmittingSavingsWithdraw ? 'Processing…' : 'Withdraw'}
                 </button>
 
                 <div className="savings-withdraw-info-message">
@@ -4184,6 +4828,8 @@ const Transactions = () => {
           </div>
         </div>
       )}
+
+      {renderTransactionDetailsModal()}
 
     </>
     );
@@ -4244,9 +4890,10 @@ const Transactions = () => {
                     } else if (item.label === 'Dispute') {
                       navigate('/dispute');
                     } else if (item.label === 'Trusticard') {
-                      navigate('/trusticard');
+                      return;
                     }
                   };
+                  const navBadge = getNavBadge(item);
                   return (
                     <button
                       key={item.label}
@@ -4256,7 +4903,9 @@ const Transactions = () => {
                     >
                       <Icon size={18} />
                       <span>{item.label}</span>
-                      {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                      {navBadge != null && navBadge !== '' ? (
+                        <span className="mobile-sidebar-badge">{navBadge}</span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -4319,7 +4968,7 @@ const Transactions = () => {
 
               <div className="mobile-sidebar-trustiscore">
                 <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-                <span className="mobile-sidebar-trustiscore-badge">97</span>
+                <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
               </div>
 
               <button type="button" className="mobile-sidebar-logout">
@@ -4533,9 +5182,10 @@ const Transactions = () => {
                   } else if (item.label === 'Savings') {
                     navigate('/savings');
                   } else if (item.label === 'Trusticard') {
-                    navigate('/trusticard');
+                    return;
                   }
                 };
+                const navBadge = getNavBadge(item);
                 return (
                   <button
                     key={item.label}
@@ -4545,7 +5195,9 @@ const Transactions = () => {
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
-                    {item.badge && <span className="mobile-sidebar-badge">{item.badge}</span>}
+                    {navBadge != null && navBadge !== '' ? (
+                      <span className="mobile-sidebar-badge">{navBadge}</span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -4608,7 +5260,7 @@ const Transactions = () => {
 
             <div className="mobile-sidebar-trustiscore">
               <span className="mobile-sidebar-trustiscore-label">Trustiscore</span>
-              <span className="mobile-sidebar-trustiscore-badge">97</span>
+              <span className="mobile-sidebar-trustiscore-badge">{trustiscoreBadgeText}</span>
             </div>
 
             <button type="button" className="mobile-sidebar-logout">
@@ -4653,9 +5305,10 @@ const Transactions = () => {
                   setShowDesktopSavingsDashboard(true);
                   navigate('/savings');
                 } else if (item.label === 'Trusticard') {
-                  navigate('/trusticard');
+                  return;
                 }
               };
+              const navBadge = getNavBadge(item);
               return (
                 <button
                   key={item.label}
@@ -4665,7 +5318,9 @@ const Transactions = () => {
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
-                  {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+                  {navBadge != null && navBadge !== '' ? (
+                    <span className="sidebar-badge">{navBadge}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -4697,8 +5352,6 @@ const Transactions = () => {
               const handleSupportNavClick = () => {
                 if (item.label === 'Settings') {
                   navigate('/settings');
-                } else if (item.label === 'Security') {
-                  navigate('/security');
                 }
               };
               const isActive = item.label === 'Settings' && location.pathname === '/settings';
@@ -4731,7 +5384,7 @@ const Transactions = () => {
 
           <div className="sidebar-trustiscore">
             <span className="trustiscore-label">Trustiscore</span>
-            <span className="trustiscore-badge">97</span>
+            <span className="trustiscore-badge">{trustiscoreBadgeText}</span>
           </div>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>
@@ -5124,7 +5777,7 @@ const Transactions = () => {
                 <div className="section-content">
                   <div className="beneficiaries-title-wrapper">
                     <div className="beneficiaries-indicator"></div>
-                    <h3 className="section-title">Beneficiaries</h3>
+                    <h3 className="section-title">Send to TrustiChain users</h3>
                   </div>
                   <div className="beneficiaries-container">
                     <div className="beneficiaries-avatars">
@@ -5219,91 +5872,6 @@ const Transactions = () => {
                         </div>
                       </div>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              {/* My Goals and My Savings Container - Mobile Only */}
-              <div className="mobile-goals-savings-container">
-                {/* My Goals Section */}
-                <div className="mobile-goals-card">
-                  <div className="mobile-goals-header">
-                    <div className="mobile-section-indicator"></div>
-                    <h3 className="mobile-section-title">My Goals</h3>
-                  </div>
-                  <div className="mobile-goals-content">
-                    <div className="mobile-goals-progress">50% Complete</div>
-                    <div className="mobile-goals-amount">$75,000</div>
-                    <div className="mobile-goals-target">$150,000</div>
-                  </div>
-                </div>
-
-                {/* My Savings Section */}
-                <div 
-                  className="mobile-savings-card"
-                  onClick={() => {
-                    // Open desktop savings dashboard on mobile
-                    setShowDesktopSavingsDashboard(true);
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="mobile-savings-header">
-                    <div className="mobile-savings-title-wrapper">
-                      <div className="mobile-section-indicator"></div>
-                      <h3 className="mobile-section-title">My Savings</h3>
-                    </div>
-                    <ArrowRight 
-                      size={16} 
-                      className="mobile-savings-arrow" 
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent double-triggering
-                        // Open desktop savings dashboard on mobile
-                        setShowDesktopSavingsDashboard(true);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </div>
-                  <div className="mobile-savings-content">
-                    <div className="mobile-savings-badge">
-                      <TrendingUp size={12} />
-                      <span>+2.4%</span>
-                    </div>
-                    <div className="mobile-savings-amount">$12,500.00</div>
-                    <div className="mobile-savings-wallets">4 savings wallets</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* My Goals and My Savings - Desktop Only */}
-              <div className="desktop-goals-savings-container">
-                {/* My Goals Section */}
-                <div className="desktop-goals-card">
-                  <div className="desktop-goals-header">
-                    <div className="desktop-section-indicator"></div>
-                    <h3 className="desktop-section-title">My Goals</h3>
-                  </div>
-                  <div className="desktop-goals-content">
-                    <div className="desktop-goals-progress">50% Complete</div>
-                    <div className="desktop-goals-amount">$75,000</div>
-                    <div className="desktop-goals-target">$150,000</div>
-                  </div>
-                </div>
-
-                {/* My Savings Section */}
-                <div className="desktop-savings-card" onClick={() => setShowDesktopSavingsDashboard(true)} style={{ cursor: 'pointer' }}>
-                  <div className="desktop-savings-header">
-                    <div className="desktop-savings-title-wrapper">
-                      <div className="desktop-section-indicator"></div>
-                      <h3 className="desktop-section-title">My Savings</h3>
-                    </div>
-                  </div>
-                  <div className="desktop-savings-content">
-                    <div className="desktop-savings-badge">
-                      <TrendingUp size={14} />
-                      <span>+2.4%</span>
-                    </div>
-                    <div className="desktop-savings-amount">$12,500.00</div>
-                    <div className="desktop-savings-wallets">4 savings wallets</div>
                   </div>
                 </div>
               </div>
@@ -6529,208 +7097,173 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Send Modal */}
+      {/* Send Modal — send to other TrustiChain users via Trustitag */}
       {showSendModal && (
-        <div className="notification-modal-overlay" onClick={() => setShowSendModal(false)}>
-          <div className="notification-modal send-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="notification-modal-overlay send-modal-overlay" onClick={() => setShowSendModal(false)}>
+          <div
+            className="notification-modal send-modal send-modal--trustitag"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="send-modal-title"
+          >
             <div className="send-modal-header">
-              <h2>Send</h2>
-              <button 
-                type="button" 
-                className="notification-close-btn" 
+              <div className="send-modal-header-main">
+                <div className="send-modal-header-accent" aria-hidden />
+                <div>
+                  <p className="send-modal-eyebrow">Send to TrustiChain users</p>
+                  <h2 id="send-modal-title">Send via Trustitag</h2>
+                  <p className="send-modal-subtitle">
+                    Enter the recipient&apos;s Trustitag. They receive the converted amount in their chosen currency — no long wallet address.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn send-modal-close"
                 onClick={() => setShowSendModal(false)}
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
 
             <div className="send-modal-content">
-              {/* Transfer Details Section */}
-              <div className="send-transfer-section">
-                <div className="send-from-section">
-                  <label className="send-section-label">From</label>
-                  <div className="send-wallet-selector">
-                    <div className="send-currency-badge">
-                      <img 
-                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                        alt="XRP" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                      />
-                    </div>
-                    <span className="send-wallet-text">XRP wallet</span>
-                    <ChevronDown size={16} />
-                  </div>
-                  <input
-                    type="text"
-                    className="send-amount-input"
-                    placeholder="0.00"
-                    value={sendForm.fromAmount || ''}
-                    onChange={(e) => {
-                      let value = e.target.value;
-                      // Keep only numbers and decimal point
-                      value = value.replace(/[^0-9.]/g, '');
-                      setLastEditedField('from');
-                      setSendForm(prev => ({ ...prev, fromAmount: value }));
-                    }}
-                  />
-                  <div className="send-balance-text">Balance: 24,567.89 USDT</div>
-                </div>
-
-                <div className="send-transfer-arrow">
-                  <button type="button" className="send-arrow-btn">
-                    <ArrowRight size={20} />
-                  </button>
-                </div>
-
-                <div className="send-to-section">
-                  <label className="send-section-label">To</label>
-                  <div className="send-wallet-selector" style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowToCurrencyDropdown(!showToCurrencyDropdown)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        width: '100%',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 0
-                      }}
-                    >
-                                <div className="send-currency-flag">
-                                  <img 
-                          src={`https://flagcdn.com/w40/${availableCurrencies.find(c => c.code === sendForm.toCurrency)?.flag || 'us'}.png`} 
-                          alt={sendForm.toCurrency} 
-                                  />
-                                </div>
-                      <span className="send-wallet-text">{sendForm.toCurrency}</span>
-                            <ChevronDown size={16} />
-                    </button>
-                    {showToCurrencyDropdown && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        background: '#ffffff',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '0.75rem',
-                        marginTop: '0.5rem',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        zIndex: 1000,
-                        maxHeight: '200px',
-                        overflowY: 'auto'
-                      }}>
-                        {availableCurrencies.map((currency) => (
-                          <button
-                            key={currency.code}
-                            type="button"
-                            onClick={() => handleToCurrencyChange(currency.code)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              background: sendForm.toCurrency === currency.code ? '#f0f7ff' : 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              fontFamily: 'Satoshi, Inter, sans-serif'
-                            }}
-                            onMouseEnter={(e) => {
-                              if (sendForm.toCurrency !== currency.code) {
-                                e.target.style.background = '#f9fafb';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (sendForm.toCurrency !== currency.code) {
-                                e.target.style.background = 'transparent';
-                              }
-                            }}
-                          >
-                            <div className="send-currency-flag">
-                              <img src={`https://flagcdn.com/w40/${currency.flag}.png`} alt={currency.code} />
-                            </div>
-                            <span>{currency.code}</span>
-                          </button>
-                        ))}
+              <div className="send-modal-panel send-modal-panel--conversion">
+                <p className="send-modal-panel-label">Amount &amp; conversion</p>
+                <div className="send-transfer-section">
+                  <div className="send-from-section">
+                    <label className="send-section-label">From</label>
+                    <div className="send-wallet-selector">
+                      <div className="send-currency-badge">
+                        <img
+                          src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                          alt="XRP"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                        />
                       </div>
-                    )}
-                  </div>
+                      <span className="send-wallet-text">XRP wallet</span>
+                      <ChevronDown size={16} />
+                    </div>
                     <input
                       type="text"
                       className="send-amount-input"
                       placeholder="0.00"
-                      value={sendForm.toAmount || ''}
-                    onChange={(e) => handleToAmountChange(e.target.value)}
-                  />
-                  <div className="send-exchange-rate">
-                    {isLoadingSendRate ? (
-                      <LoadingIndicator size="sm" />
-                    ) : sendExchangeRate ? (
-                      `1 ${sendForm.fromWallet} = ${availableCurrencies.find(c => c.code === sendForm.toCurrency)?.symbol || ''}${sendExchangeRate.toFixed(4)} ${sendForm.toCurrency}`
-                    ) : (
-                      'Rate unavailable'
-                    )}
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={sendForm.fromAmount || ''}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        value = value.replace(/[^0-9.]/g, '');
+                        setLastEditedField('from');
+                        setSendForm((prev) => ({ ...prev, fromAmount: value }));
+                      }}
+                    />
+                    <div className="send-balance-text">Balance: 24,567.89 USDT</div>
                   </div>
-                </div>
-              </div>
 
-              {/* Recipient Information Section */}
-              <div className="send-recipient-section">
-                <h3 className="send-recipient-title">Recipient Information</h3>
-                
-                <div className="send-form-row">
-                  <div className="send-form-group">
-                    <label htmlFor="send-full-name">Full Name</label>
+                  <div className="send-transfer-arrow">
+                    <button type="button" className="send-arrow-btn" aria-hidden tabIndex={-1}>
+                      <ArrowRight size={20} />
+                    </button>
+                  </div>
+
+                  <div className="send-to-section">
+                    <label className="send-section-label">They receive (estimate)</label>
+                    <div className="send-wallet-selector send-wallet-selector--dropdown">
+                      <button
+                        type="button"
+                        className="send-to-currency-trigger"
+                        onClick={() => setShowToCurrencyDropdown(!showToCurrencyDropdown)}
+                      >
+                        <div className="send-currency-flag">
+                          <img
+                            src={`https://flagcdn.com/w40/${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.flag || 'us'}.png`}
+                            alt={sendForm.toCurrency}
+                          />
+                        </div>
+                        <span className="send-wallet-text">{sendForm.toCurrency}</span>
+                        <ChevronDown size={16} />
+                      </button>
+                      {showToCurrencyDropdown && (
+                        <div className="send-modal-currency-dropdown">
+                          {availableCurrencies.map((currency) => (
+                            <button
+                              key={currency.code}
+                              type="button"
+                              className={`send-modal-currency-option${sendForm.toCurrency === currency.code ? ' is-active' : ''}`}
+                              onClick={() => handleToCurrencyChange(currency.code)}
+                            >
+                              <div className="send-currency-flag">
+                                <img src={`https://flagcdn.com/w40/${currency.flag}.png`} alt={currency.code} />
+                              </div>
+                              <span>{currency.code}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <input
-                      id="send-full-name"
                       type="text"
-                      placeholder="Enter your name"
-                      value={sendForm.fullName}
-                      onChange={(e) => setSendForm(prev => ({ ...prev, fullName: e.target.value }))}
+                      className="send-amount-input"
+                      placeholder="0.00"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={sendForm.toAmount || ''}
+                      onChange={(e) => handleToAmountChange(e.target.value)}
                     />
+                    <div className="send-exchange-rate">
+                      {isLoadingSendRate ? (
+                        <LoadingIndicator size="sm" />
+                      ) : sendExchangeRate ? (
+                        `1 ${sendForm.fromWallet} = ${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.symbol || ''}${sendExchangeRate.toFixed(4)} ${sendForm.toCurrency}`
+                      ) : (
+                        'Rate unavailable'
+                      )}
+                    </div>
                   </div>
-
-                  <div className="send-form-group">
-                    <label htmlFor="send-phone">Phone Number</label>
-                    <input
-                      id="send-phone"
-                      type="tel"
-                      placeholder="(+44)"
-                      value={sendForm.phoneNumber}
-                      onChange={(e) => setSendForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="send-form-group">
-                  <label htmlFor="send-wallet-address">Wallet Address or Bank Account</label>
-                  <input
-                    id="send-wallet-address"
-                    type="text"
-                    placeholder="Enter Wallet Address or Bank Account"
-                    value={sendForm.walletAddress}
-                    onChange={(e) => setSendForm(prev => ({ ...prev, walletAddress: e.target.value }))}
-                  />
-                </div>
-
-                <div className="send-form-group">
-                  <label htmlFor="send-reason">Reason for transfer (optional)</label>
-                  <input
-                    id="send-reason"
-                    type="text"
-                    placeholder="Enter discription"
-                    value={sendForm.reason}
-                    onChange={(e) => setSendForm(prev => ({ ...prev, reason: e.target.value }))}
-                  />
                 </div>
               </div>
 
-              {/* Bottom Section */}
+              <div className="send-modal-panel send-modal-panel--recipient">
+                <div className="send-modal-panel-head">
+                  <span className="send-modal-panel-icon" aria-hidden>
+                    <Tag size={18} strokeWidth={2} />
+                  </span>
+                  <div>
+                    <p className="send-modal-panel-label">Recipient</p>
+                    <p className="send-modal-panel-hint">Their TrustiChain handle</p>
+                  </div>
+                </div>
+
+                <label className="send-trustitag-label" htmlFor="send-recipient-trustitag">
+                  Trustitag
+                </label>
+                <input
+                  id="send-recipient-trustitag"
+                  type="text"
+                  className="send-trustitag-input"
+                  placeholder="e.g. tc_a1b2c3d4e5"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={sendForm.recipientTrustitag}
+                  onChange={(e) =>
+                    setSendForm((prev) => ({ ...prev, recipientTrustitag: e.target.value.trimStart() }))
+                  }
+                />
+
+                <label className="send-trustitag-label" htmlFor="send-reason-note">
+                  Note <span className="send-optional">(optional)</span>
+                </label>
+                <input
+                  id="send-reason-note"
+                  type="text"
+                  className="send-form-note-input"
+                  placeholder="What's this for?"
+                  value={sendForm.reason}
+                  onChange={(e) => setSendForm((prev) => ({ ...prev, reason: e.target.value }))}
+                />
+              </div>
+
               <div className="send-bottom-section">
                 <div className="send-info-message">
                   <div className="send-info-icon">
@@ -6738,21 +7271,21 @@ const Transactions = () => {
                   </div>
                   <span>
                     {sendForm.fromAmount && sendExchangeRate ? (
-                      `You'll receive at least ${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency} or the transaction will be refunded`
+                      `They'll receive at least ${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency} (estimate) or the transaction will be refunded`
                     ) : (
-                      "You'll receive the amount based on the current exchange rate or the transaction will be refunded"
+                      'Amounts use the current rate; your recipient sees funds in their chosen currency.'
                     )}
                   </span>
                 </div>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="send-preview-btn"
                   onClick={() => {
                     setShowSendModal(false);
                     setShowTransactionSummaryModal(true);
                   }}
                 >
-                  Preview Transfer
+                  Preview transfer
                 </button>
               </div>
             </div>
@@ -6777,6 +7310,12 @@ const Transactions = () => {
 
             <div className="transaction-summary-content">
               <div className="transaction-details-list">
+                <div className="transaction-detail-item transaction-detail-item--trustitag">
+                  <span className="transaction-detail-label">Recipient Trustitag</span>
+                  <span className="transaction-detail-value transaction-detail-trustitag">
+                    {sendForm.recipientTrustitag.trim() || '—'}
+                  </span>
+                </div>
                 <div className="transaction-detail-item">
                   <span className="transaction-detail-label">Send Amount:</span>
                   <span className="transaction-detail-value">
@@ -7193,189 +7732,7 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Transaction Details Modal */}
-      {showTransactionDetailsModal && selectedTransaction && (
-        <div className="notification-modal-overlay transaction-details-modal-overlay" onClick={() => setShowTransactionDetailsModal(false)}>
-          <div className="notification-modal transaction-summary-modal transaction-details-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="transaction-summary-header">
-              <h2>Transaction Details</h2>
-              <button 
-                type="button" 
-                className="modal-close-btn"
-                onClick={() => setShowTransactionDetailsModal(false)}
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="transaction-summary-content" style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
-              {(() => {
-                // Extract transaction data
-                const transactionId = selectedTransaction.id || selectedTransaction.transactionId || 'N/A';
-                const type = selectedTransaction.type || selectedTransaction.transactionType || 'N/A';
-                const amountXrp = selectedTransaction.amount?.xrp || selectedTransaction.amountXrp || selectedTransaction.amount || 0;
-                const amountUsd = selectedTransaction.amount?.usd || selectedTransaction.amountUsd || (amountXrp * 0.5);
-                const status = selectedTransaction.status || 'N/A';
-                const date = selectedTransaction.date || selectedTransaction.createdAt || selectedTransaction.timestamp || 'N/A';
-                const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit' || selectedTransaction.direction === 'received';
-                const direction = selectedTransaction.direction || (isReceived ? 'received' : 'sent');
-                
-                // Additional fields that might be available
-                const fromAddress = selectedTransaction.from || selectedTransaction.fromAddress || selectedTransaction.sender || 'N/A';
-                const toAddress = selectedTransaction.to || selectedTransaction.toAddress || selectedTransaction.recipient || 'N/A';
-                const description = selectedTransaction.description || selectedTransaction.reason || selectedTransaction.note || 'N/A';
-                const fee = selectedTransaction.fee || selectedTransaction.transactionFee || 'N/A';
-                const network = selectedTransaction.network || selectedTransaction.blockchain || 'XRP Ledger';
-                const hash = selectedTransaction.hash || selectedTransaction.txHash || selectedTransaction.transactionHash || 'N/A';
-                const blockNumber = selectedTransaction.blockNumber || selectedTransaction.block || 'N/A';
-                const confirmations = selectedTransaction.confirmations || 'N/A';
-
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {/* Transaction Type and Status */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`} style={{ width: '48px', height: '48px' }}>
-                          {isReceived ? <ArrowDown size={24} /> : <ArrowUp size={24} />}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#000' }}>{type}</div>
-                          <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
-                            {direction === 'received' ? 'Received' : direction === 'spent' ? 'Sent' : 'Transaction'}
-                          </div>
-                        </div>
-                      </div>
-                      <span className={`status-badge ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
-                        {status}
-                      </span>
-                    </div>
-
-                    {/* Amount */}
-                    <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
-                      <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>Amount</div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 600, color: isReceived ? '#10b981' : '#ef4444' }}>
-                        {isReceived ? '+' : '-'}{Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP
-                      </div>
-                      <div style={{ fontSize: '1rem', color: '#666', marginTop: '0.25rem' }}>
-                        ≈ ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                      </div>
-                    </div>
-
-                    {/* Transaction Information */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.5rem' }}>Transaction Information</div>
-                      
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#666' }}>Transaction ID</span>
-                        <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
-                          {formatTransactionId(transactionId)}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#666' }}>Date</span>
-                        <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
-                          {formatDate(date)}
-                        </span>
-                      </div>
-
-                      {fromAddress !== 'N/A' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>From</span>
-                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
-                            {fromAddress}
-                          </span>
-                        </div>
-                      )}
-
-                      {toAddress !== 'N/A' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>To</span>
-                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
-                            {toAddress}
-                          </span>
-                        </div>
-                      )}
-
-                      {description !== 'N/A' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Description</span>
-                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
-                            {description}
-                          </span>
-                        </div>
-                      )}
-
-                      {fee !== 'N/A' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Transaction Fee</span>
-                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
-                            {typeof fee === 'number' ? `${fee} XRP` : fee}
-                          </span>
-                        </div>
-                      )}
-
-                      {hash !== 'N/A' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Transaction Hash</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500, wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                              {hash}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(hash);
-                                toast.success('Transaction hash copied to clipboard');
-                              }}
-                              style={{ 
-                                padding: '0.25rem 0.5rem', 
-                                background: '#f3f4f6', 
-                                border: 'none', 
-                                borderRadius: '0.25rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
-                              }}
-                            >
-                              <Copy size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#666' }}>Network</span>
-                        <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
-                          {network}
-                        </span>
-                      </div>
-
-                      {blockNumber !== 'N/A' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Block Number</span>
-                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
-                            {blockNumber}
-                          </span>
-                        </div>
-                      )}
-
-                      {confirmations !== 'N/A' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                          <span style={{ fontSize: '0.875rem', color: '#666' }}>Confirmations</span>
-                          <span style={{ fontSize: '0.875rem', color: '#000', fontWeight: 500 }}>
-                            {confirmations}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
+      {renderTransactionDetailsModal()}
 
       {/* Connect Wallet Modal */}
       <ConnectWalletModal 
