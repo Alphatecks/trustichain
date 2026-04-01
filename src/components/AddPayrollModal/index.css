@@ -31,6 +31,45 @@
   color: var(--blue-600, #2563eb);
 }
 
+.add-payroll-team-autocomplete-wrapper {
+  position: relative;
+}
+
+.add-payroll-team-suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.add-payroll-team-suggestion-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: #fff;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--text-dark, #111827);
+  cursor: pointer;
+}
+
+.add-payroll-team-suggestion-item:hover {
+  background: #f9fafb;
+}
+
+.add-payroll-team-suggestion-meta {
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}
+
 .add-payroll-members-loading {
   display: flex;
   align-items: center;
