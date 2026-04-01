@@ -41,6 +41,12 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [membersError, setMembersError] = useState('');
   const fetchMembersTimeoutRef = useRef(null);
+  const [teamSuggestions, setTeamSuggestions] = useState([]);
+  const [isLoadingTeamSuggestions, setIsLoadingTeamSuggestions] = useState(false);
+  const [showTeamSuggestions, setShowTeamSuggestions] = useState(false);
+  const teamAutocompleteTimeoutRef = useRef(null);
+  const latestTeamQueryRef = useRef('');
+  const teamNameFieldRef = useRef(null);
 
   const [paymentData, setPaymentData] = useState({
     currency: 'USD',
@@ -84,6 +90,9 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
     });
     setTeamMembersResult(null);
     setMembersError('');
+    setTeamSuggestions([]);
+    setIsLoadingTeamSuggestions(false);
+    setShowTeamSuggestions(false);
     onCancel();
   };
 
@@ -131,6 +140,58 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
       if (fetchMembersTimeoutRef.current) clearTimeout(fetchMembersTimeoutRef.current);
     };
   }, [payrollData.companyName]);
+
+  // Fetch team name suggestions (debounced) while typing in Team name field
+  useEffect(() => {
+    const query = (payrollData.companyName || '').trim();
+    if (!query) {
+      setTeamSuggestions([]);
+      setIsLoadingTeamSuggestions(false);
+      return;
+    }
+    if (teamAutocompleteTimeoutRef.current) clearTimeout(teamAutocompleteTimeoutRef.current);
+    latestTeamQueryRef.current = query;
+    teamAutocompleteTimeoutRef.current = setTimeout(() => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      setIsLoadingTeamSuggestions(true);
+      const requestQuery = latestTeamQueryRef.current;
+      const url = getApiUrl(`api/business-suite/teams/autocomplete?q=${encodeURIComponent(requestQuery)}&limit=10`);
+      fetch(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+        .then((res) => res.json().catch(() => ({})))
+        .then((result) => {
+          if (latestTeamQueryRef.current !== requestQuery) return;
+          const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+          setTeamSuggestions(items);
+          setShowTeamSuggestions(true);
+        })
+        .catch(() => {
+          if (latestTeamQueryRef.current !== requestQuery) return;
+          setTeamSuggestions([]);
+        })
+        .finally(() => {
+          if (latestTeamQueryRef.current === requestQuery) setIsLoadingTeamSuggestions(false);
+          teamAutocompleteTimeoutRef.current = null;
+        });
+    }, 300);
+    return () => {
+      if (teamAutocompleteTimeoutRef.current) clearTimeout(teamAutocompleteTimeoutRef.current);
+    };
+  }, [payrollData.companyName]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!teamNameFieldRef.current) return;
+      if (!teamNameFieldRef.current.contains(event.target)) {
+        setShowTeamSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const handleSubmitAndNext = async () => {
     if (currentStep < 3) {
@@ -288,13 +349,42 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                     </div>
                     <div className="form-group">
                       <label>Team name</label>
-                      <div className="date-input-wrapper">
+                      <div className="date-input-wrapper add-payroll-team-autocomplete-wrapper" ref={teamNameFieldRef}>
                         <input
                           type="text"
                           placeholder="Team name"
                           value={payrollData.companyName}
-                          onChange={(e) => handleInputChange('companyName', e.target.value)}
+                          onChange={(e) => {
+                            handleInputChange('companyName', e.target.value);
+                            setShowTeamSuggestions(true);
+                          }}
+                          onFocus={() => {
+                            if ((payrollData.companyName || '').trim()) setShowTeamSuggestions(true);
+                          }}
                         />
+                        {showTeamSuggestions && (payrollData.companyName || '').trim() && (
+                          <div className="add-payroll-team-suggestions-dropdown">
+                            {isLoadingTeamSuggestions ? (
+                              <div className="add-payroll-team-suggestion-meta">Loading team suggestions...</div>
+                            ) : teamSuggestions.length === 0 ? (
+                              <div className="add-payroll-team-suggestion-meta">No matching teams found</div>
+                            ) : (
+                              teamSuggestions.map((item) => (
+                                <button
+                                  key={item.teamId || item.teamName}
+                                  type="button"
+                                  className="add-payroll-team-suggestion-item"
+                                  onClick={() => {
+                                    handleInputChange('companyName', item.teamName || '');
+                                    setShowTeamSuggestions(false);
+                                  }}
+                                >
+                                  {item.teamName}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="form-group">
