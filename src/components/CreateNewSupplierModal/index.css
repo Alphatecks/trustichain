@@ -510,6 +510,12 @@
   background: #f9fafb;
 }
 
+.add-supplier-autocomplete-meta {
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}
+
 .add-supplier-milestones {
   display: flex;
   flex-direction: column;

@@ -79,6 +79,11 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
   const [isLookingUpEmail, setIsLookingUpEmail] = useState(false);
   const [lookupEmailError, setLookupEmailError] = useState('');
   const lookupTimeoutRef = useRef(null);
+  const [supplierSuggestions, setSupplierSuggestions] = useState([]);
+  const [isLoadingSupplierSuggestions, setIsLoadingSupplierSuggestions] = useState(false);
+  const [showSupplierSuggestions, setShowSupplierSuggestions] = useState(false);
+  const supplierAutocompleteTimeoutRef = useRef(null);
+  const supplierNameFieldRef = useRef(null);
 
   // Fetch business email when supplier name is entered (debounced)
   useEffect(() => {
@@ -100,8 +105,12 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
       })
         .then((res) => res.json().catch(() => ({})))
         .then((result) => {
-          if (result?.success && result?.data?.businessEmail) {
-            setSupplierEmail(result.data.businessEmail);
+          if (result?.success && result?.data) {
+            const businessEmail = result.data.businessEmail;
+            const businessXrpAddress = result.data.businessXrpAddress;
+
+            if (businessEmail) setSupplierEmail(businessEmail);
+            if (businessXrpAddress) setSupplierWalletAddress(businessXrpAddress);
             setLookupEmailError('');
           } else {
             setLookupEmailError(result?.message || 'No business email found for this supplier.');
@@ -119,6 +128,60 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
       if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
     };
   }, [supplierName]);
+
+  // Fetch supplier name suggestions (debounced) as user types initials/name
+  useEffect(() => {
+    const query = supplierName.trim();
+    if (query.length < 1) {
+      setSupplierSuggestions([]);
+      setIsLoadingSupplierSuggestions(false);
+      return;
+    }
+
+    if (supplierAutocompleteTimeoutRef.current) clearTimeout(supplierAutocompleteTimeoutRef.current);
+
+    supplierAutocompleteTimeoutRef.current = setTimeout(() => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      setIsLoadingSupplierSuggestions(true);
+      const url = getApiUrl(`api/business-suite/suppliers/autocomplete?q=${encodeURIComponent(query)}&limit=10`);
+
+      fetch(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+        .then((res) => res.json().catch(() => ({})))
+        .then((result) => {
+          const items = Array.isArray(result?.data?.items) ? result.data.items : [];
+          setSupplierSuggestions(items);
+          setShowSupplierSuggestions(true);
+        })
+        .catch(() => {
+          setSupplierSuggestions([]);
+        })
+        .finally(() => {
+          setIsLoadingSupplierSuggestions(false);
+          supplierAutocompleteTimeoutRef.current = null;
+        });
+    }, 300);
+
+    return () => {
+      if (supplierAutocompleteTimeoutRef.current) clearTimeout(supplierAutocompleteTimeoutRef.current);
+    };
+  }, [supplierName]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!supplierNameFieldRef.current) return;
+      if (!supplierNameFieldRef.current.contains(event.target)) {
+        setShowSupplierSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const amountNum = useMemo(() => (paymentAmount ? parseFloat(String(paymentAmount).replace(/,/g, '')) : 0) || 0, [paymentAmount]);
   const platformFee = useMemo(() => (amountNum * PLATFORM_FEE_PERCENT) / 100, [amountNum]);
@@ -144,6 +207,9 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     setUploadedFiles({ invoice: null, agreement: null, deliveryTerms: null });
     setSubmitError('');
     setLookupEmailError('');
+    setSupplierSuggestions([]);
+    setIsLoadingSupplierSuggestions(false);
+    setShowSupplierSuggestions(false);
   };
 
   const handleClose = () => {
@@ -377,12 +443,43 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
                         <label>
                           Supplier name <span className="add-supplier-label-hint">(Must be a Registered business on Trustichain)</span>
                         </label>
-                        <input
-                          type="text"
-                          value={supplierName}
-                          onChange={(e) => setSupplierName(e.target.value)}
-                          placeholder="e.g. Nova Electronics Ltd"
-                        />
+                        <div className="add-supplier-dropdown-wrapper" ref={supplierNameFieldRef}>
+                          <input
+                            type="text"
+                            value={supplierName}
+                            onChange={(e) => {
+                              setSupplierName(e.target.value);
+                              setShowSupplierSuggestions(true);
+                            }}
+                            onFocus={() => {
+                              if (supplierName.trim().length >= 1) setShowSupplierSuggestions(true);
+                            }}
+                            placeholder="e.g. Nova Electronics Ltd"
+                          />
+                          {showSupplierSuggestions && supplierName.trim().length >= 1 && (
+                            <div className="add-supplier-dropdown">
+                              {isLoadingSupplierSuggestions ? (
+                                <div className="add-supplier-autocomplete-meta">Loading supplier suggestions...</div>
+                              ) : supplierSuggestions.length === 0 ? (
+                                <div className="add-supplier-autocomplete-meta">No matching businesses found</div>
+                              ) : (
+                                supplierSuggestions.map((item) => (
+                                  <button
+                                    key={item.businessId || item.businessName}
+                                    type="button"
+                                    className="add-supplier-dropdown-item"
+                                    onClick={() => {
+                                      setSupplierName(item.businessName || '');
+                                      setShowSupplierSuggestions(false);
+                                    }}
+                                  >
+                                    {item.businessName}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="form-group">
                         <label>Supplier wallet address</label>
