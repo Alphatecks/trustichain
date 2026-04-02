@@ -104,7 +104,7 @@
   background: rgba(0,0,0,0.04);
 }
 
-. .sidebar-wallet .sidebar-wallet-btn {
+.sidebar-wallet .sidebar-wallet-btn {
   padding: 0.45rem 0.75rem;
   font-size: 0.95rem;
   background: transparent;
@@ -359,7 +359,7 @@
 }
 
 .notification-modal-header {
-  background: #f8f9fa;
+  background: var(--surface, var(--white));
   padding: 1.5rem;
   display: flex;
   align-items: center;
@@ -690,18 +690,18 @@
 }
 
 .notification-item:hover {
-  background: #f8f9fa;
+  background: var(--blue-100);
 }
 
 .notification-item.unread {
-  background: #f0f7ff;
+  background: var(--blue-100);
 }
 
 .notification-bell-icon {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #e0f2fe;
+  background: var(--blue-100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -772,6 +772,36 @@
   background: var(--blue-600);
   flex-shrink: 0;
   margin-top: 0.5rem;
+}
+
+[data-theme="dark"] .notification-modal {
+  background: var(--surface, #111827);
+  border: 1px solid var(--border, #374151);
+}
+
+[data-theme="dark"] .notification-modal-header {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .notification-close-btn:hover,
+[data-theme="dark"] .notification-filter-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .notification-item:hover {
+  background: rgba(59, 130, 246, 0.16);
+}
+
+[data-theme="dark"] .notification-item.unread {
+  background: rgba(59, 130, 246, 0.22);
+}
+
+[data-theme="dark"] .notification-bell-icon {
+  background: rgba(59, 130, 246, 0.24);
+}
+
+[data-theme="dark"] .notification-status-icon.package {
+  color: #fbbf24;
 }
 
 .dashboard-main {
