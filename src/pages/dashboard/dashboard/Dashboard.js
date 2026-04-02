@@ -134,6 +134,7 @@ const developersNav = [
 ];
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
+const PORTFOLIO_Y_AXIS_MAX = 10000;
 
 const personalSteps = [
   { label: 'Proof of identity', detail: 'Proof of identity' },
@@ -1511,6 +1512,7 @@ const Dashboard = () => {
 
         if (response.ok) {
           const result = await response.json();
+          console.error('PERSONAL_PORTFOLIO_API_RESPONSE:', result);
           console.log('Portfolio response:', result);
 
           // API: GET api/portfolio/performance?timeframe=monthly&year=YYYY (year optional; when monthly, filter by year)
@@ -1524,6 +1526,11 @@ const Dashboard = () => {
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('PERSONAL_PORTFOLIO_API_RESPONSE_ERROR:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: errorData,
+          });
           console.log('Portfolio response (error):', { status: response.status, statusText: response.statusText, data: errorData });
           setPortfolioPoints([]);
           if (!showUnderReviewModalIfApplicable(errorData?.message)) {
@@ -1591,6 +1598,31 @@ const Dashboard = () => {
     }
     return data.map((p) => ({ label: p.label ?? '', value: Number(p.value ?? 0) }));
   }, [portfolioPoints, portfolioTimeframe]);
+
+  const portfolioChartScaleMax = useMemo(() => {
+    const maxValue = portfolioChartPoints.reduce(
+      (max, point) => Math.max(max, Number(point?.value ?? 0)),
+      0
+    );
+    if (!Number.isFinite(maxValue) || maxValue <= 0) return PORTFOLIO_Y_AXIS_MAX;
+    return Math.max(PORTFOLIO_Y_AXIS_MAX, Math.ceil(maxValue / 2000) * 2000);
+  }, [portfolioChartPoints]);
+
+  const portfolioYAxisTicks = useMemo(() => {
+    const step = portfolioChartScaleMax / 5;
+    return Array.from({ length: 6 }, (_, index) => Math.round(portfolioChartScaleMax - step * index));
+  }, [portfolioChartScaleMax]);
+
+  const formatPortfolioYAxisTick = useCallback((value) => {
+    if (value === 0) return '0';
+    return value >= 1000 ? `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k` : String(value);
+  }, []);
+
+  const toPortfolioBarHeight = useCallback((rawValue) => {
+    const value = Number(rawValue ?? 0);
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return Math.min(100, (value / portfolioChartScaleMax) * 100);
+  }, [portfolioChartScaleMax]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -3828,8 +3860,8 @@ const Dashboard = () => {
             </div>
             <div className="mobile-chart-container">
               <div className="mobile-chart-y-axis">
-                {[50, 40, 30, 20, 10, 0].map((val) => (
-                  <span key={val}>{val}k</span>
+                {portfolioYAxisTicks.map((val) => (
+                  <span key={val}>{formatPortfolioYAxisTick(val)}</span>
                 ))}
               </div>
               <div className="mobile-bar-chart">
@@ -3838,16 +3870,10 @@ const Dashboard = () => {
                 )}
 
                 {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
-                  const maxValue =
-                    portfolioChartPoints.reduce(
-                      (max, p) => Math.max(max, Math.abs(Number(p.value ?? 0))),
-                      0
-                    ) || 1;
-
                   return portfolioChartPoints.map((point, index) => {
                     const value = Number(point.value ?? 0);
                     const hasBar = value !== 0;
-                    const height = hasBar ? Math.max(5, (Math.abs(value) / maxValue) * 100) : 0;
+                    const height = hasBar ? toPortfolioBarHeight(value) : 0;
                     const label = point.label ?? '';
                     const isLastBar = index === portfolioChartPoints.length - 1;
                     const isNegative = value < 0;
@@ -4093,7 +4119,7 @@ const Dashboard = () => {
                   const initiatorName = escrow.initiatorName || escrow.payerName || escrow.payer?.name || escrow.senderName || 'Unknown';
                   const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.payerAvatar || escrow.payer?.avatar || null;
                   const initiatorInitials = initiatorName.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '??';
-                  const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Sarah Wilson';
+                  const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Unknown';
                   const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                   const counterpartyInitials = counterpartyName.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '??';
                   
@@ -4538,8 +4564,8 @@ const Dashboard = () => {
             </div>
             <div className="chart-container">
               <div className="chart-y-axis">
-                {[50, 40, 30, 20, 10, 0].map((val) => (
-                  <span key={val}>{val}k</span>
+                {portfolioYAxisTicks.map((val) => (
+                  <span key={val}>{formatPortfolioYAxisTick(val)}</span>
                 ))}
               </div>
               <div className="bar-chart">
@@ -4548,16 +4574,10 @@ const Dashboard = () => {
                 )}
 
                 {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
-                  const maxValue =
-                    portfolioChartPoints.reduce(
-                      (max, p) => Math.max(max, Math.abs(Number(p.value ?? 0))),
-                      0
-                    ) || 1;
-
                   return portfolioChartPoints.map((point, index) => {
                     const value = Number(point.value ?? 0);
                     const hasBar = value !== 0;
-                    const height = hasBar ? Math.max(5, (Math.abs(value) / maxValue) * 100) : 0;
+                    const height = hasBar ? toPortfolioBarHeight(value) : 0;
                     const label = point.label ?? '';
                     const isLast = index === portfolioChartPoints.length - 1;
                     const isNegative = value < 0;
@@ -4619,7 +4639,7 @@ const Dashboard = () => {
                       const escrowId = escrow.id ? `#${escrow.id.substring(0, 8).toUpperCase()}` : '#ESC-N/A';
                       
                       // Get parties from escrow list payload
-                      const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
+                      const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Unknown';
                       const initiatorName = escrow.initiatorName || escrow.payerName || escrow.payer?.name || escrow.senderName || 'You';
                       const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                       const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.payerAvatar || escrow.payer?.avatar || null;
@@ -5947,13 +5967,13 @@ const Dashboard = () => {
 
             <div className="notification-list">
               {Array.isArray(notifications) && notifications.length > 0 ? (
-                notifications.map((n) => {
+                notifications.map((n, idx) => {
                   const isUnread = !n?.isRead;
                   const { Icon, className } = getNotificationIconConfig(n?.type);
-                  const message = n?.message || n?.title || 'N/A';
+                  const message = n?.message || 'N/A';
                   return (
                     <div
-                      key={n?.id}
+                      key={n?.id || `notification-${idx}`}
                       className={`notification-item ${isUnread ? 'unread' : ''}`}
                       onClick={() => {
                         if (isUnread) handleMarkNotificationRead(n?.id);

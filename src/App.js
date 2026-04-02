@@ -37,6 +37,7 @@ import Webhook from './pages/dashboard/business-suite/Webhook';
 import Settings from './pages/dashboard/settings/Settings';
 import useAutoLogout from './hooks/useAutoLogout';
 import BusinessEmailGate from './components/BusinessEmailGate';
+import trustiChainLogoIcon from './assets/images/icons/logo.png';
 import './App.css';
 
 /** Strip trailing slashes for stable route checks (e.g. /dashboard/ vs /dashboard). */
@@ -70,6 +71,23 @@ function AppContent() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname]);
+
+  // Keep browser tab icon aligned with TrustiChain branding.
+  useEffect(() => {
+    const ensureLink = (rel, type) => {
+      let link = document.querySelector(`link[rel="${rel}"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', rel);
+        document.head.appendChild(link);
+      }
+      if (type) link.setAttribute('type', type);
+      link.setAttribute('href', trustiChainLogoIcon);
+    };
+
+    ensureLink('icon', 'image/png');
+    ensureLink('apple-touch-icon', 'image/png');
+  }, []);
 
   // Hide navbar on auth pages
   const isAuthPage =
