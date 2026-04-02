@@ -379,6 +379,21 @@
     flex: 1;
   }
 
+  .payroll-delete-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 0.5rem;
+    background: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
   .payroll-list-item-title-mobile {
     font-size: 1rem;
     font-weight: 600;
@@ -707,6 +722,29 @@
 
   .payroll-detail-card-action-mobile:active {
     background: var(--blue-50);
+  }
+
+  .payroll-mobile-hash-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .payroll-mobile-hash-item {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--blue-100);
+    padding: 0.6rem 0.7rem;
+    font-size: 0.72rem;
+    color: var(--text-dark);
+    font-family: 'Monaco', 'Courier New', monospace;
+    word-break: break-all;
+  }
+
+  .payroll-mobile-hash-empty {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-family: 'Satoshi', 'Inter', sans-serif;
   }
 
   /* Payroll Details Transaction History */
@@ -2227,6 +2265,12 @@
   align-items: center;
 }
 
+.payroll-card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .payroll-card-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -2245,6 +2289,117 @@
 
 .payroll-view-link:hover {
   color: var(--blue-500);
+}
+
+.payroll-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.55rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+.payroll-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.payroll-delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.payroll-delete-modal {
+  width: 100%;
+  max-width: 460px;
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  padding: 1.25rem;
+}
+
+.payroll-delete-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.payroll-delete-modal-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #dc2626;
+}
+
+.payroll-delete-modal-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.payroll-delete-modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payroll-delete-modal-message {
+  margin: 1rem 0 1.25rem;
+  color: var(--text-dark);
+  line-height: 1.45;
+  font-size: 0.92rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.payroll-delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.payroll-delete-cancel-btn,
+.payroll-delete-confirm-btn {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.86rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+.payroll-delete-cancel-btn {
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  color: var(--text-dark);
+}
+
+.payroll-delete-confirm-btn {
+  background: #dc2626;
+  color: #fff;
+}
+
+.payroll-delete-confirm-btn:disabled,
+.payroll-delete-cancel-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 /* Segmented Toggle */

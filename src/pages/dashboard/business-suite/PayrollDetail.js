@@ -74,6 +74,19 @@ const normalizeCompanyLogoUrl = (data) => {
   return `${base}${path}`;
 };
 
+const extractXrpHashes = (data) => {
+  if (!data || typeof data !== 'object') return [];
+  return Array.from(new Set([
+    ...(Array.isArray(data.xrpHashes) ? data.xrpHashes : []),
+    ...(Array.isArray(data.xrpHashesCreated) ? data.xrpHashesCreated : []),
+    ...(Array.isArray(data.xrpHashs) ? data.xrpHashs : []),
+    data.xrpHash,
+    data.xrp_hash,
+    data.xrplEscrowId,
+    data.xrpl_escrow_id,
+  ].filter((value) => typeof value === 'string' && value.trim()))).map((value) => value.trim());
+};
+
 const PayrollDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -208,6 +221,7 @@ const PayrollDetail = () => {
 
   const formatUsd = (n) => (n == null || Number.isNaN(Number(n)) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(Number(n)));
   const items = payrollDetail?.items ?? [];
+  const payrollXrpHashes = useMemo(() => extractXrpHashes(payrollDetail), [payrollDetail]);
 
   return (
     <div className="dashboard">
@@ -473,6 +487,24 @@ const PayrollDetail = () => {
                 </div>
               </>
             )}
+          </div>
+
+          <div className="payroll-hashes-section">
+            <div className="payroll-hashes-header">
+              <div className="section-indicator"></div>
+              <h2 className="payroll-hashes-title">XRPL Hashes</h2>
+            </div>
+            <div className="payroll-hashes-list">
+              {isLoadingPayrollDetail ? (
+                <div className="payroll-hash-item payroll-hash-item-empty">Loading hashes...</div>
+              ) : payrollXrpHashes.length === 0 ? (
+                <div className="payroll-hash-item payroll-hash-item-empty">No XRPL hash yet</div>
+              ) : (
+                payrollXrpHashes.map((hash) => (
+                  <div key={hash} className="payroll-hash-item">{hash}</div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Team Details Section */}

@@ -30,6 +30,16 @@ const TransactionDetailModal = ({ isOpen, onClose, transaction, loading }) => {
     return usd;
   };
 
+  const xrpHashes = Array.from(new Set([
+    ...(Array.isArray(transaction?.xrpHashes) ? transaction.xrpHashes : []),
+    ...(Array.isArray(transaction?.xrpHashesCreated) ? transaction.xrpHashesCreated : []),
+    ...(Array.isArray(transaction?.xrpHashs) ? transaction.xrpHashs : []),
+    transaction?.xrpHash,
+    transaction?.xrp_hash,
+    transaction?.xrplEscrowId,
+    transaction?.xrpl_escrow_id,
+  ].filter((value) => typeof value === 'string' && value.trim()))).map((value) => value.trim());
+
   return (
     <div className="transaction-detail-modal-overlay" onClick={handleOverlayClick}>
       <div className="transaction-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -79,6 +89,18 @@ const TransactionDetailModal = ({ isOpen, onClose, transaction, loading }) => {
               <div className="transaction-detail-row">
                 <span className="transaction-detail-label">Created</span>
                 <span className="transaction-detail-value">{formatDate(transaction.createdAt)}</span>
+              </div>
+              <div className="transaction-detail-row transaction-detail-row-hashes">
+                <span className="transaction-detail-label">XRPL Hashes</span>
+                <span className="transaction-detail-value transaction-detail-hash-list">
+                  {xrpHashes.length > 0 ? (
+                    xrpHashes.map((hash) => (
+                      <span key={hash} className="transaction-detail-hash-item">{hash}</span>
+                    ))
+                  ) : (
+                    <span className="transaction-detail-hash-empty">—</span>
+                  )}
+                </span>
               </div>
             </>
           )}
