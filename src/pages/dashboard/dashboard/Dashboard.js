@@ -407,11 +407,13 @@ const Dashboard = () => {
       setIsLoadingNotifications(true);
       try {
         const data = await getNotifications({ token, filter: notificationsApiFilter, page: 1, pageSize: 10 });
+        console.error('NOTIFICATIONS_API_RESPONSE:', data);
         if (cancelled) return;
         setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
         setNotificationsTotal(Number(data?.total) || 0);
         setNotificationsUnreadCount(Number(data?.unreadCount) || 0);
       } catch (error) {
+        console.error('NOTIFICATIONS_API_RESPONSE_ERROR:', error);
         console.error('Error fetching notifications:', error);
         if (!cancelled) {
           setNotifications([]);
