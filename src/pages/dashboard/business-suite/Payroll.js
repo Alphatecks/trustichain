@@ -36,7 +36,9 @@ import {
   Check,
   Wallet,
   Coins,
-  Info
+  Info,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './Payroll.css';
@@ -99,6 +101,19 @@ const normalizeCompanyLogoUrl = (data) => {
   return `${base}${path}`;
 };
 
+const extractXrpHashes = (data) => {
+  if (!data || typeof data !== 'object') return [];
+  return Array.from(new Set([
+    ...(Array.isArray(data.xrpHashes) ? data.xrpHashes : []),
+    ...(Array.isArray(data.xrpHashesCreated) ? data.xrpHashesCreated : []),
+    ...(Array.isArray(data.xrpHashs) ? data.xrpHashs : []),
+    data.xrpHash,
+    data.xrp_hash,
+    data.xrplEscrowId,
+    data.xrpl_escrow_id,
+  ].filter((value) => typeof value === 'string' && value.trim()))).map((value) => value.trim());
+};
+
 const Payroll = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,8 +134,6 @@ const Payroll = () => {
   const [userRole, setUserRole] = useState('');
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(false);
-  const [hasWallet, setHasWallet] = useState(false);
-  const [isKycCompleteForAccount, setIsKycCompleteForAccount] = useState(true);
   const [businessKycComplete, setBusinessKycComplete] = useState(true);
   const [businessCompanyName, setBusinessCompanyName] = useState('');
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
@@ -147,6 +160,9 @@ const Payroll = () => {
   const [payrollToggles, setPayrollToggles] = useState({});
   const [freezeAutoRelease, setFreezeAutoRelease] = useState({});
   const [showAddPayrollModal, setShowAddPayrollModal] = useState(false);
+  const [showDeletePayrollModal, setShowDeletePayrollModal] = useState(false);
+  const [payrollToDelete, setPayrollToDelete] = useState(null);
+  const [deletingPayrollId, setDeletingPayrollId] = useState(null);
   const [transactionDetailOpen, setTransactionDetailOpen] = useState(false);
   const [transactionDetailData, setTransactionDetailData] = useState(null);
   const [isLoadingTransactionDetail, setIsLoadingTransactionDetail] = useState(false);
@@ -190,6 +206,7 @@ const Payroll = () => {
     bankName: '',
     accountNumber: ''
   });
+  const mobilePayrollXrpHashes = useMemo(() => extractXrpHashes(mobilePayrollDetail), [mobilePayrollDetail]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -509,6 +526,47 @@ const Payroll = () => {
     setTransactionDetailData(null);
   };
 
+  const handleRequestDeletePayroll = (payroll) => {
+    if (!payroll?.id) return;
+    setPayrollToDelete(payroll);
+    setShowDeletePayrollModal(true);
+  };
+
+  const handleConfirmDeletePayroll = async () => {
+    const payrollId = payrollToDelete?.id;
+    if (!payrollId) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+    setDeletingPayrollId(payrollId);
+    try {
+      const res = await fetch(getApiUrl(`api/business-suite/payrolls/${payrollId}`), {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to delete payroll');
+      }
+      setPayrolls((prev) => prev.filter((item) => item.id !== payrollId));
+      if (selectedPayrollDetail?.id === payrollId) setSelectedPayrollDetail(null);
+      if (mobilePayrollDetail?.id === payrollId) setMobilePayrollDetail(null);
+      setShowDeletePayrollModal(false);
+      setPayrollToDelete(null);
+      setPayrollsRefreshKey((k) => k + 1);
+      toast.success('Payroll deleted');
+    } catch (error) {
+      toast.error(error?.message || 'Failed to delete payroll');
+    } finally {
+      setDeletingPayrollId(null);
+    }
+  };
+
   const buildCreatePayrollPayload = (data) => {
     const teamName = data.teamName || data.companyName || '';
     return {
@@ -530,10 +588,50 @@ const Payroll = () => {
     };
   };
 
+  const checkEscrowEligibilityForCounterparty = async (token, counterpartyId) => {
+    const url = getApiUrl(`api/business-suite/payrolls/escrow-check?counterpartyId=${encodeURIComponent(counterpartyId)}`);
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result?.success || !result?.data) {
+      throw new Error(result?.message || 'Unable to run deterministic XRPL escrow check.');
+    }
+    return result.data;
+  };
+
+  const runDeterministicEscrowChecks = async (token, payload) => {
+    const uniqueCounterpartyIds = Array.from(
+      new Set((Array.isArray(payload?.items) ? payload.items : [])
+        .map((item) => item?.counterpartyId)
+        .filter(Boolean))
+    );
+    if (uniqueCounterpartyIds.length === 0) return;
+
+    const results = await Promise.all(
+      uniqueCounterpartyIds.map(async (counterpartyId) => {
+        const data = await checkEscrowEligibilityForCounterparty(token, counterpartyId);
+        return { counterpartyId, ...data };
+      })
+    );
+
+    const blocked = results.find((item) => item?.canCreateEscrow === false);
+    if (blocked) {
+      const reason = blocked.reason || 'Destination account is not eligible for payroll escrow.';
+      const reasonCode = blocked.reasonCode ? ` (${blocked.reasonCode})` : '';
+      throw new Error(`${reason}${reasonCode}`);
+    }
+  };
+
   const handleCreatePayroll = async (formData) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Not authenticated');
     const payload = buildCreatePayrollPayload(formData);
+    await runDeterministicEscrowChecks(token, payload);
     const res = await fetch(getApiUrl('api/business-suite/payrolls'), {
       method: 'POST',
       headers: {
@@ -581,6 +679,19 @@ const Payroll = () => {
       .then((result) => {
         console.log('Payroll release response:', result);
         if (result?.success) {
+          const newReleaseHashes = extractXrpHashes(result?.data);
+          if (newReleaseHashes.length > 0) {
+            setMobilePayrollDetail((prev) => {
+              if (!prev || prev.id !== payrollId) return prev;
+              const existingHashes = extractXrpHashes(prev);
+              const mergedHashes = Array.from(new Set([...existingHashes, ...newReleaseHashes]));
+              return {
+                ...prev,
+                xrpHashes: mergedHashes,
+                xrpHashesCreated: mergedHashes,
+              };
+            });
+          }
           setPayrollsRefreshKey((k) => k + 1);
         }
       })
@@ -983,6 +1094,17 @@ const Payroll = () => {
                         <h3 className="payroll-list-item-title-mobile">{payroll.name}</h3>
                         <p className="payroll-list-item-subtitle-mobile">Next release {payroll.releaseDate ?? '—'}</p>
                       </div>
+                      <button
+                        type="button"
+                        className="payroll-delete-btn-mobile"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleRequestDeletePayroll(payroll);
+                        }}
+                        aria-label={`Delete ${payroll.name || 'payroll'}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
                       <span className="payroll-list-item-arrow-mobile" aria-hidden="true">
                         <ArrowRight size={20} />
                       </span>
@@ -1559,6 +1681,21 @@ const Payroll = () => {
                         <Plus size={16} />
                         <span>Fund wallet</span>
                       </button>
+                    </div>
+
+                    <div className="payroll-detail-card-mobile payroll-detail-card-mobile-hashes" style={{ gridColumn: '1 / -1' }}>
+                      <div className="payroll-detail-card-header-mobile">
+                        <h3 className="payroll-detail-card-title-mobile">XRPL Hashes</h3>
+                      </div>
+                      <div className="payroll-mobile-hash-list">
+                        {mobilePayrollXrpHashes.length > 0 ? (
+                          mobilePayrollXrpHashes.map((hash) => (
+                            <div key={hash} className="payroll-mobile-hash-item">{hash}</div>
+                          ))
+                        ) : (
+                          <div className="payroll-mobile-hash-empty">No XRPL hash yet</div>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -2342,15 +2479,6 @@ const Payroll = () => {
                 Business Suite
               </button>
             </div>
-            {isKycCompleteForAccount && (
-              <button
-                type="button"
-                className="create-wallet-btn"
-                onClick={() => navigate('/dashboard')}
-              >
-                {hasWallet ? 'View Wallet' : 'Create Wallet'}
-              </button>
-            )}
             <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
               <Bell size={18} />
             </button>
@@ -2405,16 +2533,27 @@ const Payroll = () => {
                   <div key={payroll.id} className="payroll-card">
                     <div className="payroll-card-header">
                       <h3 className="payroll-card-title">{payroll.name}</h3>
-                      <a 
-                        href="#" 
-                        className="payroll-view-link"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/payroll/${payroll.id}`);
-                        }}
-                      >
-                        View
-                      </a>
+                      <div className="payroll-card-header-actions">
+                        <a 
+                          href="#" 
+                          className="payroll-view-link"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate(`/payroll/${payroll.id}`);
+                          }}
+                        >
+                          View
+                        </a>
+                        <button
+                          type="button"
+                          className="payroll-delete-btn"
+                          onClick={() => handleRequestDeletePayroll(payroll)}
+                          aria-label={`Delete ${payroll.name || 'payroll'}`}
+                        >
+                          <Trash2 size={16} />
+                          Delete
+                        </button>
+                      </div>
                     </div>
                     
                     {/* Segmented toggle for all payrolls */}
@@ -2608,6 +2747,63 @@ const Payroll = () => {
         transaction={transactionDetailData}
         loading={isLoadingTransactionDetail}
       />
+
+      {showDeletePayrollModal && payrollToDelete && (
+        <div
+          className="payroll-delete-modal-overlay"
+          onClick={() => {
+            if (deletingPayrollId) return;
+            setShowDeletePayrollModal(false);
+            setPayrollToDelete(null);
+          }}
+        >
+          <div className="payroll-delete-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="payroll-delete-modal-header">
+              <div className="payroll-delete-modal-title-wrap">
+                <AlertTriangle size={18} />
+                <h3 className="payroll-delete-modal-title">Delete payroll</h3>
+              </div>
+              <button
+                type="button"
+                className="payroll-delete-modal-close"
+                onClick={() => {
+                  if (deletingPayrollId) return;
+                  setShowDeletePayrollModal(false);
+                  setPayrollToDelete(null);
+                }}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="payroll-delete-modal-message">
+              You are about to delete <strong>{payrollToDelete.name || 'this payroll'}</strong>. This action cannot be undone.
+            </p>
+            <div className="payroll-delete-modal-actions">
+              <button
+                type="button"
+                className="payroll-delete-cancel-btn"
+                onClick={() => {
+                  if (deletingPayrollId) return;
+                  setShowDeletePayrollModal(false);
+                  setPayrollToDelete(null);
+                }}
+                disabled={!!deletingPayrollId}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="payroll-delete-confirm-btn"
+                onClick={handleConfirmDeletePayroll}
+                disabled={!!deletingPayrollId}
+              >
+                {deletingPayrollId ? 'Deleting...' : 'Delete payroll'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Payroll Modal */}
       <AddPayrollModal

@@ -79,6 +79,10 @@
   border-bottom: none;
 }
 
+.transaction-detail-row-hashes {
+  align-items: flex-start;
+}
+
 .transaction-detail-label {
   display: inline-flex;
   align-items: center;
@@ -91,6 +95,24 @@
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-dark);
+}
+
+.transaction-detail-hash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: right;
+  max-width: 250px;
+}
+
+.transaction-detail-hash-item {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.transaction-detail-hash-empty {
+  color: var(--text-muted);
 }
 
 .transaction-detail-status {

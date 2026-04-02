@@ -118,6 +118,52 @@
   display: inline-block;
 }
 
+/* XRPL Hashes */
+.payroll-hashes-section {
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.payroll-hashes-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.payroll-hashes-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.payroll-hashes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.payroll-hash-item {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--blue-100);
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--text-dark);
+  word-break: break-all;
+}
+
+.payroll-hash-item-empty {
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: var(--text-muted);
+}
+
 /* Team Details Section */
 .team-details-section {
   background: var(--surface, var(--white));

@@ -2816,6 +2816,8 @@ const MyEscrow = () => {
                     setSelectedEscrow({
                       id: escrowId,
                       escrowId,
+                      xrpHash: createdEscrowData?.xrpHash,
+                      xrpHashes: createdEscrowData?.xrpHashes,
                       xrplEscrowId: createdEscrowData?.xrplEscrowId,
                       counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
                       initiatorName: createdEscrowData?.initiatorName || createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
@@ -4063,6 +4065,8 @@ const MyEscrow = () => {
                     setSelectedEscrow({
                       id: escrowId,
                       escrowId,
+                      xrpHash: createdEscrowData?.xrpHash,
+                      xrpHashes: createdEscrowData?.xrpHashes,
                       xrplEscrowId: createdEscrowData?.xrplEscrowId,
                       counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
                       initiatorName: createdEscrowData?.initiatorName || createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
@@ -4241,6 +4245,14 @@ const MyEscrow = () => {
                 const canReleaseNow = timeRemaining === 0;
                 const hasXrplEscrowId = !!(escrow.xrplEscrowId || escrow.xrpl_escrow_id);
                 const canRelease = hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && canReleaseNow;
+                const xrpHashes = Array.from(new Set([
+                  escrow.xrpHash,
+                  escrow.xrp_hash,
+                  escrow.xrplEscrowId,
+                  escrow.xrpl_escrow_id,
+                  ...(Array.isArray(escrow.xrpHashes) ? escrow.xrpHashes : []),
+                  ...(Array.isArray(escrow.xrpHashs) ? escrow.xrpHashs : []),
+                ].filter((value) => typeof value === 'string' && value.trim()))).map((value) => value.trim());
                 return (
                   <>
                     <div className="escrow-detail-row">
@@ -4287,6 +4299,18 @@ const MyEscrow = () => {
                     <div className="escrow-detail-row">
                       <span className="escrow-detail-label">Created</span>
                       <span className="escrow-detail-value">{formattedDate}</span>
+                    </div>
+                    <div className="escrow-detail-row escrow-detail-row--stacked">
+                      <span className="escrow-detail-label">XRPL Hashes</span>
+                      <span className="escrow-detail-value escrow-detail-hash-list">
+                        {xrpHashes.length > 0 ? (
+                          xrpHashes.map((hash) => (
+                            <span key={hash} className="escrow-detail-hash-item">{hash}</span>
+                          ))
+                        ) : (
+                          <span className="escrow-detail-hash-empty">—</span>
+                        )}
+                      </span>
                     </div>
                     {(hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release')) && (
                       <div className="escrow-detail-actions">

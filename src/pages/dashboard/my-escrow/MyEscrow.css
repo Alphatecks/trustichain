@@ -2408,6 +2408,9 @@
 .escrow-detail-modal .escrow-detail-row:last-of-type {
   border-bottom: none;
 }
+.escrow-detail-modal .escrow-detail-row--stacked {
+  align-items: flex-start;
+}
 .escrow-detail-modal .escrow-detail-label {
   font-size: 0.875rem;
   color: var(--text-muted, #6b7280);
@@ -2417,6 +2420,20 @@
   font-size: 0.9rem;
   color: var(--text-dark, #1f2937);
   text-align: right;
+}
+.escrow-detail-modal .escrow-detail-hash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 280px;
+}
+.escrow-detail-modal .escrow-detail-hash-item {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+.escrow-detail-modal .escrow-detail-hash-empty {
+  color: var(--text-muted, #6b7280);
 }
 .escrow-detail-modal .escrow-detail-actions {
   display: flex;
