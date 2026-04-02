@@ -420,6 +420,7 @@ const Payroll = () => {
     })
       .then((res) => res.json().catch(() => ({})))
       .then((result) => {
+        console.error('PAYROLL_DETAIL_RESPONSE (list selection):', result);
         if (result?.success && result?.data) {
           setMobilePayrollDetail(result.data);
         } else {
@@ -508,6 +509,7 @@ const Payroll = () => {
     })
       .then((res) => res.json().catch(() => ({})))
       .then((result) => {
+        console.error('PAYROLL_TRANSACTION_DETAIL_RESPONSE:', result);
         if (result?.success && result?.data) {
           setTransactionDetailData(result.data);
         } else {
