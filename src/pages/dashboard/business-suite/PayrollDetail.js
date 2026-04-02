@@ -137,6 +137,7 @@ const PayrollDetail = () => {
     })
       .then((res) => res.json().catch(() => ({})))
       .then((result) => {
+        console.error('PAYROLL_DETAIL_RESPONSE (detail page):', result);
         if (result?.success && result?.data) {
           setPayrollDetail(result.data);
         } else {
