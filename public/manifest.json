@@ -3,14 +3,14 @@
   "name": "TrustiChain Blockchain Escrow Platform",
   "icons": [
     {
-      "src": "trustichain-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "trustichain-logo.png",
+      "sizes": "48x48 64x64 128x128 192x192 256x256 512x512",
+      "type": "image/png"
     },
     {
-      "src": "trustichain-logo.svg",
+      "src": "trustichain-logo.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ],
   "start_url": ".",
