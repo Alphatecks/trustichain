@@ -3753,7 +3753,7 @@ const Dashboard = () => {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {['daily', 'monthly', 'yearly'].map((timeframe) => (
+                      {['monthly', 'yearly'].map((timeframe) => (
                         <button
                           key={timeframe}
                           type="button"
@@ -4451,7 +4451,7 @@ const Dashboard = () => {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {['daily', 'monthly', 'yearly'].map((timeframe) => (
+                      {['monthly', 'yearly'].map((timeframe) => (
                         <button
                           key={timeframe}
                           type="button"
