@@ -11,6 +11,7 @@ import encryptionIcon from '../../assets/images/icons/Encryption.png';
 import kycIcon from '../../assets/images/icons/kyc.png';
 import auditIcon from '../../assets/images/icons/audit.png';
 import { getApiUrl } from '../../utils/config';
+import { markTrustitagWelcomeEligibleForNewUser } from '../../utils/trustitag';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
@@ -64,6 +65,7 @@ const Signup = () => {
 
       toast.success('Registration successful! Welcome to TrustiChain.');
       localStorage.setItem('kycComplete', 'true');
+      markTrustitagWelcomeEligibleForNewUser();
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.message || 'An error occurred during registration');

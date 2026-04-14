@@ -4,7 +4,11 @@ import toast from 'react-hot-toast';
 import './TwoFactor.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
 import { completeLoginMfa } from '../../utils/mfaApi';
-import { extractTrustitagFromLoginResponse, queueTrustitagWelcomeModal } from '../../utils/trustitag';
+import {
+  extractTrustitagFromLoginResponse,
+  isNewlyRegisteredAuthResponse,
+  queueTrustitagWelcomeModal,
+} from '../../utils/trustitag';
 
 const MFA_TOKEN_KEY = 'mfa_login_token';
 const MFA_EMAIL_KEY = 'mfa_login_email';
@@ -20,10 +24,6 @@ const TwoFactor = () => {
   const mfaToken =
     (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(MFA_TOKEN_KEY) : '') ||
     location.state?.mfaToken ||
-    '';
-  const email =
-    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(MFA_EMAIL_KEY) : '') ||
-    location.state?.email ||
     '';
 
   useEffect(() => {
@@ -85,7 +85,9 @@ const TwoFactor = () => {
         } catch (_) {
           /* ignore */
         }
-        queueTrustitagWelcomeModal(trustitag);
+        queueTrustitagWelcomeModal(trustitag, {
+          newlyRegistered: isNewlyRegisteredAuthResponse(mfaResult.raw || {}),
+        });
       }
       toast.success('Signed in');
       navigate('/dashboard', { replace: true });

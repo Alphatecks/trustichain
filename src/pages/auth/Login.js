@@ -11,7 +11,11 @@ import encryptionIcon from '../../assets/images/icons/Encryption.png';
 import kycIcon from '../../assets/images/icons/kyc.png';
 import auditIcon from '../../assets/images/icons/audit.png';
 import { getApiUrl } from '../../utils/config';
-import { extractTrustitagFromLoginResponse, queueTrustitagWelcomeModal } from '../../utils/trustitag';
+import {
+  extractTrustitagFromLoginResponse,
+  isNewlyRegisteredAuthResponse,
+  queueTrustitagWelcomeModal,
+} from '../../utils/trustitag';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -163,7 +167,9 @@ const Login = () => {
         } catch (_) {
           /* ignore */
         }
-        queueTrustitagWelcomeModal(trustitag);
+        queueTrustitagWelcomeModal(trustitag, {
+          newlyRegistered: isNewlyRegisteredAuthResponse(data),
+        });
       }
 
       toast.success('Login successful!');
@@ -280,6 +286,7 @@ const Login = () => {
                 <img src={googleLogo} alt="Google" />
                 {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
               </button>
+              {/*
               <button type="button" className="login-social-btn">
                 <img
                   className="login-apple-logo"
@@ -288,10 +295,13 @@ const Login = () => {
                 />
                 Sign in with Apple
               </button>
+              */}
+              {/*
               <button type="button" className="login-social-btn">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/X-Logo-Round-Color.png" alt="X" />
                 Sign in with X
               </button>
+              */}
             </div>
 
             <label className="login-security-note">

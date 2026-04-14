@@ -21,13 +21,78 @@ export function persistTrustitagFromProfileResponse(result) {
   } catch (_) {
     /* quota / private mode */
   }
+  queueTrustitagWelcomeModal(tag);
 }
 
 const WELCOME_KEY = 'trustitag_welcome_pending';
+const NEW_USER_WELCOME_ELIGIBLE_KEY = 'trustitag_welcome_new_user_eligible';
 
-/** Queue one-time welcome modal on next Dashboard visit (sessionStorage). */
-export function queueTrustitagWelcomeModal(trustitag) {
+function toBooleanFlag(v) {
+  if (v === true || v === 1) return true;
+  if (typeof v !== 'string') return false;
+  const s = v.trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes';
+}
+
+function readNewUserWelcomeEligibility() {
+  try {
+    const raw = sessionStorage.getItem(NEW_USER_WELCOME_ELIGIBLE_KEY);
+    return toBooleanFlag(raw);
+  } catch (_) {
+    return false;
+  }
+}
+
+function clearNewUserWelcomeEligibility() {
+  try {
+    sessionStorage.removeItem(NEW_USER_WELCOME_ELIGIBLE_KEY);
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+/** Mark current browser session as eligible to show welcome once trustitag is available. */
+export function markTrustitagWelcomeEligibleForNewUser() {
+  try {
+    sessionStorage.setItem(NEW_USER_WELCOME_ELIGIBLE_KEY, '1');
+  } catch (_) {
+    /* quota / private mode */
+  }
+}
+
+/** Best-effort check for "newly registered" across varying auth payload shapes. */
+export function isNewlyRegisteredAuthResponse(data) {
+  if (!data || typeof data !== 'object') return false;
+  const nodes = [data, data.data, data.user, data.data?.user].filter(
+    (node) => node && typeof node === 'object'
+  );
+  const flagKeys = [
+    'isNewUser',
+    'newUser',
+    'isNewlyRegistered',
+    'newlyRegistered',
+    'justRegistered',
+    'accountCreated',
+    'new_user',
+    'is_new_user',
+  ];
+
+  for (const node of nodes) {
+    for (const key of flagKeys) {
+      if (toBooleanFlag(node[key])) return true;
+    }
+  }
+  return false;
+}
+
+/** Queue one-time welcome modal on next Dashboard visit (sessionStorage), only for new users. */
+export function queueTrustitagWelcomeModal(trustitag, options = {}) {
   if (!trustitag || typeof trustitag !== 'string') return;
+  const allowByResponse = options.newlyRegistered === true;
+  const allowBySignupSession = readNewUserWelcomeEligibility();
+  if (!allowByResponse && !allowBySignupSession) return;
+
+  clearNewUserWelcomeEligibility();
   try {
     sessionStorage.setItem(WELCOME_KEY, trustitag.trim());
   } catch (_) {

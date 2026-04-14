@@ -2,7 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../utils/config';
-import { queueTrustitagWelcomeModal } from '../../utils/trustitag';
+import { isNewlyRegisteredAuthResponse, queueTrustitagWelcomeModal } from '../../utils/trustitag';
 
 /**
  * Google OAuth + MFA (server redirect flow)
@@ -60,7 +60,8 @@ function applyDashboardPrefsFromAuthResponse(data) {
   localStorage.setItem('kycComplete', kycComplete ? 'true' : 'false');
 }
 
-function applyDashboardPrefsFromProfileUser(user) {
+function applyDashboardPrefsFromProfileUser(user, options = {}) {
+  const isNewlyRegistered = options.isNewlyRegistered === true;
   if (!user || typeof user !== 'object') {
     localStorage.setItem('kycComplete', 'false');
     return;
@@ -80,7 +81,7 @@ function applyDashboardPrefsFromProfileUser(user) {
     } catch (_) {
       /* ignore */
     }
-    queueTrustitagWelcomeModal(tag.trim());
+    queueTrustitagWelcomeModal(tag.trim(), { newlyRegistered: isNewlyRegistered });
   }
 }
 
@@ -367,6 +368,7 @@ function pickProfileUserFromBody(body) {
 }
 
 async function verifySessionThenDashboard(navigate, oauthData, successMessage) {
+  const isNewlyRegistered = isNewlyRegisteredAuthResponse(oauthData || {});
   const rawStored = localStorage.getItem('token') || '';
   const token = normalizeBearerToken(rawStored);
   if (token && token !== rawStored) {
@@ -408,7 +410,7 @@ async function verifySessionThenDashboard(navigate, oauthData, successMessage) {
         body?.success == null);
 
     if (allowProfile) {
-      applyDashboardPrefsFromProfileUser(profileUser);
+      applyDashboardPrefsFromProfileUser(profileUser, { isNewlyRegistered });
     } else {
       applyDashboardPrefsFromAuthResponse(oauthData || {});
     }
@@ -489,11 +491,7 @@ const OAuthCallback = () => {
 
         applyDashboardPrefsFromAuthResponse(data);
 
-        const isNew =
-          data.isNewUser === true ||
-          data.user?.isNewUser === true ||
-          data.data?.isNewUser === true ||
-          data.data?.user?.isNewUser === true;
+        const isNew = isNewlyRegisteredAuthResponse(data);
 
         const msg = isNew
           ? 'Account created! Welcome to TrustiChain.'

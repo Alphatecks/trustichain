@@ -3,6 +3,7 @@ import {
   FileText,
   Users,
   CheckCircle,
+  XCircle,
   ArrowRight,
   ArrowLeft,
   X,
@@ -41,6 +42,10 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [membersError, setMembersError] = useState('');
   const fetchMembersTimeoutRef = useRef(null);
+  const [memberEscrowChecks, setMemberEscrowChecks] = useState({});
+  const [isCheckingMemberEscrow, setIsCheckingMemberEscrow] = useState(false);
+  const [memberEscrowCheckError, setMemberEscrowCheckError] = useState('');
+  const escrowCheckRequestRef = useRef(0);
   const [teamSuggestions, setTeamSuggestions] = useState([]);
   const [isLoadingTeamSuggestions, setIsLoadingTeamSuggestions] = useState(false);
   const [showTeamSuggestions, setShowTeamSuggestions] = useState(false);
@@ -64,6 +69,9 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
       setMembersData(prev => ({ ...prev, [field]: value }));
     }
   };
+
+  const teamMembers = Array.isArray(teamMembersResult?.members) ? teamMembersResult.members : [];
+  const hasBlockedEscrowMember = teamMembers.some((m) => memberEscrowChecks[m.userId]?.canCreateEscrow === false);
 
   const handleCloseModal = () => {
     setSubmitError('');
@@ -90,6 +98,9 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
     });
     setTeamMembersResult(null);
     setMembersError('');
+    setMemberEscrowChecks({});
+    setIsCheckingMemberEscrow(false);
+    setMemberEscrowCheckError('');
     setTeamSuggestions([]);
     setIsLoadingTeamSuggestions(false);
     setShowTeamSuggestions(false);
@@ -140,6 +151,82 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
       if (fetchMembersTimeoutRef.current) clearTimeout(fetchMembersTimeoutRef.current);
     };
   }, [payrollData.companyName]);
+
+  // Deterministic escrow checks for each team member in step 2/3 preview.
+  useEffect(() => {
+    const members = Array.isArray(teamMembersResult?.members) ? teamMembersResult.members : [];
+    if (members.length === 0) {
+      setMemberEscrowChecks({});
+      setIsCheckingMemberEscrow(false);
+      setMemberEscrowCheckError('');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMemberEscrowChecks({});
+      setIsCheckingMemberEscrow(false);
+      setMemberEscrowCheckError('Please sign in.');
+      return;
+    }
+
+    const requestId = escrowCheckRequestRef.current + 1;
+    escrowCheckRequestRef.current = requestId;
+    setIsCheckingMemberEscrow(true);
+    setMemberEscrowCheckError('');
+
+    Promise.all(
+      members.map(async (member) => {
+        const counterpartyId = member.userId;
+        if (!counterpartyId) {
+          return [counterpartyId, {
+            canCreateEscrow: false,
+            reasonCode: 'COUNTERPARTY_ID_MISSING',
+            reason: 'Member does not have a valid counterparty id.',
+          }];
+        }
+        try {
+          const url = getApiUrl(`api/business-suite/payrolls/escrow-check?counterpartyId=${encodeURIComponent(counterpartyId)}`);
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          });
+          const result = await res.json().catch(() => ({}));
+          if (res.ok && result?.success && result?.data) {
+            return [counterpartyId, result.data];
+          }
+          return [counterpartyId, {
+            canCreateEscrow: false,
+            reasonCode: result?.data?.reasonCode || 'ESCROW_CHECK_FAILED',
+            reason: result?.data?.reason || result?.message || 'Unable to verify escrow eligibility.',
+          }];
+        } catch (_) {
+          return [counterpartyId, {
+            canCreateEscrow: false,
+            reasonCode: 'ESCROW_CHECK_REQUEST_FAILED',
+            reason: 'Failed to run deterministic escrow check.',
+          }];
+        }
+      })
+    )
+      .then((entries) => {
+        if (escrowCheckRequestRef.current !== requestId) return;
+        const next = {};
+        entries.forEach(([id, data]) => {
+          if (id) next[id] = data;
+        });
+        setMemberEscrowChecks(next);
+      })
+      .catch(() => {
+        if (escrowCheckRequestRef.current !== requestId) return;
+        setMemberEscrowCheckError('Failed to run deterministic escrow checks.');
+      })
+      .finally(() => {
+        if (escrowCheckRequestRef.current === requestId) {
+          setIsCheckingMemberEscrow(false);
+        }
+      });
+  }, [teamMembersResult]);
 
   // Fetch team name suggestions (debounced) while typing in Team name field
   useEffect(() => {
@@ -514,6 +601,40 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                         ))}
                       </ul>
                     )}
+                    {!isLoadingMembers && teamMembersResult?.members?.length > 0 && (
+                      <div className="add-payroll-member-check-section">
+                        <h4 className="add-payroll-member-check-title">Member escrow checks</h4>
+                        {isCheckingMemberEscrow && (
+                          <p className="add-payroll-member-check-meta">Running deterministic XRPL checks...</p>
+                        )}
+                        {memberEscrowCheckError && !isCheckingMemberEscrow && (
+                          <p className="add-payroll-member-check-error">{memberEscrowCheckError}</p>
+                        )}
+                        <ul className="add-payroll-member-check-list">
+                          {teamMembersResult.members.map((member) => {
+                            const check = memberEscrowChecks[member.userId];
+                            const isAllowed = check?.canCreateEscrow === true;
+                            const isBlocked = check?.canCreateEscrow === false;
+                            return (
+                              <li key={`check-${member.id || member.userId}`} className="add-payroll-member-check-item">
+                                <div className="add-payroll-member-check-head">
+                                  <span className="add-payroll-member-check-name">{member.fullName || member.email || 'Member'}</span>
+                                  <span className={`add-payroll-member-check-badge ${isAllowed ? 'ok' : isBlocked ? 'blocked' : 'pending'}`}>
+                                    {isAllowed ? <CheckCircle size={14} /> : isBlocked ? <XCircle size={14} /> : null}
+                                    {isAllowed ? 'Ready' : isBlocked ? 'Blocked' : 'Pending'}
+                                  </span>
+                                </div>
+                                {check?.reason && (
+                                  <p className="add-payroll-member-check-reason">
+                                    {check.reasonCode ? `${check.reasonCode}: ` : ''}{check.reason}
+                                  </p>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -601,11 +722,18 @@ const AddPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
                 type="button"
                 className="submit-next-btn"
                 onClick={handleSubmitAndNext}
+                disabled={isCheckingMemberEscrow || hasBlockedEscrowMember}
               >
                 <div className="submit-btn-icon-circle">
                   <ArrowRight size={16} />
                 </div>
-                <span>Submit and Next</span>
+                <span>
+                  {isCheckingMemberEscrow
+                    ? 'Checking members...'
+                    : hasBlockedEscrowMember
+                      ? 'Resolve blocked members'
+                      : 'Submit and Next'}
+                </span>
               </button>
             </div>
           )}
