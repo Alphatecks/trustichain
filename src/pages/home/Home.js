@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './Home.css';
@@ -6,6 +6,48 @@ import logoWhite from '../../assets/images/logo/logo_white.png';
 
 const Home = () => {
   const [activeFaq, setActiveFaq] = useState(0);
+  const [animatedStats, setAnimatedStats] = useState({
+    volume: 0,
+    successRate: 0,
+    activeUsers: 0,
+    settlementTime: 0,
+  });
+
+  useEffect(() => {
+    const durationMs = 1800;
+    const startTime = performance.now();
+    const targetStats = {
+      volume: 50,
+      successRate: 99.8,
+      activeUsers: 25,
+      settlementTime: 4.2,
+    };
+
+    let animationFrameId;
+
+    const tick = (now) => {
+      const progress = Math.min((now - startTime) / durationMs, 1);
+
+      setAnimatedStats({
+        volume: Math.round(targetStats.volume * progress),
+        successRate: Number((targetStats.successRate * progress).toFixed(1)),
+        activeUsers: Math.round(targetStats.activeUsers * progress),
+        settlementTime: Number((targetStats.settlementTime * progress).toFixed(1)),
+      });
+
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, []);
 
   const toggleFaq = (index) => {
     setActiveFaq(activeFaq === index ? -1 : index);
@@ -55,19 +97,19 @@ const Home = () => {
             
             <div className="stats-grid">
               <div className="stat-card">
-                <div className="stat-number blue">$50M+</div>
+                <div className="stat-number blue">${animatedStats.volume}M+</div>
                 <div className="stat-label">Total Volume Secured</div>
               </div>
               <div className="stat-card">
-                <div className="stat-number green">99.8%</div>
+                <div className="stat-number green">{animatedStats.successRate}%</div>
                 <div className="stat-label">Success Rate</div>
               </div>
               <div className="stat-card">
-                <div className="stat-number purple">25K+</div>
+                <div className="stat-number purple">{animatedStats.activeUsers}K+</div>
                 <div className="stat-label">Active Users</div>
               </div>
               <div className="stat-card">
-                <div className="stat-number blue-green">4.2s</div>
+                <div className="stat-number blue-green">{animatedStats.settlementTime}s</div>
                 <div className="stat-label">Avg Settlement Time</div>
               </div>
             </div>

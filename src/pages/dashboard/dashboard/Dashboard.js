@@ -123,6 +123,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
@@ -135,6 +136,47 @@ const developersNav = [
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
 const PORTFOLIO_Y_AXIS_MAX = 10000;
+const isRlusdCurrency = (currency) => {
+  const normalized = String(currency || '')
+    .toLowerCase()
+    .replace(/[\s_-]/g, '');
+  return normalized === 'rlusd' || normalized === 'rippleusd';
+};
+
+const extractWalletAddresses = (payload, fallbackAddress = '') => {
+  const sources = [payload, payload?.data, payload?.result, payload?.wallet].filter(
+    (node) => node && typeof node === 'object'
+  );
+  const pick = (keys) => {
+    for (const src of sources) {
+      for (const key of keys) {
+        const value = src?.[key];
+        if (typeof value === 'string' && value.trim()) return value.trim();
+      }
+    }
+    return '';
+  };
+  const xrpAddress = pick([
+    'xrplAddress',
+    'xrpl_address',
+    'walletAddress',
+    'address',
+    'xrpAddress',
+    'xrp_address',
+  ]);
+  const rlusdAddress = pick([
+    'rlusdAddress',
+    'rlusd_address',
+    'rippleUsdAddress',
+    'ripple_usd_address',
+    'rippleAddress',
+    'ripple_address',
+  ]);
+
+  const normalizedXrp = String(xrpAddress || fallbackAddress || '').trim();
+  const normalizedRlusd = String(rlusdAddress || normalizedXrp).trim();
+  return { xrp: normalizedXrp, rlusd: normalizedRlusd };
+};
 
 const personalSteps = [
   { label: 'Proof of identity', detail: 'Proof of identity' },
@@ -266,6 +308,7 @@ const Dashboard = () => {
         if (!token) {
           setHasWallet(false);
           setWalletAddress('');
+          setRlusdWalletAddress('');
           setIsLoadingWalletAddress(false);
           return;
         }
@@ -280,17 +323,20 @@ const Dashboard = () => {
           },
         });
         const result = await res.json().catch(() => ({}));
-        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
-        if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
-          setWalletAddress(address);
+        const addresses = extractWalletAddresses(result);
+        if (result?.success && addresses.xrp) {
+          setWalletAddress(addresses.xrp);
+          setRlusdWalletAddress(addresses.rlusd);
           setHasWallet(true);
         } else {
           setWalletAddress('');
+          setRlusdWalletAddress('');
           setHasWallet(false);
         }
       } catch (err) {
         setHasWallet(false);
         setWalletAddress('');
+        setRlusdWalletAddress('');
       } finally {
         setIsLoadingWalletAddress(false);
       }
@@ -300,10 +346,24 @@ const Dashboard = () => {
 
   // Update account type from navigation state if provided (e.g. link with state)
   useEffect(() => {
-    if (location.state?.accountType) {
-      setAccountType(location.state.accountType);
+    const navAccountType = location.state?.accountType;
+    if (!navAccountType) return;
+
+    // Persisted choice is source of truth; nav state should only prime first visit.
+    const stored = localStorage.getItem('dashboard_account_type');
+    const hasStoredPreference = stored === 'Business Suite' || stored === 'Personal';
+    if (!hasStoredPreference) {
+      setAccountType(navAccountType);
     }
-  }, [location.state]);
+
+    // Clear transient nav accountType so refresh cannot force account flip.
+    const nextState = { ...(location.state || {}) };
+    delete nextState.accountType;
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: Object.keys(nextState).length > 0 ? nextState : null,
+    });
+  }, [location.state, location.pathname, location.search, navigate]);
 
   // Fetch business KYC status when on Business Suite (source of truth for show KYC vs dashboard)
   useEffect(() => {
@@ -714,12 +774,14 @@ const Dashboard = () => {
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [walletAddress, setWalletAddress] = useState('');
+  const [rlusdWalletAddress, setRlusdWalletAddress] = useState('');
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
   const [selectedEscrowDetail, setSelectedEscrowDetail] = useState(null);
   const [showFundMethodModal, setShowFundMethodModal] = useState(false);
+  const [showFundingAssetModal, setShowFundingAssetModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [showConnectBusinessWalletModal, setShowConnectBusinessWalletModal] = useState(false);
@@ -735,7 +797,7 @@ const Dashboard = () => {
   });
   const [isFundingWallet, setIsFundingWallet] = useState(false);
   const [fundingStep, setFundingStep] = useState('idle'); // 'idle', 'preparing', 'signing', 'completing'
-  const [transactionData, setTransactionData] = useState(null); // { transactionId, transactionBlob }
+  const [transactionData, setTransactionData] = useState(null); // { transactionId, transactionBlob, xummUuid? }
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
   const [withdrawWalletForm, setWithdrawWalletForm] = useState({
     amount: '',
@@ -744,6 +806,20 @@ const Dashboard = () => {
   });
   const [isWithdrawingWallet, setIsWithdrawingWallet] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const openFundingAssetModal = () => {
+    setShowFundingAssetModal(true);
+  };
+
+  const handleSelectFundingAsset = (currency) => {
+    setFundWalletForm((prev) => ({ ...prev, currency }));
+    setShowFundingAssetModal(false);
+    setShowFundMethodModal(true);
+  };
+  const receiveAssetLabel = isRlusdCurrency(fundWalletForm.currency) ? 'RLUSD' : 'XRP';
+  const selectedReceiveAddress = isRlusdCurrency(fundWalletForm.currency)
+    ? (rlusdWalletAddress || walletAddress)
+    : walletAddress;
 
   // Helper function to extract balance from different API response structures
   const getBalanceValue = (data, currency = 'usd') => {
@@ -959,6 +1035,7 @@ const Dashboard = () => {
               xrp: xrpVal ?? bal.xrp ?? bal.XRP ?? bal.xrpAmount ?? bal.totalXrp ?? null,
               usdt: bal.usdt ?? bal.USDT ?? null,
               usdc: bal.usdc ?? bal.USDC ?? null,
+              rlusd: bal.rlusd ?? bal.RLUSD ?? bal.rippleUsd ?? bal.ripple_usd ?? null,
             },
             activeEscrows: d.activeEscrows ?? { count: 0, lockedAmount: 0 },
             trustiscore: d.trustiscore ?? { score: 0, level: '' },
@@ -1304,8 +1381,9 @@ const Dashboard = () => {
         console.log('Business Suite Create Wallet API response:', result);
 
         if (response.ok && result?.success && result?.data?.xrpl_address) {
-          const xrplAddress = result.data.xrpl_address;
-          setWalletAddress(xrplAddress);
+          const addresses = extractWalletAddresses(result);
+          setWalletAddress(addresses.xrp);
+          setRlusdWalletAddress(addresses.rlusd);
           setHasWallet(true);
           toast.success(result?.message || 'Wallet created successfully');
           setWalletBalancesRefreshTrigger((prev) => prev + 1);
@@ -1340,9 +1418,10 @@ const Dashboard = () => {
       console.log('Create Wallet API response:', result);
 
       if (result?.success) {
-        const xrplAddress = result?.data?.xrpl_address;
-        if (xrplAddress) {
-          setWalletAddress(xrplAddress);
+        const addresses = extractWalletAddresses(result);
+        if (addresses.xrp) {
+          setWalletAddress(addresses.xrp);
+          setRlusdWalletAddress(addresses.rlusd);
           setHasWallet(true);
           toast.success('Wallet creation was successful');
         } else {
@@ -1382,8 +1461,9 @@ const Dashboard = () => {
       });
       const result = await res.json().catch(() => ({}));
       if (result?.success) {
-        const connectedAddress = result?.data?.walletAddress || address;
-        setWalletAddress(connectedAddress);
+        const addresses = extractWalletAddresses(result, address);
+        setWalletAddress(addresses.xrp);
+        setRlusdWalletAddress(addresses.rlusd);
         setHasWallet(true);
         setShowConnectBusinessWalletModal(false);
         setConnectBusinessWalletAddress('');
@@ -1693,10 +1773,13 @@ const Dashboard = () => {
             typeof existingAddress === 'string' &&
             existingAddress.trim().length > 0
           ) {
-            setWalletAddress(prev => prev || existingAddress);
+            const addresses = extractWalletAddresses(result, existingAddress);
+            setWalletAddress(prev => prev || addresses.xrp);
+            setRlusdWalletAddress((prev) => prev || addresses.rlusd);
             setHasWallet(true);
           } else if (accountType === 'Business Suite') {
             setWalletAddress('');
+            setRlusdWalletAddress('');
             setHasWallet(false);
           }
 
@@ -1711,11 +1794,20 @@ const Dashboard = () => {
           // Structure 2: { success: true, data: { xrp, usdt, usdc } }
           else if (result?.success && result?.data) {
             const data = result.data;
-            if (data.xrp !== undefined || data.usdt !== undefined || data.usdc !== undefined) {
+            if (
+              data.xrp !== undefined ||
+              data.usdt !== undefined ||
+              data.usdc !== undefined ||
+              data.rlusd !== undefined ||
+              data.RLUSD !== undefined ||
+              data.rippleUsd !== undefined ||
+              data.ripple_usd !== undefined
+            ) {
               balances = {
                 xrp: data.xrp || data.XRP || 0,
                 usdt: data.usdt || data.USDT || 0,
-                usdc: data.usdc || data.USDC || 0
+                usdc: data.usdc || data.USDC || 0,
+                rlusd: data.rlusd ?? data.RLUSD ?? data.rippleUsd ?? data.ripple_usd ?? 0,
               };
               console.log('Found balances in result.data:', balances);
             }
@@ -1729,6 +1821,7 @@ const Dashboard = () => {
               if (currency === 'xrp') balances.xrp = Number(balance);
               if (currency === 'usdt') balances.usdt = Number(balance);
               if (currency === 'usdc') balances.usdc = Number(balance);
+              if (isRlusdCurrency(currency)) balances.rlusd = Number(balance);
             });
             console.log('Found balances from wallets array:', balances);
           }
@@ -1744,12 +1837,16 @@ const Dashboard = () => {
               xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
               usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
               usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0,
+              rlusd:
+                balances.rlusd ?? balances.RLUSD ?? balances.rippleUsd ?? balances.ripple_usd
+                  ? Number(balances.rlusd ?? balances.RLUSD ?? balances.rippleUsd ?? balances.ripple_usd)
+                  : 0,
             };
             console.log('Setting normalized wallet balances:', normalizedBalances);
             setWalletBalances(normalizedBalances);
           } else {
             console.warn('Could not extract wallet balances from API response:', result);
-            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
+            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rlusd: 0 });
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -1758,17 +1855,19 @@ const Dashboard = () => {
             statusText: response.statusText,
             data: errorData
           });
-          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
+          setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rlusd: 0 });
           if (accountType === 'Business Suite') {
             setWalletAddress('');
+            setRlusdWalletAddress('');
             setHasWallet(false);
           }
         }
       } catch (error) {
         console.error('Error fetching wallet balances:', error);
-        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0 });
+        setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rlusd: 0 });
         if (accountType === 'Business Suite') {
           setWalletAddress('');
+          setRlusdWalletAddress('');
           setHasWallet(false);
         }
       } finally {
@@ -1806,21 +1905,31 @@ const Dashboard = () => {
           balances = result.data.balance;
         } else if (result?.success && result?.data) {
           const data = result.data;
-          if (data.xrp !== undefined || data.usdt !== undefined || data.usdc !== undefined) {
+          if (
+            data.xrp !== undefined ||
+            data.usdt !== undefined ||
+            data.usdc !== undefined ||
+            data.rlusd !== undefined ||
+            data.RLUSD !== undefined ||
+            data.rippleUsd !== undefined ||
+            data.ripple_usd !== undefined
+          ) {
             balances = {
               xrp: data.xrp ?? data.XRP ?? 0,
               usdt: data.usdt ?? data.USDT ?? 0,
               usdc: data.usdc ?? data.USDC ?? 0,
+              rlusd: data.rlusd ?? data.RLUSD ?? data.rippleUsd ?? data.ripple_usd ?? 0,
             };
           }
         } else if (result?.success && Array.isArray(result?.data?.wallets)) {
-          balances = { xrp: 0, usdt: 0, usdc: 0 };
+          balances = { xrp: 0, usdt: 0, usdc: 0, rlusd: 0 };
           result.data.wallets.forEach((wallet) => {
             const currency = (wallet.currency || wallet.code || '').toLowerCase();
             const balance = Number(wallet.balance ?? wallet.amount ?? 0);
             if (currency === 'xrp') balances.xrp = balance;
             if (currency === 'usdt') balances.usdt = balance;
             if (currency === 'usdc') balances.usdc = balance;
+            if (isRlusdCurrency(currency)) balances.rlusd = balance;
           });
         } else if (result?.balance) {
           balances = result.balance;
@@ -1830,10 +1939,16 @@ const Dashboard = () => {
               xrp: Number(balances.xrp ?? 0),
               usdt: Number(balances.usdt ?? 0),
               usdc: Number(balances.usdc ?? 0),
+              rlusd: Number(
+                balances.rlusd ?? balances.RLUSD ?? balances.rippleUsd ?? balances.ripple_usd ?? 0
+              ),
             }
           : null;
         if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
-          setBusinessSuiteWalletModalData({ address: address.trim(), balances: normalized || { xrp: 0, usdt: 0, usdc: 0 } });
+          setBusinessSuiteWalletModalData({
+            address: address.trim(),
+            balances: normalized || { xrp: 0, usdt: 0, usdc: 0, rlusd: 0 },
+          });
         } else if (normalized) {
           setBusinessSuiteWalletModalData({ address: null, balances: normalized });
         } else {
@@ -2047,6 +2162,11 @@ const Dashboard = () => {
       // Store transaction data
       const transactionId = prepareResult.data?.transactionId;
       const xummUrl = prepareResult.data?.xummUrl;
+      const xummUuid =
+        prepareResult.data?.xummUuid ||
+        prepareResult.data?.payloadUuid ||
+        prepareResult.data?.uuid ||
+        null;
       // Check for transaction object/blob for browser wallet flow
       const transactionObject = prepareResult.data?.transaction 
         || prepareResult.data?.transactionBlob 
@@ -2074,7 +2194,7 @@ const Dashboard = () => {
         return;
       }
 
-      setTransactionData({ transactionId, transactionObject, xummUrl });
+      setTransactionData({ transactionId, transactionObject, xummUrl, xummUuid });
       setFundingStep('signing');
 
       // Step 2: Determine which flow to use based on xummUrl presence
@@ -2089,7 +2209,13 @@ const Dashboard = () => {
         // Poll backend for transaction status
         const pollInterval = setInterval(async () => {
           try {
-            const statusUrl = getApiUrl(`api/wallet/fund/status?transactionId=${transactionId}`);
+            const statusUrl = xummUuid
+              ? getApiUrl(
+                  `api/wallet/fund/xumm/status?transactionId=${encodeURIComponent(
+                    transactionId
+                  )}&xummUuid=${encodeURIComponent(xummUuid)}`
+                )
+              : getApiUrl(`api/wallet/fund/status?transactionId=${encodeURIComponent(transactionId)}`);
             const statusResponse = await fetch(statusUrl, {
               method: 'GET',
               headers: {
@@ -2132,7 +2258,7 @@ const Dashboard = () => {
         }, 2000); // Poll every 2 seconds
         
         // Store interval to clear it if user cancels
-        setTransactionData({ transactionId, transactionObject, xummUrl, pollInterval });
+        setTransactionData({ transactionId, transactionObject, xummUrl, xummUuid, pollInterval });
         
         // Cleanup interval after 5 minutes (timeout)
         setTimeout(() => {
@@ -3435,7 +3561,12 @@ const Dashboard = () => {
                       } else if (item.label === 'My Escrow') {
                         navigate('/my-escrow');
                       } else if (item.label === 'Transactions') {
-                        navigate('/transactions');
+                        navigate(
+                          '/transactions',
+                          accountType === 'Business Suite'
+                            ? { state: { accountType: 'Business Suite' } }
+                            : undefined
+                        );
                       } else if (item.label === 'Dispute') {
                         navigate('/dispute');
                       } else if (item.label === 'Savings') {
@@ -3637,7 +3768,7 @@ const Dashboard = () => {
               <button 
                 type="button" 
                 className="mobile-fund-btn"
-                onClick={() => setShowFundMethodModal(true)}
+                onClick={openFundingAssetModal}
               >
                 <Plus size={16} />
                 Fund Wallet
@@ -4030,6 +4161,41 @@ const Dashboard = () => {
               </div>
               <div className="mobile-wallet-item">
                 <div className="mobile-wallet-icon-group">
+                  <div className="mobile-wallet-icon usdc-icon">
+                    <img
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                      alt="RLUSD"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
+                  <div className="mobile-wallet-icon-info">
+                    <span className="mobile-wallet-name">Ripple USD</span>
+                    <span className="mobile-wallet-crypto">
+                      {showBalance
+                        ? (isLoadingWalletBalances
+                            ? <LoadingIndicator size="sm" />
+                            : (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null && walletBalances.rlusd > 0
+                                ? `${Number(walletBalances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RLUSD`
+                                : '0.00 RLUSD'))
+                        : '••••••'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mobile-wallet-value-change">
+                  <span className="mobile-wallet-amount">
+                    {showBalance
+                      ? (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null
+                          ? `$${Number(walletBalances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
+                      : '••••••'}
+                  </span>
+                  <div className="mobile-wallet-change neutral">
+                    <span>0.0%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mobile-wallet-item">
+                <div className="mobile-wallet-icon-group">
                   <div className="mobile-wallet-icon usdt-icon">
                     <img 
                       src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
@@ -4320,7 +4486,7 @@ const Dashboard = () => {
               <button 
                 type="button" 
                 className="summary-card-btn primary"
-                onClick={() => setShowFundMethodModal(true)}
+                onClick={openFundingAssetModal}
               >
                 + Fund Wallet
               </button>
@@ -4888,6 +5054,39 @@ const Dashboard = () => {
                 </div>
                 <div className="wallet-item">
                   <div className="wallet-icon-group">
+                    <div className="wallet-icon usdc-icon">
+                      <img
+                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                        alt="RLUSD"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    </div>
+                    <div className="wallet-icon-info">
+                    <span className="wallet-name">Ripple USD</span>
+                      <span className="wallet-crypto">
+                        {showBalance
+                          ? (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null
+                              ? `${Number(walletBalances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RLUSD`
+                              : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '0.00 RLUSD'))
+                          : '••••••'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="wallet-value-change">
+                    <span className="wallet-amount">
+                      {showBalance
+                        ? (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null
+                            ? `$${Number(walletBalances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
+                        : '••••••'}
+                    </span>
+                  <div className="wallet-change neutral">
+                    <span>0.0%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="wallet-item">
+                  <div className="wallet-icon-group">
                     <div className="wallet-icon usdt-icon">
                       <img 
                         src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
@@ -4952,9 +5151,9 @@ const Dashboard = () => {
                     <span>+0.1%</span>
                   </div>
                 </div>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Trusticard */}
           <div className="trusticard-card">
@@ -5471,6 +5670,10 @@ const Dashboard = () => {
               const handleNavClick = () => {
                 if (isDisabled) return;
                 if (!targetPath) return;
+                if (item.label === 'Transactions' && accountType === 'Business Suite') {
+                  navigate('/transactions', { state: { accountType: 'Business Suite' } });
+                  return;
+                }
                 navigate(targetPath);
               };
               const navBadge = getNavBadge(item);
@@ -5691,6 +5894,7 @@ const Dashboard = () => {
                         const walletBalanceUrl = accountType === 'Business Suite'
                           ? getApiUrl('api/business-suite/wallet/balance')
                           : getApiUrl('api/wallet/balance');
+                      console.log('[View Wallet] Request URL:', walletBalanceUrl);
                         const res = await fetch(walletBalanceUrl, {
                           method: 'GET',
                           headers: {
@@ -5698,16 +5902,20 @@ const Dashboard = () => {
                             'Content-Type': 'application/json',
                           },
                         });
+                      console.log('[View Wallet] Response status:', res.status, res.statusText);
                         const result = await res.json().catch(() => ({}));
-                        const address = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
-                        if (result?.success && address && typeof address === 'string' && address.trim().length > 0) {
-                          setWalletAddress(address);
+                      console.log('[View Wallet] API response body:', result);
+                        const addresses = extractWalletAddresses(result);
+                        if (result?.success && addresses.xrp) {
+                          setWalletAddress(addresses.xrp);
+                          setRlusdWalletAddress(addresses.rlusd);
                           setHasWallet(true);
                           setShowWalletModal(true);
                         } else {
                           const msg = (result?.message || '').toLowerCase();
                           const isNotFound = msg.includes('wallet not found') || msg.includes('not found') || !result?.success;
                           setWalletAddress('');
+                          setRlusdWalletAddress('');
                           setHasWallet(false);
                           if (accountType === 'Business Suite' && isNotFound) {
                             toast.error('No Business Suite wallet connected. Use Create wallet to connect your XRPL address.');
@@ -6142,6 +6350,131 @@ const Dashboard = () => {
         }}
       />
 
+      {/* Funding Asset Selection Modal */}
+      {showFundingAssetModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowFundingAssetModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Choose Funding Asset</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={() => setShowFundingAssetModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '2rem' }}>
+              <p style={{ marginBottom: '1.5rem', color: '#666', fontSize: '0.95rem' }}>
+                Select what you want to fund with first.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelectFundingAsset('RLUSD')}
+                  style={{
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#0066ff';
+                    e.currentTarget.style.background = '#f0f7ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e0e0e0';
+                    e.currentTarget.style.background = '#ffffff';
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '999px',
+                      background: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                      alt="Ripple"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000' }}>Ripple (RLUSD)</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectFundingAsset('XRP')}
+                  style={{
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'Satoshi, Inter, sans-serif',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#0066ff';
+                    e.currentTarget.style.background = '#f0f7ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e0e0e0';
+                    e.currentTarget.style.background = '#ffffff';
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '999px',
+                      background: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                      alt="XRP"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000' }}>XRP</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fund Method Selection Modal */}
       {showFundMethodModal && (
         <div className="notification-modal-overlay" onClick={() => setShowFundMethodModal(false)}>
@@ -6361,6 +6694,10 @@ const Dashboard = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border, #eee)' }}>
                           <span style={{ fontSize: '0.9rem' }}>USDC</span>
                           <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border, #eee)' }}>
+                          <span style={{ fontSize: '0.9rem' }}>RLUSD</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{Number(businessSuiteWalletModalData.balances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       </div>
                     </div>
@@ -6605,20 +6942,22 @@ const Dashboard = () => {
             })()}
 
             <form onSubmit={handleFundWallet} className="fund-wallet-form">
-              <div className="form-group">
-                <label htmlFor="fund-amount">Amount</label>
-                <input
-                  id="fund-amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Enter amount"
-                  value={fundWalletForm.amount}
-                  onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
-                  required
-                  disabled={isFundingWallet}
-                />
-              </div>
+              {!fundViaAddress && (
+                <div className="form-group">
+                  <label htmlFor="fund-amount">Amount</label>
+                  <input
+                    id="fund-amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="Enter amount"
+                    value={fundWalletForm.amount}
+                    onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
+                    required
+                    disabled={isFundingWallet}
+                  />
+                </div>
+              )}
 
               <div className="form-group">
                 <label htmlFor="fund-currency">Wallets</label>
@@ -6638,6 +6977,7 @@ const Dashboard = () => {
                   disabled={isFundingWallet}
                 >
                   <option value="XRP">XRP</option>
+                  <option value="RLUSD">Ripple (RLUSD)</option>
                   <option value="USDT">USDT</option>
                   <option value="USDC">USDC</option>
                 </select>
@@ -6645,7 +6985,7 @@ const Dashboard = () => {
 
               <div className="fund-wallet-actions">
                 {fundViaAddress ? (
-                  walletAddress ? (
+                  selectedReceiveAddress ? (
                     <>
                       <div style={{
                         display: 'flex',
@@ -6661,7 +7001,7 @@ const Dashboard = () => {
                           textAlign: 'center',
                           margin: 0
                         }}>
-                          Scan this QR code to send funds to your XRP wallet address
+                          Scan this QR code to send funds to your {receiveAssetLabel} wallet address
                         </p>
 
                         <div style={{
@@ -6677,7 +7017,7 @@ const Dashboard = () => {
                           maxWidth: '300px'
                         }}>
                           <QRCode
-                            value={walletAddress}
+                            value={selectedReceiveAddress}
                             size={256}
                             style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
                             viewBox="0 0 256 256"
@@ -6697,15 +7037,47 @@ const Dashboard = () => {
                           width: '100%',
                           maxWidth: '300px'
                         }}>
-                          {walletAddress}
+                          {selectedReceiveAddress}
+                        </div>
+
+                        <div
+                          style={{
+                            width: '100%',
+                            maxWidth: '300px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.4rem',
+                            marginTop: '0.35rem',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '0.78rem',
+                              color: '#6b7280',
+                              fontFamily: 'monospace',
+                              wordBreak: 'break-all',
+                            }}
+                          >
+                            XRP: {walletAddress || 'N/A'}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.78rem',
+                              color: '#6b7280',
+                              fontFamily: 'monospace',
+                              wordBreak: 'break-all',
+                            }}
+                          >
+                            RLUSD: {rlusdWalletAddress || walletAddress || 'N/A'}
+                          </div>
                         </div>
 
                         <button
                           type="button"
                           onClick={async () => {
                             try {
-                              await navigator.clipboard.writeText(walletAddress);
-                              toast.success('Wallet address copied to clipboard');
+                              await navigator.clipboard.writeText(selectedReceiveAddress);
+                              toast.success(`${receiveAssetLabel} wallet address copied to clipboard`);
                             } catch (err) {
                               console.error('Failed to copy wallet address:', err);
                               toast.error('Failed to copy wallet address');
@@ -6821,7 +7193,7 @@ const Dashboard = () => {
               </button>
             </div>
             <div className="wallet-modal-body">
-              <p className="wallet-modal-label">XRPL Address</p>
+              <p className="wallet-modal-label">XRP Address</p>
               <div className="wallet-modal-address-row">
                 <div className="wallet-modal-address-box">
                   {walletAddress}
@@ -6836,6 +7208,27 @@ const Dashboard = () => {
                     } catch (err) {
                       console.error('Failed to copy wallet address:', err);
                       toast.error('Failed to copy wallet address');
+                    }
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="wallet-modal-label" style={{ marginTop: '1rem' }}>RLUSD Address</p>
+              <div className="wallet-modal-address-row">
+                <div className="wallet-modal-address-box">
+                  {rlusdWalletAddress || walletAddress}
+                </div>
+                <button
+                  type="button"
+                  className="wallet-modal-copy-btn"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(rlusdWalletAddress || walletAddress);
+                      toast.success('RLUSD address copied');
+                    } catch (err) {
+                      console.error('Failed to copy RLUSD address:', err);
+                      toast.error('Failed to copy RLUSD address');
                     }
                   }}
                 >

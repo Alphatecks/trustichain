@@ -193,7 +193,7 @@ const businessSuiteNav = [
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transaction', icon: Repeat, badge: null }
+  { label: 'Transactions', icon: Repeat, badge: null }
 ];
 
 const developersNav = [
@@ -213,7 +213,13 @@ const Transactions = () => {
   const getNavBadge = useSidebarNavBadges();
   const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
   const [showBalance, setShowBalance] = useState(true);
-  const [accountType, setAccountType] = useState(location.state?.accountType || 'Personal');
+  const [accountType, setAccountType] = useState(() => {
+    const navType = location.state?.accountType;
+    if (navType === 'Business Suite' || navType === 'Personal') return navType;
+    const stored = localStorage.getItem('dashboard_account_type');
+    if (stored === 'Business Suite' || stored === 'Personal') return stored;
+    return 'Personal';
+  });
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
@@ -328,6 +334,9 @@ const Transactions = () => {
   const [userRole, setUserRole] = useState('Freelancer');
   const [userAvatar, setUserAvatar] = useState(null);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
+  const [businessCompanyName, setBusinessCompanyName] = useState('');
+  const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [isLoadingBusinessIdentity, setIsLoadingBusinessIdentity] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
@@ -464,6 +473,34 @@ const Transactions = () => {
   const [savingHistory, setSavingHistory] = useState([]);
 
   const isSavingsDashboardActive = location.pathname === '/savings' || showDesktopSavingsDashboard;
+  const normalizeCompanyLogoUrl = useCallback((data) => {
+    const raw =
+      data?.companyLogoUrl ||
+      data?.logoUrl ||
+      data?.companyLogo ||
+      data?.businessLogo ||
+      data?.logo ||
+      '';
+    if (!raw || typeof raw !== 'string') return '';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const base = getApiUrl('').replace(/\/$/, '');
+    return `${base}${raw.startsWith('/') ? raw : `/${raw}`}`;
+  }, []);
+
+  const isBusinessSuiteAccount = accountType === 'Business Suite';
+  const dashboardSummaryEndpoint = isBusinessSuiteAccount
+    ? 'api/business-suite/dashboard/summary'
+    : 'api/dashboard/summary';
+  const walletBalanceEndpoint = isBusinessSuiteAccount
+    ? 'api/business-suite/wallet/balance'
+    : 'api/wallet/balance';
+  const headerName = isBusinessSuiteAccount ? businessCompanyName : userFullName;
+  const headerAvatar = isBusinessSuiteAccount ? businessCompanyLogoUrl : userAvatar;
+  const headerInitials = isBusinessSuiteAccount
+    ? (businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—')
+    : userInitials;
+  const headerRole = isBusinessSuiteAccount ? 'Business' : userRole;
+  const isLoadingHeaderIdentity = isBusinessSuiteAccount ? isLoadingBusinessIdentity : isLoadingUserProfile;
 
   const formatUsd = useMemo(() => {
     const formatter = new Intl.NumberFormat(undefined, {
@@ -653,6 +690,72 @@ const Transactions = () => {
       setAccountType(location.state.accountType);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_account_type', accountType);
+  }, [accountType]);
+
+  useEffect(() => {
+    if (accountType !== 'Business Suite' || isSessionExpired) {
+      setIsLoadingBusinessIdentity(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoadingBusinessIdentity(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingBusinessIdentity(true);
+
+    const fetchBusinessIdentity = async () => {
+      try {
+        const endpoints = [
+          'api/business-suite/kyc',
+          'api/business-suite/kyc/status',
+          'api/business-suite/profile/details',
+        ];
+
+        for (const endpoint of endpoints) {
+          const response = await fetch(getApiUrl(endpoint), {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (!response.ok) continue;
+
+          const result = await response.json().catch(() => ({}));
+          if (!result?.success || !result?.data || cancelled) continue;
+
+          const data = result.data;
+          const resolvedName =
+            (typeof data.companyName === 'string' && data.companyName.trim()) ||
+            (typeof data.businessName === 'string' && data.businessName.trim()) ||
+            (typeof data.teamName === 'string' && data.teamName.trim()) ||
+            '';
+          const resolvedLogo = normalizeCompanyLogoUrl(data);
+
+          setBusinessCompanyName((prev) => resolvedName || prev || '');
+          setBusinessCompanyLogoUrl((prev) => resolvedLogo || prev || '');
+
+          if (resolvedName || resolvedLogo) break;
+        }
+      } catch (error) {
+        console.error('Error fetching business identity:', error);
+      } finally {
+        if (!cancelled) setIsLoadingBusinessIdentity(false);
+      }
+    };
+
+    fetchBusinessIdentity();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountType, isSessionExpired, normalizeCompanyLogoUrl]);
 
   // Show savings screen if on /savings route
   useEffect(() => {
@@ -897,7 +1000,7 @@ const Transactions = () => {
           return;
         }
 
-        const apiUrl = getApiUrl('api/dashboard/summary');
+        const apiUrl = getApiUrl(dashboardSummaryEndpoint);
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
@@ -925,7 +1028,7 @@ const Transactions = () => {
     };
 
     fetchDashboardSummary();
-  }, [isSessionExpired]);
+  }, [isSessionExpired, dashboardSummaryEndpoint]);
 
   // Fetch user profile
   useEffect(() => {
@@ -1166,7 +1269,7 @@ const Transactions = () => {
         return;
       }
 
-      const apiUrl = getApiUrl('api/wallet/balance');
+      const apiUrl = getApiUrl(walletBalanceEndpoint);
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -1222,7 +1325,7 @@ const Transactions = () => {
   // Fetch wallet balances on mount and when session changes
   useEffect(() => {
     fetchWalletBalances();
-  }, [isSessionExpired]);
+  }, [isSessionExpired, walletBalanceEndpoint]);
 
   // Refresh wallet balances when Add Money modal opens
   useEffect(() => {
@@ -1233,6 +1336,42 @@ const Transactions = () => {
 
   // Fetch transactions
   useEffect(() => {
+    const normalizeTransactions = (items, businessMode = false) => {
+      if (!Array.isArray(items)) return [];
+      return items.map((tx, index) => {
+        const amountXrp =
+          tx?.amountXrp ??
+          tx?.amount_xrp ??
+          tx?.amount?.xrp ??
+          tx?.amount?.XRP ??
+          tx?.xrpAmount ??
+          0;
+        const amountUsd =
+          tx?.amountUsd ??
+          tx?.amount_usd ??
+          tx?.amount?.usd ??
+          tx?.amount?.USD ??
+          tx?.usdAmount ??
+          tx?.totalAmount ??
+          0;
+
+        return {
+          ...tx,
+          id: tx?.id ?? tx?.transactionId ?? tx?.txId ?? `TX-${index + 1}`,
+          transactionId: tx?.transactionId ?? tx?.id ?? tx?.txId ?? tx?.reference ?? `TX-${index + 1}`,
+          type:
+            tx?.type ??
+            tx?.transactionType ??
+            tx?.direction ??
+            (businessMode ? 'Business transaction' : 'Received'),
+          amountXrp,
+          amountUsd,
+          status: tx?.status ?? tx?.transactionStatus ?? tx?.state ?? 'Successful',
+          date: tx?.date ?? tx?.createdAt ?? tx?.transactionDate ?? tx?.created_at ?? tx?.timestamp,
+        };
+      });
+    };
+
     const fetchTransactions = async () => {
       try {
         if (isSessionExpired) {
@@ -1252,31 +1391,69 @@ const Transactions = () => {
 
         const token = localStorage.getItem('token');
         if (!token) {
+          setTransactions([]);
           setIsLoadingTransactions(false);
           return;
         }
 
-        // Use the correct API endpoint for transaction history
         try {
-          const apiUrl = getApiUrl('api/transactions?limit=50&offset=0');
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          if (response.ok) {
-            const result = await response.json();
-            if (result?.success && Array.isArray(result?.data?.transactions)) {
-              setTransactions(result.data.transactions);
-            } else if (Array.isArray(result?.data)) {
-              setTransactions(result.data);
-            } else {
+          if (accountType === 'Business Suite') {
+            const month = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            const businessCandidates = [
+              getApiUrl('api/business-suite/transactions?limit=50&offset=0'),
+              getApiUrl(`api/business-suite/payrolls/transactions?page=1&pageSize=50&month=${month}`),
+            ];
+
+            let loadedBusinessTransactions = false;
+            for (const apiUrl of businessCandidates) {
+              const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              if (!response.ok) continue;
+
+              const result = await response.json().catch(() => ({}));
+              if (!result?.success) continue;
+
+              const rawItems = Array.isArray(result?.data?.transactions)
+                ? result.data.transactions
+                : Array.isArray(result?.data?.items)
+                  ? result.data.items
+                  : Array.isArray(result?.data)
+                    ? result.data
+                    : [];
+
+              setTransactions(normalizeTransactions(rawItems, true));
+              loadedBusinessTransactions = true;
+              break;
+            }
+
+            if (!loadedBusinessTransactions) {
               setTransactions([]);
             }
           } else {
-            setTransactions([]);
+            const apiUrl = getApiUrl('api/transactions?limit=50&offset=0');
+            const response = await fetch(apiUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            if (response.ok) {
+              const result = await response.json().catch(() => ({}));
+              const rawItems = Array.isArray(result?.data?.transactions)
+                ? result.data.transactions
+                : Array.isArray(result?.data)
+                  ? result.data
+                  : [];
+              setTransactions(normalizeTransactions(rawItems, false));
+            } else {
+              setTransactions([]);
+            }
           }
         } catch (error) {
           console.error('Error fetching transaction history:', error);
@@ -1290,7 +1467,7 @@ const Transactions = () => {
     };
 
     fetchTransactions();
-  }, [isSessionExpired]);
+  }, [isSessionExpired, accountType]);
 
   // Fetch beneficiaries
   useEffect(() => {
@@ -1634,7 +1811,7 @@ const Transactions = () => {
         return;
       }
 
-      const apiUrl = getApiUrl('api/dashboard/summary');
+      const apiUrl = getApiUrl(dashboardSummaryEndpoint);
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -1703,21 +1880,7 @@ const Transactions = () => {
         setFundingStep('idle');
         setIsFundingWallet(false);
         await fetchDashboardSummary();
-        // Also refresh wallet balances
-        const walletApiUrl = getApiUrl('api/wallet/balance');
-        const walletResponse = await fetch(walletApiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        if (walletResponse.ok) {
-          const walletResult = await walletResponse.json();
-          if (walletResult?.success && walletResult?.data?.balance) {
-            setWalletBalances(walletResult.data.balance);
-          }
-        }
+        await fetchWalletBalances();
       } else {
         const errorMessage = submitResult.message || submitResult.error || 'Failed to submit transaction';
         toast.error(`${errorMessage}. Please try again.`, { id: 'fund-wallet' });
@@ -2044,21 +2207,7 @@ const Transactions = () => {
           destinationAddress: ''
         });
         await fetchDashboardSummary();
-        // Also refresh wallet balances
-        const walletApiUrl = getApiUrl('api/wallet/balance');
-        const walletResponse = await fetch(walletApiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        if (walletResponse.ok) {
-          const walletResult = await walletResponse.json();
-          if (walletResult?.success && walletResult?.data?.balance) {
-            setWalletBalances(walletResult.data.balance);
-          }
-        }
+        await fetchWalletBalances();
       } else {
         toast.error(result.message || 'Failed to withdraw from wallet. Please try again.');
       }
@@ -3357,19 +3506,19 @@ const Transactions = () => {
       <div className="mobile-dashboard-header transactions-mobile-header">
         <div className="mobile-header-left">
           <div className="mobile-user-avatar">
-            {userAvatar ? (
-              <img src={userAvatar} alt={userFullName} />
+            {headerAvatar ? (
+              <img src={headerAvatar} alt={headerName} />
             ) : (
-              userInitials
+              headerInitials
             )}
           </div>
           <div className="mobile-user-info">
             <span className="mobile-user-name">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
               <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
             </span>
             <span className="mobile-user-role">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}
             </span>
           </div>
         </div>
@@ -3682,18 +3831,18 @@ const Transactions = () => {
             </button>
             <div className="header-user">
               <div className="user-avatar">
-                {userAvatar ? (
-                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                {headerAvatar ? (
+                  <img src={headerAvatar} alt={headerName} className="user-avatar-img" />
                 ) : (
-                  userInitials
+                  headerInitials
                 )}
               </div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
-                <small>{isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}</small>
+                <small>{isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}</small>
               </div>
             </div>
           </div>
@@ -3702,7 +3851,7 @@ const Transactions = () => {
         <div className="transactions-content">
           {/* Breadcrumb */}
           <div className="card-breadcrumb">
-            <span className="breadcrumb-root">General</span>
+            <span className="breadcrumb-root">{isBusinessSuiteAccount ? 'Business Suite' : 'General'}</span>
             <span className="breadcrumb-divider">›</span>
             <span className="breadcrumb-current">My Savings</span>
           </div>
@@ -5098,19 +5247,19 @@ const Transactions = () => {
       <div className="mobile-dashboard-header transactions-mobile-header">
         <div className="mobile-header-left">
           <div className="mobile-user-avatar">
-            {userAvatar ? (
-              <img src={userAvatar} alt={userFullName} />
+            {headerAvatar ? (
+              <img src={headerAvatar} alt={headerName} />
             ) : (
-              userInitials
+              headerInitials
             )}
           </div>
           <div className="mobile-user-info">
             <span className="mobile-user-name">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
               <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
             </span>
             <span className="mobile-user-role">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
+              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}
             </span>
           </div>
         </div>
@@ -5420,18 +5569,18 @@ const Transactions = () => {
             </button>
             <div className="header-user">
               <div className="user-avatar">
-                {userAvatar ? (
-                  <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
+                {headerAvatar ? (
+                  <img src={headerAvatar} alt={headerName} className="user-avatar-img" />
                 ) : (
-                  userInitials
+                  headerInitials
                 )}
               </div>
               <div className="user-info">
                 <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
+                  {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
                   <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
                 </span>
-                <small>Freelancer</small>
+                <small>{isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}</small>
               </div>
             </div>
           </div>
@@ -5440,7 +5589,7 @@ const Transactions = () => {
         <div className="transactions-content">
           {/* Breadcrumb */}
           <div className="card-breadcrumb">
-            <span className="breadcrumb-root">General</span>
+            <span className="breadcrumb-root">{isBusinessSuiteAccount ? 'Business Suite' : 'General'}</span>
             <span className="breadcrumb-divider">›</span>
             <span className="breadcrumb-current">Transactions</span>
           </div>

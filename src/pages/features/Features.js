@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './Features.css';
@@ -6,6 +6,48 @@ import logoWhite from '../../assets/images/logo/logo_white.png';
 import arcImage from '../../assets/images/illustrations/arc.png';
 
 const Features = () => {
+  const [animatedStats, setAnimatedStats] = useState({
+    volume: 0,
+    successRate: 0,
+    activeUsers: 0,
+    settlementTime: 0,
+  });
+
+  useEffect(() => {
+    const durationMs = 1800;
+    const startTime = performance.now();
+    const targetStats = {
+      volume: 50,
+      successRate: 99.8,
+      activeUsers: 25,
+      settlementTime: 4.2,
+    };
+    let animationFrameId;
+
+    const tick = (now) => {
+      const progress = Math.min((now - startTime) / durationMs, 1);
+
+      setAnimatedStats({
+        volume: Math.round(targetStats.volume * progress),
+        successRate: Number((targetStats.successRate * progress).toFixed(1)),
+        activeUsers: Math.round(targetStats.activeUsers * progress),
+        settlementTime: Number((targetStats.settlementTime * progress).toFixed(1)),
+      });
+
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, []);
+
   return (
     <div className="features-page">
       <main className="features-content">
@@ -40,19 +82,19 @@ const Features = () => {
           <div className="features-stats-container">
             <div className="features-stats-grid">
               <div className="features-stat-card">
-                <div className="features-stat-number blue">$50M+</div>
+                <div className="features-stat-number blue">${animatedStats.volume}M+</div>
                 <div className="features-stat-label">Total Volume Secured</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number green">99.8%</div>
+                <div className="features-stat-number green">{animatedStats.successRate}%</div>
                 <div className="features-stat-label">Success Rate</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number purple">25K+</div>
+                <div className="features-stat-number purple">{animatedStats.activeUsers}K+</div>
                 <div className="features-stat-label">Active Users</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number blue">4.2s</div>
+                <div className="features-stat-number blue">{animatedStats.settlementTime}s</div>
                 <div className="features-stat-label">Avg Settlement Time</div>
               </div>
             </div>
@@ -65,19 +107,19 @@ const Features = () => {
             <h2 className="stats-heading">Trusted by Thousands Worldwide</h2>
             <div className="stats-grid">
               <div className="stat-card">
-                <div className="stat-number">$50M+</div>
+                <div className="stat-number">${animatedStats.volume}M+</div>
                 <div className="stat-label">Total Volume</div>
               </div>
               <div className="stat-card">
-                <div className="stat-number purple">25K+</div>
+                <div className="stat-number purple">{animatedStats.activeUsers}K+</div>
                 <div className="stat-label">Active Users</div>
               </div>
               <div className="stat-card">
-                <div className="stat-number green">99.8%</div>
+                <div className="stat-number green">{animatedStats.successRate}%</div>
                 <div className="stat-label">Success Rate</div>
               </div>
               <div className="stat-card">
-                <div className="stat-number blue">4.2s</div>
+                <div className="stat-number blue">{animatedStats.settlementTime}s</div>
                 <div className="stat-label">Avg Settlement</div>
               </div>
             </div>
@@ -174,19 +216,19 @@ const Features = () => {
 
             <div className="features-about-stats">
               <div className="features-stat-card">
-                <div className="features-stat-number blue">$50M+</div>
+                <div className="features-stat-number blue">${animatedStats.volume}M+</div>
                 <div className="features-stat-label">Total Volume Secured</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number green">99.8%</div>
+                <div className="features-stat-number green">{animatedStats.successRate}%</div>
                 <div className="features-stat-label">Success Rate</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number purple">25K+</div>
+                <div className="features-stat-number purple">{animatedStats.activeUsers}K+</div>
                 <div className="features-stat-label">Active Users</div>
               </div>
               <div className="features-stat-card">
-                <div className="features-stat-number blue">4.2s</div>
+                <div className="features-stat-number blue">{animatedStats.settlementTime}s</div>
                 <div className="features-stat-label">Avg Settlement Time</div>
               </div>
             </div>
