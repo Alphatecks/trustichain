@@ -107,6 +107,25 @@ const getNotificationIconConfig = (type) => {
   return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
 };
 
+const normalizeEscrowStatus = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+const isCompletedEscrowStatus = (value) => {
+  const normalized = normalizeEscrowStatus(value);
+  return (
+    normalized === 'completed' ||
+    normalized === 'complete' ||
+    normalized === 'released' ||
+    normalized === 'escrow released' ||
+    normalized === 'release completed' ||
+    normalized === 'release complete'
+  );
+};
+
 const MyEscrow = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1853,9 +1872,13 @@ const MyEscrow = () => {
               // Get status
               const status = escrow.status || 'Unknown';
               const statusLower = status.toLowerCase();
+              const isCompletedStatus = isCompletedEscrowStatus(status);
               
-              // Calculate progress (from milestones or default)
-              const progress = escrow.progress || escrow.milestoneProgress || 0;
+              // Completed escrows should always show full completion progress.
+              const rawProgress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0);
+              const progress = isCompletedStatus
+                ? 100
+                : Math.min(100, Math.max(0, Number.isFinite(rawProgress) ? rawProgress : 0));
               
               // Format created date
               const createdDate = escrow.createdAt || escrow.created || '';
@@ -1879,7 +1902,7 @@ const MyEscrow = () => {
                 canReleaseNow;
               const actionText = canRelease
                 ? 'Release'
-                : statusLower === 'completed'
+                : isCompletedStatus
                 ? 'Completed'
                 : hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && timeRemaining > 0
                 ? `Release (${Math.ceil(timeRemaining)}s)`
@@ -3099,9 +3122,13 @@ const MyEscrow = () => {
                     // Get status
                     const status = escrow.status || 'Unknown';
                     const statusLower = status.toLowerCase();
+                    const isCompletedStatus = isCompletedEscrowStatus(status);
                     
-                    // Calculate progress (from milestones or default)
-                    const progress = escrow.progress || escrow.milestoneProgress || 0;
+                    // Completed escrows should always show full completion progress.
+                    const rawProgress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0);
+                    const progress = isCompletedStatus
+                      ? 100
+                      : Math.min(100, Math.max(0, Number.isFinite(rawProgress) ? rawProgress : 0));
                     
                     // Format created date
                     const createdDate = escrow.createdAt || escrow.created || '';
@@ -3124,7 +3151,7 @@ const MyEscrow = () => {
                       canReleaseNow;
                     const actionText = canRelease 
                       ? 'Release' 
-                      : statusLower === 'completed' 
+                      : isCompletedStatus
                       ? 'Completed' 
                       : hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && timeRemaining > 0
                       ? `Release (${Math.ceil(timeRemaining)}s)`
@@ -4235,7 +4262,11 @@ const MyEscrow = () => {
                 const usdAmount = escrow.amount?.usd != null ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
                 const status = escrow.status || 'Unknown';
                 const statusLower = (status || '').toLowerCase();
-                const progress = escrow.progress ?? escrow.milestoneProgress ?? 0;
+                const isCompletedStatus = isCompletedEscrowStatus(status);
+                const rawProgress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0);
+                const progress = isCompletedStatus
+                  ? 100
+                  : Math.min(100, Math.max(0, Number.isFinite(rawProgress) ? rawProgress : 0));
                 const createdDate = escrow.createdAt || escrow.created || '';
                 const formattedDate = createdDate ? new Date(createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
                 const createdTimestamp = createdDate ? new Date(createdDate).getTime() : null;
@@ -4290,9 +4321,11 @@ const MyEscrow = () => {
                     <div className="escrow-detail-row">
                       <span className="escrow-detail-label">Progress</span>
                       <span className="escrow-detail-value">
-                        <div className="progress-bar-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
-                          <div className="progress-bar" style={{ width: `${progress}%`, flex: 1, maxWidth: '100px' }} />
-                          <span className="progress-text">{progress}%</span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
+                          <div className="progress-bar-wrapper" style={{ width: '100px', flexShrink: 0 }}>
+                            <div className="progress-bar" style={{ width: `${progress}%` }} />
+                          </div>
+                          <span className="progress-text" style={{ display: 'inline-block' }}>{progress}%</span>
                         </div>
                       </span>
                     </div>
