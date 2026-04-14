@@ -4402,7 +4402,7 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Trusticard Section */}
+          {/* Trusticard Section (commented out per request)
           <div className="mobile-trusticard-section">
             <div className="mobile-section-header">
               <div className="mobile-section-indicator"></div>
@@ -4425,6 +4425,7 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+          */}
         </div>
 
         {/* Desktop Dashboard */}
@@ -5155,7 +5156,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-          {/* Trusticard */}
+          {/* Trusticard (commented out per request)
           <div className="trusticard-card">
             <h3>Trusticard</h3>
             <div className="virtual-card">
@@ -5174,6 +5175,8 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+          */}
+        </div>
         </div>
 
         {/* Bottom Section */}
