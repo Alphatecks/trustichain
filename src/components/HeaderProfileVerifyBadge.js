@@ -1,5 +1,5 @@
 import React from 'react';
-import verifyBadge from '../../assets/images/icons/verify.png';
+import verifyBadge from '../assets/images/icons/verify.png';
 
 /**
  * Verification check stacked on the bottom-right of `.user-avatar` / `.mobile-user-avatar`
