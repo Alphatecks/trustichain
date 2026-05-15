@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X, Search, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
-import './index.css';
+import './SavingsWithdrawWalletModal.css';
 
 /**
  * @typedef {object} SavingsWithdrawWalletOption

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, ChevronDown, Info } from 'lucide-react';
-import LoadingIndicator from '../LoadingIndicator';
-import './index.css';
+import LoadingIndicator from './LoadingIndicator';
+import './AddSavingsPlanModal.css';
 
 const XRP_IMG =
   'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731';

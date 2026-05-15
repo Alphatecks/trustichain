@@ -1,9 +1,9 @@
 import React from 'react';
 import { Bell, KeyRound, Menu } from 'lucide-react';
-import { useTrustiscore, formatTrustiscoreBadgeText } from '../../context/TrustiscoreContext';
-import HeaderProfileVerifyBadge from '../HeaderProfileVerifyBadge';
-import LoadingIndicator from '../LoadingIndicator';
-import verifyBadge from '../../assets/images/icons/verify.png';
+import { useTrustiscore, formatTrustiscoreBadgeText } from '../context/TrustiscoreContext';
+import HeaderProfileVerifyBadge from './HeaderProfileVerifyBadge';
+import LoadingIndicator from './LoadingIndicator';
+import verifyBadge from '../assets/images/icons/verify.png';
 
 /**
  * Shared mobile header for Personal / dual-mode dashboard routes.
