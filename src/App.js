@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
 import { ThemeProvider } from './context/ThemeContext';
@@ -29,11 +29,13 @@ import DisputeDetail from './pages/dashboard/dispute/DisputeDetail';
 import BusinessSuiteDispute from './pages/dashboard/business-suite/BusinessSuiteDispute';
 import BusinessSuiteDisputeDetail from './pages/dashboard/business-suite/BusinessSuiteDisputeDetail';
 import Savings from './pages/dashboard/savings/Savings';
+import TrustiCard from './pages/dashboard/trusticard/TrustiCard';
 import Payroll from './pages/dashboard/business-suite/Payroll';
 import PayrollDetail from './pages/dashboard/business-suite/PayrollDetail';
 import APIKeys from './pages/dashboard/business-suite/APIKeys';
 import SandboxEnvironment from './pages/dashboard/business-suite/SandboxEnvironment';
 import Webhook from './pages/dashboard/business-suite/Webhook';
+import Invoice from './pages/dashboard/business-suite/Invoice';
 import Settings from './pages/dashboard/settings/Settings';
 import useAutoLogout from './hooks/useAutoLogout';
 import BusinessEmailGate from './components/BusinessEmailGate';
@@ -109,6 +111,7 @@ function AppContent() {
     path === '/trusticard' ||
     path === '/payroll' ||
     location.pathname.startsWith('/payroll/') ||
+    path === '/invoice' ||
     path === '/supplier-contract' ||
     path === '/api-keys' ||
     path === '/sandbox-environment' ||
@@ -151,9 +154,10 @@ function AppContent() {
           <Route path="/dispute/:id" element={<DisputeDetail />} />
           <Route path="/business-dispute" element={<BusinessSuiteDispute />} />
           <Route path="/business-dispute/:id" element={<BusinessSuiteDisputeDetail />} />
-          <Route path="/trusticard" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/trusticard" element={<TrustiCard />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/payroll/:payrollId" element={<PayrollDetail />} />
+          <Route path="/invoice" element={<Invoice />} />
           <Route path="/supplier-contract" element={<Dashboard />} />
           <Route path="/api-keys" element={<APIKeys />} />
           <Route path="/sandbox-environment" element={<SandboxEnvironment />} />
@@ -161,13 +165,80 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
-      <Toaster 
+      <Toaster
         position="top-right"
+        containerClassName="trusti-toaster"
+        containerStyle={{
+          top: 'max(12px, env(safe-area-inset-top))',
+          right: 'max(12px, env(safe-area-inset-right))',
+          left: 'max(12px, env(safe-area-inset-left))',
+          bottom: 'max(12px, env(safe-area-inset-bottom))',
+        }}
+        gutter={10}
         toastOptions={{
           duration: 4000,
+          className: 'trusti-toast',
           style: {
-            background: '#363636',
-            color: '#fff',
+            fontFamily: "'Satoshi', 'Inter', system-ui, -apple-system, sans-serif",
+            fontSize: '0.9375rem',
+            fontWeight: 500,
+            lineHeight: 1.45,
+            color: '#0f172a',
+            background: '#ffffff',
+            borderRadius: '14px',
+            padding: '14px 18px',
+            boxShadow:
+              '0 12px 40px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06)',
+            border: '1px solid rgba(226, 232, 240, 0.95)',
+            borderLeftWidth: '4px',
+            borderLeftColor: '#cbd5e1',
+            maxWidth: 'min(420px, calc(100vw - 24px))',
+          },
+          success: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#15803d',
+              secondary: '#ecfdf5',
+            },
+            style: {
+              background: 'linear-gradient(145deg, #f0fdf4 0%, #ffffff 52%, #ffffff 100%)',
+              borderColor: 'rgba(187, 247, 208, 0.85)',
+              borderLeftColor: '#22c55e',
+              color: '#14532d',
+            },
+          },
+          error: {
+            duration: 5200,
+            iconTheme: {
+              primary: '#dc2626',
+              secondary: '#fef2f2',
+            },
+            style: {
+              background: 'linear-gradient(145deg, #fef2f2 0%, #ffffff 48%, #ffffff 100%)',
+              borderColor: 'rgba(252, 165, 165, 0.55)',
+              borderLeftColor: '#ef4444',
+              color: '#7f1d1d',
+            },
+          },
+          loading: {
+            iconTheme: {
+              primary: '#0066ff',
+              secondary: '#e0f2fe',
+            },
+            style: {
+              background: 'linear-gradient(145deg, #eff6ff 0%, #ffffff 52%, #ffffff 100%)',
+              borderColor: 'rgba(147, 197, 253, 0.65)',
+              borderLeftColor: '#0066ff',
+              color: '#1e3a5f',
+            },
+          },
+          blank: {
+            style: {
+              background: 'linear-gradient(145deg, #f8fafc 0%, #ffffff 55%, #ffffff 100%)',
+              borderColor: 'rgba(203, 213, 225, 0.85)',
+              borderLeftColor: '#64748b',
+              color: '#334155',
+            },
           },
         }}
       />

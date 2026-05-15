@@ -26,7 +26,6 @@ import {
   Package
 } from 'lucide-react';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
@@ -37,6 +36,8 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import '../dashboard/Dashboard.css';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -54,22 +55,12 @@ const formatTimeAgo = (isoString) => {
   return `${diffDays}d ago`;
 };
 
-const getNotificationIconConfig = (type) => {
-  if (type === 'wallet_deposit') {
-    return { Icon: CheckCircle, className: 'notification-status-icon success' };
-  }
-  if (type === 'escrow_completed') {
-    return { Icon: Package, className: 'notification-status-icon package' };
-  }
-  return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
-};
-
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
+  { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -103,6 +94,7 @@ const MyEscrowLayout = ({ children }) => {
   const [, setNotificationsTotal] = useState(0);
   const [, setNotificationsUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [expandedNotificationId, setExpandedNotificationId] = useState(null);
   const [accountType, setAccountType] = useState('Personal');
   const [kycComplete] = useState(true);
   const [userFullName, setUserFullName] = useState('Sarah Chen');
@@ -112,6 +104,10 @@ const MyEscrowLayout = ({ children }) => {
   const [formattedToday, setFormattedToday] = useState('');
 
   const notificationsApiFilter = notificationFilter === 'Unread' ? 'unread' : 'all';
+
+  useEffect(() => {
+    if (!showNotificationModal) setExpandedNotificationId(null);
+  }, [showNotificationModal]);
 
   // Fetch notifications for the modal (All / Unread)
   useEffect(() => {
@@ -342,7 +338,7 @@ const MyEscrowLayout = ({ children }) => {
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
                 } else if (item.label === 'Trusticard') {
-                  return;
+                  navigate('/trusticard');
                 }
               };
               const navBadge = getNavBadge(item);
@@ -450,9 +446,15 @@ const MyEscrowLayout = ({ children }) => {
 
           <div className="header-actions">
             {kycComplete ? (
-              <div className="account-type-display">
-                <span className="account-type-label">{accountType}</span>
-              </div>
+              <>
+                <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                  <span className="header-trustiscore-label">TrustiScore</span>
+                  <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+                </div>
+                <div className="account-type-display">
+                  <span className="account-type-label">{accountType}</span>
+                </div>
+              </>
             ) : (
             <button type="button" className="kyc-status">
               <KeyRound size={16} />
@@ -470,13 +472,7 @@ const MyEscrowLayout = ({ children }) => {
                 ) : (
                   userInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>Freelancer</small>
+                <HeaderProfileVerifyBadge show={kycComplete} />
               </div>
             </div>
           </div>
@@ -526,39 +522,13 @@ const MyEscrowLayout = ({ children }) => {
             </div>
 
             <div className="notification-list">
-              {Array.isArray(notifications) && notifications.length > 0 ? (
-                notifications.map((n) => {
-                  const isUnread = !n?.isRead;
-                  const { Icon, className } = getNotificationIconConfig(n?.type);
-                  const message = n?.message || n?.title || 'N/A';
-                  return (
-                    <div
-                      key={n?.id}
-                      className={`notification-item ${isUnread ? 'unread' : ''}`}
-                      onClick={() => {
-                        if (isUnread) handleMarkNotificationRead(n?.id);
-                      }}
-                    >
-                      <div className="notification-bell-icon">
-                        <Bell size={16} />
-                        {isUnread && <span className="notification-bell-dot"></span>}
-                      </div>
-                      <div className="notification-content">
-                        <div className="notification-message-wrapper">
-                          <Icon size={18} className={className} />
-                          <p className="notification-message">{message}</p>
-                        </div>
-                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
-                      </div>
-                      {isUnread && <div className="notification-unread-dot"></div>}
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  N/A
-                </div>
-              )}
+              <NotificationListItems
+                notifications={notifications}
+                expandedNotificationId={expandedNotificationId}
+                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                onMarkRead={handleMarkNotificationRead}
+                formatTimeAgo={formatTimeAgo}
+              />
             </div>
           </div>
         </div>

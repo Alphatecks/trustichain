@@ -1,0 +1,456 @@
+@keyframes savings-withdraw-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes savings-withdraw-sheet-mobile-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes savings-withdraw-sheet-desktop-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.savings-withdraw-wallet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-tap-highlight-color: transparent;
+  animation: savings-withdraw-overlay-in 0.28s ease-out both;
+}
+
+@media (min-width: 480px) {
+  .savings-withdraw-wallet-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+}
+
+/* All UI copy uses Satoshi (explicit on interactive nodes so UA styles don’t override). */
+.savings-withdraw-wallet-sheet,
+.savings-withdraw-wallet-sheet input,
+.savings-withdraw-wallet-sheet button,
+.savings-withdraw-wallet-sheet li,
+.savings-withdraw-wallet-sheet h2,
+.savings-withdraw-wallet-sheet p,
+.savings-withdraw-wallet-sheet span {
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-withdraw-wallet-sheet {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(92vh, 640px);
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 18px 18px 0 0;
+  padding: 1.25rem 1.15rem 1.35rem;
+  box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.12);
+  box-sizing: border-box;
+  animation: savings-withdraw-sheet-mobile-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+@media (min-width: 480px) {
+  .savings-withdraw-wallet-sheet {
+    border-radius: 18px;
+    padding: 1.35rem 1.4rem 1.45rem;
+    animation: savings-withdraw-sheet-desktop-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .savings-withdraw-wallet-overlay,
+  .savings-withdraw-wallet-sheet {
+    animation: none !important;
+  }
+}
+
+.savings-withdraw-wallet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.savings-withdraw-wallet-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #111827;
+}
+
+.savings-withdraw-wallet-close {
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.savings-withdraw-wallet-close:hover {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+.savings-withdraw-wallet-subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #0066ff;
+}
+
+.savings-withdraw-wallet-search {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.savings-withdraw-wallet-search-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.savings-withdraw-wallet-search-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #111827;
+  background: #fafafa;
+  box-sizing: border-box;
+}
+
+.savings-withdraw-wallet-search-input::placeholder {
+  color: #94a3b8;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-withdraw-wallet-search-input:focus {
+  outline: none;
+  border-color: rgba(0, 102, 255, 0.45);
+  background: #ffffff;
+}
+
+.savings-withdraw-wallet-search-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: #0066ff;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.savings-withdraw-wallet-search-btn:hover {
+  background: #0052cc;
+}
+
+.savings-withdraw-wallet-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.savings-withdraw-wallet-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.savings-withdraw-wallet-row.accent-green,
+.savings-withdraw-wallet-row.accent-blue {
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.savings-withdraw-wallet-row.accent-blue.is-selected {
+  background: #eef5ff;
+  border-color: rgba(0, 102, 255, 0.28);
+}
+
+.savings-withdraw-wallet-row.accent-green.is-selected {
+  background: #ecfdf5;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.savings-withdraw-wallet-row-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.savings-withdraw-wallet-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  padding: 3px;
+  flex-shrink: 0;
+  background: conic-gradient(var(--sw-ring-color, #2563eb) calc(var(--sw-pct, 0) * 1%), #e8edf3 0);
+}
+
+.savings-withdraw-wallet-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sw-ring-color, #2563eb);
+}
+
+.savings-withdraw-wallet-row.accent-green .savings-withdraw-wallet-ring-inner {
+  color: var(--sw-ring-color, #22c55e);
+}
+
+.savings-withdraw-wallet-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #334155;
+}
+
+.savings-withdraw-wallet-row.accent-blue.is-selected .savings-withdraw-wallet-name {
+  color: #0066ff;
+}
+
+.savings-withdraw-wallet-row.accent-green .savings-withdraw-wallet-name {
+  color: #15803d;
+}
+
+.savings-withdraw-wallet-row.accent-green.is-selected .savings-withdraw-wallet-name {
+  color: #166534;
+}
+
+.savings-withdraw-wallet-balance {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+}
+
+.savings-withdraw-wallet-row.accent-blue.is-selected .savings-withdraw-wallet-balance {
+  color: #0066ff;
+}
+
+.savings-withdraw-wallet-row.accent-green .savings-withdraw-wallet-balance {
+  color: #64748b;
+}
+
+.savings-withdraw-wallet-row.accent-green.is-selected .savings-withdraw-wallet-balance {
+  color: #15803d;
+}
+
+.savings-withdraw-wallet-next {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 102, 255, 0.28);
+}
+
+.savings-withdraw-wallet-next:hover {
+  background: #0052cc;
+}
+
+.savings-withdraw-wallet-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #94a3b8;
+}
+
+.savings-withdraw-wallet-footnote-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #94a3b8;
+}
+
+.savings-withdraw-wallet-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Step 2 — confirm withdraw (plan summary + primary Withdraw) */
+.savings-withdraw-wallet-sheet.is-confirm-step .savings-withdraw-wallet-footnote {
+  margin-top: 1.1rem;
+}
+
+.savings-withdraw-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.35rem;
+}
+
+.savings-withdraw-confirm-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.savings-withdraw-confirm-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.savings-withdraw-wallet-ring.savings-withdraw-confirm-ring {
+  width: 52px;
+  height: 52px;
+  padding: 3.5px;
+}
+
+.savings-withdraw-confirm-names {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.savings-withdraw-confirm-plan-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.savings-withdraw-confirm-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  line-height: 1.2;
+}
+
+.savings-withdraw-confirm-badge--completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.savings-withdraw-confirm-badge--active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.savings-withdraw-confirm-balance-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.savings-withdraw-confirm-balance-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  color: #94a3b8;
+}
+
+.savings-withdraw-confirm-balance-amount {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.savings-withdraw-confirm-submit {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 102, 255, 0.28);
+}
+
+.savings-withdraw-confirm-submit:hover {
+  background: #0052cc;
+}

@@ -115,3 +115,636 @@
   display: flex;
   align-items: center;
 }
+
+/* Create Escrow shell: mobile = full viewport; desktop = dimmed overlay + centered card (matches My Escrow breakpoint). */
+.create-escrow-flow-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.create-escrow-flow-root--mobile-fullscreen {
+  background: var(--surface, var(--white, #ffffff));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.create-escrow-flow-root--desktop-modal {
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.create-escrow-flow-root--mobile-fullscreen .create-escrow-modal.create-escrow-flow-panel {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.create-escrow-flow-root--desktop-modal .create-escrow-modal.create-escrow-flow-panel {
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  height: auto;
+  min-height: 0;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.create-escrow-flow-root .create-escrow-modal-header,
+.create-escrow-flow-root .create-escrow-steps-mobile,
+.create-escrow-flow-root .create-escrow-steps {
+  flex-shrink: 0;
+}
+
+.create-escrow-flow-root .create-escrow-modal-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.create-escrow-flow-root .create-escrow-modal-footer {
+  flex-shrink: 0;
+}
+
+/* Create Escrow modal — Step 1 layout (Dashboard uses this component; base modal styles from MyEscrow.css). */
+.create-escrow-modal .modal-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.create-escrow-modal .modal-header-accent-bar {
+  width: 4px;
+  height: 1.625rem;
+  border-radius: 2px;
+  background: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+
+.create-escrow-modal .create-escrow-steps {
+  border-radius: 0.75rem;
+}
+
+/* Pending steps: light blue circle + white icon (matches reference design). */
+.create-escrow-modal .create-escrow-steps .step-indicator:not(.active):not(.completed) .step-icon {
+  background: #93c5fd !important;
+  color: #ffffff !important;
+}
+
+.create-escrow-modal .create-escrow-steps .step-indicator:not(.active):not(.completed) .step-icon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.create-escrow-modal .create-escrow-step1-section-label {
+  margin-bottom: 1rem;
+}
+
+.create-escrow-modal .create-escrow-step1-type-buttons {
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+}
+
+.create-escrow-modal .create-escrow-step1-type-buttons .escrow-type-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.create-escrow-modal .counterparty-method-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 1.25rem;
+  border-radius: 0.625rem;
+  background: #dbeafe;
+}
+
+.create-escrow-modal .counterparty-method-btn {
+  flex: 1;
+  border: none;
+  cursor: pointer;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--blue-600, #2563eb);
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.create-escrow-modal .counterparty-method-btn.active {
+  background: var(--blue-600, #2563eb);
+  color: var(--white, #ffffff);
+}
+
+.create-escrow-modal .counterparty-method-btn:not(.active):hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.create-escrow-modal .create-escrow-step1-wallet-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.create-escrow-modal .create-escrow-step1-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cfe2fc;
+  border-radius: 0.625rem;
+  font-size: 0.9rem;
+  color: var(--text-dark, #374151);
+  background: #eef4ff;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-escrow-modal .create-escrow-step1-input:focus {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.create-escrow-modal .create-escrow-step1-input::placeholder {
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+/* Step 2 — Escrow Terms (time-based reference layout). */
+.create-escrow-flow-root .create-escrow-modal-footer:has(.previous-btn) {
+  justify-content: space-between;
+}
+
+.create-escrow-step2 .terms-form-grid .form-group input[type='text'],
+.create-escrow-step2 .terms-form-grid .form-group input[type='email'],
+.create-escrow-step2 .terms-form-grid .form-group input[type='tel'],
+.create-escrow-step2 .terms-form-grid .form-group textarea,
+.create-escrow-step2 .terms-form-grid .form-group select:not(.create-escrow-funding-wallet-select) {
+  background: #f3f4f6;
+}
+
+.create-escrow-step2-terms-grid {
+  gap: 1.25rem 1.5rem;
+}
+
+/* Time-based: mobile stacks Completion → Release → Dispute → Amount; desktop keeps 2×2 (Completion|Dispute / Release|Amount). */
+.create-escrow-step2-time-terms {
+  display: grid;
+}
+
+.create-escrow-step2-time-terms .create-escrow-order-completion {
+  order: 1;
+}
+
+.create-escrow-step2-time-terms .create-escrow-order-release {
+  order: 2;
+}
+
+.create-escrow-step2-time-terms .create-escrow-order-dispute {
+  order: 3;
+}
+
+.create-escrow-step2-time-terms .create-escrow-order-amount {
+  order: 4;
+}
+
+.create-escrow-step2-time-terms .form-group-full {
+  order: 5;
+}
+
+@media (min-width: 769px) {
+  .create-escrow-step2-time-terms .create-escrow-order-dispute {
+    order: 2;
+  }
+
+  .create-escrow-step2-time-terms .create-escrow-order-release {
+    order: 3;
+  }
+}
+
+/* Mobile-only subsection title (reference Step 2 mock). */
+.create-escrow-step2-counterparty-heading {
+  display: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: var(--blue-600, #2563eb);
+}
+
+.create-escrow-time-based-banner {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.125rem;
+  border-radius: 0.75rem;
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+}
+
+.create-escrow-time-based-banner-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark, #1f2937);
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  line-height: 1.45;
+}
+
+.create-escrow-time-based-banner-label input[type='checkbox'] {
+  margin-top: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  accent-color: var(--blue-600, #2563eb);
+}
+
+.create-escrow-step2-date-wrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-left: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: #f3f4f6;
+  box-sizing: border-box;
+}
+
+.create-escrow-step2-date-icon {
+  color: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+  margin-right: 0.35rem;
+}
+
+.create-escrow-step2-date-input {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-left: 0.25rem;
+}
+
+.create-escrow-step2-select-wrap {
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+}
+
+.create-escrow-step2-select-wrap select.create-escrow-step2-select {
+  background: #f3f4f6;
+}
+
+.create-escrow-step2-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #f3f4f6;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.create-escrow-amount-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.create-escrow-amount-row-input {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-escrow-amount-row-input:focus {
+  outline: none;
+}
+
+.create-escrow-amount-row-meta {
+  display: flex;
+  align-items: stretch;
+  padding: 0.35rem 0.5rem 0.35rem 0;
+  flex-shrink: 0;
+}
+
+/* Unified pill: RLUSD badge + stacked balance + chevron (Step 2 time-based). */
+.create-escrow-balance-dropdown {
+  display: flex;
+  align-items: center;
+}
+
+.create-escrow-balance-dropdown-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.45rem 0.65rem 0.45rem 0.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+  min-height: 2.625rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.create-escrow-funding-wallet-trigger {
+  position: relative;
+}
+
+.create-escrow-funding-wallet-trigger:focus-within {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+.create-escrow-funding-wallet-trigger > :not(select) {
+  pointer-events: none;
+}
+
+.create-escrow-balance-dropdown-currency-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: var(--blue-600, #2563eb);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.3125rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.create-escrow-funding-wallet-select {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-radius: inherit;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font-size: 1rem;
+  background: transparent;
+}
+
+.create-escrow-funding-wallet-select:disabled {
+  cursor: not-allowed;
+}
+
+.create-escrow-funding-wallet-select option {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.create-escrow-balance-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.1rem;
+  min-width: 0;
+  white-space: nowrap;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-escrow-balance-dropdown-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-muted, #6b7280);
+  line-height: 1.2;
+}
+
+.create-escrow-balance-dropdown-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--blue-600, #2563eb);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.create-escrow-balance-dropdown-chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--blue-600, #2563eb);
+}
+
+/* Step 3 confirmation — layout aligned with desktop reference */
+.create-escrow-step3-heading {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--blue-600, #2563eb);
+  margin: 0 0 1rem 0;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-escrow-step3-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.create-escrow-step3-type-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-escrow-step3-muted-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-escrow-step3 .confirmation-type-btn {
+  border-radius: 0.375rem;
+  min-height: 2.875rem;
+  padding: 0.75rem 1.125rem;
+  box-sizing: border-box;
+}
+
+.create-escrow-step3-amount-fee-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.create-escrow-step3-amount-fee-item {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.create-escrow-step3-fee-label {
+  color: var(--blue-600, #2563eb) !important;
+  font-weight: 700 !important;
+}
+
+.create-escrow-flow-root--desktop-modal .create-escrow-step3-counterparty-extra {
+  display: none;
+}
+
+.create-escrow-flow-root--desktop-modal .create-escrow-step3-footer-desktop {
+  justify-content: flex-start;
+}
+
+.create-escrow-flow-root--desktop-modal .create-escrow-step3-footer-desktop .submit-next-btn {
+  min-width: 10rem;
+}
+
+@media (max-width: 768px) {
+  .create-escrow-modal .modal-header-accent-bar {
+    height: 1.375rem;
+  }
+
+  .create-escrow-modal .create-escrow-step1-type-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .create-escrow-modal .create-escrow-step1-type-buttons .escrow-type-btn {
+    min-width: unset;
+    padding: 0.75rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Step 2 mobile — Time based reference (release grid + counterparty block). */
+  .create-escrow-step2-counterparty-heading {
+    display: block;
+    margin: 0 0 1rem 0;
+  }
+
+  .create-escrow-step2 .section-title {
+    margin-bottom: 1rem;
+  }
+
+  .create-escrow-step2 .create-escrow-release-type-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .create-escrow-step2 .create-escrow-release-type-buttons .release-type-btn {
+    flex: unset;
+    min-width: 0;
+    margin: 0;
+    padding: 0.85rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  .create-escrow-step2 .create-escrow-release-type-buttons .release-type-btn:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .create-escrow-step2 .release-type-btn:not(.active) {
+    color: #6b7280;
+    background: #ffffff;
+    border-color: #e5e7eb;
+  }
+
+  .create-escrow-step2 .release-type-btn:not(.active) svg {
+    color: #9ca3af;
+  }
+
+  .create-escrow-step2 .create-escrow-time-based-banner {
+    margin-bottom: 1.25rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid #3b82f6;
+    border-radius: 0.75rem;
+    background: #eff6ff;
+  }
+
+  .create-escrow-step2 .create-escrow-time-based-banner-label,
+  .create-escrow-step2 .create-escrow-time-based-banner-label span {
+    color: var(--blue-600, #2563eb);
+    font-weight: 500;
+  }
+
+  .create-escrow-step2-time-terms {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .create-escrow-step2-date-icon {
+    color: #9ca3af !important;
+  }
+
+  .create-escrow-step2 .select-input-wrapper .input-icon {
+    color: #9ca3af;
+  }
+
+  .create-escrow-amount-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .create-escrow-amount-row-meta {
+    justify-content: stretch;
+    padding: 0.5rem 0.65rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .create-escrow-balance-dropdown {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .create-escrow-balance-dropdown-inner {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .create-escrow-step3-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-escrow-step3-amount-fee-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .create-escrow-step3-amount-fee-item {
+    padding-bottom: 1rem !important;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  .create-escrow-step3-amount-fee-grid .create-escrow-step3-amount-fee-item:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+}

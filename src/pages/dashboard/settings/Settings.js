@@ -27,18 +27,21 @@ import {
   Code,
   Box,
   Link as LinkIcon,
+  FileText,
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './Settings.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import GoogleAuthenticatorModal from '../../../components/GoogleAuthenticatorModal';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import {
@@ -62,7 +65,7 @@ const sidebarNav = [
   { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
+  { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -71,6 +74,8 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Invoice', icon: FileText, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
 ];
@@ -614,13 +619,21 @@ const Settings = () => {
         Dashboard: '/dashboard',
         Payroll: '/payroll',
         'Supplier Contract': '/supplier-contract',
+        Invoice: '/invoice',
+        Transactions: '/transactions',
         Dispute: '/business-dispute',
       };
+      if (item.label === 'Compliance') {
+        toast('Compliance workspace coming soon');
+        return;
+      }
       const targetPath = routeByLabel[item.label];
       if (!targetPath) return;
       navigate(
         targetPath,
-        item.label === 'Dashboard' ? { state: { accountType: 'Business Suite' } } : undefined
+        item.label === 'Dashboard' || item.label === 'Transactions'
+          ? { state: { accountType: 'Business Suite' } }
+          : undefined
       );
       return;
     }
@@ -633,7 +646,7 @@ const Settings = () => {
     } else if (item.label === 'Dispute') {
       navigate('/dispute');
     } else if (item.label === 'Trusticard') {
-      return;
+      navigate('/trusticard');
     }
   };
 
@@ -1161,6 +1174,8 @@ const Settings = () => {
                           Dashboard: '/dashboard',
                           Payroll: '/payroll',
                           'Supplier Contract': '/supplier-contract',
+                          Invoice: '/invoice',
+                          Transactions: '/transactions',
                           Dispute: '/business-dispute',
                         }
                       : {
@@ -1168,7 +1183,7 @@ const Settings = () => {
                           'My Escrow': '/my-escrow',
                           Transactions: '/transactions',
                           Dispute: '/dispute',
-                          Trusticard: null,
+                          Trusticard: '/trusticard',
                         };
 
                   const targetPath = routeByLabel[item.label];
@@ -1295,61 +1310,20 @@ const Settings = () => {
 
           {/* Main Content */}
           <main className="dashboard-main">
-            <div className="mobile-dashboard-header settings-mobile-dashboard-header" aria-label="Profile">
-              <div className="mobile-header-left">
-                <div className="mobile-user-avatar">
-                  {accountType === 'Business Suite' ? (
-                    businessCompanyLogoUrl ? (
-                      <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
-                    ) : isLoadingBusinessKyc ? (
-                      <LoadingIndicator size="sm" />
-                    ) : (
-                      businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
-                    )
-                  ) : userAvatar ? (
-                    <img src={userAvatar} alt={userFullName || 'User'} />
-                  ) : (
-                    userInitials
-                  )}
-                </div>
-                <div className="mobile-user-info">
-                  <span className="mobile-user-name">
-                    {accountType === 'Business Suite' ? (
-                      isLoadingBusinessKyc || !businessCompanyName ? (
-                        <LoadingIndicator size="sm" />
-                      ) : (
-                        businessCompanyName
-                      )
-                    ) : isLoadingUserProfile ? (
-                      <LoadingIndicator size="sm" />
-                    ) : (
-                      userFullName
-                    )}
-                    <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-                  </span>
-                  <span className="mobile-user-role">
-                    {accountType === 'Business Suite'
-                      ? 'Business'
-                      : isLoadingUserProfile
-                        ? <LoadingIndicator size="sm" />
-                        : userRole}
-                  </span>
-                </div>
-              </div>
-              <div className="mobile-header-right">
-                <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
-                  <Bell size={20} />
-                </button>
-                <button
-                  type="button"
-                  className="mobile-header-menu"
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                >
-                  <Menu size={20} />
-                </button>
-              </div>
-            </div>
-
+            <PersonalSuiteMobileHeader
+              variant={accountType === 'Business Suite' ? 'business' : 'personal'}
+              className="settings-mobile-dashboard-header"
+              userAvatar={userAvatar}
+              userInitials={userInitials}
+              userFullName={userFullName}
+              personalVerificationComplete={accountType === 'Personal' && isKycCompleteForAccount}
+              businessVerificationComplete={businessKycComplete}
+              businessLogoUrl={businessCompanyLogoUrl}
+              businessName={businessCompanyName}
+              businessAvatarLoading={isLoadingBusinessKyc}
+              onOpenNotifications={() => setShowNotificationModal(true)}
+              onToggleMobileMenu={() => setIsMobileMenuOpen((o) => !o)}
+            />
             {/* Header */}
             <header className="dashboard-header" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '1.5rem', alignItems: 'center', width: '100%' }}>
               <div className="header-info">
@@ -1369,9 +1343,15 @@ const Settings = () => {
 
               <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end', justifySelf: 'end', marginLeft: 'auto' }}>
                 {isKycCompleteForAccount ? (
-                  <div className="account-type-display">
-                    <span className="account-type-label">{accountType}</span>
-                  </div>
+                  <>
+                    <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                      <span className="header-trustiscore-label">TrustiScore</span>
+                      <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+                    </div>
+                    <div className="account-type-display">
+                      <span className="account-type-label">{accountType}</span>
+                    </div>
+                  </>
                 ) : (
                 <button type="button" className="kyc-status">
                   <KeyRound size={16} />
@@ -1397,17 +1377,7 @@ const Settings = () => {
                     ) : (
                       userInitials
                     )}
-                  </div>
-                  <div className="user-info">
-                    <span className="user-name">
-                      {accountType === 'Business Suite' ? (
-                        isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                      ) : (
-                        isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                      )}
-                      <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                    </span>
-                    <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
+                    <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
                   </div>
                 </div>
               </div>
@@ -1671,34 +1641,11 @@ const Settings = () => {
             </div>
           </main>
 
-      {showNotificationModal && (
-        <div
-          className="settings-notification-backdrop"
-          role="presentation"
-          onClick={() => setShowNotificationModal(false)}
-        >
-          <div
-            className="settings-notification-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="settings-notifications-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="settings-notification-sheet-head">
-              <h2 id="settings-notifications-title">Notifications</h2>
-              <button
-                type="button"
-                className="settings-notification-close"
-                aria-label="Close"
-                onClick={() => setShowNotificationModal(false)}
-              >
-                <X size={22} />
-              </button>
-            </div>
-            <p className="settings-notification-empty">You&apos;re all caught up.</p>
-          </div>
-        </div>
-      )}
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="settings-notifications-title"
+      />
 
       <GoogleAuthenticatorModal
         isOpen={mfaModal != null}

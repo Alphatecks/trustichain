@@ -28,13 +28,16 @@ import {
   Wallet,
   ChevronRight,
   ArrowDown,
-  Send
+  Send,
+  FileText,
+  Repeat
 } from 'lucide-react';
 import './BusinessDashboard.css';
+import '../dashboard/Dashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
 import logoWhite from '../../../assets/images/logo/logo_white.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import AddTeamMemberModal from '../../../components/AddTeamMemberModal';
 import AddTeamModal from '../../../components/AddTeamModal';
 import AddPayrollModal from '../../../components/AddPayrollModal';
@@ -45,6 +48,8 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null, path: '/dashboard' },
   { label: 'Payroll', icon: DollarSign, badge: null, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, badge: null, path: '/supplier-contract' },
+  { label: 'Invoice', icon: FileText, badge: null, path: '/invoice' },
+  { label: 'Transactions', icon: Repeat, badge: null, path: '/transactions' },
   { label: 'Dispute', icon: CreditCard, badge: null, path: '/business-dispute' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' } // placeholder route (not currently wired)
 ];
@@ -127,7 +132,7 @@ const BusinessDashboard = ({
     if (item.path === '/compliance' || item.path === '/security') return;
     navigate(
       item.path,
-      item.path === '/dashboard' || item.path === '/settings'
+      item.path === '/dashboard' || item.path === '/settings' || item.path === '/transactions'
         ? { state: { accountType: 'Business Suite' } }
         : undefined
     );
@@ -153,17 +158,7 @@ const BusinessDashboard = ({
               ) : (
                 userInitials
               )}
-            </div>
-            <div className="mobile-user-info">
-              <span className="mobile-user-name">
-                {businessCompanyName
-                  ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName)
-                  : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
-                <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-              </span>
-              <span className="mobile-user-role">
-                {businessCompanyName ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
-              </span>
+              <HeaderProfileVerifyBadge show={businessKycComplete} mobile />
             </div>
           </div>
           <div className="mobile-header-right">
@@ -249,7 +244,7 @@ const BusinessDashboard = ({
                     if (item.path === '/compliance') return;
                     navigate(
                       item.path,
-                      item.path === '/dashboard' || item.path === '/settings'
+                      item.path === '/dashboard' || item.path === '/settings' || item.path === '/transactions'
                         ? { state: { accountType: 'Business Suite' } }
                         : undefined
                     );

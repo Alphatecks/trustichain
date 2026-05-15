@@ -26,24 +26,29 @@ import {
   CheckCircle,
   X,
   Copy,
-  Filter
+  Filter,
+  FileText,
+  Repeat
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './SandboxEnvironment.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import CreateSandboxKeyModal from '../../../components/CreateSandboxKeyModal';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Invoice', icon: FileText, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
@@ -433,8 +438,14 @@ const SandboxEnvironment = () => {
       navigate('/payroll');
     } else if (item.label === 'Supplier Contract') {
       navigate('/supplier-contract');
+    } else if (item.label === 'Invoice') {
+      navigate('/invoice');
+    } else if (item.label === 'Transactions') {
+      navigate('/transactions', { state: { accountType: 'Business Suite' } });
     } else if (item.label === 'Dispute') {
       navigate('/business-dispute');
+    } else if (item.label === 'Compliance') {
+      toast('Compliance workspace coming soon');
     }
   };
 
@@ -601,6 +612,8 @@ const SandboxEnvironment = () => {
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                    (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                    (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                                   (item.label === 'Invoice' && location.pathname === '/invoice') ||
+                                   (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                    (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
                   return (
                     <button
@@ -755,17 +768,7 @@ const SandboxEnvironment = () => {
                     ) : (
                       userInitials
                     )}
-                  </div>
-                  <div className="user-info">
-                    <span className="user-name">
-                      {accountType === 'Business Suite' ? (
-                        isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                      ) : (
-                        isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                      )}
-                      <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                    </span>
-                    <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
+                    <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
                   </div>
                 </div>
               </div>
@@ -1308,6 +1311,12 @@ const SandboxEnvironment = () => {
           </div>
         </div>
       )}
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="sandbox-notifications-title"
+      />
     </div>
   );
 };

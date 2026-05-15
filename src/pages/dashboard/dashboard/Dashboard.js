@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef, useId } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
@@ -34,9 +34,7 @@ import {
   LogOut,
   X,
   Filter,
-  AlertTriangle,
   CheckCircle,
-  Package,
   Menu,
   Wallet,
   ChevronRight,
@@ -44,18 +42,29 @@ import {
   PiggyBank,
   Copy,
   Clock,
-  Mail
+  Mail,
+  Send,
+  Info,
 } from 'lucide-react';
 import './Dashboard.css';
+import '../transactions/Transactions.css';
 import logo from '../../../assets/images/icons/logo.png';
 import logoWhite from '../../../assets/images/logo/logo_white.png';
 import mockIllustration from '../../../assets/images/illustrations/mock.png';
 import uploadIllustration from '../../../assets/images/illustrations/upload.png';
 import chainsIllustration from '../../../assets/images/illustrations/chain.png';
+import rlusdLogo from '../../../assets/images/icons/rlusd-logo.svg';
 import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import {
+  DEPOSIT_ADDRESS_CURRENCY_ICON,
+  getDepositNetworksForCurrency,
+  depositAddressNetworkLabel,
+  extractWalletAddresses,
+  resolveDepositAddressFromBalance,
+  splitDepositAddressLines,
+} from '../../../utils/depositAddressFlow';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
@@ -66,6 +75,7 @@ import { useWeb3 } from '../../../context/Web3Context';
 import ConnectedWalletModal from '../../../components/ConnectedWalletModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
+import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
 import SupplierContractContent from '../business-suite/SupplierContractContent';
@@ -78,6 +88,9 @@ import {
   persistTrustitagFromProfileResponse,
 } from '../../../utils/trustitag';
 import BusinessSuitePinModal from '../../../components/BusinessSuitePinModal';
+import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
 const normalizeCompanyLogoUrl = (data) => {
@@ -114,7 +127,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
+  { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -123,6 +136,7 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: true, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Invoice', icon: FileText, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
@@ -143,40 +157,122 @@ const isRlusdCurrency = (currency) => {
   return normalized === 'rlusd' || normalized === 'rippleusd';
 };
 
-const extractWalletAddresses = (payload, fallbackAddress = '') => {
-  const sources = [payload, payload?.data, payload?.result, payload?.wallet].filter(
-    (node) => node && typeof node === 'object'
-  );
-  const pick = (keys) => {
-    for (const src of sources) {
-      for (const key of keys) {
-        const value = src?.[key];
-        if (typeof value === 'string' && value.trim()) return value.trim();
-      }
-    }
-    return '';
-  };
-  const xrpAddress = pick([
-    'xrplAddress',
-    'xrpl_address',
-    'walletAddress',
-    'address',
-    'xrpAddress',
-    'xrp_address',
-  ]);
-  const rlusdAddress = pick([
-    'rlusdAddress',
-    'rlusd_address',
-    'rippleUsdAddress',
-    'ripple_usd_address',
-    'rippleAddress',
-    'ripple_address',
-  ]);
+function UsFlagCircleIcon({ size = 20 }) {
+  const uid = useId().replace(/:/g, '');
+  const clipId = `usflg-${uid}`;
+  const stripeH = 20 / 13;
+  const stripes = Array.from({ length: 13 }, (_, i) => (
+    <rect
+      key={i}
+      x="0"
+      y={(i * 20) / 13}
+      width="20"
+      height={stripeH + 0.015}
+      fill={i % 2 === 0 ? '#B22234' : '#FFFFFF'}
+    />
+  ));
 
-  const normalizedXrp = String(xrpAddress || fallbackAddress || '').trim();
-  const normalizedRlusd = String(rlusdAddress || normalizedXrp).trim();
-  return { xrp: normalizedXrp, rlusd: normalizedRlusd };
-};
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      aria-hidden="true"
+      focusable="false"
+      className="total-balance-flag-icon"
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx="10" cy="10" r="10" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>{stripes}</g>
+      <rect x="0" y="0" width="8.6" height={7 * stripeH} fill="#3C3B6E" />
+    </svg>
+  );
+}
+
+function XrpTokenCircleIcon({ size = 20 }) {
+  const uid = useId().replace(/:/g, '');
+  const clipId = `xrptok-${uid}`;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      aria-hidden="true"
+      focusable="false"
+      className="total-balance-flag-icon"
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx="10" cy="10" r="10" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <rect width="20" height="20" fill="#23292F" />
+        <path
+          stroke="#FFFFFF"
+          strokeWidth="1.85"
+          strokeLinecap="round"
+          fill="none"
+          d="M7 7l6 6M13 7l-6 6"
+        />
+      </g>
+    </svg>
+  );
+}
+
+function TotalBalanceCurrencyPicker({ menuContainerRef, value, open, setOpen, onChange }) {
+  const selected = value === 'XRP' ? 'XRP' : 'USD';
+  const PrimaryIcon = selected === 'USD' ? UsFlagCircleIcon : XrpTokenCircleIcon;
+
+  const pick = (code) => {
+    onChange(code);
+    setOpen(false);
+  };
+
+  return (
+    <div className="total-balance-currency-shell" ref={menuContainerRef}>
+      <button
+        type="button"
+        className="total-balance-currency-trigger"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen(!open)}
+      >
+        <PrimaryIcon size={20} />
+        <span>{selected}</span>
+        <ChevronDown size={18} strokeWidth={2} className="total-balance-currency-chevron" data-open={open ? 'true' : 'false'} />
+      </button>
+      {open ? (
+        <div className="total-balance-currency-menu" role="listbox">
+          <button
+            type="button"
+            role="option"
+            aria-selected={selected === 'USD'}
+            className={`total-balance-currency-option${selected === 'USD' ? ' is-active' : ''}`}
+            onClick={() => pick('USD')}
+          >
+            <UsFlagCircleIcon size={20} />
+            <span>USD</span>
+          </button>
+          <button
+            type="button"
+            role="option"
+            aria-selected={selected === 'XRP'}
+            className={`total-balance-currency-option${selected === 'XRP' ? ' is-active' : ''}`}
+            onClick={() => pick('XRP')}
+          >
+            <XrpTokenCircleIcon size={20} />
+            <span>XRP</span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 const personalSteps = [
   { label: 'Proof of identity', detail: 'Proof of identity' },
@@ -219,14 +315,60 @@ const formatTimeAgo = (isoString) => {
   return `${diffDays}d ago`;
 };
 
-const getNotificationIconConfig = (type) => {
-  if (type === 'wallet_deposit') {
-    return { Icon: CheckCircle, className: 'notification-status-icon success' };
-  }
-  if (type === 'escrow_completed') {
-    return { Icon: Package, className: 'notification-status-icon package' };
-  }
-  return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
+/** Static config for Wallet Details modal + header wallet picker */
+const WALLET_DETAILS_WALLETS = {
+  XRP: {
+    code: 'XRP',
+    name: 'XRP wallet',
+    symbolLabel: 'XRP',
+    iconUrl: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+    chain: 'XRPL',
+  },
+  RLUSD: {
+    code: 'RLUSD',
+    name: 'Ripple USD wallet',
+    symbolLabel: 'RLUSD',
+    iconUrl: rlusdLogo,
+    chain: 'XRPL',
+  },
+  USDT: {
+    code: 'USDT',
+    name: 'USDT wallet',
+    symbolLabel: 'USDT',
+    iconUrl: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
+    chain: 'XRPL',
+  },
+  USDC: {
+    code: 'USDC',
+    name: 'USDC wallet',
+    symbolLabel: 'USDC',
+    iconUrl: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
+    chain: 'XRPL',
+  },
+};
+
+const WALLET_DETAILS_ORDER = ['XRP', 'RLUSD', 'USDT', 'USDC'];
+
+const formatWalletDetailsAddressShort = (addr) => {
+  if (!addr || typeof addr !== 'string') return 'N/A';
+  const t = addr.trim();
+  if (!t.length) return 'N/A';
+  if (t.length <= 16) return t;
+  return `${t.slice(0, 12)}…${t.slice(-6)}`;
+};
+
+const walletDetailsNetworkLabel = (key) => {
+  if (key === 'ERC20') return 'ERC 20';
+  if (key === 'TRC20') return 'TRC 20';
+  if (key === 'BEP20') return 'BEP 20';
+  if (key === 'SOLANA') return 'Solana';
+  return key;
+};
+
+/** Segments shown in Wallet Details for stablecoins */
+const WALLET_DETAILS_NETWORK_KEYS = {
+  USDT: ['ERC20', 'TRC20', 'BEP20'],
+  USDC: ['BEP20', 'SOLANA'],
 };
 
 const Dashboard = () => {
@@ -252,6 +394,10 @@ const Dashboard = () => {
   const [businessCompanyName, setBusinessCompanyName] = useState('');
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [showBalance, setShowBalance] = useState(true);
+  const [balancePrimaryCurrency, setBalancePrimaryCurrency] = useState('USD');
+  const [balanceCurrencyMenuOpen, setBalanceCurrencyMenuOpen] = useState(false);
+  const balanceCurrencyMenuDesktopRef = useRef(null);
+  const balanceCurrencyMenuMobileRef = useRef(null);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
     if (stored === 'Business Suite' || stored === 'Personal') return stored;
@@ -278,6 +424,19 @@ const Dashboard = () => {
   useEffect(() => {
     localStorage.setItem('dashboard_account_type', accountType);
   }, [accountType]);
+
+  useEffect(() => {
+    if (!balanceCurrencyMenuOpen) return undefined;
+    const onDocMouseDown = (e) => {
+      const t = e.target;
+      const d = balanceCurrencyMenuDesktopRef.current;
+      const m = balanceCurrencyMenuMobileRef.current;
+      if (d?.contains(t) || m?.contains(t)) return;
+      setBalanceCurrencyMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [balanceCurrencyMenuOpen]);
 
   useEffect(() => {
     const pending = peekTrustitagWelcomePending();
@@ -440,8 +599,13 @@ const Dashboard = () => {
   const [, setNotificationsTotal] = useState(0);
   const [, setNotificationsUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [expandedNotificationId, setExpandedNotificationId] = useState(null);
 
   const notificationsApiFilter = useMemo(() => (notificationFilter === 'Unread' ? 'unread' : 'all'), [notificationFilter]);
+
+  useEffect(() => {
+    if (!showNotificationModal) setExpandedNotificationId(null);
+  }, [showNotificationModal]);
 
   // Fetch notifications for the modal (All / Unread)
   useEffect(() => {
@@ -777,6 +941,10 @@ const Dashboard = () => {
   const [rlusdWalletAddress, setRlusdWalletAddress] = useState('');
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showWalletDetailsModal, setShowWalletDetailsModal] = useState(false);
+  const [selectedWalletDetails, setSelectedWalletDetails] = useState(null);
+  const [walletDetailsNetwork, setWalletDetailsNetwork] = useState('ERC20');
+  const [walletDetailsPickerOpen, setWalletDetailsPickerOpen] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
   const [selectedEscrowDetail, setSelectedEscrowDetail] = useState(null);
@@ -791,6 +959,8 @@ const Dashboard = () => {
   const [businessSuiteWalletModalLoading, setBusinessSuiteWalletModalLoading] = useState(false);
   const [businessSuiteWalletModalData, setBusinessSuiteWalletModalData] = useState(null); // { address?, balances?, error? }
   const [fundViaAddress, setFundViaAddress] = useState(false);
+  const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
+  const [walletBalanceRaw, setWalletBalanceRaw] = useState(null);
   const [fundWalletForm, setFundWalletForm] = useState({
     amount: '',
     currency: 'XRP'
@@ -816,8 +986,43 @@ const Dashboard = () => {
     setShowFundingAssetModal(false);
     setShowFundMethodModal(true);
   };
-  const receiveAssetLabel = isRlusdCurrency(fundWalletForm.currency) ? 'RLUSD' : 'XRP';
-  const selectedReceiveAddress = isRlusdCurrency(fundWalletForm.currency)
+
+  useEffect(() => {
+    if (!showFundWalletModal || !fundViaAddress) return;
+    const keys = getDepositNetworksForCurrency(fundWalletForm.currency);
+    setDepositAddressNetwork((prev) => (keys.includes(prev) ? prev : keys[0]));
+  }, [showFundWalletModal, fundViaAddress, fundWalletForm.currency]);
+
+  useEffect(() => {
+    if (showFundWalletModal && fundViaAddress) {
+      setWalletBalancesRefreshTrigger((n) => n + 1);
+    }
+  }, [showFundWalletModal, fundViaAddress]);
+
+  const depositDisplayAddress = useMemo(() => {
+    if (!fundViaAddress) return '';
+    const fromApi =
+      walletBalanceRaw != null
+        ? resolveDepositAddressFromBalance(
+            walletBalanceRaw,
+            fundWalletForm.currency,
+            depositAddressNetwork
+          )
+        : '';
+    const fallback = isRlusdCurrency(fundWalletForm.currency)
+      ? (rlusdWalletAddress || walletAddress || '')
+      : (walletAddress || '');
+    return (fromApi || fallback || '').trim();
+  }, [
+    fundViaAddress,
+    walletBalanceRaw,
+    fundWalletForm.currency,
+    depositAddressNetwork,
+    walletAddress,
+    rlusdWalletAddress,
+  ]);
+
+  const walletDetailsAddress = selectedWalletDetails?.code === 'RLUSD'
     ? (rlusdWalletAddress || walletAddress)
     : walletAddress;
 
@@ -875,35 +1080,194 @@ const Dashboard = () => {
 
   // Helper function to get exchange rate between two currencies
   const getExchangeRate = (fromCurrency, toCurrency) => {
-    if (!exchangeRates || !Array.isArray(exchangeRates)) return null;
+    if (!fromCurrency || !toCurrency) return null;
     if (fromCurrency === toCurrency) return 1;
-    
-    // Try to find direct rate
-    const directRate = exchangeRates.find(rate => 
-      rate.from === fromCurrency && rate.to === toCurrency
-    );
-    if (directRate) return directRate.rate;
 
-    // Try reverse rate
-    const reverseRate = exchangeRates.find(rate => 
-      rate.from === toCurrency && rate.to === fromCurrency
-    );
-    if (reverseRate) return 1 / reverseRate.rate;
+    const rates = exchangeRates && Array.isArray(exchangeRates) ? exchangeRates : [];
 
-    // Fallback: try to find via USD if available
-    if (fromCurrency !== 'USD' && toCurrency !== 'USD') {
-      const fromToUsd = exchangeRates.find(rate => 
-        rate.from === fromCurrency && rate.to === 'USD'
+    if (rates.length > 0) {
+      const directRate = rates.find(
+        (rate) => rate.from === fromCurrency && rate.to === toCurrency
       );
-      const usdToTo = exchangeRates.find(rate => 
-        rate.from === 'USD' && rate.to === toCurrency
+      if (directRate != null && directRate.rate != null) {
+        const v = Number(directRate.rate);
+        if (Number.isFinite(v) && v > 0) return v;
+      }
+
+      const reverseRate = rates.find(
+        (rate) => rate.from === toCurrency && rate.to === fromCurrency
       );
-      if (fromToUsd && usdToTo) {
-        return fromToUsd.rate * usdToTo.rate;
+      if (reverseRate != null && reverseRate.rate != null) {
+        const rr = Number(reverseRate.rate);
+        if (Number.isFinite(rr) && rr > 0) return 1 / rr;
+      }
+
+      const directAlt = rates.find(
+        (r) => r.fromCurrency === fromCurrency && r.toCurrency === toCurrency
+      );
+      if (directAlt != null) {
+        const v = Number(directAlt.rate ?? directAlt.exchangeRate);
+        if (Number.isFinite(v) && v > 0) return v;
+      }
+
+      const reverseAlt = rates.find(
+        (r) => r.fromCurrency === toCurrency && r.toCurrency === fromCurrency
+      );
+      if (reverseAlt != null) {
+        const v = Number(reverseAlt.rate ?? reverseAlt.exchangeRate);
+        if (Number.isFinite(v) && v > 0) return 1 / v;
+      }
+
+      if (fromCurrency !== 'USD' && toCurrency !== 'USD') {
+        const fromToUsd = rates.find(
+          (rate) => rate.from === fromCurrency && rate.to === 'USD'
+        );
+        const usdToTo = rates.find(
+          (rate) => rate.from === 'USD' && rate.to === toCurrency
+        );
+        if (fromToUsd && usdToTo && fromToUsd.rate != null && usdToTo.rate != null) {
+          const a = Number(fromToUsd.rate);
+          const b = Number(usdToTo.rate);
+          if (Number.isFinite(a) && a > 0 && Number.isFinite(b) && b > 0) return a * b;
+        }
+      }
+
+      // api/exchange/rates shape: { currency: 'XRP', rate, ... } = USD per 1 unit
+      if (fromCurrency === 'XRP' && toCurrency === 'USD') {
+        const xrpRow = rates.find(
+          (r) => (r.currency || r.code || '').toUpperCase() === 'XRP'
+        );
+        const n = Number(xrpRow?.rate ?? xrpRow?.value);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+      if (fromCurrency === 'USD' && toCurrency === 'XRP') {
+        const xrpRow = rates.find(
+          (r) => (r.currency || r.code || '').toUpperCase() === 'XRP'
+        );
+        const n = Number(xrpRow?.rate ?? xrpRow?.value);
+        if (Number.isFinite(n) && n > 0) return 1 / n;
       }
     }
 
+    // Last resort: implied USD per XRP from dashboard totals (when rates array lacks XRP/USD pair)
+    if (fromCurrency === 'XRP' && toCurrency === 'USD') {
+      const dXrp = getBalanceValue(dashboardData, 'xrp');
+      const dUsd = getBalanceValue(dashboardData, 'usd');
+      if (dXrp > 0 && dUsd > 0) return dUsd / dXrp;
+    }
+    if (fromCurrency === 'USD' && toCurrency === 'XRP') {
+      const dXrp = getBalanceValue(dashboardData, 'xrp');
+      const dUsd = getBalanceValue(dashboardData, 'usd');
+      if (dXrp > 0 && dUsd > 0) return dXrp / dUsd;
+    }
+
     return null;
+  };
+
+  const computeDashboardTotalUsdDisplay = () => {
+    if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+      const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+      if (xrpToUsdRate) {
+        const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+        return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      const usdRate = exchangeRates.find(
+        (r) =>
+          (r.from === 'XRP' && r.to === 'USD') ||
+          r.currency === 'USD' ||
+          r.code === 'USD'
+      );
+      if (usdRate && usdRate.rate) {
+        const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
+        return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+    }
+    const usdBalance = getBalanceValue(dashboardData, 'usd');
+    if (usdBalance !== null && usdBalance !== undefined) {
+      return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
+      return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return '$0.00';
+  };
+
+  const computeDashboardXrpAmount = () => {
+    if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null) {
+      return Number(dashboardData.balance.xrp);
+    }
+    const v = getBalanceValue(dashboardData, 'xrp');
+    if (v !== null && v !== undefined) return Number(v);
+    return 0;
+  };
+
+  const formatWalletDetailsFiat = (value) => (
+    `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  );
+
+  const openWalletDetailsModal = (walletCode) => {
+    const code = String(walletCode || '').toUpperCase();
+    if (!code) return;
+
+    const amount = Number(walletBalances?.[code.toLowerCase()] ?? 0);
+    let usdValue = amount;
+    if (code === 'XRP') {
+      const xrpUsd = getExchangeRate('XRP', 'USD');
+      usdValue = xrpUsd != null && Number(xrpUsd) > 0 ? Number(amount) * Number(xrpUsd) : 0;
+    }
+
+    const config = WALLET_DETAILS_WALLETS[code];
+    if (!config) return;
+
+    setWalletDetailsPickerOpen(false);
+    if (code === 'USDT') {
+      setWalletDetailsNetwork('ERC20');
+    } else if (code === 'USDC') {
+      setWalletDetailsNetwork('BEP20');
+    }
+
+    setSelectedWalletDetails({
+      ...config,
+      amount,
+      usdValue: Number(usdValue) || 0,
+      exchangeLabel:
+        code === 'XRP'
+          ? (() => {
+              const r = getExchangeRate('XRP', 'USD');
+              return r != null && Number(r) > 0
+                ? `1 XRP = ${formatWalletDetailsFiat(r)}`
+                : '1 XRP — rate unavailable';
+            })()
+          : `1 ${code} = $1.00`,
+    });
+    setShowWalletDetailsModal(true);
+  };
+
+  const handleWalletDetailsAction = (action) => {
+    const code = selectedWalletDetails?.code || 'XRP';
+    setShowWalletDetailsModal(false);
+
+    if (action === 'deposit') {
+      setFundWalletForm((prev) => ({
+        ...prev,
+        currency: code === 'RLUSD' ? 'RLUSD' : code,
+      }));
+      setFundViaAddress(false);
+      setDepositAddressNetwork('XRPL');
+      setShowFundMethodModal(true);
+      return;
+    }
+
+    if (action === 'withdraw') {
+      setWithdrawWalletForm((prev) => ({
+        ...prev,
+        currency: code === 'XRP' ? 'XRP' : 'USD',
+      }));
+      setShowWithdrawWalletModal(true);
+      return;
+    }
+
+    toast('Convert flow is coming soon');
   };
 
   const fetchDashboardSummary = async () => {
@@ -1764,18 +2128,29 @@ const Dashboard = () => {
         if (response.ok) {
           const result = await response.json();
           console.log('Wallet balances API response data:', result);
+          setWalletBalanceRaw(result);
 
           // If backend includes an XRPL address, treat wallet as already created (same extraction as mount + header)
           const existingAddress = result?.xrplAddress || result?.xrpl_address || result?.data?.xrplAddress || result?.data?.xrpl_address || result?.data?.walletAddress;
+          const d = result?.data && typeof result.data === 'object' ? result.data : {};
+          const mergedFallback =
+            (typeof existingAddress === 'string' ? existingAddress : '') ||
+            d.xrplAddress ||
+            d.xrpl_address ||
+            d.walletAddress ||
+            d.address ||
+            '';
           if (
             result?.success &&
-            existingAddress &&
-            typeof existingAddress === 'string' &&
-            existingAddress.trim().length > 0
+            mergedFallback &&
+            typeof mergedFallback === 'string' &&
+            mergedFallback.trim().length > 0
           ) {
-            const addresses = extractWalletAddresses(result, existingAddress);
-            setWalletAddress(prev => prev || addresses.xrp);
-            setRlusdWalletAddress((prev) => prev || addresses.rlusd);
+            const addresses = extractWalletAddresses(result, mergedFallback.trim());
+            if (addresses.xrp) {
+              setWalletAddress(addresses.xrp);
+            }
+            setRlusdWalletAddress((prev) => addresses.rlusd || prev);
             setHasWallet(true);
           } else if (accountType === 'Business Suite') {
             setWalletAddress('');
@@ -2182,6 +2557,8 @@ const Dashboard = () => {
         setTransactionData(null);
         setFundingStep('idle');
         setIsFundingWallet(false);
+        setFundViaAddress(false);
+        setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
         return;
       }
@@ -2242,6 +2619,8 @@ const Dashboard = () => {
                 setTransactionData(null);
                 setFundingStep('idle');
                 setIsFundingWallet(false);
+                setFundViaAddress(false);
+                setDepositAddressNetwork('XRPL');
                 // Refresh dashboard data
                 await fetchDashboardSummary();
               } else if (statusResult.data?.cancelled || statusResult.data?.expired) {
@@ -3039,6 +3418,8 @@ const Dashboard = () => {
         setTransactionData(null);
         setFundingStep('idle');
         setIsFundingWallet(false);
+        setFundViaAddress(false);
+        setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
       } else {
         const errorMessage = submitResult.message || submitResult.error || 'Failed to submit transaction';
@@ -3434,50 +3815,19 @@ const Dashboard = () => {
         {/* Mobile Dashboard */}
         <div className="mobile-dashboard">
           {/* Mobile Header */}
-          <div className="mobile-dashboard-header">
-            <div className="mobile-header-left">
-              <div className="mobile-user-avatar">
-                {accountType === 'Business Suite' ? (
-                  businessCompanyLogoUrl ? (
-                    <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
-                  ) : isLoadingBusinessKyc ? (
-                    <LoadingIndicator size="sm" />
-                  ) : (
-                    businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
-                  )
-                ) : userAvatar ? (
-                  <img src={userAvatar} alt={userFullName} />
-                ) : (
-                  userInitials
-                )}
-              </div>
-              <div className="mobile-user-info">
-                <span className="mobile-user-name">
-                  {accountType === 'Business Suite' ? (
-                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                  ) : (
-                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                  )}
-                  <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-                </span>
-                <span className="mobile-user-role">
-                  {accountType === 'Business Suite' ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
-                </span>
-              </div>
-            </div>
-            <div className="mobile-header-right">
-              <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
-                <Bell size={20} />
-              </button>
-              <button 
-                type="button" 
-                className="mobile-header-menu"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                <Menu size={20} />
-              </button>
-            </div>
-          </div>
+          <PersonalSuiteMobileHeader
+            variant={accountType === 'Business Suite' ? 'business' : 'personal'}
+            userAvatar={userAvatar}
+            userInitials={userInitials}
+            userFullName={userFullName}
+            personalVerificationComplete={isKycCompleteForAccount}
+            businessVerificationComplete={businessKycComplete}
+            businessLogoUrl={businessCompanyLogoUrl}
+            businessName={businessCompanyName}
+            businessAvatarLoading={isLoadingBusinessKyc}
+            onOpenNotifications={() => setShowNotificationModal(true)}
+            onToggleMobileMenu={() => setIsMobileMenuOpen((o) => !o)}
+          />
 
           {/* Mobile Sidebar Overlay */}
           {isMobileMenuOpen && (
@@ -3552,7 +3902,8 @@ const Dashboard = () => {
                                      (item.label === 'Savings' && location.pathname === '/savings') ||
                                      (item.label === 'Trusticard' && location.pathname === '/trusticard') ||
                                      (item.label === 'Payroll' && location.pathname === '/payroll') ||
-                                     (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
+                                     (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                                     (item.label === 'Invoice' && location.pathname === '/invoice');
                     const handleNavClick = () => {
                       if (isDisabled) return;
                       setIsMobileMenuOpen(false);
@@ -3572,11 +3923,13 @@ const Dashboard = () => {
                       } else if (item.label === 'Savings') {
                         navigate('/savings');
                       } else if (item.label === 'Trusticard') {
-                        return;
+                        navigate('/trusticard');
                       } else if (item.label === 'Payroll') {
                         navigate('/payroll');
                       } else if (item.label === 'Supplier Contract') {
                         navigate('/supplier-contract');
+                      } else if (item.label === 'Invoice') {
+                        navigate('/invoice');
                       }
                     };
                     const navBadge = getNavBadge(item);
@@ -3712,74 +4065,74 @@ const Dashboard = () => {
           {/* Total Balance Card */}
           <div className="mobile-total-balance-card">
             <div className="mobile-balance-header">
-              <div className="mobile-balance-title">
-                <Wallet size={18} />
-                <span>Total Balance</span>
+              <div className="mobile-balance-header-left">
+                <div className="mobile-balance-title">
+                  <Wallet size={18} />
+                  <span>Total Balance</span>
+                </div>
+                <button type="button" onClick={() => setShowBalance(!showBalance)} className="mobile-eye-toggle">
+                  {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+                </button>
               </div>
-              <button type="button" onClick={() => setShowBalance(!showBalance)} className="mobile-eye-toggle">
-                {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
+              <TotalBalanceCurrencyPicker
+                menuContainerRef={balanceCurrencyMenuMobileRef}
+                value={balancePrimaryCurrency}
+                open={balanceCurrencyMenuOpen}
+                setOpen={setBalanceCurrencyMenuOpen}
+                onChange={setBalancePrimaryCurrency}
+              />
             </div>
             <div className="mobile-balance-amount">
-              {showBalance 
-                ? (isLoadingDashboard 
-                    ? <LoadingIndicator size="sm" />
-                    : (() => {
-                        // Calculate USD value from XRP using exchange rate from API
-                        if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
-                          // Try to find XRP to USD rate
-                          const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                          if (xrpToUsdRate) {
-                            const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-                            return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          }
-                          // Fallback: try to find USD rate from exchange rates array
-                          const usdRate = exchangeRates.find(r => 
-                            (r.from === 'XRP' && r.to === 'USD') || 
-                            (r.currency === 'USD' || r.code === 'USD')
-                          );
-                          if (usdRate && usdRate.rate) {
-                            const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-                            return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          }
-                        }
-                        // Fallback to dashboard USD if available
-                        const usdBalance = getBalanceValue(dashboardData, 'usd');
-                        if (usdBalance !== null && usdBalance !== undefined) {
-                          return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                        }
-                        return '$0.00';
-                      })())
-                : '••••••'}
+              {showBalance ? (
+                isLoadingDashboard ? (
+                  <LoadingIndicator size="sm" />
+                ) : balancePrimaryCurrency === 'USD' ? (
+                  computeDashboardTotalUsdDisplay()
+                ) : (
+                  `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
+                )
+              ) : (
+                '••••••'
+              )}
             </div>
             <div className="mobile-balance-xrp">
-              ≈ {(() => {
-                  const xrpBalance = getBalanceValue(dashboardData, 'xrp');
-                  if (isLoadingDashboard) {
-                    return <LoadingIndicator size="sm" />;
-                  }
-                  if (xrpBalance !== null && xrpBalance !== undefined) {
-                    return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                  }
-                  return '0.00';
-                })()} XRP
+              ≈{' '}
+              {balancePrimaryCurrency === 'USD' ? (
+                <>
+                  {(() => {
+                    const xrpBalance = getBalanceValue(dashboardData, 'xrp');
+                    if (isLoadingDashboard) {
+                      return <LoadingIndicator size="sm" />;
+                    }
+                    if (xrpBalance !== null && xrpBalance !== undefined) {
+                      return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                    return '0.00';
+                  })()}{' '}
+                  XRP
+                </>
+              ) : isLoadingDashboard ? (
+                <LoadingIndicator size="sm" />
+              ) : (
+                computeDashboardTotalUsdDisplay()
+              )}
             </div>
             <div className="mobile-balance-actions">
               <button 
                 type="button" 
                 className="mobile-fund-btn"
-                onClick={openFundingAssetModal}
+                onClick={() => setShowFundMethodModal(true)}
               >
                 <Plus size={16} />
-                Fund Wallet
+                Deposit
               </button>
               <button 
                 type="button" 
                 className="mobile-withdraw-btn"
-                onClick={() => setShowWithdrawWalletModal(true)}
+                onClick={() => navigate('/transactions', { state: { openSendModal: true } })}
               >
-                <Plus size={16} />
-                Withdraw
+                <Send size={16} />
+                Send
               </button>
             </div>
           </div>
@@ -4113,7 +4466,7 @@ const Dashboard = () => {
               <h3 className="mobile-section-title">Wallet Balance</h3>
             </div>
             <div className="mobile-wallet-list">
-              <div className="mobile-wallet-item">
+              <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('XRP')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('XRP')}>
                 <div className="mobile-wallet-icon-group">
                   <div className="mobile-wallet-icon">
                     <img 
@@ -4139,17 +4492,18 @@ const Dashboard = () => {
                   <span className="mobile-wallet-amount">
                     {showBalance 
                       ? (() => {
-                          if (walletBalances?.xrp && exchangeRates) {
-                            const xrpRate = exchangeRates.find(r => (r.currency || r.code || '').toUpperCase() === 'USD');
-                            if (xrpRate && xrpRate.rate) {
-                              const usdValue = Number(walletBalances.xrp) * Number(xrpRate.rate);
+                          if (walletBalances?.xrp != null && walletBalances?.xrp !== '') {
+                            const xrpToUsd = getExchangeRate('XRP', 'USD');
+                            if (xrpToUsd != null && Number(xrpToUsd) > 0) {
+                              const usdValue = Number(walletBalances.xrp) * Number(xrpToUsd);
                               return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                             }
                           }
-                          if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
-                            return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          }
-                          return isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00';
+                          return isLoadingWalletBalances || isLoadingRates ? (
+                            <LoadingIndicator size="sm" />
+                          ) : (
+                            '$0.00'
+                          );
                         })()
                       : '••••••'}
                   </span>
@@ -4159,11 +4513,11 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="mobile-wallet-item">
+              <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('RLUSD')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('RLUSD')}>
                 <div className="mobile-wallet-icon-group">
-                  <div className="mobile-wallet-icon usdc-icon">
+                  <div className="mobile-wallet-icon rlusd-icon">
                     <img
-                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                      src={WALLET_DETAILS_WALLETS.RLUSD.iconUrl}
                       alt="RLUSD"
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                     />
@@ -4194,7 +4548,7 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="mobile-wallet-item">
+              <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('USDT')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDT')}>
                 <div className="mobile-wallet-icon-group">
                   <div className="mobile-wallet-icon usdt-icon">
                     <img 
@@ -4231,7 +4585,7 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="mobile-wallet-item">
+              <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('USDC')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDC')}>
                 <div className="mobile-wallet-icon-group">
                   <div className="mobile-wallet-icon usdc-icon">
                     <img 
@@ -4439,64 +4793,66 @@ const Dashboard = () => {
         {/* Summary Cards */}
         <div className="dashboard-summary-cards">
           <div className="summary-card total-balance-card">
-            <div className="summary-card-header">
-              <h3>Total Balance</h3>
-              <button type="button" onClick={() => setShowBalance(!showBalance)} className="eye-toggle">
-                {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
+            <div className="summary-card-header total-balance-card-header">
+              <div className="total-balance-header-left">
+                <h3>Total Balance</h3>
+                <button type="button" onClick={() => setShowBalance(!showBalance)} className="eye-toggle">
+                  {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+                </button>
+              </div>
+              <TotalBalanceCurrencyPicker
+                menuContainerRef={balanceCurrencyMenuDesktopRef}
+                value={balancePrimaryCurrency}
+                open={balanceCurrencyMenuOpen}
+                setOpen={setBalanceCurrencyMenuOpen}
+                onChange={setBalancePrimaryCurrency}
+              />
             </div>
             <div className="summary-card-value-row">
               <div className="summary-card-value">
-                {showBalance 
-                  ? (isLoadingDashboard 
-                      ? <LoadingIndicator size="sm" />
-                      : (() => {
-                          // Calculate USD value from XRP using exchange rate from API
-                          if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
-                            // Try to find XRP to USD rate
-                            const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                            if (xrpToUsdRate) {
-                              const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            }
-                            // Fallback: try to find USD rate from exchange rates array
-                            const usdRate = exchangeRates.find(r => 
-                              (r.from === 'XRP' && r.to === 'USD') || 
-                              (r.currency === 'USD' || r.code === 'USD')
-                            );
-                            if (usdRate && usdRate.rate) {
-                              const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            }
-                          }
-                          // Fallback to dashboard USD if available
-                          if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
-                            return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          }
-                          return '$0.00';
-                        })())
-                  : '••••••'}
+                {showBalance ? (
+                  isLoadingDashboard ? (
+                    <LoadingIndicator size="sm" />
+                  ) : balancePrimaryCurrency === 'USD' ? (
+                    computeDashboardTotalUsdDisplay()
+                  ) : (
+                    `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
+                  )
+                ) : (
+                  '••••••'
+                )}
               </div>
               <div className="summary-card-subvalue">
-                ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
-                    ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.000000')} XRP
+                ≈{' '}
+                {balancePrimaryCurrency === 'USD' ? (
+                  isLoadingDashboard ? (
+                    <LoadingIndicator size="sm" />
+                  ) : (
+                    `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
+                  )
+                ) : isLoadingDashboard ? (
+                  <LoadingIndicator size="sm" />
+                ) : (
+                  computeDashboardTotalUsdDisplay()
+                )}
               </div>
             </div>
             <div className="summary-card-actions">
               <button 
                 type="button" 
                 className="summary-card-btn primary"
-                onClick={openFundingAssetModal}
+                onClick={() => setShowFundMethodModal(true)}
               >
-                + Fund Wallet
+                <Plus size={16} strokeWidth={2.5} aria-hidden />
+                Deposit
               </button>
               <button 
                 type="button" 
                 className="summary-card-btn secondary"
-                onClick={() => setShowWithdrawWalletModal(true)}
+                onClick={() => navigate('/transactions', { state: { openSendModal: true } })}
               >
-                + Withdraw
+                <Send size={16} strokeWidth={2} aria-hidden />
+                Send
               </button>
             </div>
           </div>
@@ -4835,15 +5191,15 @@ const Dashboard = () => {
                       const getStatusBadge = (status) => {
                         const statusLower = (status || '').toLowerCase();
                         if (statusLower === 'active') {
-                          return { class: 'pending', label: 'Active' };
+                          return { class: 'active', label: 'Active' };
                         } else if (statusLower === 'pending' || statusLower === 'pending release') {
-                          return { class: 'pending', label: 'Pending release' };
+                          return { class: 'pending-release', label: 'Pending release' };
                         } else if (statusLower === 'review' || statusLower === 'under review') {
                           return { class: 'review', label: 'Under Review' };
                         } else if (statusLower === 'completed' || statusLower === 'complete') {
                           return { class: 'completed', label: 'Completed' };
                         } else {
-                          return { class: 'pending', label: status || 'Unknown' };
+                          return { class: 'unknown', label: status || 'Unknown' };
                         }
                       };
                       
@@ -5007,7 +5363,7 @@ const Dashboard = () => {
             <div className="wallet-balance-card">
               <h3>Wallet Balance</h3>
               <div className="wallet-list">
-                <div className="wallet-item">
+                <div className="wallet-item" onClick={() => openWalletDetailsModal('XRP')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('XRP')}>
                   <div className="wallet-icon-group">
                     <div className="wallet-icon">
                       <img 
@@ -5031,19 +5387,18 @@ const Dashboard = () => {
                     <span className="wallet-amount">
                       {showBalance 
                         ? (() => {
-                            // Calculate USD value for XRP using exchange rate if available
-                            if (walletBalances?.xrp && exchangeRates) {
-                              const xrpRate = exchangeRates.find(r => (r.currency || r.code || '').toUpperCase() === 'USD');
-                              if (xrpRate && xrpRate.rate) {
-                                const usdValue = Number(walletBalances.xrp) * Number(xrpRate.rate);
+                            if (walletBalances?.xrp != null && walletBalances?.xrp !== '') {
+                              const xrpToUsd = getExchangeRate('XRP', 'USD');
+                              if (xrpToUsd != null && Number(xrpToUsd) > 0) {
+                                const usdValue = Number(walletBalances.xrp) * Number(xrpToUsd);
                                 return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                               }
                             }
-                            // Fallback to dashboard total USD if available
-                            if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
-                              return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            }
-                            return isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00';
+                            return isLoadingWalletBalances || isLoadingRates ? (
+                              <LoadingIndicator size="sm" />
+                            ) : (
+                              '$0.00'
+                            );
                           })()
                         : '••••••'}
                     </span>
@@ -5053,11 +5408,11 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                <div className="wallet-item">
+                <div className="wallet-item" onClick={() => openWalletDetailsModal('RLUSD')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('RLUSD')}>
                   <div className="wallet-icon-group">
-                    <div className="wallet-icon usdc-icon">
+                    <div className="wallet-icon rlusd-icon">
                       <img
-                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                        src={WALLET_DETAILS_WALLETS.RLUSD.iconUrl}
                         alt="RLUSD"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                       />
@@ -5086,7 +5441,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                <div className="wallet-item">
+                <div className="wallet-item" onClick={() => openWalletDetailsModal('USDT')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDT')}>
                   <div className="wallet-icon-group">
                     <div className="wallet-icon usdt-icon">
                       <img 
@@ -5119,7 +5474,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                <div className="wallet-item">
+                <div className="wallet-item" onClick={() => openWalletDetailsModal('USDC')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDC')}>
                   <div className="wallet-icon-group">
                     <div className="wallet-icon usdc-icon">
                       <img 
@@ -5652,9 +6007,10 @@ const Dashboard = () => {
                 Transaction: '/transactions',
                 Dispute: accountType === 'Business Suite' ? '/business-dispute' : '/dispute',
                 Savings: '/savings',
-                Trusticard: null,
+                Trusticard: '/trusticard',
                 Payroll: '/payroll',
                 'Supplier Contract': '/supplier-contract',
+                Invoice: '/invoice',
               };
 
               const targetPath = routeByLabel[item.label];
@@ -5841,6 +6197,10 @@ const Dashboard = () => {
             {accountType === 'Business Suite' || isKycCompleteForAccount ? (
               <>
                 <div className="account-type-buttons">
+                  <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                    <span className="header-trustiscore-label">TrustiScore</span>
+                    <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+                  </div>
                   <button 
                     type="button" 
                     className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
@@ -5966,17 +6326,7 @@ const Dashboard = () => {
                 ) : (
                   userInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {accountType === 'Business Suite' ? (
-                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                  ) : (
-                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                  )}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
+                <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
               </div>
             </div>
           </div>
@@ -6179,39 +6529,13 @@ const Dashboard = () => {
             </div>
 
             <div className="notification-list">
-              {Array.isArray(notifications) && notifications.length > 0 ? (
-                notifications.map((n, idx) => {
-                  const isUnread = !n?.isRead;
-                  const { Icon, className } = getNotificationIconConfig(n?.type);
-                  const message = n?.message || 'N/A';
-                  return (
-                    <div
-                      key={n?.id || `notification-${idx}`}
-                      className={`notification-item ${isUnread ? 'unread' : ''}`}
-                      onClick={() => {
-                        if (isUnread) handleMarkNotificationRead(n?.id);
-                      }}
-                    >
-                      <div className="notification-bell-icon">
-                        <Bell size={16} />
-                        {isUnread && <span className="notification-bell-dot"></span>}
-                      </div>
-                      <div className="notification-content">
-                        <div className="notification-message-wrapper">
-                          <Icon size={18} className={className} />
-                          <p className="notification-message">{message}</p>
-                        </div>
-                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
-                      </div>
-                      {isUnread && <div className="notification-unread-dot"></div>}
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  N/A
-                </div>
-              )}
+              <NotificationListItems
+                notifications={notifications}
+                expandedNotificationId={expandedNotificationId}
+                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                onMarkRead={handleMarkNotificationRead}
+                formatTimeAgo={formatTimeAgo}
+              />
             </div>
           </div>
         </div>
@@ -6220,124 +6544,47 @@ const Dashboard = () => {
       {/* Live Escrow detail (tap row / card on dashboard) */}
       {showEscrowDetailModal && selectedEscrowDetail && (
         <div
-          className="notification-modal-overlay"
+          className="create-escrow-modal-overlay escrow-detail-modal-overlay"
           onClick={() => {
             setShowEscrowDetailModal(false);
             setSelectedEscrowDetail(null);
           }}
         >
           <div
-            className="notification-modal escrow-detail-dashboard-modal"
+            className="create-escrow-modal escrow-detail-modal"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="escrow-detail-dashboard-modal-title"
           >
-            <div className="notification-modal-header escrow-detail-dashboard-header">
-              <div className="notification-header-content">
-                <div className="notification-header-accent" />
-                <h2>Escrow details</h2>
+            <div className="create-escrow-modal-header escrow-detail-modal-header">
+              <div className="modal-header-leading">
+                <span className="modal-header-accent-bar" aria-hidden />
+                <h2 id="escrow-detail-dashboard-modal-title" className="escrow-detail-modal-title">
+                  Escrow Details
+                </h2>
               </div>
               <button
                 type="button"
-                className="notification-close-btn"
+                className="modal-close-btn"
                 onClick={() => {
                   setShowEscrowDetailModal(false);
                   setSelectedEscrowDetail(null);
                 }}
                 aria-label="Close"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
-            <div className="escrow-detail-dashboard-content">
-              {(() => {
-                const escrow = selectedEscrowDetail;
-                const rawId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
-                const formattedId = rawId ? String(rawId) : '—';
-                const counterpartyName =
-                  escrow.counterpartyName || escrow.counterparty?.name || escrow.receiverName || 'Unknown';
-                const payerLabel =
-                  escrow.initiatorName || escrow.payerName || escrow.payer?.name || escrow.senderName || '—';
-                const xrpRaw = escrow.amount?.xrp ?? escrow.amount?.XRP ?? escrow.xrpAmount;
-                const usdRaw = escrow.amount?.usd ?? escrow.amount?.USD ?? escrow.usdAmount ?? escrow.totalAmount;
-                const xrpAmount =
-                  xrpRaw != null && xrpRaw !== ''
-                    ? Number(xrpRaw).toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 6,
-                      })
-                    : '0.00';
-                let usdDisplay = usdRaw;
-                if (usdDisplay == null && xrpRaw != null && exchangeRates?.length) {
-                  const xrpRate = exchangeRates.find(
-                    (r) => (r.currency || r.code || '').toUpperCase() === 'XRP'
-                  );
-                  if (xrpRate?.rate) {
-                    usdDisplay = Number(xrpRaw) * Number(xrpRate.rate);
-                  }
-                }
-                const usdAmount =
-                  usdDisplay != null && usdDisplay !== ''
-                    ? Number(usdDisplay).toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })
-                    : '0.00';
-                const status = escrow.status || escrow.escrowStatus || 'Unknown';
-                const progress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0) || 0;
-                const createdDate = escrow.createdAt || escrow.created || '';
-                const formattedDate = createdDate
-                  ? new Date(createdDate).toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    })
-                  : 'N/A';
-                const detailRow = (label, value) => (
-                  <div
-                    key={label}
-                    className="escrow-detail-dashboard-row"
-                  >
-                    <span className="escrow-detail-dashboard-label">{label}</span>
-                    <span className="escrow-detail-dashboard-value">{value}</span>
-                  </div>
-                );
-                return (
-                  <>
-                    {detailRow('Escrow ID', formattedId)}
-                    {detailRow('From (payer)', payerLabel)}
-                    {detailRow('To (counterparty)', counterpartyName)}
-                    {detailRow('Amount', `${xrpAmount} XRP ≈ $${usdAmount}`)}
-                    {detailRow('Status', status)}
-                    {detailRow(
-                      'Progress',
-                      `${Math.min(100, Math.max(0, Math.round(progress)))}%`
-                    )}
-                    {detailRow('Created', formattedDate)}
-                    <div className="escrow-detail-dashboard-actions">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowEscrowDetailModal(false);
-                          setSelectedEscrowDetail(null);
-                          navigate('/my-escrow');
-                        }}
-                        className="escrow-detail-dashboard-manage-btn"
-                      >
-                        Manage in My Escrow
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowEscrowDetailModal(false);
-                          setSelectedEscrowDetail(null);
-                        }}
-                        className="escrow-detail-dashboard-close-btn"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </>
-                );
-              })()}
+            <div className="create-escrow-modal-content escrow-detail-modal-content">
+              <EscrowDetailModalBody
+                escrow={selectedEscrowDetail}
+                exchangeRate={getExchangeRate('XRP', 'USD') ?? undefined}
+                onDispute={() => {
+                  navigate('/dispute');
+                  setShowEscrowDetailModal(false);
+                  setSelectedEscrowDetail(null);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -6417,8 +6664,8 @@ const Dashboard = () => {
                     }}
                   >
                     <img
-                      src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                      alt="Ripple"
+                      src={WALLET_DETAILS_WALLETS.RLUSD.iconUrl}
+                      alt="RLUSD"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   </div>
@@ -6485,7 +6732,7 @@ const Dashboard = () => {
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Receive</h2>
+                <h2>Deposit</h2>
               </div>
               <button 
                 type="button" 
@@ -6504,11 +6751,8 @@ const Dashboard = () => {
                   type="button"
                   onClick={() => {
                     setShowFundMethodModal(false);
-                    if (!isWalletConnectedViaAPI) {
-                      setShowConnectWalletModal(true);
-                    }
+                    setShowConnectWalletModal(true);
                   }}
-                  disabled={isWalletConnectedViaAPI}
                   style={{
                     width: '100%',
                     padding: '1rem 1.25rem',
@@ -6850,12 +7094,28 @@ const Dashboard = () => {
 
       {/* Fund Wallet Modal (Receive on personal platform) */}
       {showFundWalletModal && (
-        <div className="notification-modal-overlay" onClick={() => setShowFundWalletModal(false)}>
-          <div className="notification-modal fund-wallet-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`notification-modal-overlay${fundViaAddress ? ' deposit-address-overlay' : ''}`}
+          onClick={() => {
+            if (!isFundingWallet || fundingStep === 'idle') {
+              setShowFundWalletModal(false);
+              setFundWalletForm({ amount: '', currency: 'XRP' });
+              setTransactionData(null);
+              setFundingStep('idle');
+              setIsFundingWallet(false);
+              setFundViaAddress(false);
+              setDepositAddressNetwork('XRPL');
+            }
+          }}
+        >
+          <div
+            className={`notification-modal ${fundViaAddress ? 'fund-wallet-transfer-modal deposit-address-flow' : 'fund-wallet-modal'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Receive</h2>
+                <h2>Deposit</h2>
               </div>
               <button 
                 type="button" 
@@ -6867,6 +7127,7 @@ const Dashboard = () => {
                   setFundingStep('idle');
                   setIsFundingWallet(false);
                   setFundViaAddress(false);
+                  setDepositAddressNetwork('XRPL');
                 }}
                 disabled={isFundingWallet && fundingStep !== 'idle'}
               >
@@ -6874,279 +7135,233 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Progress Indicator */}
-            {isFundingWallet && fundingStep !== 'idle' && (
-              <div className="fund-wallet-progress" style={{ padding: '15px 20px', borderBottom: '1px solid #e0e0e0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    backgroundColor: fundingStep === 'preparing' ? '#4f46e5' : fundingStep === 'signing' ? '#4f46e5' : fundingStep === 'completing' ? '#4f46e5' : '#e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                  }}>
-                    {fundingStep === 'preparing' ? '1' : fundingStep === 'signing' ? '2' : fundingStep === 'completing' ? '3' : ''}
-                  </div>
-                  <span style={{ fontSize: '14px', fontWeight: '500' }}>
-                    {fundingStep === 'preparing' && 'Preparing transaction...'}
-                    {fundingStep === 'signing' && (
-                      transactionData?.xummUrl 
-                        ? 'Please sign in your Xaman wallet...' 
-                        : 'Please sign in your browser wallet (Crossmark)...'
-                    )}
-                    {fundingStep === 'completing' && 'Completing transaction...'}
-                  </span>
-                </div>
-                {fundingStep === 'signing' && (
-                  <div style={{ fontSize: '12px', color: '#666', marginLeft: '30px' }}>
-                    {transactionData?.xummUrl 
-                      ? 'A window should open to your Xaman wallet. Please sign the transaction there.'
-                      : 'Please approve the transaction in your Crossmark wallet extension popup.'
-                    }
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Wallet Connection Status */}
-            {isWalletConnectedViaAPI && isConnected && account && (() => {
-              const isXamanConnected = localStorage.getItem('xamanWalletConnected') === 'true';
-              const isMetamaskConnected = localStorage.getItem('metamaskWalletConnected') === 'true';
-              const walletName = isXamanConnected ? 'XAMAN' : isMetamaskConnected ? 'MetaMask' : 'Wallet';
-              
-              return (
-                <div style={{
-                  padding: '1rem 1.25rem',
-                  margin: '0 1.25rem',
-                  background: '#f0f9ff',
-                  border: '1px solid #2F74FF',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1rem'
-                }}>
-                  <CheckCircle size={20} color="#2F74FF" />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2F74FF', marginBottom: '0.25rem' }}>
-                      {walletName} Connected
+            {fundViaAddress ? (
+              <div className="fund-wallet-transfer-modal-content deposit-address-modal-content">
+                <div className="fund-wallet-transfer-form-group">
+                  <span className="fund-wallet-transfer-label">Currency</span>
+                  <div className="deposit-currency-pill">
+                    <div className="fund-wallet-transfer-currency-badge">
+                      <img
+                        src={DEPOSIT_ADDRESS_CURRENCY_ICON[fundWalletForm.currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP}
+                        alt=""
+                      />
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
-                      {account.slice(0, 6)}...{account.slice(-4)}
-                    </div>
+                    <select
+                      id="dashboard-deposit-fund-currency"
+                      className="deposit-currency-native"
+                      value={fundWalletForm.currency}
+                      onChange={(e) =>
+                        setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
+                      }
+                      aria-label="Currency"
+                    >
+                      <option value="XRP">XRP wallet</option>
+                      <option value="RLUSD">RLUSD wallet</option>
+                      <option value="USDT">USDT wallet</option>
+                      <option value="USDC">USDC wallet</option>
+                    </select>
+                    <ChevronDown size={16} className="deposit-currency-chevron" aria-hidden />
                   </div>
                 </div>
-              );
-            })()}
 
-            <form onSubmit={handleFundWallet} className="fund-wallet-form">
-              {!fundViaAddress && (
-                <div className="form-group">
-                  <label htmlFor="fund-amount">Amount</label>
-                  <input
-                    id="fund-amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="Enter amount"
-                    value={fundWalletForm.amount}
-                    onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
-                    required
-                    disabled={isFundingWallet}
-                  />
+                <div className="fund-wallet-transfer-form-group">
+                  <span className="fund-wallet-transfer-label">Network</span>
+                  <div className="deposit-network-pill">
+                    <select
+                      id="dashboard-deposit-fund-network"
+                      className="deposit-network-native"
+                      value={depositAddressNetwork}
+                      onChange={(e) => setDepositAddressNetwork(e.target.value)}
+                      aria-label="Network"
+                    >
+                      {getDepositNetworksForCurrency(fundWalletForm.currency).map((key) => (
+                        <option key={key} value={key}>
+                          {depositAddressNetworkLabel(key)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="deposit-network-chevron" aria-hidden />
+                  </div>
                 </div>
-              )}
 
-              <div className="form-group">
-                <label htmlFor="fund-currency">Wallets</label>
-                <select
-                  id="fund-currency"
-                  value={fundWalletForm.currency}
-                  onChange={(e) => {
-                    const selectedValue = e.target.value;
-                    console.log('Dropdown changed - selected wallet type:', selectedValue);
-                    setFundWalletForm(prev => {
-                      console.log('Previous form state:', prev);
-                      const updated = { ...prev, currency: selectedValue };
-                      console.log('Updated form state:', updated);
-                      return updated;
-                    });
-                  }}
-                  disabled={isFundingWallet}
-                >
-                  <option value="XRP">XRP</option>
-                  <option value="RLUSD">Ripple (RLUSD)</option>
-                  <option value="USDT">USDT</option>
-                  <option value="USDC">USDC</option>
-                </select>
-              </div>
-
-              <div className="fund-wallet-actions">
-                {fundViaAddress ? (
-                  selectedReceiveAddress ? (
-                    <>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        padding: '0',
-                        width: '100%'
-                      }}>
-                        <p style={{
-                          fontSize: '0.95rem',
-                          color: '#666',
-                          textAlign: 'center',
-                          margin: 0
-                        }}>
-                          Scan this QR code to send funds to your {receiveAssetLabel} wallet address
-                        </p>
-
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          padding: '0.75rem',
-                          background: '#ffffff',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '0.75rem',
-                          minHeight: '200px',
-                          width: '100%',
-                          maxWidth: '300px'
-                        }}>
-                          <QRCode
-                            value={selectedReceiveAddress}
-                            size={256}
-                            style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                            viewBox="0 0 256 256"
-                          />
+                <div className="fund-wallet-transfer-form-group">
+                  <span className="fund-wallet-transfer-label">Scan</span>
+                  {isLoadingWalletBalances && !depositDisplayAddress ? (
+                    <div className="deposit-address-scan-loading">
+                      <LoadingIndicator size="md" />
+                      <span>Loading deposit address from your wallet…</span>
+                    </div>
+                  ) : depositDisplayAddress ? (
+                    <div className="fund-wallet-transfer-address-section deposit-scan-address-section">
+                      <div className="fund-wallet-transfer-qr-code deposit-address-qr">
+                        <QRCode
+                          value={depositDisplayAddress}
+                          size={120}
+                          style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                          viewBox="0 0 256 256"
+                        />
+                      </div>
+                      <div className="deposit-scan-address-inline">
+                        <div className="deposit-scan-address-lines" translate="no">
+                          {splitDepositAddressLines(depositDisplayAddress).map((line, i) => (
+                            <span key={i}>{line}</span>
+                          ))}
                         </div>
-
-                        <div style={{
-                          padding: '0.5rem',
-                          background: '#f9fafb',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '0.75rem',
-                          wordBreak: 'break-all',
-                          fontFamily: 'monospace',
-                          fontSize: '0.85rem',
-                          color: '#374151',
-                          textAlign: 'left',
-                          width: '100%',
-                          maxWidth: '300px'
-                        }}>
-                          {selectedReceiveAddress}
-                        </div>
-
-                        <div
-                          style={{
-                            width: '100%',
-                            maxWidth: '300px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.4rem',
-                            marginTop: '0.35rem',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '0.78rem',
-                              color: '#6b7280',
-                              fontFamily: 'monospace',
-                              wordBreak: 'break-all',
-                            }}
-                          >
-                            XRP: {walletAddress || 'N/A'}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '0.78rem',
-                              color: '#6b7280',
-                              fontFamily: 'monospace',
-                              wordBreak: 'break-all',
-                            }}
-                          >
-                            RLUSD: {rlusdWalletAddress || walletAddress || 'N/A'}
-                          </div>
-                        </div>
-
                         <button
                           type="button"
+                          className="fund-wallet-transfer-copy-btn deposit-scan-copy-btn"
                           onClick={async () => {
                             try {
-                              await navigator.clipboard.writeText(selectedReceiveAddress);
-                              toast.success(`${receiveAssetLabel} wallet address copied to clipboard`);
+                              await navigator.clipboard.writeText(depositDisplayAddress);
+                              toast.success('Address copied to clipboard');
                             } catch (err) {
                               console.error('Failed to copy wallet address:', err);
-                              toast.error('Failed to copy wallet address');
+                              toast.error('Failed to copy address');
                             }
                           }}
-                          style={{
-                            width: '100%',
-                            maxWidth: '300px',
-                            padding: '0.6rem 1rem',
-                            background: '#2F74FF',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            fontFamily: 'Satoshi, Inter, sans-serif',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.background = '#2563eb';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.background = '#2F74FF';
-                          }}
+                          aria-label="Copy address"
                         >
-                          <Copy size={16} />
-                          Copy Address
+                          <Copy size={18} />
                         </button>
                       </div>
-                    </>
-                  ) : (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '2rem',
-                      textAlign: 'center'
-                    }}>
-                      <p style={{
-                        fontSize: '0.95rem',
-                        color: '#666',
-                        margin: 0
-                      }}>
-                        No wallet address found. Please create a wallet first.
-                      </p>
-                      <button
-                        type="button"
-                        className="fund-wallet-btn cancel"
-                        onClick={() => {
-                          setShowFundWalletModal(false);
-                          setFundViaAddress(false);
-                        }}
-                        style={{ width: '100%' }}
-                      >
-                        Close
-                      </button>
                     </div>
-                  )
-                ) : (
-                  <>
+                  ) : (
+                    <p className="deposit-address-empty-message">
+                      No deposit address returned from the server. Create or connect a wallet, then try again.
+                    </p>
+                  )}
+                </div>
+
+                <div className="fund-wallet-transfer-actions">
+                  <button
+                    type="button"
+                    className="fund-wallet-transfer-preview-btn"
+                    onClick={() => {
+                      setShowFundWalletModal(false);
+                      setFundWalletForm({ amount: '', currency: 'XRP' });
+                      setTransactionData(null);
+                      setFundingStep('idle');
+                      setIsFundingWallet(false);
+                      setFundViaAddress(false);
+                      setDepositAddressNetwork('XRPL');
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+
+                <div className="fund-wallet-transfer-info-message">
+                  <div className="fund-wallet-transfer-info-icon">
+                    <Info size={16} />
+                  </div>
+                  <span>Recipient gets the funds immediately—or a full refund applies.</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {isFundingWallet && fundingStep !== 'idle' && (
+                  <div className="fund-wallet-progress" style={{ padding: '15px 20px', borderBottom: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: fundingStep === 'preparing' ? '#4f46e5' : fundingStep === 'signing' ? '#4f46e5' : fundingStep === 'completing' ? '#4f46e5' : '#e0e0e0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {fundingStep === 'preparing' ? '1' : fundingStep === 'signing' ? '2' : fundingStep === 'completing' ? '3' : ''}
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                        {fundingStep === 'preparing' && 'Preparing transaction...'}
+                        {fundingStep === 'signing' && (
+                          transactionData?.xummUrl 
+                            ? 'Please sign in your Xaman wallet...' 
+                            : 'Please sign in your browser wallet (Crossmark)...'
+                        )}
+                        {fundingStep === 'completing' && 'Completing transaction...'}
+                      </span>
+                    </div>
+                    {fundingStep === 'signing' && (
+                      <div style={{ fontSize: '12px', color: '#666', marginLeft: '30px' }}>
+                        {transactionData?.xummUrl 
+                          ? 'A window should open to your Xaman wallet. Please sign the transaction there.'
+                          : 'Please approve the transaction in your Crossmark wallet extension popup.'
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isWalletConnectedViaAPI && isConnected && account && (() => {
+                  const isXamanConnected = localStorage.getItem('xamanWalletConnected') === 'true';
+                  const isMetamaskConnected = localStorage.getItem('metamaskWalletConnected') === 'true';
+                  const walletName = isXamanConnected ? 'XAMAN' : isMetamaskConnected ? 'MetaMask' : 'Wallet';
+                  
+                  return (
+                    <div style={{
+                      padding: '1rem 1.25rem',
+                      margin: '0 1.25rem',
+                      background: '#f0f9ff',
+                      border: '1px solid #2F74FF',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <CheckCircle size={20} color="#2F74FF" />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2F74FF', marginBottom: '0.25rem' }}>
+                          {walletName} Connected
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
+                          {account.slice(0, 6)}...{account.slice(-4)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <form onSubmit={handleFundWallet} className="fund-wallet-form">
+                  <div className="form-group">
+                    <label htmlFor="fund-amount">Amount</label>
+                    <input
+                      id="fund-amount"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="Enter amount"
+                      value={fundWalletForm.amount}
+                      onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
+                      required
+                      disabled={isFundingWallet}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="fund-currency">Wallets</label>
+                    <select
+                      id="fund-currency"
+                      value={fundWalletForm.currency}
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        setFundWalletForm(prev => ({ ...prev, currency: selectedValue }));
+                      }}
+                      disabled={isFundingWallet}
+                    >
+                      <option value="XRP">XRP</option>
+                      <option value="RLUSD">Ripple (RLUSD)</option>
+                      <option value="USDT">USDT</option>
+                      <option value="USDC">USDC</option>
+                    </select>
+                  </div>
+
+                  <div className="fund-wallet-actions">
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
@@ -7157,6 +7372,7 @@ const Dashboard = () => {
                         setFundingStep('idle');
                         setIsFundingWallet(false);
                         setFundViaAddress(false);
+                        setDepositAddressNetwork('XRPL');
                       }}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
                     >
@@ -7173,10 +7389,10 @@ const Dashboard = () => {
                       {!isFundingWallet && 'Fund Wallet'}
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
-                  </>
-                )}
-              </div>
-            </form>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -7239,6 +7455,178 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showWalletDetailsModal && selectedWalletDetails && (
+        <div
+          className="wallet-details-modal-overlay"
+          onClick={() => {
+            setWalletDetailsPickerOpen(false);
+            setShowWalletDetailsModal(false);
+          }}
+        >
+          <div className="wallet-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="wallet-details-modal-header">
+              <h2 className="wallet-details-modal-title">Wallet Details</h2>
+              <button
+                type="button"
+                className="wallet-details-close-btn"
+                onClick={() => {
+                  setWalletDetailsPickerOpen(false);
+                  setShowWalletDetailsModal(false);
+                }}
+                aria-label="Close"
+              >
+                <X size={22} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="wallet-details-top-card">
+              <div className="wallet-details-selector-wrap">
+                <button
+                  type="button"
+                  className="wallet-details-wallet-selector"
+                  onClick={() => setWalletDetailsPickerOpen((o) => !o)}
+                  aria-expanded={walletDetailsPickerOpen}
+                  aria-haspopup="listbox"
+                >
+                  <div className="wallet-details-icon-wrap">
+                    <img src={selectedWalletDetails.iconUrl} alt="" />
+                  </div>
+                  <span className="wallet-details-selector-label">{selectedWalletDetails.name}</span>
+                  <ChevronDown
+                    size={20}
+                    className={`wallet-details-selector-chevron${walletDetailsPickerOpen ? ' is-open' : ''}`}
+                    aria-hidden
+                  />
+                </button>
+                {walletDetailsPickerOpen ? (
+                  <ul className="wallet-details-wallet-picker" role="listbox">
+                    {WALLET_DETAILS_ORDER.map((wc) => {
+                      const cfg = WALLET_DETAILS_WALLETS[wc];
+                      if (!cfg) return null;
+                      const isActive = wc === selectedWalletDetails.code;
+                      return (
+                        <li key={wc}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={isActive}
+                            className={isActive ? 'is-current' : undefined}
+                            onClick={() => openWalletDetailsModal(wc)}
+                          >
+                            <span className="wallet-details-picker-icon-wrap">
+                              <img src={cfg.iconUrl} alt="" />
+                            </span>
+                            {cfg.name}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
+
+              <p className="wallet-details-total">{formatWalletDetailsFiat(selectedWalletDetails.usdValue)}</p>
+              <p className="wallet-details-exchange-caption">
+                Exchange rate: {selectedWalletDetails.exchangeLabel}
+              </p>
+
+              <div className="wallet-details-actions">
+                <button type="button" className="wallet-details-action-btn" onClick={() => handleWalletDetailsAction('deposit')}>
+                  <Plus size={18} strokeWidth={2.25} />
+                  Deposit
+                </button>
+                <button type="button" className="wallet-details-action-btn" onClick={() => handleWalletDetailsAction('convert')}>
+                  <Repeat size={18} strokeWidth={2.25} />
+                  Convert
+                </button>
+                <button type="button" className="wallet-details-action-btn" onClick={() => handleWalletDetailsAction('withdraw')}>
+                  <Send size={18} strokeWidth={2.25} />
+                  Send
+                </button>
+              </div>
+            </div>
+
+            {(selectedWalletDetails.code === 'USDT' || selectedWalletDetails.code === 'USDC') ? (
+              <div className="wallet-details-network-block">
+                <p className="wallet-details-network-label">Wallet Network</p>
+                <div className="wallet-details-network-segments" role="tablist">
+                  {(WALLET_DETAILS_NETWORK_KEYS[selectedWalletDetails.code] || []).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={walletDetailsNetwork === key}
+                      className={walletDetailsNetwork === key ? 'is-active' : undefined}
+                      onClick={() => setWalletDetailsNetwork(key)}
+                    >
+                      {walletDetailsNetworkLabel(key)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="wallet-details-address-card">
+              <div className="wallet-details-qr-wrap">
+                <QRCode
+                  value={walletDetailsAddress || 'N/A'}
+                  size={128}
+                  bgColor="#ffffff"
+                  fgColor="#111827"
+                />
+              </div>
+              <div className="wallet-details-address-info">
+                <p>{walletDetailsAddress || 'Address not available yet'}</p>
+                <button
+                  type="button"
+                  className="wallet-details-copy-icon-btn"
+                  onClick={async () => {
+                    try {
+                      if (!walletDetailsAddress) {
+                        toast.error('No wallet address available');
+                        return;
+                      }
+                      await navigator.clipboard.writeText(walletDetailsAddress);
+                      toast.success('Address copied');
+                    } catch (err) {
+                      console.error('Failed to copy wallet address:', err);
+                      toast.error('Failed to copy wallet address');
+                    }
+                  }}
+                  aria-label="Copy wallet address"
+                >
+                  <Copy size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="wallet-details-meta-list">
+              <div className="wallet-details-meta-row">
+                <span>Rate</span>
+                <strong>{selectedWalletDetails.exchangeLabel}</strong>
+              </div>
+              <div className="wallet-details-meta-row">
+                <span>Wallet Address</span>
+                <strong className="wallet-details-meta-address-strong">
+                  {formatWalletDetailsAddressShort(walletDetailsAddress)}
+                </strong>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="wallet-details-done-btn"
+              onClick={() => {
+                setWalletDetailsPickerOpen(false);
+                setShowWalletDetailsModal(false);
+              }}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

@@ -21,3 +21,35 @@
   opacity: 1;
   transition: filter 0.3s ease, opacity 0.3s ease;
 }
+
+/* react-hot-toast — TrustiChain styling (see Toaster in App.js) */
+.trusti-toaster {
+  z-index: 11000 !important;
+}
+
+.trusti-toast {
+  -webkit-font-smoothing: antialiased;
+}
+
+.trusti-toast [role='status'],
+.trusti-toast [aria-live] {
+  font-feature-settings: 'tnum' on, 'lnum' on;
+}
+
+@media (max-width: 520px) {
+  .trusti-toaster {
+    padding: 0;
+  }
+
+  .trusti-toast {
+    font-size: 0.9rem !important;
+    padding: 13px 16px !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trusti-toast {
+    animation-duration: 0.01ms !important;
+  }
+}

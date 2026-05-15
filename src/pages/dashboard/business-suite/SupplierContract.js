@@ -37,13 +37,14 @@ import {
   Check,
   Upload,
   AlertCircle,
-  Activity
+  Activity,
+  Repeat
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './SupplierContract.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import { getApiUrl } from '../../../utils/config';
 import toast from 'react-hot-toast';
 import { handleLogout } from '../../../utils/logout';
@@ -57,6 +58,9 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Invoice', icon: FileText, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
@@ -584,19 +588,7 @@ const SupplierContract = ({
               ) : (
                 userInitials
               )}
-            </div>
-            <div className="mobile-user-info">
-              <span className="mobile-user-name">
-                {accountType === 'Business Suite' ? (
-                  isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                ) : (
-                  isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                )}
-                <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-              </span>
-              <span className="mobile-user-role">
-                {accountType === 'Business Suite' ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
-              </span>
+              <HeaderProfileVerifyBadge show={accountType === 'Business Suite' ? businessKycComplete : true} mobile />
             </div>
           </div>
           <div className="mobile-header-right">
@@ -673,7 +665,10 @@ const SupplierContract = ({
                   const isDisabled = !businessKycComplete;
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                    (item.label === 'Payroll' && location.pathname === '/payroll') ||
-                                   (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract');
+                                   (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                                   (item.label === 'Invoice' && location.pathname === '/invoice') ||
+                                   (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                                   (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
                   const handleNavClick = () => {
                     if (isDisabled) return;
                     setIsMobileMenuOpen(false);
@@ -683,6 +678,14 @@ const SupplierContract = ({
                       navigate('/payroll');
                     } else if (item.label === 'Supplier Contract') {
                       navigate('/supplier-contract');
+                    } else if (item.label === 'Invoice') {
+                      navigate('/invoice');
+                    } else if (item.label === 'Transactions') {
+                      navigate('/transactions', { state: { accountType: 'Business Suite' } });
+                    } else if (item.label === 'Dispute') {
+                      navigate('/business-dispute');
+                    } else if (item.label === 'Compliance') {
+                      toast('Compliance workspace coming soon');
                     }
                   };
                   return (

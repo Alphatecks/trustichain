@@ -1,0 +1,420 @@
+@keyframes savings-asp-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes savings-asp-sheet-mobile-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes savings-asp-sheet-desktop-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.savings-asp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-tap-highlight-color: transparent;
+  animation: savings-asp-overlay-in 0.28s ease-out both;
+}
+
+@media (min-width: 480px) {
+  .savings-asp-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+}
+
+.savings-asp-sheet,
+.savings-asp-sheet input,
+.savings-asp-sheet button,
+.savings-asp-sheet p,
+.savings-asp-sheet span,
+.savings-asp-sheet h2 {
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-asp-sheet {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(92vh, 760px);
+  overflow-y: auto;
+  overflow-x: visible;
+  background: #ffffff;
+  border-radius: 22px 22px 0 0;
+  padding: 1.25rem 1.15rem 1.4rem;
+  box-shadow: 0 -12px 48px rgba(15, 23, 42, 0.14);
+  box-sizing: border-box;
+  animation: savings-asp-sheet-mobile-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+@media (min-width: 480px) {
+  .savings-asp-sheet {
+    border-radius: 22px;
+    padding: 1.35rem 1.4rem 1.45rem;
+    animation: savings-asp-sheet-desktop-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .savings-asp-overlay,
+  .savings-asp-sheet {
+    animation: none !important;
+  }
+}
+
+.savings-asp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.05rem;
+}
+
+.savings-asp-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.savings-asp-close {
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.savings-asp-close:hover {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+.savings-asp-field {
+  margin-bottom: 1rem;
+}
+
+.savings-asp-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.savings-asp-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #f1f5f9;
+  font-size: 0.93rem;
+  font-weight: 500;
+  color: #0066ff;
+  box-sizing: border-box;
+  outline: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.savings-asp-input::placeholder {
+  color: #0066ff;
+  opacity: 0.5;
+}
+
+.savings-asp-trigger-value--placeholder {
+  color: #0066ff;
+  opacity: 0.55;
+  font-weight: 500;
+}
+
+.savings-asp-input:focus {
+  background: #eef5ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.savings-asp-input:disabled {
+  opacity: 0.6;
+}
+
+.savings-asp-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 46px;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #f1f5f9;
+  cursor: pointer;
+  text-align: left;
+}
+
+.savings-asp-trigger:hover:not(:disabled),
+.savings-asp-trigger:focus-visible:not(:disabled) {
+  outline: none;
+  background: #eef5ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+}
+
+.savings-asp-trigger.is-open {
+  background: #eef5ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.savings-asp-trigger-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0066ff;
+}
+
+.savings-asp-trigger-chevron {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.savings-asp-trigger.is-open .savings-asp-trigger-chevron {
+  transform: rotate(180deg);
+}
+
+.savings-asp-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.savings-asp-menu-wrap {
+  position: relative;
+}
+
+.savings-asp-plan-menu {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.35rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.savings-asp-plan-option {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+}
+
+.savings-asp-plan-option:hover {
+  background: #f8fafc;
+}
+
+.savings-asp-plan-option.is-selected {
+  background: #eef5ff;
+  color: #0066ff;
+}
+
+/* Amount grey card — same vocabulary as Add Money */
+.savings-asp-amount-card {
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 0.9rem 1rem 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.savings-asp-amount-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.savings-asp-set-amount-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.savings-asp-wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem 0.35rem 0.4rem;
+  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.savings-asp-wallet-badge {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.savings-asp-wallet-badge.is-icon {
+  padding: 0;
+  overflow: hidden;
+}
+
+.savings-asp-wallet-badge.is-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 50%;
+  display: block;
+}
+
+.savings-asp-wallet-pill-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0066ff;
+  white-space: nowrap;
+}
+
+.savings-asp-wallet-chevron {
+  color: #0066ff;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.savings-asp-amount-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0.7rem;
+  min-height: 3rem;
+}
+
+.savings-asp-amount-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1rem 0;
+  outline: none;
+  max-width: 100%;
+}
+
+.savings-asp-amount-input::placeholder {
+  color: #cbd5e1;
+}
+
+.savings-asp-amount-suffix {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #111827;
+  align-self: center;
+}
+
+.savings-asp-rate-line {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.savings-asp-submit {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 0.95rem 1rem;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 102, 255, 0.28);
+  margin-bottom: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.15s ease;
+}
+
+.savings-asp-submit:hover:not(:disabled) {
+  background: #0052cc;
+}
+
+.savings-asp-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.savings-asp-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.savings-asp-footnote svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #94a3b8;
+}

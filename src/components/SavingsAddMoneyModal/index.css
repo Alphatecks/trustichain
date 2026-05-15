@@ -1,0 +1,412 @@
+/* Align with SavingsWithdrawWalletModal: slide-up on mobile, centered dialog on wide screens */
+
+@keyframes savings-am-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes savings-am-sheet-mobile-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes savings-am-sheet-desktop-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.savings-am-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-tap-highlight-color: transparent;
+  animation: savings-am-overlay-in 0.28s ease-out both;
+}
+
+@media (min-width: 480px) {
+  .savings-am-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+}
+
+.savings-am-sheet,
+.savings-am-sheet input,
+.savings-am-sheet button,
+.savings-am-sheet p,
+.savings-am-sheet span,
+.savings-am-sheet h2,
+.savings-am-sheet li {
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-am-sheet {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(92vh, 720px);
+  overflow: visible;
+  background: #ffffff;
+  border-radius: 22px 22px 0 0;
+  padding: 1.25rem 1.15rem 1.4rem;
+  box-shadow: 0 -12px 48px rgba(15, 23, 42, 0.14);
+  box-sizing: border-box;
+  animation: savings-am-sheet-mobile-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+@media (min-width: 480px) {
+  .savings-am-sheet {
+    border-radius: 22px;
+    padding: 1.35rem 1.4rem 1.45rem;
+    animation: savings-am-sheet-desktop-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .savings-am-overlay,
+  .savings-am-sheet {
+    animation: none !important;
+  }
+}
+
+.savings-am-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.savings-am-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.savings-am-close {
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.savings-am-close:hover {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+/* Grey amount card */
+.savings-am-amount-card {
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 0.9rem 1rem 1rem;
+  margin-bottom: 1.15rem;
+}
+
+.savings-am-amount-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.savings-am-label-muted {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.savings-am-wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem 0.35rem 0.4rem;
+  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 102, 255, 0.12);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.savings-am-wallet-pill-icon {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+  background: #0066ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  /* Clip any square/ragged asset to a perfect circle */
+  isolation: isolate;
+}
+
+.savings-am-wallet-pill-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 50%;
+  display: block;
+}
+
+.savings-am-wallet-pill-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.savings-am-wallet-pill-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0066ff;
+  white-space: nowrap;
+}
+
+.savings-am-wallet-pill-chevron {
+  color: #0066ff;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.savings-am-amount-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.35rem;
+  min-height: 3.1rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.savings-am-amount-prefix {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+}
+
+.savings-am-amount-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 0.15rem 0;
+  outline: none;
+}
+
+.savings-am-amount-input::placeholder {
+  color: #cbd5e1;
+}
+
+.savings-am-amount-input:disabled {
+  opacity: 0.65;
+}
+
+.savings-am-amount-suffix {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+  align-self: center;
+}
+
+.savings-am-balance-line {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.savings-am-balance-label {
+  color: #94a3b8;
+}
+
+.savings-am-balance-value {
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.savings-am-accounts {
+  margin-bottom: 1.1rem;
+}
+
+.savings-am-accounts-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.savings-am-account-wrap {
+  position: relative;
+}
+
+.savings-am-account-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.savings-am-account-trigger:hover:not(:disabled) {
+  border-color: rgba(0, 102, 255, 0.35);
+}
+
+.savings-am-account-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.savings-am-account-trigger.is-open {
+  border-color: rgba(0, 102, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.savings-am-account-trigger-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0066ff;
+}
+
+.savings-am-account-chevron {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.savings-am-account-trigger.is-open .savings-am-account-chevron {
+  transform: rotate(180deg);
+}
+
+.savings-am-account-menu {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.35rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.savings-am-account-option {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.savings-am-account-option:hover {
+  background: #f8fafc;
+}
+
+.savings-am-account-option.is-selected {
+  background: #eef5ff;
+  color: #0066ff;
+}
+
+.savings-am-transfer {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 0.95rem 1rem;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 102, 255, 0.28);
+  margin-bottom: 0.75rem;
+  transition: background 0.15s ease;
+}
+
+.savings-am-transfer:hover:not(:disabled) {
+  background: #0052cc;
+}
+
+.savings-am-transfer:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.savings-am-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.savings-am-footnote-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #94a3b8;
+}
