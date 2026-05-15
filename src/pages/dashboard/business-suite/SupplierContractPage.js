@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   LayoutDashboard,
   DollarSign,
@@ -7,6 +8,7 @@ import {
   CreditCard,
   Users,
   FileCheck,
+  FileText,
   Code,
   Box,
   Link,
@@ -15,7 +17,8 @@ import {
   HelpCircle,
   LogOut,
   Search,
-  Bell
+  Bell,
+  Repeat
 } from 'lucide-react';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
@@ -27,14 +30,17 @@ import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 import WithdrawModal from '../../../components/WithdrawModal';
 import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import '../dashboard/Dashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Invoice', icon: FileText, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
@@ -629,6 +635,8 @@ const SupplierContractPage = () => {
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                               (item.label === 'Invoice' && location.pathname === '/invoice') ||
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
@@ -637,8 +645,14 @@ const SupplierContractPage = () => {
                   navigate('/payroll');
                 } else if (item.label === 'Supplier Contract') {
                   navigate('/supplier-contract');
+                } else if (item.label === 'Invoice') {
+                  navigate('/invoice');
+                } else if (item.label === 'Transactions') {
+                  navigate('/transactions', { state: { accountType: 'Business Suite' } });
                 } else if (item.label === 'Dispute') {
                   navigate('/business-dispute');
+                } else if (item.label === 'Compliance') {
+                  toast('Compliance workspace coming soon');
                 }
               };
               return (
@@ -795,17 +809,7 @@ const SupplierContractPage = () => {
                 ) : (
                   userInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {accountType === 'Business Suite' ? (
-                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                  ) : (
-                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                  )}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
+                <HeaderProfileVerifyBadge show={accountType === 'Business Suite' ? businessKycComplete : true} />
               </div>
             </div>
           </div>
@@ -947,6 +951,12 @@ const SupplierContractPage = () => {
               .catch(() => {});
           }
         }}
+      />
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="supplier-contract-notifications-title"
       />
     </div>
   );

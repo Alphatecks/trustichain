@@ -535,6 +535,12 @@
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
+/* Escrow detail: centered card on desktop (avoid inline max-width so mobile fullscreen CSS can apply) */
+.create-escrow-modal.escrow-detail-modal {
+  width: 100%;
+  max-width: 520px;
+}
+
 .create-escrow-modal-header {
   padding: 2rem 2rem 1.5rem;
   display: flex;
@@ -1622,19 +1628,57 @@
   }
 
   .mobile-user-avatar {
-    width: 48px !important;
-    height: 48px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
     border-radius: 50%;
     background: linear-gradient(135deg, #0c64ff, #60a5fa) !important;
     color: var(--white);
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    place-items: center;
     align-items: center;
-    justify-content: center;
+    justify-items: center;
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.8125rem;
     flex-shrink: 0;
     font-family: 'Satoshi', 'Inter', sans-serif;
-    overflow: hidden;
+    overflow: visible !important;
+    position: relative;
+  }
+
+  .mobile-user-avatar > * {
+    grid-area: 1 / 1;
+  }
+
+  .mobile-user-avatar > .user-avatar-verify-badge {
+    align-self: end;
+    justify-self: end;
+    position: relative;
+    right: auto;
+    bottom: auto;
+  }
+
+  .mobile-user-avatar img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    min-width: 0;
+    min-height: 0;
+    align-self: stretch;
+    justify-self: stretch;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .mobile-user-avatar > span.loading-indicator {
+    align-self: center;
+    justify-self: center;
+    width: auto;
+    height: auto;
   }
 
   .mobile-user-info {
@@ -2067,13 +2111,27 @@
 
   .form-group input,
   .form-group textarea,
-  .form-group select {
+  .form-group select:not(.create-escrow-funding-wallet-select) {
     padding: 0.75rem !important;
     font-size: 0.875rem !important;
     border-radius: 0.5rem !important;
     width: 100% !important;
     border: 1px solid var(--border) !important;
     background: #f8f9fa !important;
+  }
+
+  /* Invisible funding-wallet hit target — pill visuals come from siblings */
+  .form-group select.create-escrow-funding-wallet-select {
+    width: auto !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    border-radius: 0.5rem !important;
+    font-size: 1rem !important;
+    border: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    color: transparent !important;
+    opacity: 0 !important;
   }
 
   .form-group input::placeholder,
@@ -2121,6 +2179,50 @@
 
   .submit-btn-icon-circle svg {
     color: var(--white) !important;
+  }
+
+  /* Escrow detail modal — full-screen sheet on mobile */
+  .create-escrow-modal-overlay.escrow-detail-modal-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    background: #ffffff !important;
+  }
+
+  .create-escrow-modal.escrow-detail-modal {
+    max-width: none !important;
+    width: 100% !important;
+    max-height: none !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    flex: 1 1 auto !important;
+  }
+
+  .create-escrow-modal.escrow-detail-modal .create-escrow-modal-header.escrow-detail-modal-header {
+    padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 1rem !important;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .escrow-detail-modal .escrow-detail-modal-title {
+    font-size: 1.125rem !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+  }
+
+  .create-escrow-modal.escrow-detail-modal .create-escrow-modal-content.escrow-detail-modal-content {
+    flex: 1 1 auto !important;
+    padding-top: 0 !important;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .escrow-detail-modal .escrow-detail-value--truncate {
+    max-width: 52% !important;
   }
 }
 
@@ -2396,30 +2498,192 @@
   background: #0052CC;
 }
 
-/* Escrow Detail Modal */
-.escrow-detail-modal .escrow-detail-row {
+/* Escrow Detail Modal — sheet layout (matches escrow details reference) */
+.escrow-detail-modal .escrow-detail-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--blue-600, #0066ff);
+  letter-spacing: -0.02em;
+}
+
+.escrow-detail-modal .escrow-detail-sheet-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.escrow-detail-modal .escrow-detail-sheet-rows .escrow-detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border);
+  padding: 0.625rem 0;
+  border-bottom: none;
   gap: 1rem;
 }
-.escrow-detail-modal .escrow-detail-row:last-of-type {
-  border-bottom: none;
-}
+
 .escrow-detail-modal .escrow-detail-row--stacked {
   align-items: flex-start;
 }
+
+.escrow-detail-modal .escrow-detail-row--fee-sep {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid #e8eaef;
+}
+
+.escrow-detail-modal .escrow-detail-row--recipient .escrow-detail-label,
+.escrow-detail-modal .escrow-detail-row--recipient .escrow-detail-value {
+  font-weight: 700;
+  color: #111827;
+}
+
+.escrow-detail-modal .escrow-detail-row--last {
+  padding-bottom: 0.25rem;
+}
+
 .escrow-detail-modal .escrow-detail-label {
   font-size: 0.875rem;
-  color: var(--text-muted, #6b7280);
+  color: #6b7280;
   font-weight: 500;
+  flex-shrink: 0;
 }
+
 .escrow-detail-modal .escrow-detail-value {
-  font-size: 0.9rem;
-  color: var(--text-dark, #1f2937);
+  font-size: 0.875rem;
+  color: #111827;
   text-align: right;
+  min-width: 0;
+}
+
+.escrow-detail-modal .escrow-detail-value--row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.escrow-detail-modal .escrow-detail-id-link {
+  color: var(--blue-600, #0066ff);
+  font-weight: 600;
+}
+
+.escrow-detail-modal .escrow-detail-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--blue-600, #0066ff);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.escrow-detail-modal .escrow-detail-icon-btn:hover {
+  background: rgba(0, 102, 255, 0.08);
+}
+
+.escrow-detail-modal .escrow-detail-value--truncate {
+  max-width: min(240px, 58vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.escrow-detail-modal .escrow-detail-value--strong {
+  font-weight: 700;
+}
+
+.escrow-detail-modal .escrow-detail-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.escrow-detail-modal .escrow-detail-status-badge--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.escrow-detail-modal .escrow-detail-status-badge--complete {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.escrow-detail-modal .escrow-detail-status-badge--neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.escrow-detail-modal .escrow-detail-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.escrow-detail-modal .escrow-detail-btn {
+  flex: 1;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.escrow-detail-modal .escrow-detail-btn--outline {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.escrow-detail-modal .escrow-detail-btn--outline:hover:not(:disabled) {
+  border-color: #d1d5db;
+  background: #fafafa;
+}
+
+.escrow-detail-modal .escrow-detail-btn--outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.escrow-detail-modal .escrow-detail-btn--primary {
+  background: var(--blue-600, #0066ff);
+  border: none;
+  color: #ffffff;
+}
+
+.escrow-detail-modal .escrow-detail-btn--primary:hover {
+  background: #0052cc;
+}
+
+.escrow-detail-modal .escrow-detail-modal-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+.escrow-detail-modal .escrow-detail-modal-footnote-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #9ca3af;
 }
 .escrow-detail-modal .escrow-detail-hash-list {
   display: flex;

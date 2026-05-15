@@ -28,12 +28,12 @@ import {
   ToggleRight,
   Upload,
   X,
-  Menu
+  Menu,
+  PiggyBank
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './DisputeDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
@@ -43,13 +43,17 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'My Escrow', icon: ShieldCheck, badge: null },
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
+  { label: 'Savings', icon: PiggyBank, badge: null },
+  { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -1124,39 +1128,16 @@ const DisputeDetail = () => {
   return (
     <>
       {/* Mobile Header */}
-      <div className="mobile-dashboard-header transactions-mobile-header">
-        <div className="mobile-header-left">
-          <div className="mobile-user-avatar">
-            {userAvatar ? (
-              <img src={userAvatar} alt={userFullName} />
-            ) : (
-              userInitials
-            )}
-          </div>
-          <div className="mobile-user-info">
-            <span className="mobile-user-name">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
-              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-            </span>
-            <span className="mobile-user-role">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
-            </span>
-          </div>
-        </div>
-        <div className="mobile-header-right">
-          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
-            <Bell size={20} />
-          </button>
-          <button 
-            type="button" 
-            className="mobile-header-menu"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <Menu size={20} />
-          </button>
-        </div>
-      </div>
-
+      <PersonalSuiteMobileHeader
+        variant="personal"
+        className="transactions-mobile-header"
+        personalVerificationComplete
+        userAvatar={userAvatar}
+        userInitials={userInitials}
+        userFullName={userFullName}
+        onOpenNotifications={() => setShowNotificationModal(true)}
+        onToggleMobileMenu={() => setIsMobileMenuOpen((o) => !o)}
+      />
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -1195,7 +1176,8 @@ const DisputeDetail = () => {
                 const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                  (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                  (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                                 (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                 (item.label === 'Dispute' && location.pathname.startsWith('/dispute')) ||
+                                 (item.label === 'Savings' && location.pathname === '/savings') ||
                                  (item.label === 'Trusticard' && location.pathname === '/trusticard');
                 const handleNavClick = () => {
                   setIsMobileMenuOpen(false);
@@ -1207,8 +1189,10 @@ const DisputeDetail = () => {
                     navigate('/transactions');
                   } else if (item.label === 'Dispute') {
                     navigate('/dispute');
+                  } else if (item.label === 'Savings') {
+                    navigate('/savings');
                   } else if (item.label === 'Trusticard') {
-                    return;
+                    navigate('/trusticard');
                   }
                 };
                 const navBadge = getNavBadge(item);
@@ -1297,8 +1281,13 @@ const DisputeDetail = () => {
           <nav className="sidebar-nav">
             {sidebarNav.map((item) => {
               const Icon = item.icon;
-              const isActive = item.label === 'Dispute' && location.pathname.startsWith('/dispute') ||
-                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
+              const isActive =
+                (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
+                (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
+                (item.label === 'Transactions' && location.pathname === '/transactions') ||
+                (item.label === 'Dispute' && location.pathname.startsWith('/dispute')) ||
+                (item.label === 'Savings' && location.pathname === '/savings') ||
+                (item.label === 'Trusticard' && location.pathname === '/trusticard');
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
                   navigate('/dashboard');
@@ -1308,8 +1297,10 @@ const DisputeDetail = () => {
                   navigate('/transactions');
                 } else if (item.label === 'Dispute') {
                   navigate('/dispute');
+                } else if (item.label === 'Savings') {
+                  navigate('/savings');
                 } else if (item.label === 'Trusticard') {
-                  return;
+                  navigate('/trusticard');
                 }
               };
               const navBadge = getNavBadge(item);
@@ -1388,9 +1379,15 @@ const DisputeDetail = () => {
           </div>
 
           <div className="header-actions">
-            <div className="account-type-display">
-              <span className="account-type-label">{accountType}</span>
-            </div>
+            <>
+              <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                <span className="header-trustiscore-label">TrustiScore</span>
+                <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+              </div>
+              <div className="account-type-display">
+                <span className="account-type-label">{accountType}</span>
+              </div>
+            </>
             <button type="button" className="header-bell" onClick={() => setShowNotificationModal(true)}>
               <Bell size={18} />
             </button>
@@ -1401,6 +1398,7 @@ const DisputeDetail = () => {
                 ) : (
                   userInitials
                 )}
+                <HeaderProfileVerifyBadge />
               </div>
             </div>
           </div>
@@ -2127,6 +2125,12 @@ const DisputeDetail = () => {
           </div>
         </div>
       )}
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="dispute-detail-notifications-title"
+      />
     </div>
     </>
   );

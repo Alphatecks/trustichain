@@ -14,11 +14,100 @@ import {
   X,
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/config';
+import {
+  emptyCustodialWalletBalances as emptyEscrowCurrencyBalances,
+  parseCustodialWalletBalances as parseEscrowCurrencyBalancesMap,
+  readStoredDashboardAccountType as readDashboardAccountType,
+} from '../../utils/custodialWalletBalances';
+import { useWeb3 } from '../../context/Web3Context';
 import toast from 'react-hot-toast';
 import '../LoadingIndicator/index.css';
+import '../../pages/dashboard/my-escrow/MyEscrow.css';
+import './index.css';
+
+/** Matches MyEscrow.css desktop breakpoint (`min-width: 769px`). */
+const CREATE_ESCROW_DESKTOP_MODAL_MQ = '(min-width: 769px)';
+
+/** Normalize stored date strings for `<input type="date" />`. */
+const toDateInputValue = (raw) => {
+  if (!raw || typeof raw !== 'string') return '';
+  const s = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (s.includes('T')) return s.slice(0, 10);
+  return s;
+};
+
+const formatEscrowBalance = (value) =>
+  Number(value ?? 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+/** Connected/saved wallet used as payer when the Step 1 field is empty. */
+const resolvePayerWalletFromContext = (account) => {
+  if (typeof account === 'string' && account.trim()) return account.trim();
+  try {
+    const x = localStorage.getItem('xamanWalletAddress');
+    const m = localStorage.getItem('metamaskWalletAddress');
+    return (x && x.trim()) || (m && m.trim()) || '';
+  } catch (_) {
+    return '';
+  }
+};
+
+/** Time-based escrow funding assets shown in the balance dropdown (API-driven balances). */
+const ESCROW_FUNDING_CURRENCIES = ['RLUSD', 'XRP', 'USDT', 'USDC'];
+
+const normalizeEscrowPayloadCurrency = (raw) => {
+  const c = String(raw || '').toUpperCase();
+  return ESCROW_FUNDING_CURRENCIES.includes(c) ? c : 'XRP';
+};
+
+/** Step 3 confirmation — DD-MM-YYYY like desktop reference. */
+const formatConfirmationDisplayDate = (raw) => {
+  const v = toDateInputValue(raw);
+  if (!v) return '—';
+  const [y, m, d] = v.split('-');
+  if (!y || !m || !d) return '—';
+  return `${d}-${m}-${y}`;
+};
+
+const maskCounterpartyWalletForConfirmation = (addr) => {
+  const s = String(addr || '').trim();
+  if (!s) return '—';
+  return '*'.repeat(15);
+};
+
+const estimateUsdForConfirmationAmount = (amountNum, currency, xrpToUsdRate) => {
+  const cur = normalizeEscrowPayloadCurrency(currency);
+  if (!Number.isFinite(amountNum)) return null;
+  if (cur === 'XRP' && Number.isFinite(xrpToUsdRate) && xrpToUsdRate > 0) {
+    return amountNum * xrpToUsdRate;
+  }
+  if (cur === 'RLUSD' || cur === 'USDT' || cur === 'USDC') {
+    return amountNum * 1;
+  }
+  return null;
+};
+
+/** e.g. `0.50 RLUSD ($0.50 USD)` */
+const formatConfirmationMoneyLine = (amountNum, currency, xrpToUsdRate) => {
+  const cur = normalizeEscrowPayloadCurrency(currency);
+  if (!Number.isFinite(amountNum)) return '—';
+  const main = `${Number(amountNum).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+  })} ${cur}`;
+  const usd = estimateUsdForConfirmationAmount(amountNum, cur, xrpToUsdRate);
+  if (usd == null || !Number.isFinite(usd)) return main;
+  return `${main} ($${usd.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD)`;
+};
 
 /**
- * Reusable Create Escrow multi-step form used in Dashboard and My Escrow.
+ * Reusable Create Escrow multi-step flow: full-screen on mobile, centered modal on desktop (Dashboard + My Escrow).
  *
  * Props:
  * - isOpen: boolean – controls visibility
@@ -26,8 +115,14 @@ import '../LoadingIndicator/index.css';
  * - onSuccess: (data) => void – called after successful escrow creation
  */
 const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
+  const { account } = useWeb3();
+  const [desktopModalLayout, setDesktopModalLayout] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(CREATE_ESCROW_DESKTOP_MODAL_MQ).matches,
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedEscrowType, setSelectedEscrowType] = useState('Freelancing');
+  /** Step 1: identify counterparty by wallet vs Trustitag (Trustitag shows extended fields). */
+  const [counterpartyMethod, setCounterpartyMethod] = useState('wallet');
 
   const [formData, setFormData] = useState({
     payerWallet: '',
@@ -51,9 +146,15 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     milestoneDetails: '',
     milestoneAmount: '',
     milestones: [],
+    timeBasedAutoReleaseAck: false,
+    escrowCurrency: 'RLUSD',
   });
 
   const [exchangeRate, setExchangeRate] = useState(null); // XRP to USD rate
+  const [escrowCurrencyBalances, setEscrowCurrencyBalances] = useState(() =>
+    emptyEscrowCurrencyBalances(),
+  );
+  const [escrowFundingWalletsLoading, setEscrowFundingWalletsLoading] = useState(false);
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
   const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
   const [payerEmailValidation, setPayerEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
@@ -270,6 +371,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     setIsCreatingEscrow(false);
     setCurrentStep(1);
     setSelectedEscrowType('Freelancing');
+    setCounterpartyMethod('wallet');
     setFormData({
       payerWallet: '',
       payerEmail: '',
@@ -298,7 +400,10 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       milestoneDetails: '',
       milestoneAmount: '',
       milestones: [],
+      timeBasedAutoReleaseAck: false,
+      escrowCurrency: 'RLUSD',
     });
+    setEscrowCurrencyBalances(emptyEscrowCurrencyBalances());
   };
 
   // Cleanup when modal closes or component unmounts
@@ -309,14 +414,88 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia(CREATE_ESCROW_DESKTOP_MODAL_MQ);
+    const sync = () => setDesktopModalLayout(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || currentStep !== 2) return undefined;
+    const ac = new AbortController();
+    const load = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setEscrowCurrencyBalances(emptyEscrowCurrencyBalances());
+          return;
+        }
+        setEscrowFundingWalletsLoading(true);
+        const accountType = readDashboardAccountType();
+        const balanceUrl =
+          accountType === 'Business Suite'
+            ? getApiUrl('api/business-suite/wallet/balance')
+            : getApiUrl('api/wallet/balance');
+        const response = await fetch(balanceUrl, {
+          method: 'GET',
+          signal: ac.signal,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          setEscrowCurrencyBalances(emptyEscrowCurrencyBalances());
+          return;
+        }
+        const result = await response.json();
+        setEscrowCurrencyBalances(parseEscrowCurrencyBalancesMap(result));
+      } catch (e) {
+        if (e?.name !== 'AbortError') {
+          setEscrowCurrencyBalances(emptyEscrowCurrencyBalances());
+        }
+      } finally {
+        setEscrowFundingWalletsLoading(false);
+      }
+    };
+    load();
+    return () => ac.abort();
+  }, [isOpen, currentStep]);
+
+  // Prefer connected / saved wallet as payer so Wallet Address mode matches minimal Step 1 UI.
+  useEffect(() => {
+    if (!isOpen) return;
+    const resolved = resolvePayerWalletFromContext(account);
+    if (!resolved) return;
+    setFormData((prev) =>
+      prev.payerWallet.trim() ? prev : { ...prev, payerWallet: resolved },
+    );
+  }, [isOpen, account]);
+
   // Handle create escrow (adapted from MyEscrow, extended with XUMM/Xaman flow)
   const handleCreateEscrow = async () => {
     try {
       setIsCreatingEscrow(true);
       setEscrowCreationStep('creating');
 
-      // Validate required fields
-      if (!formData.payerWallet || !formData.counterpartyWallet) {
+      const payerWalletResolved =
+        formData.payerWallet?.trim() || resolvePayerWalletFromContext(account) || '';
+
+      const escrowCurrencyResolved = normalizeEscrowPayloadCurrency(termsData.escrowCurrency);
+
+      if (!payerWalletResolved || !formData.counterpartyWallet?.trim()) {
         toast.error('Please fill in all required fields');
         setIsCreatingEscrow(false);
         return;
@@ -367,10 +546,10 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
       // Build base payload with common fields
       const payload = {
-        payerXrpWalletAddress: formData.payerWallet,
+        payerXrpWalletAddress: payerWalletResolved,
         counterpartyXrpWalletAddress: formData.counterpartyWallet,
         amount: parseFloat(termsData.totalAmount),
-        currency: 'XRP',
+        currency: escrowCurrencyResolved,
         transactionType: transactionType,
         industry: industry,
         description: description,
@@ -551,17 +730,54 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     }
   };
 
+  const handleContinueFromStep1 = () => {
+    if (!formData.counterpartyWallet?.trim()) {
+      toast.error('Please enter the counterparty XRP wallet address');
+      return;
+    }
+    setCurrentStep(2);
+  };
+
+  const handleContinueFromStep2 = () => {
+    if (termsData.releaseType === 'Time based' && !termsData.timeBasedAutoReleaseAck) {
+      toast.error(
+        'Please confirm that you understand automatic escrow completion on the set date.',
+      );
+      return;
+    }
+    if (termsData.releaseType === 'Time based' && escrowFundingWalletsLoading) {
+      toast.error('Still loading your balances. Please wait a moment.');
+      return;
+    }
+    setCurrentStep(3);
+  };
+
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
-      <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className={`create-escrow-flow-root ${
+        desktopModalLayout
+          ? 'create-escrow-flow-root--desktop-modal'
+          : 'create-escrow-flow-root--mobile-fullscreen'
+      }`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-escrow-flow-title"
+      onClick={desktopModalLayout ? handleCloseModal : undefined}
+    >
+      <div
+        className="create-escrow-modal create-escrow-flow-panel"
+        onClick={desktopModalLayout ? (e) => e.stopPropagation() : undefined}
+      >
         {/* Modal Header - Mobile with back icon */}
         <div className="create-escrow-modal-header">
-          <div className="modal-header-back-icon"></div>
-          <h2>Create Escrow</h2>
+          <div className="modal-header-leading">
+            <span className="modal-header-accent-bar" aria-hidden />
+            <h2 id="create-escrow-flow-title">Create Escrow</h2>
+          </div>
           <button type="button" className="modal-close-btn" onClick={handleCloseModal}>
             <X size={24} />
           </button>
@@ -649,10 +865,9 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
         <div className="create-escrow-modal-content">
           {currentStep === 1 && (
             <>
-              {/* Escrow Type Section - Horizontal buttons */}
-              <div className="escrow-form-section">
-                <h3 className="section-title">Escrow Terms</h3>
-                <div className="escrow-type-buttons">
+              <div className="escrow-form-section create-escrow-step1-type-block">
+                <h3 className="section-title create-escrow-step1-section-label">Escrow Type</h3>
+                <div className="escrow-type-buttons create-escrow-step1-type-buttons">
                   <button
                     type="button"
                     className={`escrow-type-btn ${
@@ -660,9 +875,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     }`}
                     onClick={() => setSelectedEscrowType('Freelancing')}
                   >
-                    {selectedEscrowType === 'Freelancing' && <CheckCircle size={18} />}
-                    {selectedEscrowType !== 'Freelancing' && <Plus size={18} />}
-                    Freelancing
+                    {selectedEscrowType === 'Freelancing' ? (
+                      <CheckCircle size={18} strokeWidth={2.25} />
+                    ) : (
+                      <Plus size={18} strokeWidth={2.25} />
+                    )}
+                    <span>Freelancing</span>
                   </button>
                   <button
                     type="button"
@@ -672,11 +890,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     onClick={() => setSelectedEscrowType('Real Estate')}
                   >
                     {selectedEscrowType === 'Real Estate' ? (
-                      <CheckCircle size={18} />
+                      <CheckCircle size={18} strokeWidth={2.25} />
                     ) : (
-                      <Plus size={18} />
+                      <Plus size={18} strokeWidth={2.25} />
                     )}
-                    Real Estate
+                    <span>Real Estate</span>
                   </button>
                   <button
                     type="button"
@@ -686,11 +904,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     onClick={() => setSelectedEscrowType('Product purchase')}
                   >
                     {selectedEscrowType === 'Product purchase' ? (
-                      <CheckCircle size={18} />
+                      <CheckCircle size={18} strokeWidth={2.25} />
                     ) : (
-                      <Plus size={18} />
+                      <Plus size={18} strokeWidth={2.25} />
                     )}
-                    Product purchase
+                    <span>Product purchase</span>
                   </button>
                   <button
                     type="button"
@@ -699,75 +917,52 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     }`}
                     onClick={() => setSelectedEscrowType('Custom')}
                   >
-                    {selectedEscrowType === 'Custom' ? <CheckCircle size={18} /> : <Plus size={18} />}
-                    Custom
+                    {selectedEscrowType === 'Custom' ? (
+                      <CheckCircle size={18} strokeWidth={2.25} />
+                    ) : (
+                      <Plus size={18} strokeWidth={2.25} />
+                    )}
+                    <span>Custom</span>
                   </button>
                 </div>
               </div>
 
-              {/* Escrow Counterparty Section */}
-              <div className="escrow-form-section">
-                <h3 className="section-title">Escrow Counterparty</h3>
-                <div className="counterparty-form-grid">
-                  {/* Left Column - Payer's Information */}
-                  <div className="form-column">
-                    <div className="form-group">
-                      <label>
-                        Payers (You) XRP Wallet Address <span className="required">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="••••••••••••••••"
-                        value={formData.payerWallet}
-                        onChange={(e) =>
-                          setFormData({ ...formData, payerWallet: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Your Email</label>
-                      <input
-                        type="email"
-                        placeholder="Enter your Email"
-                        value={formData.payerEmail}
-                        onChange={(e) => {
-                          const email = e.target.value;
-                          setFormData({ ...formData, payerEmail: email });
-                          
-                          // Clear previous timeout
-                          if (validationTimeouts.payer) {
-                            clearTimeout(validationTimeouts.payer);
-                          }
-                          
-                          // Debounce validation (500ms delay)
-                          const timeout = setTimeout(() => {
-                            validatePayerEmail(email);
-                          }, 500);
-                          
-                          setValidationTimeouts(prev => ({ ...prev, payer: timeout }));
-                        }}
-                        style={{
-                          borderColor: payerEmailValidation.isValid === true ? '#10b981' : 
-                                     payerEmailValidation.isValid === false ? '#ef4444' : undefined
-                        }}
-                      />
-                      {payerEmailValidation.message && (
-                        <div style={{
-                          fontSize: '0.75rem',
-                          marginTop: '0.25rem',
-                          color: payerEmailValidation.isValid === true ? '#10b981' : 
-                                 payerEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
-                        }}>
-                          {payerEmailValidation.message}
-                        </div>
-                      )}
-                    </div>
+              <div className="escrow-form-section create-escrow-step1-counterparty-block">
+                <h3 className="section-title create-escrow-step1-section-label">Escrow Counterparty</h3>
+                <div
+                  className="counterparty-method-toggle"
+                  role="tablist"
+                  aria-label="Counterparty identification"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={counterpartyMethod === 'wallet'}
+                    className={`counterparty-method-btn ${counterpartyMethod === 'wallet' ? 'active' : ''}`}
+                    onClick={() => setCounterpartyMethod('wallet')}
+                  >
+                    Wallet Address
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={counterpartyMethod === 'trustitag'}
+                    className={`counterparty-method-btn ${counterpartyMethod === 'trustitag' ? 'active' : ''}`}
+                    onClick={() => setCounterpartyMethod('trustitag')}
+                  >
+                    Trustitag
+                  </button>
+                </div>
+
+                {counterpartyMethod === 'wallet' ? (
+                  <div className="create-escrow-step1-wallet-fields">
                     <div className="form-group">
                       <label>
                         Counterparty XRP Wallet Address <span className="required">*</span>
                       </label>
                       <input
                         type="text"
+                        className="create-escrow-step1-input"
                         placeholder="••••••••••••••••"
                         value={formData.counterpartyWallet}
                         onChange={(e) =>
@@ -775,113 +970,206 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         }
                       />
                     </div>
-                    <div className="form-group">
-                      <label>Email</label>
-                      <input
-                        type="email"
-                        placeholder="Enter your Email"
-                        value={formData.counterpartyEmail}
-                        onChange={(e) => {
-                          const email = e.target.value;
-                          setFormData({ ...formData, counterpartyEmail: email });
-                          
-                          // Clear previous timeout
-                          if (validationTimeouts.counterparty) {
-                            clearTimeout(validationTimeouts.counterparty);
+                  </div>
+                ) : (
+                  <div className="counterparty-form-grid create-escrow-step1-trustitag-grid">
+                    <div className="form-column">
+                      <div className="form-group">
+                        <label>
+                          Payers (You) XRP Wallet Address <span className="required">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="create-escrow-step1-input"
+                          placeholder="••••••••••••••••"
+                          value={formData.payerWallet}
+                          onChange={(e) =>
+                            setFormData({ ...formData, payerWallet: e.target.value })
                           }
-                          
-                          // Debounce validation (500ms delay)
-                          const timeout = setTimeout(() => {
-                            validateCounterpartyEmail(email);
-                          }, 500);
-                          
-                          setValidationTimeouts(prev => ({ ...prev, counterparty: timeout }));
-                        }}
-                        style={{
-                          borderColor: counterpartyEmailValidation.isValid === true ? '#10b981' : 
-                                     counterpartyEmailValidation.isValid === false ? '#ef4444' : undefined
-                        }}
-                      />
-                      {counterpartyEmailValidation.message && (
-                        <div style={{
-                          fontSize: '0.75rem',
-                          marginTop: '0.25rem',
-                          color: counterpartyEmailValidation.isValid === true ? '#10b981' : 
-                                 counterpartyEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
-                        }}>
-                          {counterpartyEmailValidation.message}
-                        </div>
-                      )}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Your Email</label>
+                        <input
+                          type="email"
+                          className="create-escrow-step1-input"
+                          placeholder="Enter your Email"
+                          value={formData.payerEmail}
+                          onChange={(e) => {
+                            const email = e.target.value;
+                            setFormData({ ...formData, payerEmail: email });
+                            if (validationTimeouts.payer) {
+                              clearTimeout(validationTimeouts.payer);
+                            }
+                            const timeout = setTimeout(() => {
+                              validatePayerEmail(email);
+                            }, 500);
+                            setValidationTimeouts((prev) => ({ ...prev, payer: timeout }));
+                          }}
+                          style={{
+                            borderColor:
+                              payerEmailValidation.isValid === true
+                                ? '#10b981'
+                                : payerEmailValidation.isValid === false
+                                  ? '#ef4444'
+                                  : undefined,
+                          }}
+                        />
+                        {payerEmailValidation.message && (
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              marginTop: '0.25rem',
+                              color:
+                                payerEmailValidation.isValid === true
+                                  ? '#10b981'
+                                  : payerEmailValidation.isValid === false
+                                    ? '#ef4444'
+                                    : '#6b7280',
+                            }}
+                          >
+                            {payerEmailValidation.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label>
+                          Counterparty XRP Wallet Address <span className="required">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="create-escrow-step1-input"
+                          placeholder="••••••••••••••••"
+                          value={formData.counterpartyWallet}
+                          onChange={(e) =>
+                            setFormData({ ...formData, counterpartyWallet: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Counterparty email</label>
+                        <input
+                          type="email"
+                          className="create-escrow-step1-input"
+                          placeholder="Enter counterparty email"
+                          value={formData.counterpartyEmail}
+                          onChange={(e) => {
+                            const email = e.target.value;
+                            setFormData({ ...formData, counterpartyEmail: email });
+                            if (validationTimeouts.counterparty) {
+                              clearTimeout(validationTimeouts.counterparty);
+                            }
+                            const timeout = setTimeout(() => {
+                              validateCounterpartyEmail(email);
+                            }, 500);
+                            setValidationTimeouts((prev) => ({
+                              ...prev,
+                              counterparty: timeout,
+                            }));
+                          }}
+                          style={{
+                            borderColor:
+                              counterpartyEmailValidation.isValid === true
+                                ? '#10b981'
+                                : counterpartyEmailValidation.isValid === false
+                                  ? '#ef4444'
+                                  : undefined,
+                          }}
+                        />
+                        {counterpartyEmailValidation.message && (
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              marginTop: '0.25rem',
+                              color:
+                                counterpartyEmailValidation.isValid === true
+                                  ? '#10b981'
+                                  : counterpartyEmailValidation.isValid === false
+                                    ? '#ef4444'
+                                    : '#6b7280',
+                            }}
+                          >
+                            {counterpartyEmailValidation.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="form-column">
+                      <div className="form-group">
+                        <label>Your Name</label>
+                        <input
+                          type="text"
+                          className="create-escrow-step1-input"
+                          placeholder="Enter your name"
+                          value={formData.payerName}
+                          onChange={(e) =>
+                            setFormData({ ...formData, payerName: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Your Phone Number</label>
+                        <input
+                          type="tel"
+                          className="create-escrow-step1-input"
+                          placeholder="Enter your Number"
+                          value={formData.payerPhone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, payerPhone: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Counterparty name</label>
+                        <input
+                          type="text"
+                          className="create-escrow-step1-input"
+                          placeholder="Enter counterparty name"
+                          value={formData.counterpartyName}
+                          onChange={(e) =>
+                            setFormData({ ...formData, counterpartyName: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Counterparty phone</label>
+                        <input
+                          type="tel"
+                          className="create-escrow-step1-input"
+                          placeholder="Enter counterparty number"
+                          value={formData.counterpartyPhone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, counterpartyPhone: e.target.value })
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
-
-                  {/* Right Column - Names and Phone Numbers */}
-                  <div className="form-column">
-                    <div className="form-group">
-                      <label>Your Name</label>
-                      <input
-                        type="text"
-                        placeholder="Enter your name"
-                        value={formData.payerName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, payerName: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Your Phone Number</label>
-                      <input
-                        type="tel"
-                        placeholder="Enter your Number"
-                        value={formData.payerPhone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, payerPhone: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Name</label>
-                      <input
-                        type="text"
-                        placeholder="Enter your name"
-                        value={formData.counterpartyName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, counterpartyName: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Phone Number</label>
-                      <input
-                        type="tel"
-                        placeholder="Enter your Number"
-                        value={formData.counterpartyPhone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, counterpartyPhone: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </>
           )}
 
           {currentStep === 2 && (
             <>
+              <div className="create-escrow-step2">
               {/* Escrow Terms Section */}
               <div className="escrow-form-section">
                 <h3 className="section-title">Escrow Terms</h3>
 
                 {/* Release Type Buttons */}
-                <div className="release-type-buttons">
+                <div className="release-type-buttons create-escrow-release-type-buttons">
                   <button
                     type="button"
                     className={`release-type-btn ${
                       termsData.releaseType === 'Manual Release' ? 'active' : ''
                     }`}
                     onClick={() =>
-                      setTermsData({ ...termsData, releaseType: 'Manual Release' })
+                      setTermsData({
+                        ...termsData,
+                        releaseType: 'Manual Release',
+                        timeBasedAutoReleaseAck: false,
+                      })
                     }
                   >
                     <Download size={18} />
@@ -893,7 +1181,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       termsData.releaseType === 'Time based' ? 'active' : ''
                     }`}
                     onClick={() =>
-                      setTermsData({ ...termsData, releaseType: 'Time based' })
+                      setTermsData({
+                        ...termsData,
+                        releaseType: 'Time based',
+                        timeBasedAutoReleaseAck: false,
+                      })
                     }
                   >
                     <Clock size={18} />
@@ -905,7 +1197,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       termsData.releaseType === 'Milestones' ? 'active' : ''
                     }`}
                     onClick={() =>
-                      setTermsData({ ...termsData, releaseType: 'Milestones' })
+                      setTermsData({
+                        ...termsData,
+                        releaseType: 'Milestones',
+                        timeBasedAutoReleaseAck: false,
+                      })
                     }
                   >
                     <Coins size={18} />
@@ -968,114 +1264,193 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
                 {/* Form Fields - Time based */}
                 {termsData.releaseType === 'Time based' && (
-                  <div className="terms-form-grid">
-                    <div className="form-group">
-                      <label>Expected Completion Date</label>
-                      <div className="date-input-wrapper">
+                  <>
+                    <div className="create-escrow-time-based-banner">
+                      <label className="create-escrow-time-based-banner-label">
                         <input
-                          type="date"
-                          placeholder="Add Date"
-                          value={termsData.expectedCompletionDate || ''}
-                          onChange={(e) => {
-                            const dateValue = e.target.value;
-                            setTermsData({
-                              ...termsData,
-                              expectedCompletionDate: dateValue ? new Date(dateValue + 'T00:00:00Z').toISOString() : '',
-                            });
-                          }}
-                          onMouseDown={(e) => {
-                            // Open picker on mousedown (before default behavior)
-                            if (e.target.showPicker) {
-                              try {
-                                e.target.showPicker();
-                                e.preventDefault(); // Prevent default browser behavior
-                              } catch (err) {
-                                // Silently fail if showPicker is not available
-                              }
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Dispute Resolution Period</label>
-                      <div className="select-input-wrapper">
-                        <select
-                          value={termsData.disputeResolutionPeriod}
+                          type="checkbox"
+                          checked={termsData.timeBasedAutoReleaseAck}
                           onChange={(e) =>
                             setTermsData({
                               ...termsData,
-                              disputeResolutionPeriod: e.target.value,
+                              timeBasedAutoReleaseAck: e.target.checked,
                             })
                           }
-                        >
-                          <option value="">Select</option>
-                          <option value="7">7 days</option>
-                          <option value="14">14 days</option>
-                          <option value="30">30 days</option>
-                        </select>
-                        <ChevronDown size={16} className="input-icon" />
-                      </div>
+                        />
+                        <span>
+                          I understand that escrow will complete automatically on the set date and
+                          cannot be disputed after completion.
+                        </span>
+                      </label>
                     </div>
+                    <h4 className="create-escrow-step2-counterparty-heading">Escrow Counterparty</h4>
+                    <div className="terms-form-grid create-escrow-step2-terms-grid create-escrow-step2-time-terms">
+                      <div className="form-group create-escrow-order-completion">
+                        <label>Expected Completion Date</label>
+                        <div className="date-input-wrapper create-escrow-step2-date-wrap">
+                          <Calendar size={18} className="create-escrow-step2-date-icon" aria-hidden />
+                          <input
+                            type="date"
+                            className="create-escrow-step2-date-input"
+                            value={toDateInputValue(termsData.expectedCompletionDate)}
+                            onChange={(e) => {
+                              const dateValue = e.target.value;
+                              setTermsData({
+                                ...termsData,
+                                expectedCompletionDate: dateValue || '',
+                              });
+                            }}
+                            onMouseDown={(e) => {
+                              if (e.target.showPicker) {
+                                try {
+                                  e.target.showPicker();
+                                  e.preventDefault();
+                                } catch (err) {
+                                  /* ignore */
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
 
-                    <div className="form-group">
-                      <label>Expected Release Date</label>
-                      <div className="date-input-wrapper">
-                        <input
-                          type="date"
-                          placeholder="Add Date"
-                          value={termsData.expectedReleaseDate || ''}
-                          onChange={(e) => {
-                            // Store as YYYY-MM-DD format (native date input format)
-                            const dateValue = e.target.value;
+                      <div className="form-group create-escrow-order-release">
+                        <label>Expected Release Date</label>
+                        <div className="date-input-wrapper create-escrow-step2-date-wrap">
+                          <Calendar size={18} className="create-escrow-step2-date-icon" aria-hidden />
+                          <input
+                            type="date"
+                            className="create-escrow-step2-date-input"
+                            value={toDateInputValue(termsData.expectedReleaseDate)}
+                            onChange={(e) => {
+                              const dateValue = e.target.value;
+                              setTermsData({
+                                ...termsData,
+                                expectedReleaseDate: dateValue || '',
+                              });
+                            }}
+                            onMouseDown={(e) => {
+                              if (e.target.showPicker) {
+                                try {
+                                  e.target.showPicker();
+                                  e.preventDefault();
+                                } catch (err) {
+                                  /* ignore */
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group create-escrow-order-dispute">
+                        <label>Dispute Resolution Period</label>
+                        <div className="select-input-wrapper create-escrow-step2-select-wrap">
+                          <select
+                            className="create-escrow-step2-select"
+                            value={termsData.disputeResolutionPeriod}
+                            onChange={(e) =>
+                              setTermsData({
+                                ...termsData,
+                                disputeResolutionPeriod: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select</option>
+                            <option value="7">7 days</option>
+                            <option value="14">14 days</option>
+                            <option value="30">30 days</option>
+                          </select>
+                          <ChevronDown size={16} className="input-icon" />
+                        </div>
+                      </div>
+
+                      <div className="form-group create-escrow-order-amount">
+                        <label>Escrow Amount</label>
+                        <div className="create-escrow-amount-row">
+                          <input
+                            type="text"
+                            className="create-escrow-amount-row-input"
+                            placeholder={desktopModalLayout ? 'Add amount' : 'Enter amount'}
+                            value={termsData.totalAmount}
+                            onChange={(e) =>
+                              setTermsData({ ...termsData, totalAmount: e.target.value })
+                            }
+                            inputMode="decimal"
+                            autoComplete="off"
+                          />
+                          <div className="create-escrow-amount-row-meta">
+                            <div
+                              className="create-escrow-balance-dropdown"
+                              aria-live="polite"
+                            >
+                              <div className="create-escrow-balance-dropdown-inner create-escrow-funding-wallet-trigger">
+                                <span className="create-escrow-balance-dropdown-currency-badge">
+                                  {normalizeEscrowPayloadCurrency(termsData.escrowCurrency)}
+                                </span>
+                                <div className="create-escrow-balance-dropdown-info">
+                                  <span className="create-escrow-balance-dropdown-label">
+                                    Balance
+                                  </span>
+                                  <span className="create-escrow-balance-dropdown-value">
+                                    {escrowFundingWalletsLoading
+                                      ? '—'
+                                      : formatEscrowBalance(
+                                          escrowCurrencyBalances[
+                                            normalizeEscrowPayloadCurrency(
+                                              termsData.escrowCurrency,
+                                            )
+                                          ] ?? 0,
+                                        )}
+                                  </span>
+                                </div>
+                                <ChevronDown
+                                  size={18}
+                                  className="create-escrow-balance-dropdown-chevron"
+                                  aria-hidden
+                                />
+                                <select
+                                  className="create-escrow-funding-wallet-select"
+                                  value={normalizeEscrowPayloadCurrency(termsData.escrowCurrency)}
+                                  onChange={(e) => {
+                                    const cur = normalizeEscrowPayloadCurrency(e.target.value);
+                                    setTermsData({
+                                      ...termsData,
+                                      escrowCurrency: cur,
+                                    });
+                                  }}
+                                  aria-label="Escrow funding currency"
+                                  disabled={escrowFundingWalletsLoading}
+                                >
+                                  {ESCROW_FUNDING_CURRENCIES.map((cur) => (
+                                    <option key={cur} value={cur}>
+                                      {cur} · Bal {formatEscrowBalance(escrowCurrencyBalances[cur] ?? 0)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="form-group form-group-full">
+                        <label>Release Conditions</label>
+                        <textarea
+                          className="create-escrow-step2-textarea"
+                          placeholder="Enter details"
+                          value={termsData.releaseConditions}
+                          onChange={(e) =>
                             setTermsData({
                               ...termsData,
-                              expectedReleaseDate: dateValue || '',
-                            });
-                          }}
-                          onMouseDown={(e) => {
-                            // Open picker on mousedown (before default behavior)
-                            if (e.target.showPicker) {
-                              try {
-                                e.target.showPicker();
-                                e.preventDefault(); // Prevent default browser behavior
-                              } catch (err) {
-                                // Silently fail if showPicker is not available
-                              }
-                            }
-                          }}
+                              releaseConditions: e.target.value,
+                            })
+                          }
+                          rows={4}
                         />
                       </div>
                     </div>
-
-                    <div className="form-group">
-                      <label>Total Amount</label>
-                      <input
-                        type="text"
-                        placeholder="Add amount"
-                        value={termsData.totalAmount}
-                        onChange={(e) =>
-                          setTermsData({ ...termsData, totalAmount: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Release Conditions</label>
-                      <textarea
-                        placeholder="Enter details"
-                        value={termsData.releaseConditions}
-                        onChange={(e) =>
-                          setTermsData({
-                            ...termsData,
-                            releaseConditions: e.target.value,
-                          })
-                        }
-                        rows={4}
-                      ></textarea>
-                    </div>
-                  </div>
+                  </>
                 )}
 
                 {/* Form Fields - Milestones */}
@@ -1150,12 +1525,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         <input
                           type="date"
                           placeholder="Add Date"
-                          value={termsData.expectedCompletionDate || ''}
+                          value={toDateInputValue(termsData.expectedCompletionDate)}
                           onChange={(e) => {
                             const dateValue = e.target.value;
                             setTermsData({
                               ...termsData,
-                              expectedCompletionDate: dateValue ? new Date(dateValue + 'T00:00:00Z').toISOString() : '',
+                              expectedCompletionDate: dateValue || '',
                             });
                           }}
                           onMouseDown={(e) => {
@@ -1199,57 +1574,48 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                   </div>
                 )}
               </div>
+              </div>
             </>
           )}
 
           {currentStep === 3 && (
-            <>
-              {/* Escrow Type and Terms Section - Side by Side */}
-              <div
-                className="escrow-form-section"
-                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}
-              >
-                {/* Escrow Type Section */}
-                <div>
-                  <h3 className="section-title">Escrow Type</h3>
-                  <div className="escrow-type-buttons">
-                    <button type="button" className="escrow-type-btn active" disabled>
-                      <CheckCircle size={18} />
+            <div className="create-escrow-step3 confirmation-step">
+              <div className="confirmation-details-section">
+                <h3 className="create-escrow-step3-heading">Escrow Type & Escrow Terms</h3>
+                <div className="create-escrow-step3-type-grid">
+                  <div className="create-escrow-step3-type-cell">
+                    <span className="create-escrow-step3-muted-label">Escrow Type</span>
+                    <span className="confirmation-type-btn">
+                      <CheckCircle size={16} aria-hidden />
                       {selectedEscrowType}
-                    </button>
+                    </span>
                   </div>
-                </div>
-
-                {/* Escrow Terms Section */}
-                <div>
-                  <h3 className="section-title">Escrow Terms</h3>
-                  <div className="release-type-buttons">
-                    <button type="button" className="release-type-btn active" disabled>
-                      {termsData.releaseType === 'Time based' && <Clock size={18} />}
-                      {termsData.releaseType === 'Milestones' && <Coins size={18} />}
-                      {termsData.releaseType === 'Manual Release' && <Download size={18} />}
+                  <div className="create-escrow-step3-type-cell">
+                    <span className="create-escrow-step3-muted-label">Escrow Terms</span>
+                    <span className="confirmation-type-btn">
+                      {termsData.releaseType === 'Time based' && <Clock size={16} aria-hidden />}
+                      {termsData.releaseType === 'Milestones' && <Coins size={16} aria-hidden />}
+                      {termsData.releaseType === 'Manual Release' && (
+                        <Download size={16} aria-hidden />
+                      )}
                       {termsData.releaseType}
-                    </button>
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Escrow Counterparty Section */}
-              <div className="escrow-form-section" style={{ marginTop: 0 }}>
-                <h3 className="section-title">Escrow Counterparty</h3>
-                <div className="counterparty-form-grid">
-                  {/* Left Column - Counterparty Information */}
+              <div className="confirmation-details-section">
+                <h3 className="create-escrow-step3-heading">Escrow Counterparty</h3>
+                <div className="confirmation-field-group">
+                  <span className="confirmation-label">
+                    Counterparty XRP Wallet Address <span className="required">*</span>
+                  </span>
+                  <div className="confirmation-masked-input">
+                    {maskCounterpartyWalletForConfirmation(formData.counterpartyWallet)}
+                  </div>
+                </div>
+                <div className="create-escrow-step3-counterparty-extra counterparty-form-grid">
                   <div className="form-column">
-                    <div className="form-group">
-                      <label>
-                        Counterparty XRP Wallet Address <span className="required">*</span>
-                      </label>
-                      <div
-                        style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
-                      >
-                        {formData.counterpartyWallet || '—'}
-                      </div>
-                    </div>
                     <div className="form-group">
                       <label>Email</label>
                       <div
@@ -1259,8 +1625,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Right Column - Names and Phone Numbers */}
                   <div className="form-column">
                     <div className="form-group">
                       <label>Name</label>
@@ -1282,51 +1646,73 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                 </div>
               </div>
 
-              {/* Escrow Details Section */}
-              <div className="escrow-form-section">
-                <h3 className="section-title">Escrow Details</h3>
-                <div className="terms-form-grid">
+              <div className="confirmation-details-section">
+                <h3 className="create-escrow-step3-heading">Escrow Details</h3>
+                <div className="confirmation-details-list">
                   {termsData.releaseType !== 'Manual Release' && (
-                    <div className="form-group">
-                      <label>Expected Completion Date</label>
-                      <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                        {termsData.expectedCompletionDate || '—'}
-                      </div>
+                    <div className="confirmation-detail-item">
+                      <span className="confirmation-detail-label">Expected Completion Date</span>
+                      <span className="confirmation-detail-value">
+                        {formatConfirmationDisplayDate(termsData.expectedCompletionDate)}
+                        <Calendar size={16} aria-hidden />
+                      </span>
                     </div>
                   )}
-
-                  <div className="form-group">
-                    <label>Dispute Resolution Period</label>
-                    <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
+                  {termsData.releaseType === 'Time based' &&
+                    Boolean(toDateInputValue(termsData.expectedReleaseDate)) && (
+                      <div className="confirmation-detail-item">
+                        <span className="confirmation-detail-label">Expected Release Date</span>
+                        <span className="confirmation-detail-value">
+                          {formatConfirmationDisplayDate(termsData.expectedReleaseDate)}
+                          <Calendar size={16} aria-hidden />
+                        </span>
+                      </div>
+                    )}
+                  <div className="confirmation-detail-item">
+                    <span className="confirmation-detail-label">Dispute Resolution Period</span>
+                    <span className="confirmation-detail-value">
                       {termsData.disputeResolutionPeriod
                         ? `${termsData.disputeResolutionPeriod} days`
                         : '—'}
+                    </span>
+                  </div>
+                  <div className="create-escrow-step3-amount-fee-grid">
+                    <div className="confirmation-detail-item create-escrow-step3-amount-fee-item">
+                      <span className="confirmation-detail-label">Escrow Amount</span>
+                      <span className="confirmation-detail-value">
+                        {formatConfirmationMoneyLine(
+                          parseFloat(termsData.totalAmount),
+                          termsData.escrowCurrency,
+                          exchangeRate,
+                        )}
+                      </span>
+                    </div>
+                    <div className="confirmation-detail-item create-escrow-step3-amount-fee-item">
+                      <span className="confirmation-detail-label create-escrow-step3-fee-label">
+                        Escrow Fee
+                      </span>
+                      <span className="confirmation-detail-value">
+                        {formatConfirmationMoneyLine(
+                          parseFloat(termsData.totalAmount) * 0.05,
+                          termsData.escrowCurrency,
+                          exchangeRate,
+                        )}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="form-group">
-                    <label style={{ fontWeight: 'bold', color: '#0066FF' }}>Escrow Fee</label>
-                    <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                      {termsData.totalAmount
-                        ? `${(
-                            parseFloat(termsData.totalAmount) * 0.05
-                          ).toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })} XRP`
-                        : '—'}
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Total Payment</label>
-                    <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                      {termsData.totalAmount ? `${termsData.totalAmount} XRP` : '—'}
-                    </div>
+                  <div className="confirmation-detail-item">
+                    <span className="confirmation-detail-label">Total Escrowed Payment</span>
+                    <span className="confirmation-detail-value">
+                      {formatConfirmationMoneyLine(
+                        parseFloat(termsData.totalAmount),
+                        termsData.escrowCurrency,
+                        exchangeRate,
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -1336,7 +1722,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             <button
               type="button"
               className="submit-next-btn"
-              onClick={() => setCurrentStep(2)}
+              onClick={handleContinueFromStep1}
             >
               <div className="submit-btn-icon-circle">
                 <ArrowRight size={16} />
@@ -1361,7 +1747,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             <button
               type="button"
               className="submit-next-btn"
-              onClick={() => setCurrentStep(3)}
+              onClick={handleContinueFromStep2}
             >
               <div className="submit-btn-icon-circle">
                 <ArrowRight size={16} />
@@ -1372,17 +1758,23 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
         )}
 
         {currentStep === 3 && (
-          <div className="create-escrow-modal-footer">
-            <button
-              type="button"
-              className="previous-btn"
-              onClick={() => setCurrentStep(2)}
-            >
-              <div className="previous-btn-icon-circle">
-                <ArrowLeft size={16} />
-              </div>
-              <span>Previous</span>
-            </button>
+          <div
+            className={`create-escrow-modal-footer${
+              desktopModalLayout ? ' create-escrow-step3-footer-desktop' : ''
+            }`}
+          >
+            {!desktopModalLayout && (
+              <button
+                type="button"
+                className="previous-btn"
+                onClick={() => setCurrentStep(2)}
+              >
+                <div className="previous-btn-icon-circle">
+                  <ArrowLeft size={16} />
+                </div>
+                <span>Previous</span>
+              </button>
+            )}
             <button
               type="button"
               className="submit-next-btn"
@@ -1405,9 +1797,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                   <CheckCircle size={16} />
                 )}
               </div>
-              <span>
-                {isCreatingEscrow ? 'Creating...' : 'Confirm'}
-              </span>
+              <span>{isCreatingEscrow ? 'Creating...' : 'Confirm'}</span>
             </button>
           </div>
         )}

@@ -6,6 +6,7 @@ import {
   CreditCard,
   DollarSign,
   Building2,
+  FileText,
   FileCheck,
   Code,
   Box,
@@ -24,7 +25,8 @@ import {
   CheckCircle,
   X,
   TrendingUp,
-  Upload
+  Upload,
+  Repeat
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import '../my-escrow/MyEscrow.css';
@@ -32,7 +34,6 @@ import '../dispute/Dispute.css';
 import '../dispute/DisputeDetail.css';
 import './BusinessSuiteDispute.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
@@ -41,11 +42,15 @@ import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null, path: '/dashboard' },
   { label: 'Payroll', icon: DollarSign, badge: null, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, badge: null, path: '/supplier-contract' },
+  { label: 'Invoice', icon: FileText, badge: null, path: '/invoice' },
+  { label: 'Transactions', icon: Repeat, badge: null, path: '/transactions' },
   { label: 'Dispute', icon: CreditCard, badge: null, path: '/business-dispute' },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta', path: '/compliance' }
 ];
@@ -106,6 +111,16 @@ const formatDurationSeconds = (s) => {
   const mins = abs / 60;
   if (mins >= 1) return `${Number(mins.toFixed(1))} mins`;
   return `${Number(abs.toFixed(1))} Sec`;
+};
+
+const formatAvgResolutionParts = (seconds) => {
+  const num = toNumberOrNull(seconds);
+  if (num === null) return { main: 'N/A', unit: null };
+  const abs = Math.abs(num);
+  if (abs >= 86400) return { main: String(Number((abs / 86400).toFixed(1))), unit: 'days' };
+  if (abs >= 3600) return { main: String(Number((abs / 3600).toFixed(1))), unit: 'hrs' };
+  if (abs >= 60) return { main: String(Number((abs / 60).toFixed(1))), unit: 'mins' };
+  return { main: String(Number(abs.toFixed(1))), unit: 'Sec' };
 };
 
 const titleCaseStatus = (s) => {
@@ -203,6 +218,11 @@ const BusinessSuiteDispute = () => {
     if (['pending', 'active', 'resolved', 'cancelled'].includes(n)) return n;
     return 'all';
   }, [selectedFilter]);
+
+  const avgResolutionParts = useMemo(
+    () => formatAvgResolutionParts(summaryMetrics.avgResolutionTimeSeconds),
+    [summaryMetrics.avgResolutionTimeSeconds],
+  );
 
   const handleMonthSelect = (month) => {
     setSelectedMonth(month);
@@ -532,7 +552,7 @@ const BusinessSuiteDispute = () => {
     if (item.path === '/compliance') return;
     navigate(
       item.path,
-      item.path === '/dashboard' || item.path === '/settings'
+      item.path === '/dashboard' || item.path === '/settings' || item.path === '/transactions'
         ? { state: { accountType: 'Business Suite' } }
         : undefined
     );
@@ -554,13 +574,7 @@ const BusinessSuiteDispute = () => {
               ) : (
                 userInitials
               )}
-            </div>
-            <div className="mobile-user-info">
-              <span className="mobile-user-name">
-                {businessCompanyName ? (isLoadingBusinessKyc ? <LoadingIndicator size="sm" /> : businessCompanyName) : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName)}
-                <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-              </span>
-              <span className="mobile-user-role">{businessCompanyName ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : 'Business Suite')}</span>
+              <HeaderProfileVerifyBadge show={businessKycComplete} mobile />
             </div>
           </div>
           <div className="mobile-header-right">
@@ -595,7 +609,7 @@ const BusinessSuiteDispute = () => {
                       if (item.path && item.path !== '/compliance') {
                         navigate(
                           item.path,
-                          item.path === '/dashboard' || item.path === '/settings'
+                          item.path === '/dashboard' || item.path === '/settings' || item.path === '/transactions'
                             ? { state: { accountType: 'Business Suite' } }
                             : undefined
                         );
@@ -652,6 +666,8 @@ const BusinessSuiteDispute = () => {
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                 (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                 (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                (item.label === 'Invoice' && location.pathname === '/invoice') ||
+                (item.label === 'Transactions' && location.pathname === '/transactions') ||
                 (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
               const navBadge = getNavBadge(item);
               return (
@@ -789,17 +805,7 @@ const BusinessSuiteDispute = () => {
                 ) : (
                   userInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {accountType === 'Business Suite' ? (
-                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                  ) : (
-                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                  )}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
+                <HeaderProfileVerifyBadge show={businessKycComplete} />
               </div>
             </div>
           </div>
@@ -861,7 +867,14 @@ const BusinessSuiteDispute = () => {
               <div className="dispute-card-indicator" />
               <div className="dispute-card-content">
                 <div className="dispute-card-title-row"><span className="dispute-card-title">Avg Resolution Time</span></div>
-                <div className="dispute-card-value">{formatDurationSeconds(summaryMetrics.avgResolutionTimeSeconds)}</div>
+                <div
+                  className={`dispute-card-value${avgResolutionParts.unit ? ' dispute-card-value--split' : ''}`}
+                >
+                  <span className="dispute-card-value-main">{avgResolutionParts.main}</span>
+                  {avgResolutionParts.unit ? (
+                    <span className="dispute-card-value-unit">{avgResolutionParts.unit}</span>
+                  ) : null}
+                </div>
                 <div className="dispute-card-dropdown"><span>This Monthly</span><ChevronDown size={14} /></div>
               </div>
             </div>
@@ -1034,6 +1047,12 @@ const BusinessSuiteDispute = () => {
           </div>
         </div>
       )}
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="business-suite-dispute-notifications-title"
+      />
     </div>
   );
 };

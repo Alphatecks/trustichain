@@ -6,6 +6,7 @@ import {
   Briefcase,
   DollarSign,
   Building2,
+  FileText,
   FileCheck,
   Settings,
   HelpCircle,
@@ -14,7 +15,6 @@ import {
   LogOut,
   ArrowRight,
   ArrowLeft,
-  FileText,
   Briefcase as BriefcaseIcon,
   Image as ImageIcon,
   Clock,
@@ -28,12 +28,12 @@ import {
   ToggleRight,
   Upload,
   X,
-  Menu
+  Menu,
+  Repeat
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import '../dispute/DisputeDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import cloudDownloadIcon from '../../../assets/images/icons/cloud-download.png';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
@@ -42,11 +42,15 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Payroll', icon: DollarSign, path: '/payroll' },
   { label: 'Supplier Contract', icon: Building2, path: '/supplier-contract' },
+  { label: 'Invoice', icon: FileText, path: '/invoice' },
+  { label: 'Transactions', icon: Repeat, path: '/transactions' },
   { label: 'Dispute', icon: CreditCard, path: '/business-dispute' },
   { label: 'Compliance', icon: FileCheck, path: '/compliance' }
 ];
@@ -1134,15 +1138,7 @@ const BusinessSuiteDisputeDetail = () => {
             ) : (
               userInitials
             )}
-          </div>
-          <div className="mobile-user-info">
-            <span className="mobile-user-name">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
-              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-            </span>
-            <span className="mobile-user-role">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
-            </span>
+            <HeaderProfileVerifyBadge mobile />
           </div>
         </div>
         <div className="mobile-header-right">
@@ -1192,11 +1188,20 @@ const BusinessSuiteDisputeDetail = () => {
             <nav className="mobile-sidebar-nav">
               {businessSuiteNav.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.path ? (location.pathname === item.path || (item.path === '/business-dispute' && location.pathname.startsWith('/business-dispute/'))) : false;
+                const isActive = item.path
+                  ? (item.path === '/business-dispute' || item.path === '/payroll'
+                      ? location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+                      : location.pathname === item.path)
+                  : false;
                 const handleNavClick = () => {
                   setIsMobileMenuOpen(false);
                   if (item.path && item.path !== '/compliance') {
-                    navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+                    navigate(
+                      item.path,
+                      item.path === '/dashboard' || item.path === '/transactions'
+                        ? { state: { accountType: 'Business Suite' } }
+                        : undefined
+                    );
                   }
                 };
                 return (
@@ -1281,10 +1286,19 @@ const BusinessSuiteDisputeDetail = () => {
           <nav className="sidebar-nav">
             {businessSuiteNav.map((item) => {
               const Icon = item.icon;
-              const isActive = item.path ? (location.pathname === item.path || (item.path === '/business-dispute' && location.pathname.startsWith('/business-dispute/'))) : false;
+              const isActive = item.path
+                ? (item.path === '/business-dispute' || item.path === '/payroll'
+                    ? location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+                    : location.pathname === item.path)
+                : false;
               const handleNavClick = () => {
                 if (item.path && item.path !== '/compliance') {
-                  navigate(item.path, item.path === '/dashboard' ? { state: { accountType: 'Business Suite' } } : undefined);
+                  navigate(
+                    item.path,
+                    item.path === '/dashboard' || item.path === '/transactions'
+                      ? { state: { accountType: 'Business Suite' } }
+                      : undefined
+                  );
                 }
               };
               return (
@@ -1372,6 +1386,7 @@ const BusinessSuiteDisputeDetail = () => {
                 ) : (
                   userInitials
                 )}
+                <HeaderProfileVerifyBadge />
               </div>
             </div>
           </div>
@@ -2098,6 +2113,12 @@ const BusinessSuiteDisputeDetail = () => {
           </div>
         </div>
       )}
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="business-suite-dispute-detail-notifications-title"
+      />
     </div>
     </>
   );

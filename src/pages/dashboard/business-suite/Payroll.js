@@ -38,19 +38,21 @@ import {
   Coins,
   Info,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Repeat
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './Payroll.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import AddPayrollModal from '../../../components/AddPayrollModal';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import TransactionDetailModal from './TransactionDetailModal';
 
 const INITIAL_ADD_PAYROLL_FORM = {
@@ -77,6 +79,8 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
+  { label: 'Invoice', icon: FileText, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
@@ -749,19 +753,7 @@ const Payroll = () => {
               ) : (
                 userInitials
               )}
-            </div>
-            <div className="mobile-user-info">
-              <span className="mobile-user-name">
-                {accountType === 'Business Suite' ? (
-                  isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                ) : (
-                  isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                )}
-                <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-              </span>
-              <span className="mobile-user-role">
-                {accountType === 'Business Suite' ? 'Business' : (isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole)}
-              </span>
+              <HeaderProfileVerifyBadge show={accountType !== 'Business Suite' ? true : businessKycComplete} mobile />
             </div>
           </div>
           <div className="mobile-header-right">
@@ -785,70 +777,6 @@ const Payroll = () => {
             className="mobile-sidebar-overlay"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-        )}
-
-        {/* Mobile Notifications Dialog */}
-        {showNotificationModal && (
-          <>
-            <div 
-              className="mobile-notifications-overlay"
-              onClick={() => setShowNotificationModal(false)}
-            />
-            <div className="mobile-notifications-dialog">
-              <div className="mobile-notifications-header">
-                <h2 className="mobile-notifications-title">Notifications</h2>
-                <button
-                  className="mobile-notifications-close"
-                  onClick={() => setShowNotificationModal(false)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="mobile-notifications-content">
-                {/* Sample notifications */}
-                <div className="mobile-notification-item">
-                  <div className="mobile-notification-icon">
-                    <Bell size={18} />
-                  </div>
-                  <div className="mobile-notification-details">
-                    <div className="mobile-notification-title">New Payroll Created</div>
-                    <div className="mobile-notification-message">Your payroll "Angelo Group" has been successfully created.</div>
-                    <div className="mobile-notification-time">2 hours ago</div>
-                  </div>
-                </div>
-                <div className="mobile-notification-item">
-                  <div className="mobile-notification-icon">
-                    <Bell size={18} />
-                  </div>
-                  <div className="mobile-notification-details">
-                    <div className="mobile-notification-title">Payment Received</div>
-                    <div className="mobile-notification-message">You received $5,000 in your wallet.</div>
-                    <div className="mobile-notification-time">5 hours ago</div>
-                  </div>
-                </div>
-                <div className="mobile-notification-item">
-                  <div className="mobile-notification-icon">
-                    <Bell size={18} />
-                  </div>
-                  <div className="mobile-notification-details">
-                    <div className="mobile-notification-title">Team Member Added</div>
-                    <div className="mobile-notification-message">A new team member has been added to your payroll.</div>
-                    <div className="mobile-notification-time">1 day ago</div>
-                  </div>
-                </div>
-                <div className="mobile-notification-item">
-                  <div className="mobile-notification-icon">
-                    <Bell size={18} />
-                  </div>
-                  <div className="mobile-notification-details">
-                    <div className="mobile-notification-title">Release Date Updated</div>
-                    <div className="mobile-notification-message">The release date for "Angelo Group" has been changed.</div>
-                    <div className="mobile-notification-time">2 days ago</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
         )}
 
         {/* Mobile Sidebar Drawer */}
@@ -905,6 +833,8 @@ const Payroll = () => {
                   const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                    (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                    (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                                   (item.label === 'Invoice' && location.pathname === '/invoice') ||
+                                   (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                    (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
                   const handleNavClick = () => {
                     if (isDisabled) return;
@@ -915,8 +845,14 @@ const Payroll = () => {
                       navigate('/payroll');
                     } else if (item.label === 'Supplier Contract') {
                       navigate('/supplier-contract');
+                    } else if (item.label === 'Invoice') {
+                      navigate('/invoice');
+                    } else if (item.label === 'Transactions') {
+                      navigate('/transactions', { state: { accountType: 'Business Suite' } });
                     } else if (item.label === 'Dispute') {
                       navigate('/business-dispute');
+                    } else if (item.label === 'Compliance') {
+                      toast('Compliance workspace coming soon');
                     }
                   };
                   return (
@@ -2336,6 +2272,8 @@ const Payroll = () => {
               const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
                                (item.label === 'Payroll' && (location.pathname === '/payroll' || location.pathname.startsWith('/payroll/'))) ||
                                (item.label === 'Supplier Contract' && location.pathname === '/supplier-contract') ||
+                               (item.label === 'Invoice' && location.pathname === '/invoice') ||
+                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                (item.label === 'Dispute' && (location.pathname === '/business-dispute' || location.pathname.startsWith('/business-dispute/')));
               const handleNavClick = () => {
                 if (item.label === 'Dashboard') {
@@ -2344,8 +2282,14 @@ const Payroll = () => {
                   navigate('/payroll');
                 } else if (item.label === 'Supplier Contract') {
                   navigate('/supplier-contract');
+                } else if (item.label === 'Invoice') {
+                  navigate('/invoice');
+                } else if (item.label === 'Transactions') {
+                  navigate('/transactions', { state: { accountType: 'Business Suite' } });
                 } else if (item.label === 'Dispute') {
                   navigate('/business-dispute');
+                } else if (item.label === 'Compliance') {
+                  toast('Compliance workspace coming soon');
                 }
               };
               return (
@@ -2499,17 +2443,7 @@ const Payroll = () => {
                 ) : (
                   userInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {accountType === 'Business Suite' ? (
-                    isLoadingBusinessKyc || !businessCompanyName ? <LoadingIndicator size="sm" /> : businessCompanyName
-                  ) : (
-                    isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName
-                  )}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{accountType === 'Business Suite' ? 'Business' : (userRole || '')}</small>
+                <HeaderProfileVerifyBadge show={accountType !== 'Business Suite' ? true : businessKycComplete} />
               </div>
             </div>
           </div>
@@ -2812,6 +2746,12 @@ const Payroll = () => {
         isOpen={showAddPayrollModal}
         onCancel={() => setShowAddPayrollModal(false)}
         onSuccess={handleCreatePayroll}
+      />
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="payroll-notifications-title"
       />
     </div>
   );

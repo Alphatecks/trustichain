@@ -54,7 +54,6 @@ import '../my-escrow/MyEscrow.css';
 import './Dispute.css';
 import './DisputeDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
@@ -64,6 +63,9 @@ import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
+import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -71,7 +73,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
+  { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -150,6 +152,17 @@ const formatDurationSeconds = (seconds) => {
   return `${Number(abs.toFixed(1))} Sec`;
 };
 
+/** Overview card: large figure + smaller unit (e.g. 3.2 Sec) */
+const formatAvgResolutionParts = (seconds) => {
+  const num = toNumberOrNull(seconds);
+  if (num === null) return { main: 'N/A', unit: null };
+  const abs = Math.abs(num);
+  if (abs >= 86400) return { main: String(Number((abs / 86400).toFixed(1))), unit: 'days' };
+  if (abs >= 3600) return { main: String(Number((abs / 3600).toFixed(1))), unit: 'hrs' };
+  if (abs >= 60) return { main: String(Number((abs / 60).toFixed(1))), unit: 'mins' };
+  return { main: String(Number(abs.toFixed(1))), unit: 'Sec' };
+};
+
 const titleCaseStatus = (status) => {
   if (!status || typeof status !== 'string') return '—';
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
@@ -208,6 +221,11 @@ const Dispute = () => {
     if (['pending', 'active', 'resolved', 'cancelled'].includes(normalized)) return normalized;
     return 'all';
   }, [selectedFilter]);
+
+  const avgResolutionParts = useMemo(
+    () => formatAvgResolutionParts(summaryMetrics.avgResolutionTimeSeconds),
+    [summaryMetrics.avgResolutionTimeSeconds],
+  );
 
   const handleMonthSelect = (month) => {
     setSelectedMonth(month);
@@ -855,39 +873,16 @@ const Dispute = () => {
   return (
     <>
       {/* Mobile Header */}
-      <div className="mobile-dashboard-header transactions-mobile-header">
-        <div className="mobile-header-left">
-          <div className="mobile-user-avatar">
-            {userAvatar ? (
-              <img src={userAvatar} alt={userFullName} />
-            ) : (
-              userInitials
-            )}
-          </div>
-          <div className="mobile-user-info">
-            <span className="mobile-user-name">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
-              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-            </span>
-            <span className="mobile-user-role">
-              {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userRole}
-            </span>
-          </div>
-        </div>
-        <div className="mobile-header-right">
-          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
-            <Bell size={20} />
-          </button>
-          <button 
-            type="button" 
-            className="mobile-header-menu"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <Menu size={20} />
-          </button>
-        </div>
-      </div>
-
+      <PersonalSuiteMobileHeader
+        variant="personal"
+        className="transactions-mobile-header"
+        personalVerificationComplete={kycComplete}
+        userAvatar={userAvatar}
+        userInitials={userInitials}
+        userFullName={userFullName}
+        onOpenNotifications={() => setShowNotificationModal(true)}
+        onToggleMobileMenu={() => setIsMobileMenuOpen((o) => !o)}
+      />
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -927,6 +922,7 @@ const Dispute = () => {
                                  (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
                                  (item.label === 'Transactions' && location.pathname === '/transactions') ||
                                  (item.label === 'Dispute' && location.pathname === '/dispute') ||
+                                 (item.label === 'Savings' && location.pathname === '/savings') ||
                                  (item.label === 'Trusticard' && location.pathname === '/trusticard');
                 const handleNavClick = () => {
                   setIsMobileMenuOpen(false);
@@ -938,8 +934,10 @@ const Dispute = () => {
                     navigate('/transactions');
                   } else if (item.label === 'Dispute') {
                     navigate('/dispute');
+                  } else if (item.label === 'Savings') {
+                    navigate('/savings');
                   } else if (item.label === 'Trusticard') {
-                    return;
+                    navigate('/trusticard');
                   }
                 };
                 const navBadge = getNavBadge(item);
@@ -1046,7 +1044,7 @@ const Dispute = () => {
                 } else if (item.label === 'Savings') {
                   navigate('/savings');
                 } else if (item.label === 'Trusticard') {
-                  return;
+                  navigate('/trusticard');
                 }
               };
               const navBadge = getNavBadge(item);
@@ -1126,9 +1124,15 @@ const Dispute = () => {
 
           <div className="header-actions">
             {kycComplete ? (
-              <div className="account-type-display">
-                <span className="account-type-label">{accountType}</span>
-              </div>
+              <>
+                <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                  <span className="header-trustiscore-label">TrustiScore</span>
+                  <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+                </div>
+                <div className="account-type-display">
+                  <span className="account-type-label">{accountType}</span>
+                </div>
+              </>
             ) : (
             <button type="button" className="kyc-status">
               <KeyRound size={16} />
@@ -1146,13 +1150,7 @@ const Dispute = () => {
                 ) : (
                   userInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>Freelancer</small>
+                <HeaderProfileVerifyBadge show={kycComplete} />
               </div>
             </div>
           </div>
@@ -1236,7 +1234,14 @@ const Dispute = () => {
                 <div className="dispute-card-title-row">
                   <span className="dispute-card-title">Avg Resolution Time</span>
                 </div>
-                <div className="dispute-card-value">{formatDurationSeconds(summaryMetrics.avgResolutionTimeSeconds)}</div>
+                <div
+                  className={`dispute-card-value${avgResolutionParts.unit ? ' dispute-card-value--split' : ''}`}
+                >
+                  <span className="dispute-card-value-main">{avgResolutionParts.main}</span>
+                  {avgResolutionParts.unit ? (
+                    <span className="dispute-card-value-unit">{avgResolutionParts.unit}</span>
+                  ) : null}
+                </div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -2304,6 +2309,12 @@ const Dispute = () => {
           </div>
         </div>
       )}
+
+      <NotificationCenterModal
+        open={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        titleId="dispute-notifications-title"
+      />
     </>
   );
 };

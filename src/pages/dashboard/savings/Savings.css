@@ -1,0 +1,960 @@
+/* My Savings — Savings wallet carousel (dashboard content only; shell uses Dashboard.css) */
+
+.savings-page {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.savings-page .card-breadcrumb {
+  order: 0;
+}
+
+.savings-wallet-panel {
+  container-type: inline-size;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  padding: 1.35rem 1.5rem 1.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  order: 1;
+}
+
+.savings-wallet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.savings-wallet-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.savings-wallet-accent {
+  width: 4px;
+  height: 20px;
+  border-radius: 999px;
+  background: #0066ff;
+  flex-shrink: 0;
+}
+
+.savings-wallet-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-wallet-add-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #0066ff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.savings-wallet-add-plan:hover {
+  text-decoration: underline;
+}
+
+.savings-wallet-track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0.15rem 0.85rem;
+  margin: 0 -0.15rem;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.savings-wallet-track::-webkit-scrollbar {
+  display: none;
+}
+
+.savings-plan-card {
+  flex: 0 0 auto;
+  position: relative;
+  /* Fallback: viewport-based (container query below overrides when supported) */
+  width: min(220px, 88vw);
+  scroll-snap-align: start;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 20px rgba(15, 23, 42, 0.06);
+  padding: 1rem 2.35rem 0.95rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+@supports (container-type: inline-size) {
+  .savings-plan-card {
+    width: min(220px, 46cqw);
+  }
+}
+
+.savings-plan-delete-btn {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.savings-plan-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+.savings-plan-delete-btn:active {
+  transform: scale(0.96);
+}
+
+.savings-plan-delete-btn:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.5);
+  outline-offset: 2px;
+}
+
+.savings-plan-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.savings-plan-ring {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  padding: 3px;
+  flex-shrink: 0;
+  background: conic-gradient(var(--sv-ring-color, #2563eb) calc(var(--sv-pct, 0) * 1%), #e8edf3 0);
+}
+
+.savings-plan-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sv-ring-color, #2563eb);
+}
+
+.savings-plan-meta {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.savings-plan-name {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #111827;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  line-height: 1.25;
+}
+
+.savings-plan-pct {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-plan-type {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0066ff;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-plan-saved-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: flex-start;
+}
+
+.savings-plan-saved-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+.savings-plan-saved-amt {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-wallet-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  padding-top: 0.15rem;
+}
+
+.savings-wallet-add-money {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #0066ff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.savings-wallet-add-money:hover {
+  text-decoration: underline;
+}
+
+.savings-wallet-withdraw {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.62rem 1.15rem;
+  border: none;
+  border-radius: 10px;
+  background: #0066ff;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.25);
+}
+
+.savings-wallet-withdraw:hover {
+  background: #0052cc;
+}
+
+/* Savings Allocation (below Savings wallet) */
+.savings-allocation-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  padding: 1.35rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  order: 2;
+}
+
+.savings-allocation-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.savings-allocation-title-row > div {
+  min-width: 0;
+}
+
+.savings-allocation-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #94a3b8;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  line-height: 1.35;
+}
+
+.savings-allocation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.65rem 0.75rem;
+}
+
+.savings-allocation-total {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0066ff;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  line-height: 1;
+}
+
+.savings-allocation-growth {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.28rem 0.55rem 0.32rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-allocation-growth svg {
+  flex-shrink: 0;
+  color: #16a34a;
+}
+
+.savings-allocation-period {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #64748b;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-allocation-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  height: 20px;
+  border-radius: 0;
+  overflow: hidden;
+  gap: 3px;
+  background: #f1f5f9;
+  box-sizing: border-box;
+}
+
+.savings-allocation-bar-segment {
+  min-width: 0;
+  min-height: 100%;
+}
+
+.savings-allocation-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.35rem;
+  align-items: center;
+}
+
+.savings-allocation-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-allocation-legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Saving history (below Savings Allocation) */
+.savings-history-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  padding: 1.35rem 1.5rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  order: 3;
+}
+
+.savings-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.savings-history-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.savings-history-title-row .savings-wallet-title {
+  margin: 0;
+}
+
+.savings-history-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.savings-history-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.savings-history-pill-btn:hover {
+  border-color: rgba(0, 102, 255, 0.35);
+  color: #0066ff;
+}
+
+.savings-history-icon-round {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #0066ff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.savings-history-icon-round:hover {
+  border-color: rgba(0, 102, 255, 0.45);
+}
+
+.savings-history-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0;
+  scrollbar-width: none;
+}
+
+.savings-history-table-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.savings-history-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+.savings-history-table thead th.savings-history-cell {
+  padding: 0.9rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: left;
+  vertical-align: middle;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.savings-history-table thead .savings-history-cell:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.savings-history-table thead .savings-history-cell:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.savings-history-table tbody td.savings-history-cell {
+  padding: 0.88rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+  vertical-align: middle;
+  border-bottom: 1px solid #eef2f6;
+  background: #ffffff;
+}
+
+.savings-history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.savings-history-cell-check {
+  width: 42px;
+  text-align: center;
+}
+
+.savings-history-cell-action {
+  width: 52px;
+  text-align: center;
+}
+
+.savings-history-cell-txid {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savings-history-cell-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.savings-history-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #0066ff;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.savings-history-tx-received {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.savings-history-tx-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0066ff;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.savings-history-tx-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.savings-history-status-ok {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #16a34a;
+}
+
+.savings-history-row-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #0066ff;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.savings-history-row-action:hover {
+  background: #0052cc;
+}
+
+.savings-history-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.savings-history-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem 1.25rem;
+  padding-top: 0.5rem;
+}
+
+.savings-history-page-nav {
+  border: none;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.savings-history-page-nav:hover:not(:disabled) {
+  color: #0066ff;
+}
+
+.savings-history-page-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.savings-history-page-list {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.savings-history-page-ellipsis {
+  padding: 0 0.2rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+
+.savings-history-page-num {
+  min-width: 32px;
+  padding: 0.25rem 0.35rem 0.45rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  line-height: 1.2;
+  border-bottom: 2px solid transparent;
+}
+
+.savings-history-page-num:hover {
+  color: #0066ff;
+}
+
+.savings-history-page-num.active {
+  color: #0066ff;
+  font-weight: 700;
+  border-bottom-color: #0066ff;
+}
+
+.savings-wallet-add-plan-text--mobile {
+  display: none;
+}
+
+.savings-history-title-text--mobile {
+  display: none;
+}
+
+.savings-history-mobile-forward {
+  display: none;
+}
+
+.savings-history-mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dashboard-main.savings-dashboard-main {
+    background: #f8fafc;
+  }
+
+  .savings-page {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .savings-page .card-breadcrumb {
+    display: none;
+  }
+
+  .savings-allocation-panel {
+    order: 1;
+    padding: 1.15rem 1rem 1.25rem;
+    gap: 1.2rem;
+  }
+
+  .savings-wallet-panel {
+    order: 2;
+    padding: 1.1rem 1rem 1.25rem;
+  }
+
+  .savings-history-panel {
+    order: 3;
+    padding: 1.1rem 1rem 1.2rem;
+    gap: 1rem;
+  }
+
+  .savings-wallet-add-plan-text--desktop {
+    display: none;
+  }
+
+  .savings-wallet-add-plan-text--mobile {
+    display: inline;
+  }
+
+  .savings-history-title-text--desktop {
+    display: none;
+  }
+
+  .savings-history-title-text--mobile {
+    display: inline;
+  }
+
+  .savings-history-desktop-only {
+    display: none !important;
+  }
+
+  .savings-history-mobile-only.savings-history-mobile-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .savings-history-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .savings-history-title-row {
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+  }
+
+  .savings-history-controls {
+    width: auto;
+  }
+
+  .savings-history-mobile-forward {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    color: #0066ff;
+    cursor: pointer;
+    border-radius: 50%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .savings-history-mobile-forward:active {
+    opacity: 0.75;
+  }
+
+  .savings-history-mobile-feed-item {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .savings-history-mobile-feed-item:first-child {
+    padding-top: 0.15rem;
+  }
+
+  .savings-history-mobile-feed-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0.15rem;
+  }
+
+  .savings-history-mobile-feed-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e8f2ff;
+    color: #0066ff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .savings-history-mobile-feed-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .savings-history-mobile-feed-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #111827;
+    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  }
+
+  .savings-history-mobile-feed-sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #64748b;
+    line-height: 1.4;
+    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  }
+
+  .savings-history-mobile-feed-meta {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    text-align: right;
+  }
+
+  .savings-history-mobile-feed-status {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #16a34a;
+    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  }
+
+  .savings-history-mobile-feed-date {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #94a3b8;
+    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  }
+
+  .savings-allocation-total {
+    font-size: 1.65rem;
+  }
+
+  .savings-allocation-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .savings-allocation-legend-dot {
+    width: 18px;
+    height: 18px;
+  }
+
+  .savings-wallet-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+
+  .savings-wallet-add-plan {
+    align-self: auto;
+    flex-shrink: 0;
+  }
+
+  .savings-wallet-footer {
+    display: flex;
+    flex-direction: row;
+    gap: 0.65rem;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .savings-wallet-add-money {
+    flex: 1;
+    justify-content: center;
+    padding: 0.65rem 0.75rem;
+    border: 2px solid #0066ff;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #0066ff;
+    font-size: 0.875rem;
+    text-decoration: none;
+    min-height: 46px;
+    box-sizing: border-box;
+  }
+
+  .savings-wallet-add-money:hover {
+    text-decoration: none;
+    background: rgba(0, 102, 255, 0.06);
+  }
+
+  .savings-wallet-withdraw {
+    flex: 1;
+    justify-content: center;
+    min-height: 46px;
+  }
+
+  .savings-plan-card {
+    width: min(172px, 74vw);
+  }
+}

@@ -40,33 +40,53 @@ import {
   Copy,
   QrCode,
   Menu,
-  AlertTriangle,
   CheckCircle,
   Package,
   Trophy,
-  Tag,
   ShoppingBag,
   Home,
-  Calendar,
   PiggyBank,
-  Trash2
+  Trash2,
+  FileText,
+  Plus,
+  Send,
+  Share,
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './Transactions.css';
 import logo from '../../../assets/images/icons/logo.png';
-import verifyBadge from '../../../assets/images/icons/verify.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
+import {
+  DEPOSIT_ADDRESS_CURRENCY_ICON,
+  getDepositNetworksForCurrency,
+  depositAddressNetworkLabel,
+  extractWalletAddresses,
+  resolveDepositAddressFromBalance,
+  splitDepositAddressLines,
+} from '../../../utils/depositAddressFlow';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
 import TransactionSummaryModal from '../../../components/TransactionSummaryModal';
+import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
+import AddSavingsPlanModal, { planRequiresGoalAmount } from '../../../components/AddSavingsPlanModal';
+import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+
+/** Placeholder avatars for “Send to Trustichain Users” row (UI reference). */
+const TRUSTICHAIN_USER_SAMPLE_AVATARS = [
+  'https://i.pravatar.cc/128?img=12',
+  'https://i.pravatar.cc/128?img=33',
+  'https://i.pravatar.cc/128?img=47',
+];
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -82,16 +102,6 @@ const formatTimeAgo = (isoString) => {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
-};
-
-const getNotificationIconConfig = (type) => {
-  if (type === 'wallet_deposit') {
-    return { Icon: CheckCircle, className: 'notification-status-icon success' };
-  }
-  if (type === 'escrow_completed') {
-    return { Icon: Package, className: 'notification-status-icon package' };
-  }
-  return { Icon: AlertTriangle, className: 'notification-status-icon warning' };
 };
 
 /** Short month names for cashflow X-axis (Jan–Dec). */
@@ -183,7 +193,7 @@ const sidebarNav = [
   { label: 'Transactions', icon: Repeat, badge: null },
   { label: 'Dispute', icon: CreditCard, badge: null },
   { label: 'Savings', icon: PiggyBank, badge: null },
-  { label: 'Trusticard', icon: Briefcase, badge: 'Beta' },
+  { label: 'Trusticard', icon: Briefcase, badge: null },
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
   { label: 'P2P trading', icon: Repeat, badge: 'Beta' }
 ];
@@ -192,8 +202,10 @@ const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
   { label: 'Payroll', icon: DollarSign, badge: null },
   { label: 'Supplier Contract', icon: Building2, badge: null },
-  { label: 'Compliance', icon: FileCheck, badge: 'Beta' },
-  { label: 'Transactions', icon: Repeat, badge: null }
+  { label: 'Invoice', icon: FileText, badge: null },
+  { label: 'Transactions', icon: Repeat, badge: null },
+  { label: 'Dispute', icon: CreditCard, badge: null },
+  { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
 const developersNav = [
@@ -203,6 +215,70 @@ const developersNav = [
 ];
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
+
+/** Same routes as Dashboard.js sidebar so Transactions shows the same items and links. */
+function getGeneralNavTargetPath(itemLabel, accountType) {
+  const routes = {
+    Dashboard: '/dashboard',
+    'My Escrow': '/my-escrow',
+    Transactions: '/transactions',
+    Transaction: '/transactions',
+    Savings: '/savings',
+    Trusticard: '/trusticard',
+    Payroll: '/payroll',
+    'Supplier Contract': '/supplier-contract',
+    Invoice: '/invoice',
+    Compliance: null,
+    'P2P trading': null
+  };
+  if (itemLabel === 'Dispute') {
+    return accountType === 'Business Suite' ? '/business-dispute' : '/dispute';
+  }
+  return routes[itemLabel] ?? null;
+}
+
+function isGeneralNavItemActive(itemLabel, pathname, accountType) {
+  const targetPath = getGeneralNavTargetPath(itemLabel, accountType);
+  if (!targetPath) return false;
+  if (targetPath === '/dispute' || targetPath === '/business-dispute') {
+    return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
+  }
+  if (targetPath === '/payroll') {
+    return pathname === '/payroll' || pathname.startsWith('/payroll/');
+  }
+  return pathname === targetPath;
+}
+
+function handleGeneralNavClick({
+  itemLabel,
+  accountType,
+  navigate,
+  setShowDesktopSavingsDashboard,
+  closeMobileMenu
+}) {
+  if (typeof closeMobileMenu === 'function') closeMobileMenu();
+  if (typeof setShowDesktopSavingsDashboard === 'function') {
+    if (itemLabel === 'Savings') {
+      setShowDesktopSavingsDashboard(true);
+    } else {
+      setShowDesktopSavingsDashboard(false);
+    }
+  }
+  const targetPath = getGeneralNavTargetPath(itemLabel, accountType);
+  if (!targetPath) return;
+  if (itemLabel === 'Transactions' && accountType === 'Business Suite') {
+    navigate('/transactions', { state: { accountType: 'Business Suite' } });
+    return;
+  }
+  navigate(targetPath);
+}
+
+function getDeveloperNavPath(itemLabel) {
+  if (itemLabel === 'Api Keys') return '/api-keys';
+  if (itemLabel === 'Sand box enviroment') return '/sandbox-environment';
+  if (itemLabel === 'Web hook') return '/webhook';
+  return null;
+}
 
 const Transactions = () => {
   const navigate = useNavigate();
@@ -227,9 +303,14 @@ const Transactions = () => {
   const [, setNotificationsTotal] = useState(0);
   const [, setNotificationsUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [expandedNotificationId, setExpandedNotificationId] = useState(null);
   const [kycComplete] = useState(true);
 
   const notificationsApiFilter = useMemo(() => (notificationFilter === 'Unread' ? 'unread' : 'all'), [notificationFilter]);
+
+  useEffect(() => {
+    if (!showNotificationModal) setExpandedNotificationId(null);
+  }, [showNotificationModal]);
   
   // Fetch notifications for the modal (All / Unread)
   useEffect(() => {
@@ -363,7 +444,10 @@ const Transactions = () => {
   const [fundingStep, setFundingStep] = useState('idle');
   const [transactionData, setTransactionData] = useState(null);
   const [fundViaAddress, setFundViaAddress] = useState(false);
+  const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletAddress, setWalletAddress] = useState('');
+  /** Last successful GET wallet/balance JSON (used to resolve deposit address by currency/network). */
+  const [walletBalanceRaw, setWalletBalanceRaw] = useState(null);
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
   const [showSavingsWithdrawModal, setShowSavingsWithdrawModal] = useState(false);
   const [showSavingsWithdrawConfirmModal, setShowSavingsWithdrawConfirmModal] = useState(false);
@@ -377,9 +461,11 @@ const Transactions = () => {
   const [showAddSavingsAccountModal, setShowAddSavingsAccountModal] = useState(false);
   const [addSavingsAccountForm, setAddSavingsAccountForm] = useState({
     name: '',
-    category: 'My Goals',
+    category: 'Fixed',
     duration: '',
-    amount: ''
+    amount: '',
+    autoSaveAmount: '',
+    autoSaveFrequency: '',
   });
   const [isCreatingSavingsAccount, setIsCreatingSavingsAccount] = useState(false);
   const [withdrawWalletForm, setWithdrawWalletForm] = useState({
@@ -425,6 +511,8 @@ const Transactions = () => {
     toCurrency: 'EUR',
     toAmount: '',
     recipientTrustitag: '',
+    recipientFullName: '',
+    recipientPhone: '',
     reason: ''
   });
   const [sendExchangeRate, setSendExchangeRate] = useState(null);
@@ -432,7 +520,30 @@ const Transactions = () => {
   const [showToCurrencyDropdown, setShowToCurrencyDropdown] = useState(false);
   const [lastEditedField, setLastEditedField] = useState(null); // 'from' or 'to'
   const [isProcessingTransfer, setIsProcessingTransfer] = useState(false);
-  
+  const [showAddBeneficiaryModal, setShowAddBeneficiaryModal] = useState(false);
+  const [addBeneficiaryTrustitag, setAddBeneficiaryTrustitag] = useState('');
+  const [isAddingBeneficiary, setIsAddingBeneficiary] = useState(false);
+
+  useEffect(() => {
+    if (!showAddBeneficiaryModal) {
+      setAddBeneficiaryTrustitag('');
+    }
+  }, [showAddBeneficiaryModal]);
+
+  useEffect(() => {
+    if (!location.state?.openSendModal) return;
+    setShowSendModal(true);
+    const prev = location.state && typeof location.state === 'object' ? { ...location.state } : {};
+    delete prev.openSendModal;
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: prev });
+  }, [location.state?.openSendModal, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    if (!showFundWalletModal || !fundViaAddress) return;
+    const keys = getDepositNetworksForCurrency(fundWalletForm.currency);
+    setDepositAddressNetwork((prev) => (keys.includes(prev) ? prev : keys[0]));
+  }, [showFundWalletModal, fundViaAddress, fundWalletForm.currency]);
+
   // Available currencies for the send modal
   const availableCurrencies = [
     { code: 'USD', name: 'USD', flag: 'us', symbol: '$' },
@@ -680,9 +791,28 @@ const Transactions = () => {
       openSavingsAddMoneyForWallet(savingsWallets[0]);
     } else {
       resetSavingsAddMoneyForm();
+      const first = savingsWallets.find((w) => w && !w.isPlaceholder);
+      if (first) {
+        setSavingsAddMoneyForm({
+          amount: '',
+          savingAccount: first.name || 'My Goals',
+          walletId: String(first.id),
+        });
+      }
       setShowSavingsAddMoneyModal(true);
     }
   }, [savingsWallets, openSavingsAddMoneyForWallet, resetSavingsAddMoneyForm]);
+
+  const resetAddSavingsAccountForm = useCallback(() => {
+    setAddSavingsAccountForm({
+      name: '',
+      category: 'Fixed',
+      duration: '',
+      amount: '',
+      autoSaveAmount: '',
+      autoSaveFrequency: '',
+    });
+  }, []);
 
   // Update accountType from location state
   useEffect(() => {
@@ -1167,8 +1297,8 @@ const Transactions = () => {
     }
 
     const tag = sendForm.recipientTrustitag.trim();
-    if (!tag || tag.length < 5) {
-      toast.error('Please enter a valid Trustitag');
+    if (!tag || tag.length < 3) {
+      toast.error('Please enter a valid wallet address, bank details, or Trustitag');
       return;
     }
 
@@ -1211,6 +1341,8 @@ const Transactions = () => {
             toCurrency: 'EUR',
             toAmount: '',
             recipientTrustitag: '',
+            recipientFullName: '',
+            recipientPhone: '',
             reason: '',
           });
           await fetchWalletBalances();
@@ -1229,7 +1361,7 @@ const Transactions = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showToCurrencyDropdown && !event.target.closest('.send-wallet-selector')) {
+      if (showToCurrencyDropdown && !event.target.closest('.send-modal-currency-anchor')) {
         setShowToCurrencyDropdown(false);
       }
     };
@@ -1269,6 +1401,8 @@ const Transactions = () => {
         return;
       }
 
+      setIsLoadingWalletBalances(true);
+
       const apiUrl = getApiUrl(walletBalanceEndpoint);
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -1296,16 +1430,23 @@ const Transactions = () => {
         }
         setCustodialWalletIds(nextCustodial);
 
-        // Extract XRPL address if available
-        const existingAddress = d.xrplAddress ?? d.xrpl_address ?? result?.xrplAddress;
-        if (
-          existingAddress &&
-          typeof existingAddress === 'string' &&
-          existingAddress.trim().length > 0
-        ) {
-          setWalletAddress(prev => prev || existingAddress);
+        setWalletBalanceRaw(result);
+
+        const mergedFallback =
+          d.xrplAddress ??
+          d.xrpl_address ??
+          d.walletAddress ??
+          d.address ??
+          result?.xrplAddress ??
+          '';
+        const { xrp } = extractWalletAddresses(
+          result,
+          typeof mergedFallback === 'string' ? mergedFallback : ''
+        );
+        if (xrp) {
+          setWalletAddress(xrp);
         }
-        
+
         if (result?.success && result?.data?.balance) {
           setWalletBalances(result.data.balance);
         } else {
@@ -1333,6 +1474,31 @@ const Transactions = () => {
       fetchWalletBalances();
     }
   }, [showSavingsAddMoneyModal]);
+
+  useEffect(() => {
+    if (showFundWalletModal && fundViaAddress) {
+      fetchWalletBalances();
+    }
+  }, [showFundWalletModal, fundViaAddress]);
+
+  const depositDisplayAddress = useMemo(() => {
+    if (!fundViaAddress) return walletAddress || '';
+    const fromApi =
+      walletBalanceRaw != null
+        ? resolveDepositAddressFromBalance(
+            walletBalanceRaw,
+            fundWalletForm.currency,
+            depositAddressNetwork
+          )
+        : '';
+    return (fromApi || walletAddress || '').trim();
+  }, [
+    fundViaAddress,
+    walletBalanceRaw,
+    fundWalletForm.currency,
+    depositAddressNetwork,
+    walletAddress,
+  ]);
 
   // Fetch transactions
   useEffect(() => {
@@ -1469,62 +1635,123 @@ const Transactions = () => {
     fetchTransactions();
   }, [isSessionExpired, accountType]);
 
-  // Fetch beneficiaries
-  useEffect(() => {
-    const fetchBeneficiaries = async () => {
-      try {
-        if (isSessionExpired) {
-          setBeneficiaries([
-            { id: 1, name: 'John Doe', initials: 'JD' },
-            { id: 2, name: 'Jane Smith', initials: 'JS' },
-            { id: 3, name: 'Bob Wilson', initials: 'BW' },
-            { id: 4, name: 'Alice Brown', initials: 'AB' }
-          ]);
-          setIsLoadingBeneficiaries(false);
-          return;
-        }
-
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setIsLoadingBeneficiaries(false);
-          return;
-        }
-
-        const apiUrl = getApiUrl('api/user/beneficiaries');
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result?.success) {
-            if (Array.isArray(result.data)) {
-              setBeneficiaries(result.data);
-            } else if (Array.isArray(result.data?.beneficiaries)) {
-              setBeneficiaries(result.data.beneficiaries);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching beneficiaries:', error);
-        // Use mock data on error
+  const loadBeneficiaries = useCallback(async () => {
+    try {
+      if (isSessionExpired) {
         setBeneficiaries([
           { id: 1, name: 'John Doe', initials: 'JD' },
           { id: 2, name: 'Jane Smith', initials: 'JS' },
           { id: 3, name: 'Bob Wilson', initials: 'BW' },
-          { id: 4, name: 'Alice Brown', initials: 'AB' }
+          { id: 4, name: 'Alice Brown', initials: 'AB' },
         ]);
-      } finally {
-        setIsLoadingBeneficiaries(false);
+        return;
       }
-    };
 
-    fetchBeneficiaries();
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return;
+      }
+
+      const apiUrl = getApiUrl('api/user/beneficiaries');
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result?.success) {
+          if (Array.isArray(result.data)) {
+            setBeneficiaries(result.data);
+          } else if (Array.isArray(result.data?.beneficiaries)) {
+            setBeneficiaries(result.data.beneficiaries);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching beneficiaries:', error);
+      setBeneficiaries([
+        { id: 1, name: 'John Doe', initials: 'JD' },
+        { id: 2, name: 'Jane Smith', initials: 'JS' },
+        { id: 3, name: 'Bob Wilson', initials: 'BW' },
+        { id: 4, name: 'Alice Brown', initials: 'AB' },
+      ]);
+    } finally {
+      setIsLoadingBeneficiaries(false);
+    }
   }, [isSessionExpired]);
+
+  useEffect(() => {
+    setIsLoadingBeneficiaries(true);
+    loadBeneficiaries();
+  }, [loadBeneficiaries]);
+
+  const handleConfirmAddBeneficiary = useCallback(async () => {
+    const tag = addBeneficiaryTrustitag.trim();
+    if (!tag) {
+      toast.error('Please enter a Trustitag');
+      return;
+    }
+
+    const initialsFromTag = (t) =>
+      t
+        .replace(/^@/, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 2)
+        .toUpperCase() || '??';
+
+    if (isSessionExpired) {
+      setBeneficiaries((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, name: tag, initials: initialsFromTag(tag), trustitag: tag },
+      ]);
+      toast.success('Beneficiary added');
+      setAddBeneficiaryTrustitag('');
+      setShowAddBeneficiaryModal(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to add beneficiaries');
+      return;
+    }
+
+    setIsAddingBeneficiary(true);
+    try {
+      const apiUrl = getApiUrl('api/user/beneficiaries');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ trustitag: tag }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result?.success !== false) {
+        toast.success(typeof result?.message === 'string' ? result.message : 'Beneficiary added');
+        setAddBeneficiaryTrustitag('');
+        setShowAddBeneficiaryModal(false);
+        setIsLoadingBeneficiaries(true);
+        await loadBeneficiaries();
+      } else {
+        const msg =
+          (typeof result?.message === 'string' && result.message) ||
+          (typeof result?.error === 'string' && result.error) ||
+          'Could not add beneficiary';
+        toast.error(msg);
+      }
+    } catch (e) {
+      console.error('Add beneficiary failed:', e);
+      toast.error('Could not add beneficiary');
+    } finally {
+      setIsAddingBeneficiary(false);
+    }
+  }, [addBeneficiaryTrustitag, isSessionExpired, loadBeneficiaries]);
 
   // Fetch linked accounts
   useEffect(() => {
@@ -1784,6 +2011,71 @@ const Transactions = () => {
     );
   };
 
+  const renderAddBeneficiaryModal = () => {
+    if (!showAddBeneficiaryModal) return null;
+    const close = () => {
+      setShowAddBeneficiaryModal(false);
+    };
+    return (
+      <div className="notification-modal-overlay add-beneficiary-modal-overlay" onClick={close}>
+        <div
+          className="notification-modal add-beneficiary-modal"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-beneficiary-title"
+        >
+          <div className="notification-modal-header add-beneficiary-modal-header">
+            <div className="notification-header-content">
+              <div className="notification-header-accent" aria-hidden />
+              <h2 id="add-beneficiary-title">Beneficiary</h2>
+            </div>
+            <button type="button" className="notification-close-btn" onClick={close} aria-label="Close">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="add-beneficiary-modal-body">
+            <label className="add-beneficiary-field-label" htmlFor="add-beneficiary-trustitag">
+              Trustitag
+            </label>
+            <input
+              id="add-beneficiary-trustitag"
+              type="text"
+              className="add-beneficiary-input"
+              placeholder="Add Trustitag"
+              autoComplete="username"
+              value={addBeneficiaryTrustitag}
+              onChange={(e) => setAddBeneficiaryTrustitag(e.target.value.trimStart())}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isAddingBeneficiary) {
+                  e.preventDefault();
+                  handleConfirmAddBeneficiary();
+                }
+              }}
+              disabled={isAddingBeneficiary}
+            />
+            <button
+              type="button"
+              className="add-beneficiary-confirm-btn"
+              onClick={handleConfirmAddBeneficiary}
+              disabled={isAddingBeneficiary}
+            >
+              {isAddingBeneficiary ? 'Saving…' : 'Confirm'}
+            </button>
+            <div className="add-beneficiary-info">
+              <div className="add-beneficiary-info-icon" aria-hidden>
+                <Info size={18} strokeWidth={2} />
+              </div>
+              <p className="add-beneficiary-info-text">
+                Recipient gets added to your Trustichain beneficiaries.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
   const paginatedTransactions = useMemo(() => {
@@ -1879,6 +2171,8 @@ const Transactions = () => {
         setTransactionData(null);
         setFundingStep('idle');
         setIsFundingWallet(false);
+        setFundViaAddress(false);
+        setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
         await fetchWalletBalances();
       } else {
@@ -1952,6 +2246,8 @@ const Transactions = () => {
         setTransactionData(null);
         setFundingStep('idle');
         setIsFundingWallet(false);
+        setFundViaAddress(false);
+        setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
         return;
       }
@@ -1992,6 +2288,8 @@ const Transactions = () => {
                 setTransactionData(null);
                 setFundingStep('idle');
                 setIsFundingWallet(false);
+                setFundViaAddress(false);
+                setDepositAddressNetwork('XRPL');
                 await fetchDashboardSummary();
               } else if (statusResult.data?.cancelled || statusResult.data?.expired) {
                 clearInterval(pollInterval);
@@ -2246,6 +2544,26 @@ const Transactions = () => {
     return walletBalances[currencyKey] || 0;
   };
 
+  const savingsAddMoneyAccountOptions = useMemo(
+    () =>
+      savingsWallets
+        .filter((w) => w && !w.isPlaceholder)
+        .map((w) => ({
+          id: String(w.id),
+          label: w.name || 'Savings account',
+        })),
+    [savingsWallets],
+  );
+
+  const savingsAddMoneyBalanceLine = useMemo(() => {
+    const balance = getCurrencyBalance('XRP');
+    const formatted = Number(balance).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6,
+    });
+    return `${formatted} XRP`;
+  }, [walletBalances]);
+
   const submitSavingsTransfer = async () => {
     if (isSessionExpired) {
       toast.error('Session expired. Please sign in again.');
@@ -2409,6 +2727,98 @@ const Transactions = () => {
       toast.error(err?.message || 'Network error');
     } finally {
       setIsSubmittingSavingsWithdraw(false);
+    }
+  };
+
+  const submitCreateAddSavingsPlan = async () => {
+    const name = String(addSavingsAccountForm.name || '').trim();
+    if (!name) {
+      toast.error('Please enter a wallet name');
+      return;
+    }
+
+    const planKind = String(addSavingsAccountForm.category || '').trim();
+    const needsGoalAmount = planRequiresGoalAmount(planKind);
+
+    let targetAmountUsd;
+    if (needsGoalAmount) {
+      const raw = String(addSavingsAccountForm.amount || '').replace(/,/g, '').trim();
+      const xrpGoal = parseFloat(raw);
+      if (!Number.isFinite(xrpGoal) || xrpGoal <= 0) {
+        toast.error('Enter a valid XRP goal amount.');
+        return;
+      }
+      targetAmountUsd = Math.round(xrpGoal * 1.05 * 100) / 100;
+    } else {
+      /* Flex / Goal: no upfront goal in UI; nominal target until API supports open goals */
+      targetAmountUsd = 5000;
+    }
+
+    if (planKind === 'Auto Savings') {
+      const autoRaw = String(addSavingsAccountForm.autoSaveAmount || '').replace(/,/g, '').trim();
+      const autoXrp = parseFloat(autoRaw);
+      if (!Number.isFinite(autoXrp) || autoXrp <= 0) {
+        toast.error('Enter a valid AutoSave amount (XRP).');
+        return;
+      }
+      if (!String(addSavingsAccountForm.autoSaveFrequency || '').trim()) {
+        toast.error('Select an autosave frequency.');
+        return;
+      }
+    }
+
+    if (isSessionExpired) {
+      toast.error('Session expired. Please sign in again.');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to create a savings wallet');
+      return;
+    }
+
+    setIsCreatingSavingsAccount(true);
+    try {
+      const apiUrl = getApiUrl('api/savings/wallets');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          targetAmountUsd,
+          ...(planKind === 'Auto Savings'
+            ? {
+                autosaveAmountXrp: Number(
+                  String(addSavingsAccountForm.autoSaveAmount || '')
+                    .replace(/,/g, '')
+                    .trim(),
+                ),
+                autosaveFrequency: String(addSavingsAccountForm.autoSaveFrequency || '').trim(),
+              }
+            : {}),
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result?.success && result?.data?.wallets?.length) {
+        const created = result.data.wallets[0];
+        setSavingsWallets((prev) => [...prev, mapSavingsWalletApiToUi(created, prev.length)]);
+
+        setShowAddSavingsAccountModal(false);
+        resetAddSavingsAccountForm();
+        toast.success(result.message || 'Savings wallet created successfully');
+      } else {
+        toast.error(result?.message || 'Failed to create savings wallet');
+      }
+    } catch (error) {
+      console.error('Error creating savings wallet:', error);
+      toast.error('Failed to create savings wallet');
+    } finally {
+      setIsCreatingSavingsAccount(false);
     }
   };
 
@@ -3359,7 +3769,7 @@ const Transactions = () => {
         <div className="mobile-fund-wallet-page-header">
           <div className="mobile-fund-wallet-page-title-wrapper">
             <div className="mobile-section-indicator"></div>
-            <h2>Receive</h2>
+            <h2>Deposit</h2>
           </div>
           <button 
             type="button" 
@@ -3503,38 +3913,20 @@ const Transactions = () => {
     return (
       <>
       {/* Mobile Header - Only visible on mobile for savings details */}
-      <div className="mobile-dashboard-header transactions-mobile-header">
-        <div className="mobile-header-left">
-          <div className="mobile-user-avatar">
-            {headerAvatar ? (
-              <img src={headerAvatar} alt={headerName} />
-            ) : (
-              headerInitials
-            )}
-          </div>
-          <div className="mobile-user-info">
-            <span className="mobile-user-name">
-              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
-              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-            </span>
-            <span className="mobile-user-role">
-              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}
-            </span>
-          </div>
-        </div>
-        <div className="mobile-header-right">
-          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
-            <Bell size={20} />
-          </button>
-          <button 
-            type="button" 
-            className="mobile-header-menu"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <Menu size={20} />
-          </button>
-        </div>
-      </div>
+      <PersonalSuiteMobileHeader
+        variant={isBusinessSuiteAccount ? 'business' : 'personal'}
+        className="transactions-mobile-header"
+        userAvatar={headerAvatar}
+        userInitials={headerInitials}
+        userFullName={headerName}
+        personalVerificationComplete={kycComplete}
+        businessVerificationComplete={kycComplete}
+        businessLogoUrl={businessCompanyLogoUrl}
+        businessName={businessCompanyName}
+        businessAvatarLoading={isLoadingBusinessIdentity}
+        onOpenNotifications={() => setShowNotificationModal(true)}
+        onToggleMobileMenu={() => setIsMobileMenuOpen((o) => !o)}
+      />
 
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
@@ -3568,33 +3960,15 @@ const Transactions = () => {
           <nav className="mobile-sidebar-nav">
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
-              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                               (item.label === 'Savings' && location.pathname === '/savings') ||
-                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
-              const handleNavClick = () => {
-                if (item.label === 'Dashboard') {
-                  navigate('/dashboard');
-                  setShowDesktopSavingsDashboard(false);
-                } else if (item.label === 'My Escrow') {
-                  navigate('/my-escrow');
-                  setShowDesktopSavingsDashboard(false);
-                } else if (item.label === 'Transactions') {
-                  navigate('/transactions');
-                  setShowDesktopSavingsDashboard(false);
-                } else if (item.label === 'Dispute') {
-                  navigate('/dispute');
-                  setShowDesktopSavingsDashboard(false);
-                } else if (item.label === 'Savings') {
-                  setShowDesktopSavingsDashboard(true);
-                  navigate('/savings');
-                } else if (item.label === 'Trusticard') {
-                  return;
-                  setShowDesktopSavingsDashboard(false);
-                }
-              };
+              const isActive = isGeneralNavItemActive(item.label, location.pathname, accountType);
+              const handleNavClick = () =>
+                handleGeneralNavClick({
+                  itemLabel: item.label,
+                  accountType,
+                  navigate,
+                  setShowDesktopSavingsDashboard,
+                  closeMobileMenu: () => setIsMobileMenuOpen(false)
+                });
               const navBadge = getNavBadge(item);
               return (
                 <button
@@ -3620,8 +3994,18 @@ const Transactions = () => {
             <nav className="mobile-sidebar-nav">
               {developersNav.map((item) => {
                 const Icon = item.icon;
+                const developerPath = getDeveloperNavPath(item.label);
+                const isDevActive = developerPath && location.pathname === developerPath;
                 return (
-                  <button key={item.label} type="button" className="mobile-sidebar-nav-item">
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`mobile-sidebar-nav-item${isDevActive ? ' active' : ''}`}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      if (developerPath) navigate(developerPath);
+                    }}
+                  >
                     <Icon size={18} />
                     <span>{item.label}</span>
                   </button>
@@ -3639,7 +4023,12 @@ const Transactions = () => {
               const handleSupportNavClick = () => {
                 setIsMobileMenuOpen(false);
                 if (item.label === 'Settings') {
-                  navigate('/settings');
+                  navigate(
+                    '/settings',
+                    accountType === 'Business Suite'
+                      ? { state: { accountType: 'Business Suite' } }
+                      : undefined
+                  );
                 }
               };
               return (
@@ -3696,29 +4085,15 @@ const Transactions = () => {
           <nav className="sidebar-nav">
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
-              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                               (item.label === 'Savings' && location.pathname === '/savings') ||
-                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
-              const handleNavClick = () => {
-                if (item.label === 'Dashboard') {
-                  navigate('/dashboard');
-                } else if (item.label === 'My Escrow') {
-                  navigate('/my-escrow');
-                } else if (item.label === 'Transactions') {
-                  navigate('/transactions');
-                  setShowDesktopSavingsDashboard(false);
-                } else if (item.label === 'Dispute') {
-                  navigate('/dispute');
-                } else if (item.label === 'Savings') {
-                  setShowDesktopSavingsDashboard(true);
-                  navigate('/savings');
-                } else if (item.label === 'Trusticard') {
-                  return;
-                }
-              };
+              const isActive = isGeneralNavItemActive(item.label, location.pathname, accountType);
+              const handleNavClick = () =>
+                handleGeneralNavClick({
+                  itemLabel: item.label,
+                  accountType,
+                  navigate,
+                  setShowDesktopSavingsDashboard,
+                  closeMobileMenu: undefined
+                });
               const navBadge = getNavBadge(item);
               return (
                 <button
@@ -3744,8 +4119,17 @@ const Transactions = () => {
             <nav className="sidebar-nav">
               {developersNav.map((item) => {
                 const Icon = item.icon;
+                const developerPath = getDeveloperNavPath(item.label);
+                const isDevActive = developerPath && location.pathname === developerPath;
                 return (
-                  <button key={item.label} type="button" className="sidebar-nav-item">
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`sidebar-nav-item${isDevActive ? ' active' : ''}`}
+                    onClick={() => {
+                      if (developerPath) navigate(developerPath);
+                    }}
+                  >
                     <Icon size={18} />
                     <span>{item.label}</span>
                   </button>
@@ -3762,7 +4146,12 @@ const Transactions = () => {
               const Icon = item.icon;
               const handleSupportNavClick = () => {
                 if (item.label === 'Settings') {
-                  navigate('/settings');
+                  navigate(
+                    '/settings',
+                    accountType === 'Business Suite'
+                      ? { state: { accountType: 'Business Suite' } }
+                      : undefined
+                  );
                 }
               };
               const isActive = item.label === 'Settings' && location.pathname === '/settings';
@@ -3823,6 +4212,18 @@ const Transactions = () => {
           </div>
 
           <div className="header-actions">
+            {(isBusinessSuiteAccount || kycComplete) ? (
+              <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                <span className="header-trustiscore-label">TrustiScore</span>
+                <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+              </div>
+            ) : (
+              <button type="button" className="kyc-status">
+                <KeyRound size={16} />
+                <span>KYC</span>
+                <span>Unverified</span>
+              </button>
+            )}
             <div className="account-type-display">
               <span className="account-type-label">{accountType}</span>
             </div>
@@ -3836,13 +4237,7 @@ const Transactions = () => {
                 ) : (
                   headerInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}</small>
+                <HeaderProfileVerifyBadge show={kycComplete} />
               </div>
             </div>
           </div>
@@ -3956,7 +4351,7 @@ const Transactions = () => {
                         key={wallet.id || index}
                         role={wallet.isPlaceholder ? undefined : 'button'}
                         tabIndex={wallet.isPlaceholder ? -1 : 0}
-                        className={`desktop-savings-wallet-card${wallet.isPlaceholder ? '' : ' desktop-savings-wallet-card--interactive'}${isDeletableSavingsPlan(wallet) ? ' desktop-savings-wallet-card--has-delete' : ''}`}
+                        className={`desktop-savings-wallet-card${wallet.isPlaceholder ? '' : ' desktop-savings-wallet-card--interactive'} desktop-savings-wallet-card--has-delete`}
                         onClick={() => openSavingsAddMoneyForWallet(wallet)}
                         onKeyDown={(e) => {
                           if (wallet.isPlaceholder) return;
@@ -3966,20 +4361,25 @@ const Transactions = () => {
                           }
                         }}
                       >
-                        {isDeletableSavingsPlan(wallet) ? (
-                          <button
+                        <button
                             type="button"
                             className="desktop-savings-plan-delete-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteSavingsPlan(wallet);
+                              if (isDeletableSavingsPlan(wallet)) {
+                                deleteSavingsPlan(wallet);
+                              }
                             }}
-                            disabled={deletingSavingsWalletId === String(wallet.id)}
-                            aria-label={`Delete savings plan ${wallet.name}`}
+                            disabled={!isDeletableSavingsPlan(wallet) || deletingSavingsWalletId === String(wallet.id)}
+                            title={!isDeletableSavingsPlan(wallet) ? 'No savings plan to remove' : undefined}
+                            aria-label={
+                              !isDeletableSavingsPlan(wallet)
+                                ? 'Delete unavailable for this wallet'
+                                : `Delete savings plan ${wallet.name}`
+                            }
                           >
                             <Trash2 size={18} aria-hidden />
                           </button>
-                        ) : null}
                         <div className="desktop-savings-wallet-card-top">
                           <div className="desktop-savings-wallet-icon-container">
                             <svg className="desktop-savings-wallet-progress-circle" width="48" height="48">
@@ -4423,39 +4823,13 @@ const Transactions = () => {
             </div>
 
             <div className="notification-list">
-              {Array.isArray(notifications) && notifications.length > 0 ? (
-                notifications.map((n) => {
-                  const isUnread = !n?.isRead;
-                  const { Icon, className } = getNotificationIconConfig(n?.type);
-                  const message = n?.message || n?.title || 'N/A';
-                  return (
-                    <div
-                      key={n?.id}
-                      className={`notification-item ${isUnread ? 'unread' : ''}`}
-                      onClick={() => {
-                        if (isUnread) handleMarkNotificationRead(n?.id);
-                      }}
-                    >
-                      <div className="notification-bell-icon">
-                        <Bell size={16} />
-                        {isUnread && <span className="notification-bell-dot"></span>}
-                      </div>
-                      <div className="notification-content">
-                        <div className="notification-message-wrapper">
-                          <Icon size={18} className={className} />
-                          <p className="notification-message">{message}</p>
-                        </div>
-                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
-                      </div>
-                      {isUnread && <div className="notification-unread-dot"></div>}
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  N/A
-                </div>
-              )}
+              <NotificationListItems
+                notifications={notifications}
+                expandedNotificationId={expandedNotificationId}
+                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                onMarkRead={handleMarkNotificationRead}
+                formatTimeAgo={formatTimeAgo}
+              />
             </div>
           </div>
         </div>
@@ -4579,334 +4953,56 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Savings Add Money Modal */}
-      {showSavingsAddMoneyModal && (
-        <div className="savings-withdraw-modal-overlay" onClick={() => {
+      <SavingsAddMoneyModal
+        isOpen={showSavingsAddMoneyModal}
+        onClose={() => {
           setShowSavingsAddMoneyModal(false);
           resetSavingsAddMoneyForm();
-        }}>
-          <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="savings-withdraw-modal-header">
-              <h2 className="savings-withdraw-modal-title">Add Money</h2>
-              <button 
-                type="button" 
-                className="savings-withdraw-modal-close" 
-                onClick={() => {
-                  setShowSavingsAddMoneyModal(false);
-                  resetSavingsAddMoneyForm();
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            {savingsAddMoneyForm.walletId ? (
-              <p className="savings-add-money-selected-hint">
-                To: <strong>{savingsAddMoneyForm.savingAccount}</strong>
-              </p>
-            ) : null}
+        }}
+        amount={savingsAddMoneyForm.amount}
+        onAmountChange={(v) => setSavingsAddMoneyForm((prev) => ({ ...prev, amount: v }))}
+        accounts={savingsAddMoneyAccountOptions}
+        selectedAccountId={
+          savingsAddMoneyForm.walletId || savingsAddMoneyAccountOptions[0]?.id || ''
+        }
+        onSelectAccount={(id) => {
+          const w = savingsWallets.find((x) => String(x.id) === id);
+          setSavingsAddMoneyForm((prev) => ({
+            ...prev,
+            walletId: id,
+            savingAccount: w?.name || prev.savingAccount,
+          }));
+        }}
+        onTransfer={submitSavingsTransfer}
+        isSubmitting={isSubmittingSavingsTransfer}
+        isLoadingBalance={isLoadingWalletBalances}
+        balanceLine={savingsAddMoneyBalanceLine}
+      />
 
-            <div className="savings-add-money-modal-content">
-              <div className="savings-add-money-card">
-                <div className="savings-add-money-amount-section">
-                  <div className="savings-add-money-amount-header">
-                    <label className="savings-add-money-label">Amount (XRP)</label>
-                    <div className="savings-add-money-wallet-selector savings-add-money-wallet-selector--static">
-                      <div className="savings-add-money-wallet-icon">
-                        <img
-                          src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                          alt="XRP"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                        />
-                      </div>
-                      <span className="savings-add-money-wallet-name">From custodial XRP balance</span>
-                    </div>
-                  </div>
-                  <div className="savings-add-money-amount-display">
-                    <div className="savings-add-money-amount-input-wrapper">
-                      <input
-                        type="text"
-                        className="savings-add-money-amount-input"
-                        value={savingsAddMoneyForm.amount}
-                        onChange={(e) => {
-                          let value = e.target.value;
-                          value = value.replace(/[^0-9.,]/g, '');
-                          setSavingsAddMoneyForm(prev => ({ ...prev, amount: value }));
-                        }}
-                        placeholder="0.00"
-                        inputMode="decimal"
-                        disabled={isSubmittingSavingsTransfer}
-                      />
-                      <span className="savings-add-money-amount-suffix">XRP</span>
-                    </div>
-                  </div>
-                  <div className="savings-add-money-balance-info">
-                    Balance: {isLoadingWalletBalances ? (
-                      <LoadingIndicator size="sm" />
-                    ) : (
-                      (() => {
-                        const balance = getCurrencyBalance('XRP');
-                        const formattedBalance = Number(balance).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 6,
-                        });
-                        return `${formattedBalance} XRP`;
-                      })()
-                    )}
-                  </div>
-                </div>
-
-                <div className="savings-add-money-accounts-section">
-                  <label className="savings-add-money-label">Saving accounts</label>
-                  <button 
-                    type="button"
-                    className="savings-add-money-account-selector"
-                    onClick={() => {
-                      // Handle account selection
-                    }}
-                  >
-                    <span className="savings-add-money-account-name">{savingsAddMoneyForm.savingAccount}</span>
-                    <ChevronDown size={16} />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  className="savings-add-money-submit-btn"
-                  onClick={() => submitSavingsTransfer()}
-                  disabled={isSubmittingSavingsTransfer}
-                >
-                  {isSubmittingSavingsTransfer ? 'Transferring…' : 'Transfer'}
-                </button>
-
-                <div className="savings-withdraw-info-message">
-                  <div className="savings-withdraw-info-icon">
-                    <Info size={16} />
-                  </div>
-                  <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Savings Account Modal */}
-      {showAddSavingsAccountModal && (
-        <div className="savings-withdraw-modal-overlay" onClick={() => {
+      <AddSavingsPlanModal
+        isOpen={showAddSavingsAccountModal}
+        onClose={() => {
           setShowAddSavingsAccountModal(false);
-          setAddSavingsAccountForm({
-            name: '',
-            category: 'My Goals',
-            duration: '',
-            amount: ''
-          });
-        }}>
-          <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="savings-withdraw-modal-header">
-              <h2 className="savings-withdraw-modal-title">Add Savings Account</h2>
-              <button 
-                type="button" 
-                className="savings-withdraw-modal-close" 
-                onClick={() => {
-                  setShowAddSavingsAccountModal(false);
-                  setAddSavingsAccountForm({
-                    name: '',
-                    category: 'My Goals',
-                    duration: ''
-                  });
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="savings-add-account-modal-content">
-              <div className="savings-add-account-amount-section">
-                <div className="savings-add-account-amount-header">
-                  <label className="savings-add-account-label">Amount</label>
-                  <button 
-                    type="button"
-                    className="savings-add-account-wallet-selector"
-                    onClick={() => {
-                      // Handle wallet selection
-                    }}
-                  >
-                    <div className="savings-add-account-wallet-icon">
-                      <img
-                        src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                        alt="XRP"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                      />
-                    </div>
-                    <span className="savings-add-account-wallet-name">XRP wallet</span>
-                    <ChevronDown size={16} />
-                  </button>
-                </div>
-                <div className="savings-add-account-amount-display">
-                  <div className="savings-add-account-amount-input-wrapper">
-                    <input
-                      type="text"
-                      className="savings-add-account-amount-input"
-                      value={addSavingsAccountForm.amount}
-                      onChange={(e) => {
-                        let value = e.target.value;
-                        // Allow numbers, decimal point, and commas
-                        value = value.replace(/[^0-9.,]/g, '');
-                        setAddSavingsAccountForm(prev => ({ ...prev, amount: value }));
-                      }}
-                      placeholder="0.00"
-                    />
-                    <span className="savings-add-account-amount-currency">XRP</span>
-                  </div>
-                </div>
-                <div className="savings-add-account-exchange-rate">1XRP = 1.05 USD</div>
-              </div>
-
-              <div className="savings-add-account-form-section">
-                <div className="savings-add-account-form-field">
-                  <label className="savings-add-account-label">Name</label>
-                  <input
-                    type="text"
-                    className="savings-add-account-input"
-                    placeholder="Enter name"
-                    value={addSavingsAccountForm.name}
-                    onChange={(e) => setAddSavingsAccountForm({ ...addSavingsAccountForm, name: e.target.value })}
-                  />
-                </div>
-
-                <div className="savings-add-account-form-field">
-                  <label className="savings-add-account-label">Categories</label>
-                  <button 
-                    type="button"
-                    className="savings-add-account-category-selector"
-                    onClick={() => {
-                      // Handle category selection
-                    }}
-                  >
-                    <span className="savings-add-account-category-name">{addSavingsAccountForm.category}</span>
-                    <ChevronDown size={16} />
-                  </button>
-                </div>
-
-                <div className="savings-add-account-form-field">
-                  <label className="savings-add-account-label">Duration</label>
-                  <div className="savings-add-account-duration-wrapper">
-                    <input
-                      type="date"
-                      className="savings-add-account-duration-input"
-                      value={addSavingsAccountForm.duration || ''}
-                      onChange={(e) => {
-                        setAddSavingsAccountForm({ ...addSavingsAccountForm, duration: e.target.value });
-                      }}
-                      onMouseDown={(e) => {
-                        // Open picker on mousedown (before default behavior)
-                        if (e.target.showPicker) {
-                          try {
-                            e.target.showPicker();
-                            e.preventDefault(); // Prevent default browser behavior
-                          } catch (err) {
-                            // Silently fail if showPicker is not available
-                          }
-                        }
-                      }}
-                    />
-                    <Calendar 
-                      size={16} 
-                      className="savings-add-account-duration-calendar-icon"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const input = e.target.closest('.savings-add-account-duration-wrapper')?.querySelector('input[type="date"]');
-                        if (input && input.showPicker) {
-                          try {
-                            input.showPicker();
-                          } catch (err) {
-                            // Fallback: trigger click on input
-                            input.click();
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="savings-add-account-create-btn"
-                disabled={isCreatingSavingsAccount}
-                onClick={async () => {
-                  const name = String(addSavingsAccountForm.name || '').trim();
-                  if (!name) {
-                    toast.error('Please enter a wallet name');
-                    return;
-                  }
-
-                  const token = localStorage.getItem('token');
-                  if (!token) {
-                    toast.error('Please login to create a savings wallet');
-                    return;
-                  }
-
-                  const parsedTarget = Number(addSavingsAccountForm.duration);
-                  const targetAmountUsd = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : 5000;
-
-                  setIsCreatingSavingsAccount(true);
-
-                  try {
-                    const apiUrl = getApiUrl('api/savings/wallets');
-                    const response = await fetch(apiUrl, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({ name, targetAmountUsd }),
-                    });
-
-                    const result = await response.json().catch(() => ({}));
-                    if (response.ok && result?.success && result?.data?.wallets?.length) {
-                      const created = result.data.wallets[0];
-                      setSavingsWallets((prev) => [...prev, mapSavingsWalletApiToUi(created, prev.length)]);
-
-                      setShowAddSavingsAccountModal(false);
-                      toast.success(result.message || 'Savings wallet created successfully');
-                      setAddSavingsAccountForm({
-                        name: '',
-                        category: 'My Goals',
-                        duration: '',
-                        amount: ''
-                      });
-                    } else {
-                      toast.error(result?.message || 'Failed to create savings wallet');
-                    }
-                  } catch (error) {
-                    console.error('Error creating savings wallet:', error);
-                    toast.error('Failed to create savings wallet');
-                  } finally {
-                    setIsCreatingSavingsAccount(false);
-                  }
-                }}
-              >
-                {isCreatingSavingsAccount ? (
-                  <>
-                    <LoadingIndicator size="sm" />
-                    <span>Creating...</span>
-                  </>
-                ) : (
-                  'Create'
-                )}
-              </button>
-
-              <div className="savings-withdraw-info-message">
-                <div className="savings-withdraw-info-icon">
-                  <Info size={16} />
-                </div>
-                <span>Your funds will be added to your account within seconds or refunded if there's an issue.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          resetAddSavingsAccountForm();
+        }}
+        name={addSavingsAccountForm.name}
+        onNameChange={(v) => setAddSavingsAccountForm((prev) => ({ ...prev, name: v }))}
+        selectedPlan={addSavingsAccountForm.category}
+        onSelectPlan={(plan) => setAddSavingsAccountForm((prev) => ({ ...prev, category: plan }))}
+        amount={addSavingsAccountForm.amount}
+        onAmountChange={(v) => setAddSavingsAccountForm((prev) => ({ ...prev, amount: v }))}
+        autoSaveAmount={addSavingsAccountForm.autoSaveAmount}
+        onAutoSaveAmountChange={(v) =>
+          setAddSavingsAccountForm((prev) => ({ ...prev, autoSaveAmount: v }))
+        }
+        autoSaveFrequency={addSavingsAccountForm.autoSaveFrequency}
+        onAutoSaveFrequencyChange={(v) =>
+          setAddSavingsAccountForm((prev) => ({ ...prev, autoSaveFrequency: v }))
+        }
+        exchangeRateLine="1 XRP = 1.05 USD"
+        onCreate={submitCreateAddSavingsPlan}
+        isSubmitting={isCreatingSavingsAccount}
+      />
 
       {/* Savings Withdraw Confirm Modal - Shows selected wallet and balance */}
       {showSavingsWithdrawConfirmModal && selectedWithdrawWallet !== null && (
@@ -5023,25 +5119,15 @@ const Transactions = () => {
               <nav className="mobile-sidebar-nav">
                 {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
                   const Icon = item.icon;
-                  const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                                   (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                                   (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                                   (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                                   (item.label === 'Trusticard' && location.pathname === '/trusticard');
-                  const handleNavClick = () => {
-                    setIsMobileMenuOpen(false);
-                    if (item.label === 'Dashboard') {
-                      navigate('/dashboard');
-                    } else if (item.label === 'My Escrow') {
-                      navigate('/my-escrow');
-                    } else if (item.label === 'Transactions') {
-                      navigate('/transactions');
-                    } else if (item.label === 'Dispute') {
-                      navigate('/dispute');
-                    } else if (item.label === 'Trusticard') {
-                      return;
-                    }
-                  };
+                  const isActive = isGeneralNavItemActive(item.label, location.pathname, accountType);
+                  const handleNavClick = () =>
+                    handleGeneralNavClick({
+                      itemLabel: item.label,
+                      accountType,
+                      navigate,
+                      setShowDesktopSavingsDashboard,
+                      closeMobileMenu: () => setIsMobileMenuOpen(false)
+                    });
                   const navBadge = getNavBadge(item);
                   return (
                     <button
@@ -5067,12 +5153,17 @@ const Transactions = () => {
                 <nav className="mobile-sidebar-nav">
                   {developersNav.map((item) => {
                     const Icon = item.icon;
+                    const developerPath = getDeveloperNavPath(item.label);
+                    const isDevActive = developerPath && location.pathname === developerPath;
                     return (
-                      <button 
-                        key={item.label} 
-                        type="button" 
-                        className="mobile-sidebar-nav-item"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                      <button
+                        key={item.label}
+                        type="button"
+                        className={`mobile-sidebar-nav-item${isDevActive ? ' active' : ''}`}
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          if (developerPath) navigate(developerPath);
+                        }}
                       >
                         <Icon size={18} />
                         <span>{item.label}</span>
@@ -5093,7 +5184,17 @@ const Transactions = () => {
                       key={item.label} 
                       type="button" 
                       className="mobile-sidebar-nav-item"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        if (item.label === 'Settings') {
+                          navigate(
+                            '/settings',
+                            accountType === 'Business Suite'
+                              ? { state: { accountType: 'Business Suite' } }
+                              : undefined
+                          );
+                        }
+                      }}
                     >
                       <Icon size={18} />
                       <span>{item.label}</span>
@@ -5244,38 +5345,20 @@ const Transactions = () => {
   return (
     <>
       {/* Mobile Header - Only visible on mobile */}
-      <div className="mobile-dashboard-header transactions-mobile-header">
-        <div className="mobile-header-left">
-          <div className="mobile-user-avatar">
-            {headerAvatar ? (
-              <img src={headerAvatar} alt={headerName} />
-            ) : (
-              headerInitials
-            )}
-          </div>
-          <div className="mobile-user-info">
-            <span className="mobile-user-name">
-              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
-              <img src={verifyBadge} alt="Verified" className="mobile-user-verified-icon" />
-            </span>
-            <span className="mobile-user-role">
-              {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}
-            </span>
-          </div>
-        </div>
-        <div className="mobile-header-right">
-          <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
-            <Bell size={20} />
-          </button>
-          <button 
-            type="button" 
-            className="mobile-header-menu"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <Menu size={20} />
-          </button>
-        </div>
-      </div>
+      <PersonalSuiteMobileHeader
+        variant={isBusinessSuiteAccount ? 'business' : 'personal'}
+        className="transactions-mobile-header"
+        userAvatar={headerAvatar}
+        userInitials={headerInitials}
+        userFullName={headerName}
+        personalVerificationComplete={kycComplete}
+        businessVerificationComplete={kycComplete}
+        businessLogoUrl={businessCompanyLogoUrl}
+        businessName={businessCompanyName}
+        businessAvatarLoading={isLoadingBusinessIdentity}
+        onOpenNotifications={() => setShowNotificationModal(true)}
+        onToggleMobileMenu={() => setIsMobileMenuOpen((o) => !o)}
+      />
 
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
@@ -5312,28 +5395,15 @@ const Transactions = () => {
             <nav className="mobile-sidebar-nav">
               {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
                 const Icon = item.icon;
-                const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                                 (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                                 (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                                 (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                                 (item.label === 'Savings' && location.pathname === '/savings') ||
-                                 (item.label === 'Trusticard' && location.pathname === '/trusticard');
-                const handleNavClick = () => {
-                  setIsMobileMenuOpen(false);
-                  if (item.label === 'Dashboard') {
-                    navigate('/dashboard');
-                  } else if (item.label === 'My Escrow') {
-                    navigate('/my-escrow');
-                  } else if (item.label === 'Transactions') {
-                    navigate('/transactions');
-                  } else if (item.label === 'Dispute') {
-                    navigate('/dispute');
-                  } else if (item.label === 'Savings') {
-                    navigate('/savings');
-                  } else if (item.label === 'Trusticard') {
-                    return;
-                  }
-                };
+                const isActive = isGeneralNavItemActive(item.label, location.pathname, accountType);
+                const handleNavClick = () =>
+                  handleGeneralNavClick({
+                    itemLabel: item.label,
+                    accountType,
+                    navigate,
+                    setShowDesktopSavingsDashboard,
+                    closeMobileMenu: () => setIsMobileMenuOpen(false)
+                  });
                 const navBadge = getNavBadge(item);
                 return (
                   <button
@@ -5359,12 +5429,17 @@ const Transactions = () => {
               <nav className="mobile-sidebar-nav">
                 {developersNav.map((item) => {
                   const Icon = item.icon;
+                  const developerPath = getDeveloperNavPath(item.label);
+                  const isDevActive = developerPath && location.pathname === developerPath;
                   return (
                     <button 
                       key={item.label} 
                       type="button" 
-                      className="mobile-sidebar-nav-item"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`mobile-sidebar-nav-item${isDevActive ? ' active' : ''}`}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        if (developerPath) navigate(developerPath);
+                      }}
                     >
                       <Icon size={18} />
                       <span>{item.label}</span>
@@ -5385,7 +5460,17 @@ const Transactions = () => {
                     key={item.label} 
                     type="button" 
                     className="mobile-sidebar-nav-item"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      if (item.label === 'Settings') {
+                        navigate(
+                          '/settings',
+                          accountType === 'Business Suite'
+                            ? { state: { accountType: 'Business Suite' } }
+                            : undefined
+                        );
+                      }
+                    }}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -5435,28 +5520,15 @@ const Transactions = () => {
           <nav className="sidebar-nav">
             {(accountType === 'Business Suite' ? businessSuiteNav : sidebarNav).map((item) => {
               const Icon = item.icon;
-              const isActive = (item.label === 'Dashboard' && location.pathname === '/dashboard') ||
-                               (item.label === 'My Escrow' && location.pathname === '/my-escrow') ||
-                               (item.label === 'Transactions' && location.pathname === '/transactions') ||
-                               (item.label === 'Dispute' && location.pathname === '/dispute') ||
-                               (item.label === 'Savings' && location.pathname === '/savings') ||
-                               (item.label === 'Trusticard' && location.pathname === '/trusticard');
-              const handleNavClick = () => {
-                if (item.label === 'Dashboard') {
-                  navigate('/dashboard');
-                } else if (item.label === 'My Escrow') {
-                  navigate('/my-escrow');
-                } else if (item.label === 'Transactions') {
-                  navigate('/transactions');
-                } else if (item.label === 'Dispute') {
-                  navigate('/dispute');
-                } else if (item.label === 'Savings') {
-                  setShowDesktopSavingsDashboard(true);
-                  navigate('/savings');
-                } else if (item.label === 'Trusticard') {
-                  return;
-                }
-              };
+              const isActive = isGeneralNavItemActive(item.label, location.pathname, accountType);
+              const handleNavClick = () =>
+                handleGeneralNavClick({
+                  itemLabel: item.label,
+                  accountType,
+                  navigate,
+                  setShowDesktopSavingsDashboard,
+                  closeMobileMenu: undefined
+                });
               const navBadge = getNavBadge(item);
               return (
                 <button
@@ -5482,8 +5554,17 @@ const Transactions = () => {
             <nav className="sidebar-nav">
               {developersNav.map((item) => {
                 const Icon = item.icon;
+                const developerPath = getDeveloperNavPath(item.label);
+                const isDevActive = developerPath && location.pathname === developerPath;
                 return (
-                  <button key={item.label} type="button" className="sidebar-nav-item">
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`sidebar-nav-item${isDevActive ? ' active' : ''}`}
+                    onClick={() => {
+                      if (developerPath) navigate(developerPath);
+                    }}
+                  >
                     <Icon size={18} />
                     <span>{item.label}</span>
                   </button>
@@ -5500,7 +5581,12 @@ const Transactions = () => {
               const Icon = item.icon;
               const handleSupportNavClick = () => {
                 if (item.label === 'Settings') {
-                  navigate('/settings');
+                  navigate(
+                    '/settings',
+                    accountType === 'Business Suite'
+                      ? { state: { accountType: 'Business Suite' } }
+                      : undefined
+                  );
                 }
               };
               const isActive = item.label === 'Settings' && location.pathname === '/settings';
@@ -5561,6 +5647,18 @@ const Transactions = () => {
           </div>
 
           <div className="header-actions">
+            {(isBusinessSuiteAccount || kycComplete) ? (
+              <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                <span className="header-trustiscore-label">TrustiScore</span>
+                <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+              </div>
+            ) : (
+              <button type="button" className="kyc-status">
+                <KeyRound size={16} />
+                <span>KYC</span>
+                <span>Unverified</span>
+              </button>
+            )}
             <div className="account-type-display">
               <span className="account-type-label">{accountType}</span>
             </div>
@@ -5574,13 +5672,7 @@ const Transactions = () => {
                 ) : (
                   headerInitials
                 )}
-              </div>
-              <div className="user-info">
-                <span className="user-name">
-                  {isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerName}
-                  <img src={verifyBadge} alt="Verified" className="user-verified-icon" />
-                </span>
-                <small>{isLoadingHeaderIdentity ? <LoadingIndicator size="sm" /> : headerRole}</small>
+                <HeaderProfileVerifyBadge show={kycComplete} />
               </div>
             </div>
           </div>
@@ -5597,15 +5689,25 @@ const Transactions = () => {
           {/* Summary Cards Row - Like Dashboard */}
           <div className="dashboard-summary-cards">
             {/* Total Balance Card */}
-            <div className="summary-card total-balance-card">
-              <div className="summary-card-header">
-                <h3>Total Balance</h3>
-                <button type="button" onClick={() => setShowBalance(!showBalance)} className="eye-toggle">
-                  {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
+            <div className="summary-card total-balance-card transactions-total-balance-card">
+              <div className="summary-card-header transactions-tbc-header">
+                <div className="transactions-tbc-header-main">
+                  <span className="transactions-tbc-wallet-shell" aria-hidden>
+                    <Wallet size={18} strokeWidth={2} />
+                  </span>
+                  <h3>Total Balance</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowBalance(!showBalance)}
+                    className="eye-toggle transactions-tbc-eye"
+                    aria-label={showBalance ? 'Hide balance' : 'Show balance'}
+                  >
+                    {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </button>
+                </div>
               </div>
-              <div className="summary-card-value-row">
-                <div className="summary-card-value">
+              <div className="summary-card-value-row transactions-tbc-value-row">
+                <div className="summary-card-value transactions-tbc-usd">
                   {showBalance 
                     ? (isLoadingDashboard 
                         ? <LoadingIndicator size="sm" />
@@ -5636,18 +5738,32 @@ const Transactions = () => {
                           })())
                     : '••••••'}
                 </div>
-                <div className="summary-card-subvalue">
-                  ≈ {isLoadingDashboard 
-                      ? <LoadingIndicator size="sm" />
-                      : (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
-                          ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) 
-                          : '0.000000')} XRP
+                <div className="summary-card-subvalue transactions-tbc-xrp">
+                  {showBalance ? (
+                    <>
+                      ≈{' '}
+                      {isLoadingDashboard ? (
+                        <LoadingIndicator size="sm" />
+                      ) : dashboardData?.balance?.xrp !== undefined &&
+                        dashboardData?.balance?.xrp !== null ? (
+                        Number(dashboardData.balance.xrp).toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      ) : (
+                        '0.00'
+                      )}{' '}
+                      XRP
+                    </>
+                  ) : (
+                    <>≈ •••••• XRP</>
+                  )}
                 </div>
               </div>
-              <div className="summary-card-actions">
+              <div className="summary-card-actions transactions-tbc-actions">
                 <button 
                   type="button" 
-                  className="summary-card-btn primary"
+                  className="summary-card-btn primary transactions-tbc-btn-deposit"
                   onClick={() => {
                     // On mobile, show full page; on desktop, show modal
                     if (window.innerWidth <= 768) {
@@ -5657,22 +5773,24 @@ const Transactions = () => {
                     }
                   }}
                 >
-                  + Fund Wallet
+                  <Plus size={18} strokeWidth={2.5} aria-hidden />
+                  Deposit
                 </button>
                 <button 
                   type="button" 
-                  className="summary-card-btn secondary"
+                  className="summary-card-btn primary transactions-tbc-btn-convert"
                   onClick={() => setShowSwapModal(true)}
                 >
-                  <Repeat size={16} />
-                  Swap
+                  <RefreshCw size={16} strokeWidth={2} aria-hidden />
+                  Convert
                 </button>
                 <button 
                   type="button" 
-                  className="summary-card-btn secondary"
-                  onClick={() => setShowWithdrawWalletModal(true)}
+                  className="summary-card-btn secondary transactions-tbc-btn-send"
+                  onClick={() => setShowSendModal(true)}
                 >
-                  + Withdraw
+                  <Send size={16} strokeWidth={2} aria-hidden />
+                  Send
                 </button>
               </div>
             </div>
@@ -5816,137 +5934,97 @@ const Transactions = () => {
             <div className="transactions-left-column">
               {/* My Details Section */}
               <div className="transactions-section-card my-details-section">
-                <div className="section-indicator"></div>
-                <div className="section-content">
-                  <h3 className="section-title">My Details</h3>
-                  <div className="details-list">
-                    <div className="detail-item">
-                      <div className="detail-icon">
-                        <Building2 size={18} />
+                <div className="section-content my-details-inner">
+                  <div className="my-details-header">
+                    <span className="my-details-accent-bar" aria-hidden />
+                    <h3 className="my-details-heading">My Details</h3>
+                  </div>
+                  <ul className="my-details-rows">
+                    <li className="my-details-row">
+                      <div className="my-details-row-icon" aria-hidden>
+                        <Building2 size={20} strokeWidth={1.75} />
                       </div>
-                      <div className="detail-info detail-info-horizontal">
-                        <span className="detail-label">Linked bank account</span>
+                      <span className="my-details-row-label">Linked bank account</span>
+                      <div className="my-details-row-value">
                         {linkedAccounts?.bankAccount ? (
-                          <span className="detail-value">{linkedAccounts.bankAccount}</span>
+                          <span>{linkedAccounts.bankAccount}</span>
                         ) : (
                           <button
                             type="button"
-                            className="link-bank-account-btn"
+                            className="my-details-link-btn"
                             onClick={() => {
-                              // TODO: Implement bank account linking logic
                               toast('Bank account linking coming soon');
-                            }}
-                            style={{
-                              background: '#2F74FF',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '0.5rem 1rem',
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              fontFamily: 'Satoshi, Inter, sans-serif',
-                              whiteSpace: 'nowrap'
                             }}
                           >
                             Link Bank Account
                           </button>
                         )}
                       </div>
-                    </div>
-                    <div className="detail-divider"></div>
-                    <div className="detail-item">
-                      <div className="detail-icon">
-                        <Wallet size={18} />
+                    </li>
+                    <li className="my-details-row">
+                      <div className="my-details-row-icon" aria-hidden>
+                        <Wallet size={20} strokeWidth={1.75} />
                       </div>
-                      <div className="detail-info detail-info-horizontal">
-                        <span className="detail-label">Linked Web3 Wallet</span>
+                      <span className="my-details-row-label">Linked Web3 Wallet:</span>
+                      <div className="my-details-row-value">
                         {linkedAccounts?.web3Wallet ? (
-                          <span className="detail-value">{linkedAccounts.web3Wallet}</span>
+                          <span>{linkedAccounts.web3Wallet}</span>
                         ) : isWalletConnectedViaAPI && isConnected && account ? (
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            background: '#f0f9ff',
-                            border: '1px solid #2F74FF',
-                            borderRadius: '8px',
-                            fontFamily: 'Satoshi, Inter, sans-serif'
-                          }}>
-                            <CheckCircle size={16} color="#2F74FF" />
-                            <span style={{
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                              color: '#2F74FF'
-                            }}>
-                              Connected
-                            </span>
-                            <span style={{
-                              fontSize: '0.75rem',
-                              color: '#666',
-                              fontFamily: 'monospace'
-                            }}>
-                              {account.slice(0, 6)}...{account.slice(-4)}
-                            </span>
-                          </div>
+                          <span>XUMM (Connected)</span>
                         ) : (
                           <button
                             type="button"
-                            className="connect-wallet-btn"
-                  onClick={() => {
-                    if (!isWalletConnectedViaAPI) {
-                      setShowConnectWalletModal(true);
-                    }
-                  }}
-                            style={{
-                              background: '#2F74FF',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '0.5rem 1rem',
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              fontFamily: 'Satoshi, Inter, sans-serif',
-                              whiteSpace: 'nowrap'
+                            className="my-details-link-btn"
+                            onClick={() => {
+                              if (!isWalletConnectedViaAPI) {
+                                setShowConnectWalletModal(true);
+                              }
                             }}
                           >
                             Connect Wallet
                           </button>
                         )}
                       </div>
-                    </div>
-                  </div>
+                    </li>
+                  </ul>
                 </div>
               </div>
 
               {/* Beneficiaries Section */}
               <div className="transactions-section-card beneficiaries-card">
-                <div className="section-content">
-                  <div className="beneficiaries-title-wrapper">
-                    <div className="beneficiaries-indicator"></div>
-                    <h3 className="section-title">Send to TrustiChain users</h3>
+                <div className="section-content beneficiaries-inner">
+                  <div className="beneficiaries-header">
+                    <span className="beneficiaries-accent-bar" aria-hidden />
+                    <h3 className="beneficiaries-heading">Send to Trustichain Users</h3>
                   </div>
-                  <div className="beneficiaries-container">
-                    <div className="beneficiaries-avatars">
-                      {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="beneficiary-placeholder"></div>
-                      ))}
+                  <div className="beneficiaries-toolbar">
+                    <div className="beneficiaries-avatars-row">
+                      <button
+                        type="button"
+                        className="beneficiary-add-btn"
+                        aria-label="Add recipient"
+                        onClick={() => setShowAddBeneficiaryModal(true)}
+                      >
+                        <Plus size={22} strokeWidth={2.75} aria-hidden />
+                      </button>
+                      <div className="beneficiary-avatar-stack">
+                        {TRUSTICHAIN_USER_SAMPLE_AVATARS.map((src) => (
+                          <img
+                            key={src}
+                            src={src}
+                            alt=""
+                            className="beneficiary-avatar-img"
+                            loading="lazy"
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <button 
-                      type="button" 
-                      className="send-beneficiary-btn" 
-                      onClick={() => {
-                        // On mobile, show full page; on desktop, show modal
-                        if (window.innerWidth <= 768) {
-                          setShowSendPage(true);
-                        } else {
-                          setShowSendModal(true);
-                        }
-                      }}
+                    <button
+                      type="button"
+                      className="send-beneficiary-btn"
+                      onClick={() => setShowSendModal(true)}
                     >
-                      <ExternalLink size={18} />
+                      <Share size={18} strokeWidth={2} aria-hidden />
                       Send
                     </button>
                   </div>
@@ -6305,39 +6383,13 @@ const Transactions = () => {
             </div>
 
             <div className="notification-list">
-              {Array.isArray(notifications) && notifications.length > 0 ? (
-                notifications.map((n) => {
-                  const isUnread = !n?.isRead;
-                  const { Icon, className } = getNotificationIconConfig(n?.type);
-                  const message = n?.message || n?.title || 'N/A';
-                  return (
-                    <div
-                      key={n?.id}
-                      className={`notification-item ${isUnread ? 'unread' : ''}`}
-                      onClick={() => {
-                        if (isUnread) handleMarkNotificationRead(n?.id);
-                      }}
-                    >
-                      <div className="notification-bell-icon">
-                        <Bell size={16} />
-                        {isUnread && <span className="notification-bell-dot"></span>}
-                      </div>
-                      <div className="notification-content">
-                        <div className="notification-message-wrapper">
-                          <Icon size={18} className={className} />
-                          <p className="notification-message">{message}</p>
-                        </div>
-                        <span className="notification-time">{formatTimeAgo(n?.createdAt)}</span>
-                      </div>
-                      {isUnread && <div className="notification-unread-dot"></div>}
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  N/A
-                </div>
-              )}
+              <NotificationListItems
+                notifications={notifications}
+                expandedNotificationId={expandedNotificationId}
+                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                onMarkRead={handleMarkNotificationRead}
+                formatTimeAgo={formatTimeAgo}
+              />
             </div>
           </div>
         </div>
@@ -6345,7 +6397,9 @@ const Transactions = () => {
 
       {/* Fund Wallet Modal (Receive on personal platform) */}
       {showFundWalletModal && (
-        <div className="notification-modal-overlay" onClick={() => {
+        <div
+          className={`notification-modal-overlay${fundViaAddress ? ' deposit-address-overlay' : ''}`}
+          onClick={() => {
           if (!isFundingWallet || fundingStep === 'idle') {
             setShowFundWalletModal(false);
             setFundWalletForm({ amount: '', currency: 'XRP' });
@@ -6353,13 +6407,17 @@ const Transactions = () => {
             setFundingStep('idle');
             setIsFundingWallet(false);
             setFundViaAddress(false);
+            setDepositAddressNetwork('XRPL');
           }
         }}>
-          <div className="notification-modal fund-wallet-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className={`notification-modal ${fundViaAddress ? 'fund-wallet-transfer-modal deposit-address-flow' : 'fund-wallet-modal'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Receive</h2>
+                <h2>Deposit</h2>
               </div>
               <button 
                 type="button" 
@@ -6371,6 +6429,7 @@ const Transactions = () => {
                   setFundingStep('idle');
                   setIsFundingWallet(false);
                   setFundViaAddress(false);
+                  setDepositAddressNetwork('XRPL');
                 }}
                 disabled={isFundingWallet && fundingStep !== 'idle'}
               >
@@ -6378,193 +6437,201 @@ const Transactions = () => {
               </button>
             </div>
 
-            {/* Progress Indicator */}
-            {isFundingWallet && fundingStep !== 'idle' && (
-              <div className="fund-wallet-progress" style={{ padding: '15px 20px', borderBottom: '1px solid #e0e0e0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    backgroundColor: fundingStep === 'preparing' ? '#4f46e5' : fundingStep === 'signing' ? '#4f46e5' : fundingStep === 'completing' ? '#4f46e5' : '#e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                  }}>
-                    {fundingStep === 'preparing' ? '1' : fundingStep === 'signing' ? '2' : fundingStep === 'completing' ? '3' : ''}
+            {fundViaAddress ? (
+              <div className="fund-wallet-transfer-modal-content deposit-address-modal-content">
+                <div className="fund-wallet-transfer-form-group">
+                  <span className="fund-wallet-transfer-label">Currency</span>
+                  <div className="deposit-currency-pill">
+                    <div className="fund-wallet-transfer-currency-badge">
+                      <img
+                        src={DEPOSIT_ADDRESS_CURRENCY_ICON[fundWalletForm.currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP}
+                        alt=""
+                      />
+                    </div>
+                    <select
+                      id="deposit-fund-currency"
+                      className="deposit-currency-native"
+                      value={fundWalletForm.currency}
+                      onChange={(e) =>
+                        setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
+                      }
+                      aria-label="Currency"
+                    >
+                      <option value="XRP">XRP wallet</option>
+                      <option value="RLUSD">RLUSD wallet</option>
+                      <option value="USDT">USDT wallet</option>
+                      <option value="USDC">USDC wallet</option>
+                    </select>
+                    <ChevronDown size={16} className="deposit-currency-chevron" aria-hidden />
                   </div>
-                  <span style={{ fontSize: '14px', fontWeight: '500' }}>
-                    {fundingStep === 'preparing' && 'Preparing transaction...'}
-                    {fundingStep === 'signing' && (
-                      transactionData?.xummUrl 
-                        ? 'Please sign in your Xaman wallet...' 
-                        : 'Please sign in your browser wallet (Crossmark)...'
-                    )}
-                    {fundingStep === 'completing' && 'Completing transaction...'}
-                  </span>
                 </div>
-                {fundingStep === 'signing' && (
-                  <div style={{ fontSize: '12px', color: '#666', marginLeft: '30px' }}>
-                    {transactionData?.xummUrl 
-                      ? 'A window should open to your Xaman wallet. Please sign the transaction there.'
-                      : 'Please approve the transaction in your Crossmark wallet extension popup.'
-                    }
+
+                <div className="fund-wallet-transfer-form-group">
+                  <span className="fund-wallet-transfer-label">Network</span>
+                  <div className="deposit-network-pill">
+                    <select
+                      id="deposit-fund-network"
+                      className="deposit-network-native"
+                      value={depositAddressNetwork}
+                      onChange={(e) => setDepositAddressNetwork(e.target.value)}
+                      aria-label="Network"
+                    >
+                      {getDepositNetworksForCurrency(fundWalletForm.currency).map((key) => (
+                        <option key={key} value={key}>
+                          {depositAddressNetworkLabel(key)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="deposit-network-chevron" aria-hidden />
                   </div>
-                )}
-              </div>
-            )}
+                </div>
 
-            <form onSubmit={handleFundWallet} className="fund-wallet-form">
-              <div className="form-group">
-                <label htmlFor="fund-amount">Amount</label>
-                <input
-                  id="fund-amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Enter amount"
-                  value={fundWalletForm.amount}
-                  onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
-                  required
-                  disabled={isFundingWallet}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fund-currency">Wallets</label>
-                <select
-                  id="fund-currency"
-                  value={fundWalletForm.currency}
-                  onChange={(e) => setFundWalletForm(prev => ({ ...prev, currency: e.target.value }))}
-                  disabled={isFundingWallet}
-                >
-                  <option value="XRP">XRP</option>
-                  <option value="USDT">USDT</option>
-                  <option value="USDC">USDC</option>
-                </select>
-              </div>
-
-              <div className="fund-wallet-actions">
-                {fundViaAddress ? (
-                  walletAddress ? (
-                    <>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0',
-                          width: '100%'
-                        }}>
-                          <p style={{
-                            fontSize: '0.95rem',
-                            color: '#666',
-                            textAlign: 'center',
-                            margin: 0
-                          }}>
-                            Scan this QR code to send funds to your XRP wallet address
-                          </p>
-                        
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          padding: '1.5rem',
-                          background: '#ffffff',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '0.75rem',
-                          minHeight: '256px',
-                          width: '100%',
-                          maxWidth: '300px'
-                        }}>
-                          <QRCode
-                            value={walletAddress}
-                            size={256}
-                            style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                            viewBox="0 0 256 256"
-                          />
+                <div className="fund-wallet-transfer-form-group">
+                  <span className="fund-wallet-transfer-label">Scan</span>
+                  {isLoadingWalletBalances && !depositDisplayAddress ? (
+                    <div className="deposit-address-scan-loading">
+                      <LoadingIndicator size="md" />
+                      <span>Loading deposit address from your wallet…</span>
+                    </div>
+                  ) : depositDisplayAddress ? (
+                    <div className="fund-wallet-transfer-address-section deposit-scan-address-section">
+                      <div className="fund-wallet-transfer-qr-code deposit-address-qr">
+                        <QRCode
+                          value={depositDisplayAddress}
+                          size={120}
+                          style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                          viewBox="0 0 256 256"
+                        />
+                      </div>
+                      <div className="deposit-scan-address-inline">
+                        <div className="deposit-scan-address-lines" translate="no">
+                          {splitDepositAddressLines(depositDisplayAddress).map((line, i) => (
+                            <span key={i}>{line}</span>
+                          ))}
                         </div>
-
-                        <div style={{
-                          padding: '1rem',
-                          background: '#f9fafb',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '0.75rem',
-                          wordBreak: 'break-all',
-                          fontFamily: 'monospace',
-                          fontSize: '0.875rem',
-                          color: '#374151',
-                          textAlign: 'left',
-                          width: '100%',
-                          maxWidth: '300px'
-                        }}>
-                          {walletAddress}
-                        </div>
-
                         <button
                           type="button"
+                          className="fund-wallet-transfer-copy-btn deposit-scan-copy-btn"
                           onClick={async () => {
                             try {
-                              await navigator.clipboard.writeText(walletAddress);
-                              toast.success('Wallet address copied to clipboard');
+                              await navigator.clipboard.writeText(depositDisplayAddress);
+                              toast.success('Address copied to clipboard');
                             } catch (err) {
                               console.error('Failed to copy wallet address:', err);
-                              toast.error('Failed to copy wallet address');
+                              toast.error('Failed to copy address');
                             }
                           }}
-                          style={{
-                            width: '100%',
-                            maxWidth: '300px',
-                            padding: '0.75rem 1.5rem',
-                            background: '#2F74FF',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            fontFamily: 'Satoshi, Inter, sans-serif',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.background = '#2563eb';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.background = '#2F74FF';
-                          }}
+                          aria-label="Copy address"
                         >
-                          <Copy size={16} />
-                          Copy Address
+                          <Copy size={18} />
                         </button>
                       </div>
-                    </>
-                  ) : (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '2rem',
-                      textAlign: 'center'
-                    }}>
-                      <p style={{
-                        fontSize: '0.95rem',
-                        color: '#666',
-                        margin: 0
-                      }}>
-                        No wallet address found. Please create a wallet first.
-                      </p>
                     </div>
-                  )
-                ) : (
-                  <>
+                  ) : (
+                    <p className="deposit-address-empty-message">
+                      No deposit address returned from the server. Create or connect a wallet, then try again.
+                    </p>
+                  )}
+                </div>
+
+                <div className="fund-wallet-transfer-actions">
+                  <button
+                    type="button"
+                    className="fund-wallet-transfer-preview-btn"
+                    onClick={() => {
+                      setShowFundWalletModal(false);
+                      setFundWalletForm({ amount: '', currency: 'XRP' });
+                      setTransactionData(null);
+                      setFundingStep('idle');
+                      setIsFundingWallet(false);
+                      setFundViaAddress(false);
+                      setDepositAddressNetwork('XRPL');
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+
+                <div className="fund-wallet-transfer-info-message">
+                  <div className="fund-wallet-transfer-info-icon">
+                    <Info size={16} />
+                  </div>
+                  <span>Recipient gets the funds immediately—or a full refund applies.</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Progress Indicator */}
+                {isFundingWallet && fundingStep !== 'idle' && (
+                  <div className="fund-wallet-progress" style={{ padding: '15px 20px', borderBottom: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: fundingStep === 'preparing' ? '#4f46e5' : fundingStep === 'signing' ? '#4f46e5' : fundingStep === 'completing' ? '#4f46e5' : '#e0e0e0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {fundingStep === 'preparing' ? '1' : fundingStep === 'signing' ? '2' : fundingStep === 'completing' ? '3' : ''}
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                        {fundingStep === 'preparing' && 'Preparing transaction...'}
+                        {fundingStep === 'signing' && (
+                          transactionData?.xummUrl 
+                            ? 'Please sign in your Xaman wallet...' 
+                            : 'Please sign in your browser wallet (Crossmark)...'
+                        )}
+                        {fundingStep === 'completing' && 'Completing transaction...'}
+                      </span>
+                    </div>
+                    {fundingStep === 'signing' && (
+                      <div style={{ fontSize: '12px', color: '#666', marginLeft: '30px' }}>
+                        {transactionData?.xummUrl 
+                          ? 'A window should open to your Xaman wallet. Please sign the transaction there.'
+                          : 'Please approve the transaction in your Crossmark wallet extension popup.'
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <form onSubmit={handleFundWallet} className="fund-wallet-form">
+                  <div className="form-group">
+                    <label htmlFor="fund-amount">Amount</label>
+                    <input
+                      id="fund-amount"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="Enter amount"
+                      value={fundWalletForm.amount}
+                      onChange={(e) => setFundWalletForm(prev => ({ ...prev, amount: e.target.value }))}
+                      required
+                      disabled={isFundingWallet}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="fund-currency">Wallets</label>
+                    <select
+                      id="fund-currency"
+                      value={fundWalletForm.currency}
+                      onChange={(e) => setFundWalletForm(prev => ({ ...prev, currency: e.target.value }))}
+                      disabled={isFundingWallet}
+                    >
+                      <option value="XRP">XRP</option>
+                      <option value="RLUSD">Ripple (RLUSD)</option>
+                      <option value="USDT">USDT</option>
+                      <option value="USDC">USDC</option>
+                    </select>
+                  </div>
+
+                  <div className="fund-wallet-actions">
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
@@ -6575,6 +6642,7 @@ const Transactions = () => {
                         setFundingStep('idle');
                         setIsFundingWallet(false);
                         setFundViaAddress(false);
+                        setDepositAddressNetwork('XRPL');
                       }}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
                     >
@@ -6591,10 +6659,10 @@ const Transactions = () => {
                       {!isFundingWallet && 'Fund Wallet'}
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
-                  </>
-                )}
-              </div>
-            </form>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -7246,152 +7314,152 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Send Modal — send to other TrustiChain users via Trustitag */}
+      {/* Send Modal — amount + recipient (reference UI) */}
       {showSendModal && (
         <div className="notification-modal-overlay send-modal-overlay" onClick={() => setShowSendModal(false)}>
           <div
-            className="notification-modal send-modal send-modal--trustitag"
+            className="notification-modal send-modal send-modal--v2"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-labelledby="send-modal-title"
           >
-            <div className="send-modal-header">
-              <div className="send-modal-header-main">
-                <div className="send-modal-header-accent" aria-hidden />
-                <div>
-                  <p className="send-modal-eyebrow">Send to TrustiChain users</p>
-                  <h2 id="send-modal-title">Send via Trustitag</h2>
-                  <p className="send-modal-subtitle">
-                    Enter the recipient&apos;s Trustitag. They receive the converted amount in their chosen currency — no long wallet address.
-                  </p>
-                </div>
+            <div className="send-modal-header send-modal-header--v2">
+              <div className="send-modal-header-leading-v2">
+                <span className="send-modal-header-accent-v2" aria-hidden />
+                <h2 id="send-modal-title">Send</h2>
               </div>
               <button
                 type="button"
-                className="notification-close-btn send-modal-close"
+                className="notification-close-btn send-modal-close-v2"
                 onClick={() => setShowSendModal(false)}
                 aria-label="Close"
               >
-                <X size={20} />
+                <X size={22} />
               </button>
             </div>
 
-            <div className="send-modal-content">
-              <div className="send-modal-panel send-modal-panel--conversion">
-                <p className="send-modal-panel-label">Amount &amp; conversion</p>
-                <div className="send-transfer-section">
-                  <div className="send-from-section">
-                    <label className="send-section-label">From</label>
-                    <div className="send-wallet-selector">
-                      <div className="send-currency-badge">
+            <div className="send-modal-content send-modal-content--v2">
+              <div className="send-amount-hero-card">
+                <div className="send-amount-hero-top">
+                  <span className="send-from-label-v2">From</span>
+                  <div className="send-modal-currency-anchor">
+                    <button
+                      type="button"
+                      className="send-currency-pill-v2"
+                      onClick={() => setShowToCurrencyDropdown(!showToCurrencyDropdown)}
+                      aria-expanded={showToCurrencyDropdown}
+                      aria-haspopup="listbox"
+                    >
+                      <span className="send-currency-pill-flag">
                         <img
-                          src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                          alt="XRP"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          src={`https://flagcdn.com/w40/${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.flag || 'eu'}.png`}
+                          alt=""
+                          width={20}
+                          height={14}
                         />
-                      </div>
-                      <span className="send-wallet-text">XRP wallet</span>
-                      <ChevronDown size={16} />
-                    </div>
-                    <input
-                      type="text"
-                      className="send-amount-input"
-                      placeholder="0.00"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      value={sendForm.fromAmount || ''}
-                      onChange={(e) => {
-                        let value = e.target.value;
-                        value = value.replace(/[^0-9.]/g, '');
-                        setLastEditedField('from');
-                        setSendForm((prev) => ({ ...prev, fromAmount: value }));
-                      }}
-                    />
-                    <div className="send-balance-text">Balance: 24,567.89 USDT</div>
-                  </div>
-
-                  <div className="send-transfer-arrow">
-                    <button type="button" className="send-arrow-btn" aria-hidden tabIndex={-1}>
-                      <ArrowRight size={20} />
+                      </span>
+                      <span className="send-currency-pill-code">{sendForm.toCurrency}</span>
+                      <ChevronDown size={16} aria-hidden />
                     </button>
-                  </div>
-
-                  <div className="send-to-section">
-                    <label className="send-section-label">They receive (estimate)</label>
-                    <div className="send-wallet-selector send-wallet-selector--dropdown">
-                      <button
-                        type="button"
-                        className="send-to-currency-trigger"
-                        onClick={() => setShowToCurrencyDropdown(!showToCurrencyDropdown)}
-                      >
-                        <div className="send-currency-flag">
-                          <img
-                            src={`https://flagcdn.com/w40/${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.flag || 'us'}.png`}
-                            alt={sendForm.toCurrency}
-                          />
-                        </div>
-                        <span className="send-wallet-text">{sendForm.toCurrency}</span>
-                        <ChevronDown size={16} />
-                      </button>
-                      {showToCurrencyDropdown && (
-                        <div className="send-modal-currency-dropdown">
-                          {availableCurrencies.map((currency) => (
-                            <button
-                              key={currency.code}
-                              type="button"
-                              className={`send-modal-currency-option${sendForm.toCurrency === currency.code ? ' is-active' : ''}`}
-                              onClick={() => handleToCurrencyChange(currency.code)}
-                            >
-                              <div className="send-currency-flag">
-                                <img src={`https://flagcdn.com/w40/${currency.flag}.png`} alt={currency.code} />
-                              </div>
-                              <span>{currency.code}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      className="send-amount-input"
-                      placeholder="0.00"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      value={sendForm.toAmount || ''}
-                      onChange={(e) => handleToAmountChange(e.target.value)}
-                    />
-                    <div className="send-exchange-rate">
-                      {isLoadingSendRate ? (
-                        <LoadingIndicator size="sm" />
-                      ) : sendExchangeRate ? (
-                        `1 ${sendForm.fromWallet} = ${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.symbol || ''}${sendExchangeRate.toFixed(4)} ${sendForm.toCurrency}`
-                      ) : (
-                        'Rate unavailable'
-                      )}
-                    </div>
+                    {showToCurrencyDropdown && (
+                      <div className="send-modal-currency-dropdown send-modal-currency-dropdown--v2" role="listbox">
+                        {availableCurrencies.map((currency) => (
+                          <button
+                            key={currency.code}
+                            type="button"
+                            role="option"
+                            className={`send-modal-currency-option${sendForm.toCurrency === currency.code ? ' is-active' : ''}`}
+                            onClick={() => handleToCurrencyChange(currency.code)}
+                          >
+                            <span className="send-currency-flag">
+                              <img src={`https://flagcdn.com/w40/${currency.flag}.png`} alt="" />
+                            </span>
+                            <span>{currency.code}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
+                <div className="send-amount-hero-input-row">
+                  <span className="send-amount-hero-symbol" aria-hidden>
+                    {(availableCurrencies.find((c) => c.code === sendForm.toCurrency) || availableCurrencies[1]).symbol}
+                  </span>
+                  <input
+                    type="text"
+                    className="send-amount-hero-input"
+                    placeholder="0.00"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    aria-label="Amount"
+                    value={sendForm.toAmount || ''}
+                    onChange={(e) => handleToAmountChange(e.target.value)}
+                  />
+                </div>
+                <p className="send-balance-line-v2">
+                  Balance:{' '}
+                  {walletBalances?.usdt != null && walletBalances?.usdt !== ''
+                    ? Number(walletBalances.usdt).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    : '—'}{' '}
+                  USDT
+                </p>
+                {sendExchangeRate && !isLoadingSendRate ? (
+                  <p className="send-rate-hint-v2">
+                    1 {sendForm.fromWallet} ={' '}
+                    {(availableCurrencies.find((c) => c.code === sendForm.toCurrency) || availableCurrencies[0]).symbol}
+                    {sendExchangeRate.toFixed(4)} {sendForm.toCurrency}
+                  </p>
+                ) : isLoadingSendRate ? (
+                  <p className="send-rate-hint-v2">
+                    <LoadingIndicator size="sm" />
+                  </p>
+                ) : null}
               </div>
 
-              <div className="send-modal-panel send-modal-panel--recipient">
-                <div className="send-modal-panel-head">
-                  <span className="send-modal-panel-icon" aria-hidden>
-                    <Tag size={18} strokeWidth={2} />
-                  </span>
-                  <div>
-                    <p className="send-modal-panel-label">Recipient</p>
-                    <p className="send-modal-panel-hint">Their TrustiChain handle</p>
-                  </div>
-                </div>
+              <p className="send-recipient-section-title-v2">Recipient Information</p>
 
-                <label className="send-trustitag-label" htmlFor="send-recipient-trustitag">
-                  Trustitag
+              <div className="send-v2-fields">
+                <label className="send-v2-label" htmlFor="send-v2-fullname">
+                  Full Name
+                </label>
+                <input
+                  id="send-v2-fullname"
+                  type="text"
+                  className="send-v2-input"
+                  placeholder="Enter your name"
+                  autoComplete="name"
+                  value={sendForm.recipientFullName}
+                  onChange={(e) =>
+                    setSendForm((prev) => ({ ...prev, recipientFullName: e.target.value }))
+                  }
+                />
+
+                <label className="send-v2-label" htmlFor="send-v2-phone">
+                  Phone Number
+                </label>
+                <input
+                  id="send-v2-phone"
+                  type="tel"
+                  className="send-v2-input"
+                  placeholder="(+44)"
+                  autoComplete="tel"
+                  value={sendForm.recipientPhone}
+                  onChange={(e) =>
+                    setSendForm((prev) => ({ ...prev, recipientPhone: e.target.value }))
+                  }
+                />
+
+                <label className="send-v2-label" htmlFor="send-recipient-trustitag">
+                  Wallet Address or Bank Account
                 </label>
                 <input
                   id="send-recipient-trustitag"
                   type="text"
-                  className="send-trustitag-input"
-                  placeholder="e.g. tc_a1b2c3d4e5"
+                  className="send-v2-input"
+                  placeholder="Enter Wallet Address or Bank Account"
                   autoComplete="off"
                   spellCheck={false}
                   value={sendForm.recipientTrustitag}
@@ -7400,42 +7468,41 @@ const Transactions = () => {
                   }
                 />
 
-                <label className="send-trustitag-label" htmlFor="send-reason-note">
-                  Note <span className="send-optional">(optional)</span>
+                <label className="send-v2-label" htmlFor="send-reason-note">
+                  Reason for transfer <span className="send-optional-v2">(optional)</span>
                 </label>
                 <input
                   id="send-reason-note"
                   type="text"
-                  className="send-form-note-input"
-                  placeholder="What's this for?"
+                  className="send-v2-input"
+                  placeholder="Enter description"
                   value={sendForm.reason}
                   onChange={(e) => setSendForm((prev) => ({ ...prev, reason: e.target.value }))}
                 />
               </div>
 
-              <div className="send-bottom-section">
-                <div className="send-info-message">
-                  <div className="send-info-icon">
-                    <Info size={16} />
-                  </div>
-                  <span>
-                    {sendForm.fromAmount && sendExchangeRate ? (
-                      `They'll receive at least ${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency} (estimate) or the transaction will be refunded`
-                    ) : (
-                      'Amounts use the current rate; your recipient sees funds in their chosen currency.'
-                    )}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="send-preview-btn"
-                  onClick={() => {
-                    setShowSendModal(false);
-                    setShowTransactionSummaryModal(true);
-                  }}
-                >
-                  Preview transfer
-                </button>
+              <button
+                type="button"
+                className="send-primary-btn-v2"
+                onClick={() => {
+                  if (!sendForm.fromAmount || parseFloat(sendForm.fromAmount) <= 0) {
+                    toast.error('Please enter an amount');
+                    return;
+                  }
+                  setShowSendModal(false);
+                  setShowTransactionSummaryModal(true);
+                }}
+              >
+                Send
+              </button>
+
+              <div className="send-modal-footnote-v2">
+                <Info size={14} className="send-modal-footnote-icon-v2" aria-hidden />
+                <span>
+                  {sendForm.fromAmount && sendExchangeRate
+                    ? `Recipient will receive at least ${(parseFloat(sendForm.fromAmount) * sendExchangeRate * 0.9954).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${sendForm.toCurrency} or the transaction will be refunded`
+                    : 'Recipient will receive at least the converted amount or the transaction will be refunded.'}
+                </span>
               </div>
             </div>
           </div>
@@ -7459,8 +7526,16 @@ const Transactions = () => {
 
             <div className="transaction-summary-content">
               <div className="transaction-details-list">
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Full name</span>
+                  <span className="transaction-detail-value">{sendForm.recipientFullName.trim() || '—'}</span>
+                </div>
+                <div className="transaction-detail-item">
+                  <span className="transaction-detail-label">Phone</span>
+                  <span className="transaction-detail-value">{sendForm.recipientPhone.trim() || '—'}</span>
+                </div>
                 <div className="transaction-detail-item transaction-detail-item--trustitag">
-                  <span className="transaction-detail-label">Recipient Trustitag</span>
+                  <span className="transaction-detail-label">Wallet / Bank / Trustitag</span>
                   <span className="transaction-detail-value transaction-detail-trustitag">
                     {sendForm.recipientTrustitag.trim() || '—'}
                   </span>
@@ -7759,7 +7834,7 @@ const Transactions = () => {
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Receive</h2>
+                <h2>Deposit</h2>
               </div>
               <button 
                 type="button" 
@@ -7882,6 +7957,7 @@ const Transactions = () => {
       )}
 
       {renderTransactionDetailsModal()}
+      {renderAddBeneficiaryModal()}
 
       {/* Connect Wallet Modal */}
       <ConnectWalletModal 

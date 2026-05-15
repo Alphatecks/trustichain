@@ -85,12 +85,14 @@ export function isNewlyRegisteredAuthResponse(data) {
   return false;
 }
 
-/** Queue one-time welcome modal on next Dashboard visit (sessionStorage), only for new users. */
+/** Queue one-time welcome modal on next Dashboard visit (sessionStorage).
+ * Default behavior stays new-user only; pass { alwaysShow: true } to show after any successful login. */
 export function queueTrustitagWelcomeModal(trustitag, options = {}) {
   if (!trustitag || typeof trustitag !== 'string') return;
+  const forceShowAfterLogin = options.alwaysShow === true;
   const allowByResponse = options.newlyRegistered === true;
   const allowBySignupSession = readNewUserWelcomeEligibility();
-  if (!allowByResponse && !allowBySignupSession) return;
+  if (!forceShowAfterLogin && !allowByResponse && !allowBySignupSession) return;
 
   clearNewUserWelcomeEligibility();
   try {
