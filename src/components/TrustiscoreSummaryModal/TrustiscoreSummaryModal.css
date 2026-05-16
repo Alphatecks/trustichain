@@ -1,0 +1,204 @@
+.trustiscore-summary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.42);
+  opacity: 0;
+  transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trustiscore-summary-overlay.is-visible {
+  opacity: 1;
+}
+
+.trustiscore-summary-card {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.2);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  overflow: hidden;
+  transform: scale(0.92) translateY(12px);
+  opacity: 0;
+  transition:
+    transform 0.42s cubic-bezier(0.34, 1.2, 0.64, 1),
+    opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trustiscore-summary-card.is-visible {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.trustiscore-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem 1.35rem 0.85rem;
+}
+
+.trustiscore-summary-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.trustiscore-summary-accent {
+  width: 4px;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+
+.trustiscore-summary-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.trustiscore-summary-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  display: flex;
+  line-height: 0;
+}
+
+.trustiscore-summary-close:hover {
+  background: #f1f5f9;
+}
+
+.trustiscore-summary-chart {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1.5rem 1.25rem;
+}
+
+.trustiscore-summary-chart-inner {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.trustiscore-summary-donut {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 4px 14px rgba(37, 99, 235, 0.12));
+}
+
+.trustiscore-summary-donut-track {
+  stroke: #e5e7eb;
+  stroke-width: 12;
+}
+
+.trustiscore-summary-donut-progress {
+  stroke: var(--blue-600, #2563eb);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.05s linear;
+}
+
+.trustiscore-summary-donut-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.35rem;
+  font-weight: 800;
+  color: var(--blue-600, #2563eb);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  pointer-events: none;
+  animation: trustiscore-label-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+@keyframes trustiscore-label-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.trustiscore-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.5rem 1.25rem;
+}
+
+.trustiscore-summary-row-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.trustiscore-summary-row-badge {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--blue-600, #2563eb);
+  background: rgba(37, 99, 235, 0.12);
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.trustiscore-summary-footer {
+  padding: 0 1.35rem 1.35rem;
+}
+
+.trustiscore-summary-done {
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 0.95rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #ffffff;
+  background: var(--blue-600, #2563eb);
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.trustiscore-summary-done:hover {
+  filter: brightness(1.06);
+}
+
+.trustiscore-summary-done:active {
+  transform: scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trustiscore-summary-overlay,
+  .trustiscore-summary-card {
+    transition-duration: 0.01ms;
+  }
+
+  .trustiscore-summary-donut-label {
+    animation: none;
+  }
+
+  .trustiscore-summary-donut-progress {
+    transition: none;
+  }
+}

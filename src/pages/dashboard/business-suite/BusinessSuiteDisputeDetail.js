@@ -43,6 +43,7 @@ import { getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
 const businessSuiteNav = [
@@ -1132,14 +1133,14 @@ const BusinessSuiteDisputeDetail = () => {
       {/* Mobile Header */}
       <div className="mobile-dashboard-header transactions-mobile-header">
         <div className="mobile-header-left">
-          <div className="mobile-user-avatar">
+          <HeaderProfileAvatarNav variant="mobile">
             {userAvatar ? (
               <img src={userAvatar} alt={userFullName} />
             ) : (
               userInitials
             )}
             <HeaderProfileVerifyBadge mobile />
-          </div>
+          </HeaderProfileAvatarNav>
         </div>
         <div className="mobile-header-right">
           <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
@@ -1380,14 +1381,14 @@ const BusinessSuiteDisputeDetail = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {userAvatar ? (
                   <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                 ) : (
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

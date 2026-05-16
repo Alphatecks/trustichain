@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, KeyRound, Menu } from 'lucide-react';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../context/TrustiscoreContext';
+import HeaderProfileAvatarNav from './HeaderProfileAvatarNav';
 import HeaderProfileVerifyBadge from './HeaderProfileVerifyBadge';
 import LoadingIndicator from './LoadingIndicator';
 import verifyBadge from '../assets/images/icons/verify.png';
@@ -28,7 +29,7 @@ export default function PersonalSuiteMobileHeader({
   centerMode = 'trustiscore',
   profileSubtitle,
 }) {
-  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
 
   const isBusiness = variant === 'business';
@@ -43,7 +44,7 @@ export default function PersonalSuiteMobileHeader({
   return (
     <div className={rootClass}>
       <div className="mobile-header-left">
-        <div className="mobile-user-avatar">
+        <HeaderProfileAvatarNav variant="mobile">
           {isBusiness ? (
             <>
               {businessLogoUrl ? (
@@ -60,7 +61,7 @@ export default function PersonalSuiteMobileHeader({
             userInitials
           )}
           <HeaderProfileVerifyBadge show={verifyShow} mobile />
-        </div>
+        </HeaderProfileAvatarNav>
       </div>
       <div className="mobile-header-trustiscore-slot">
         {!isBusiness && centerMode === 'profile' ? (
@@ -72,14 +73,16 @@ export default function PersonalSuiteMobileHeader({
             {profileSubtitle ? <span className="suite-mobile-header-profile-tagline">{profileSubtitle}</span> : null}
           </div>
         ) : showTrustiscoreChip ? (
-          <div
+          <button
+            type="button"
             className="header-trustiscore-box mobile-dashboard-header-trustiscore"
             role="status"
             aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+            onClick={openTrustiscoreModal}
           >
             <span className="header-trustiscore-label">TrustiScore</span>
             <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-          </div>
+          </button>
         ) : (
           <button type="button" className="kyc-status mobile-dashboard-header-kyc">
             <KeyRound size={14} />

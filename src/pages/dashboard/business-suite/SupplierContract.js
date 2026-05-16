@@ -45,6 +45,7 @@ import './SupplierContract.css';
 import logo from '../../../assets/images/icons/logo.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import { getApiUrl } from '../../../utils/config';
 import toast from 'react-hot-toast';
 import { handleLogout } from '../../../utils/logout';
@@ -574,7 +575,7 @@ const SupplierContract = ({
         {/* Mobile Header */}
         <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
-            <div className="mobile-user-avatar">
+            <HeaderProfileAvatarNav variant="mobile">
               {accountType === 'Business Suite' ? (
                 businessCompanyLogoUrl ? (
                   <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
@@ -589,7 +590,7 @@ const SupplierContract = ({
                 userInitials
               )}
               <HeaderProfileVerifyBadge show={accountType === 'Business Suite' ? businessKycComplete : true} mobile />
-            </div>
+            </HeaderProfileAvatarNav>
           </div>
           <div className="mobile-header-right">
             <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>

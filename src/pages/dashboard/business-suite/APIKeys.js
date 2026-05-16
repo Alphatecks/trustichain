@@ -37,6 +37,7 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import CreateApiKeyModal from '../../../components/CreateApiKeyModal';
 import ApiKeyDetailsModal from '../../../components/ApiKeyDetailsModal';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
@@ -501,7 +502,7 @@ const APIKeys = () => {
                   <Bell size={18} />
                 </button>
                 <div className="header-user">
-                  <div className="user-avatar">
+                  <HeaderProfileAvatarNav>
                     {accountType === 'Business Suite' ? (
                       businessCompanyLogoUrl ? (
                         <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -516,7 +517,7 @@ const APIKeys = () => {
                       userInitials
                     )}
                     <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
-                  </div>
+                  </HeaderProfileAvatarNav>
                 </div>
               </div>
             </header>

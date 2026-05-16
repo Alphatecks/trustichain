@@ -1760,10 +1760,19 @@
     height: 20px !important;
     display: block !important;
     color: var(--blue-600) !important;
-    fill: var(--blue-600) !important;
+    fill: none !important;
     stroke: var(--blue-600) !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+
+  .mobile-header-bell svg circle,
+  .mobile-header-bell svg line,
+  .mobile-header-bell svg polyline {
+    fill: none !important;
   }
 
   /* Mobile Sidebar Overlay */

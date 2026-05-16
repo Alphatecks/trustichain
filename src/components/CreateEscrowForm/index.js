@@ -121,7 +121,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   );
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedEscrowType, setSelectedEscrowType] = useState('Freelancing');
-  /** Step 1: identify counterparty by wallet vs Trustitag (Trustitag shows extended fields). */
+  /** Step 1: identify counterparty by wallet vs Trustitag. */
   const [counterpartyMethod, setCounterpartyMethod] = useState('wallet');
 
   const [formData, setFormData] = useState({
@@ -130,6 +130,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     payerName: '',
     payerPhone: '',
     counterpartyWallet: '',
+    counterpartyTrustitag: '',
     counterpartyEmail: '',
     counterpartyName: '',
     counterpartyPhone: '',
@@ -157,97 +158,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [escrowFundingWalletsLoading, setEscrowFundingWalletsLoading] = useState(false);
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
   const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
-  const [payerEmailValidation, setPayerEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
-  const [counterpartyEmailValidation, setCounterpartyEmailValidation] = useState({ isValid: null, message: '', isValidating: false });
-  const [validationTimeouts, setValidationTimeouts] = useState({ payer: null, counterparty: null });
-
-  // Validate payer email in real-time
-  const validatePayerEmail = async (email) => {
-    if (!email || email.trim() === '') {
-      setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
-      return;
-    }
-
-    // Basic email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setPayerEmailValidation({ isValid: false, message: 'Invalid email format', isValidating: false });
-      return;
-    }
-
-    setPayerEmailValidation({ isValid: null, message: 'Validating...', isValidating: true });
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
-        return;
-      }
-
-      const response = await fetch(getApiUrl('api/escrow/validate-payer-email'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ payerEmail: email }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result?.success) {
-        setPayerEmailValidation({ isValid: true, message: result?.message || 'Email is valid', isValidating: false });
-      } else {
-        setPayerEmailValidation({ isValid: false, message: result?.message || 'Email validation failed', isValidating: false });
-      }
-    } catch (error) {
-      setPayerEmailValidation({ isValid: false, message: 'Validation error', isValidating: false });
-    }
-  };
-
-  // Validate counterparty email in real-time
-  const validateCounterpartyEmail = async (email) => {
-    if (!email || email.trim() === '') {
-      setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
-      return;
-    }
-
-    // Basic email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setCounterpartyEmailValidation({ isValid: false, message: 'Invalid email format', isValidating: false });
-      return;
-    }
-
-    setCounterpartyEmailValidation({ isValid: null, message: 'Validating...', isValidating: true });
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
-        return;
-      }
-
-      const response = await fetch(getApiUrl('api/escrow/validate-counterparty-email'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ counterpartyEmail: email }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result?.success) {
-        setCounterpartyEmailValidation({ isValid: true, message: result?.message || 'Email is valid', isValidating: false });
-      } else {
-        setCounterpartyEmailValidation({ isValid: false, message: result?.message || 'Email validation failed', isValidating: false });
-      }
-    } catch (error) {
-      setCounterpartyEmailValidation({ isValid: false, message: 'Validation error', isValidating: false });
-    }
-  };
 
   // Fetch exchange rate for XRP to USD conversion (copied from MyEscrow)
   useEffect(() => {
@@ -295,14 +205,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       fetchExchangeRate();
     }
   }, [isOpen]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (validationTimeouts.payer) clearTimeout(validationTimeouts.payer);
-      if (validationTimeouts.counterparty) clearTimeout(validationTimeouts.counterparty);
-    };
-  }, [validationTimeouts]);
 
   // Map escrow type to industry for API
   const getEscrowTypeMapping = (escrowType) => {
@@ -378,17 +280,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       payerName: '',
       payerPhone: '',
       counterpartyWallet: '',
+      counterpartyTrustitag: '',
       counterpartyEmail: '',
       counterpartyName: '',
       counterpartyPhone: '',
     });
-    // Reset validation states
-    setPayerEmailValidation({ isValid: null, message: '', isValidating: false });
-    setCounterpartyEmailValidation({ isValid: null, message: '', isValidating: false });
-    // Clear any pending timeouts
-    if (validationTimeouts.payer) clearTimeout(validationTimeouts.payer);
-    if (validationTimeouts.counterparty) clearTimeout(validationTimeouts.counterparty);
-    setValidationTimeouts({ payer: null, counterparty: null });
     setTermsData({
       releaseType: 'Manual Release',
       expectedCompletionDate: '',
@@ -495,7 +391,22 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
       const escrowCurrencyResolved = normalizeEscrowPayloadCurrency(termsData.escrowCurrency);
 
-      if (!payerWalletResolved || !formData.counterpartyWallet?.trim()) {
+      const counterpartyWalletTrimmed = formData.counterpartyWallet?.trim() || '';
+      const counterpartyTrustitagTrimmed = formData.counterpartyTrustitag?.trim() || '';
+
+      if (!payerWalletResolved) {
+        toast.error('Please fill in all required fields');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      if (counterpartyMethod === 'wallet' && !counterpartyWalletTrimmed) {
+        toast.error('Please fill in all required fields');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      if (counterpartyMethod === 'trustitag' && !counterpartyTrustitagTrimmed) {
         toast.error('Please fill in all required fields');
         setIsCreatingEscrow(false);
         return;
@@ -547,7 +458,9 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       // Build base payload with common fields
       const payload = {
         payerXrpWalletAddress: payerWalletResolved,
-        counterpartyXrpWalletAddress: formData.counterpartyWallet,
+        ...(counterpartyMethod === 'trustitag'
+          ? { counterpartyTrustitag: counterpartyTrustitagTrimmed }
+          : { counterpartyXrpWalletAddress: counterpartyWalletTrimmed }),
         amount: parseFloat(termsData.totalAmount),
         currency: escrowCurrencyResolved,
         transactionType: transactionType,
@@ -731,8 +644,13 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   };
 
   const handleContinueFromStep1 = () => {
-    if (!formData.counterpartyWallet?.trim()) {
-      toast.error('Please enter the counterparty XRP wallet address');
+    if (counterpartyMethod === 'wallet') {
+      if (!formData.counterpartyWallet?.trim()) {
+        toast.error('Please enter the counterparty XRP wallet address');
+        return;
+      }
+    } else if (!formData.counterpartyTrustitag?.trim()) {
+      toast.error("Please enter the counterparty's Trustitag");
       return;
     }
     setCurrentStep(2);
@@ -972,177 +890,25 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="counterparty-form-grid create-escrow-step1-trustitag-grid">
-                    <div className="form-column">
-                      <div className="form-group">
-                        <label>
-                          Payers (You) XRP Wallet Address <span className="required">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="create-escrow-step1-input"
-                          placeholder="••••••••••••••••"
-                          value={formData.payerWallet}
-                          onChange={(e) =>
-                            setFormData({ ...formData, payerWallet: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Your Email</label>
-                        <input
-                          type="email"
-                          className="create-escrow-step1-input"
-                          placeholder="Enter your Email"
-                          value={formData.payerEmail}
-                          onChange={(e) => {
-                            const email = e.target.value;
-                            setFormData({ ...formData, payerEmail: email });
-                            if (validationTimeouts.payer) {
-                              clearTimeout(validationTimeouts.payer);
-                            }
-                            const timeout = setTimeout(() => {
-                              validatePayerEmail(email);
-                            }, 500);
-                            setValidationTimeouts((prev) => ({ ...prev, payer: timeout }));
-                          }}
-                          style={{
-                            borderColor:
-                              payerEmailValidation.isValid === true
-                                ? '#10b981'
-                                : payerEmailValidation.isValid === false
-                                  ? '#ef4444'
-                                  : undefined,
-                          }}
-                        />
-                        {payerEmailValidation.message && (
-                          <div
-                            style={{
-                              fontSize: '0.75rem',
-                              marginTop: '0.25rem',
-                              color:
-                                payerEmailValidation.isValid === true
-                                  ? '#10b981'
-                                  : payerEmailValidation.isValid === false
-                                    ? '#ef4444'
-                                    : '#6b7280',
-                            }}
-                          >
-                            {payerEmailValidation.message}
-                          </div>
-                        )}
-                      </div>
-                      <div className="form-group">
-                        <label>
-                          Counterparty XRP Wallet Address <span className="required">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="create-escrow-step1-input"
-                          placeholder="••••••••••••••••"
-                          value={formData.counterpartyWallet}
-                          onChange={(e) =>
-                            setFormData({ ...formData, counterpartyWallet: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Counterparty email</label>
-                        <input
-                          type="email"
-                          className="create-escrow-step1-input"
-                          placeholder="Enter counterparty email"
-                          value={formData.counterpartyEmail}
-                          onChange={(e) => {
-                            const email = e.target.value;
-                            setFormData({ ...formData, counterpartyEmail: email });
-                            if (validationTimeouts.counterparty) {
-                              clearTimeout(validationTimeouts.counterparty);
-                            }
-                            const timeout = setTimeout(() => {
-                              validateCounterpartyEmail(email);
-                            }, 500);
-                            setValidationTimeouts((prev) => ({
-                              ...prev,
-                              counterparty: timeout,
-                            }));
-                          }}
-                          style={{
-                            borderColor:
-                              counterpartyEmailValidation.isValid === true
-                                ? '#10b981'
-                                : counterpartyEmailValidation.isValid === false
-                                  ? '#ef4444'
-                                  : undefined,
-                          }}
-                        />
-                        {counterpartyEmailValidation.message && (
-                          <div
-                            style={{
-                              fontSize: '0.75rem',
-                              marginTop: '0.25rem',
-                              color:
-                                counterpartyEmailValidation.isValid === true
-                                  ? '#10b981'
-                                  : counterpartyEmailValidation.isValid === false
-                                    ? '#ef4444'
-                                    : '#6b7280',
-                            }}
-                          >
-                            {counterpartyEmailValidation.message}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="form-column">
-                      <div className="form-group">
-                        <label>Your Name</label>
-                        <input
-                          type="text"
-                          className="create-escrow-step1-input"
-                          placeholder="Enter your name"
-                          value={formData.payerName}
-                          onChange={(e) =>
-                            setFormData({ ...formData, payerName: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Your Phone Number</label>
-                        <input
-                          type="tel"
-                          className="create-escrow-step1-input"
-                          placeholder="Enter your Number"
-                          value={formData.payerPhone}
-                          onChange={(e) =>
-                            setFormData({ ...formData, payerPhone: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Counterparty name</label>
-                        <input
-                          type="text"
-                          className="create-escrow-step1-input"
-                          placeholder="Enter counterparty name"
-                          value={formData.counterpartyName}
-                          onChange={(e) =>
-                            setFormData({ ...formData, counterpartyName: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Counterparty phone</label>
-                        <input
-                          type="tel"
-                          className="create-escrow-step1-input"
-                          placeholder="Enter counterparty number"
-                          value={formData.counterpartyPhone}
-                          onChange={(e) =>
-                            setFormData({ ...formData, counterpartyPhone: e.target.value })
-                          }
-                        />
-                      </div>
+                  <div className="create-escrow-step1-wallet-fields">
+                    <div className="form-group">
+                      <label htmlFor="create-escrow-counterparty-trustitag">
+                        Counterparty Trustitag <span className="required">*</span>
+                      </label>
+                      <input
+                        id="create-escrow-counterparty-trustitag"
+                        type="text"
+                        className="create-escrow-step1-input"
+                        placeholder="Enter Trustitag"
+                        autoComplete="off"
+                        value={formData.counterpartyTrustitag}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            counterpartyTrustitag: e.target.value.trimStart(),
+                          })
+                        }
+                      />
                     </div>
                   </div>
                 )}
@@ -1606,44 +1372,57 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
               <div className="confirmation-details-section">
                 <h3 className="create-escrow-step3-heading">Escrow Counterparty</h3>
-                <div className="confirmation-field-group">
-                  <span className="confirmation-label">
-                    Counterparty XRP Wallet Address <span className="required">*</span>
-                  </span>
-                  <div className="confirmation-masked-input">
-                    {maskCounterpartyWalletForConfirmation(formData.counterpartyWallet)}
-                  </div>
-                </div>
-                <div className="create-escrow-step3-counterparty-extra counterparty-form-grid">
-                  <div className="form-column">
-                    <div className="form-group">
-                      <label>Email</label>
-                      <div
-                        style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
-                      >
-                        {formData.counterpartyEmail || '—'}
-                      </div>
+                {counterpartyMethod === 'trustitag' ? (
+                  <div className="confirmation-field-group">
+                    <span className="confirmation-label">
+                      Counterparty Trustitag <span className="required">*</span>
+                    </span>
+                    <div className="confirmation-masked-input confirmation-masked-input--plain">
+                      {formData.counterpartyTrustitag.trim() || '—'}
                     </div>
                   </div>
-                  <div className="form-column">
-                    <div className="form-group">
-                      <label>Name</label>
-                      <div
-                        style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
-                      >
-                        {formData.counterpartyName || '—'}
+                ) : (
+                  <>
+                    <div className="confirmation-field-group">
+                      <span className="confirmation-label">
+                        Counterparty XRP Wallet Address <span className="required">*</span>
+                      </span>
+                      <div className="confirmation-masked-input">
+                        {maskCounterpartyWalletForConfirmation(formData.counterpartyWallet)}
                       </div>
                     </div>
-                    <div className="form-group">
-                      <label>Phone Number</label>
-                      <div
-                        style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
-                      >
-                        {formData.counterpartyPhone || '—'}
+                    <div className="create-escrow-step3-counterparty-extra counterparty-form-grid">
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Email</label>
+                          <div
+                            style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
+                          >
+                            {formData.counterpartyEmail || '—'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="form-column">
+                        <div className="form-group">
+                          <label>Name</label>
+                          <div
+                            style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
+                          >
+                            {formData.counterpartyName || '—'}
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Phone Number</label>
+                          <div
+                            style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}
+                          >
+                            {formData.counterpartyPhone || '—'}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
 
               <div className="confirmation-details-section">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef, useId } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useId } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
@@ -72,7 +72,6 @@ import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
-import ConnectedWalletModal from '../../../components/ConnectedWalletModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
@@ -90,6 +89,7 @@ import {
 import BusinessSuitePinModal from '../../../components/BusinessSuitePinModal';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
@@ -224,52 +224,190 @@ function XrpTokenCircleIcon({ size = 20 }) {
   );
 }
 
-function TotalBalanceCurrencyPicker({ menuContainerRef, value, open, setOpen, onChange }) {
-  const selected = value === 'XRP' ? 'XRP' : 'USD';
-  const PrimaryIcon = selected === 'USD' ? UsFlagCircleIcon : XrpTokenCircleIcon;
+/** Display currencies shown in Total Balance picker modal (portfolio USD ↔ fiat quotes + native XRP). */
+const TOTAL_BALANCE_DISPLAY_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'XRP'];
 
-  const pick = (code) => {
-    onChange(code);
-    setOpen(false);
-  };
+function TotalBalanceCurrencyTriggerIcon({ code, size = 20 }) {
+  if (code === 'XRP') {
+    return <XrpTokenCircleIcon size={size} />;
+  }
+  if (code === 'USD') {
+    return <UsFlagCircleIcon size={size} />;
+  }
+  const flagCode =
+    code === 'EUR' ? 'eu' : code === 'GBP' ? 'gb' : code === 'JPY' ? 'jp' : 'us';
+  return (
+    <span className="total-balance-currency-trigger-flag">
+      <img src={`https://flagcdn.com/w40/${flagCode}.png`} alt="" />
+    </span>
+  );
+}
+
+function TotalBalanceCurrencyTrigger({ value, modalOpen, onOpen }) {
+  const code = TOTAL_BALANCE_DISPLAY_CODES.includes(value) ? value : 'USD';
 
   return (
-    <div className="total-balance-currency-shell" ref={menuContainerRef}>
+    <div className="total-balance-currency-shell">
       <button
         type="button"
         className="total-balance-currency-trigger"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        onClick={() => setOpen(!open)}
+        aria-expanded={modalOpen}
+        aria-haspopup="dialog"
+        onClick={onOpen}
       >
-        <PrimaryIcon size={20} />
-        <span>{selected}</span>
-        <ChevronDown size={18} strokeWidth={2} className="total-balance-currency-chevron" data-open={open ? 'true' : 'false'} />
+        <TotalBalanceCurrencyTriggerIcon code={code} size={20} />
+        <span>{code}</span>
+        <ChevronDown
+          size={18}
+          strokeWidth={2}
+          className="total-balance-currency-chevron"
+          data-open={modalOpen ? 'true' : 'false'}
+        />
       </button>
-      {open ? (
-        <div className="total-balance-currency-menu" role="listbox">
+    </div>
+  );
+}
+
+function TotalBalanceCurrencySelectModal({
+  isOpen,
+  onClose,
+  selectedCode,
+  onConfirm,
+  rows,
+  isLoadingBalances,
+}) {
+  const [query, setQuery] = useState('');
+  const [pending, setPending] = useState(selectedCode);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPending(TOTAL_BALANCE_DISPLAY_CODES.includes(selectedCode) ? selectedCode : 'USD');
+      setQuery('');
+    }
+  }, [isOpen, selectedCode]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setEntered(false);
+      return undefined;
+    }
+    setEntered(false);
+    let id2;
+    const id1 = requestAnimationFrame(() => {
+      id2 = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(id1);
+      if (id2 != null) cancelAnimationFrame(id2);
+    };
+  }, [isOpen]);
+
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    if (!q) return rows;
+    return rows.filter((r) => r.code.toUpperCase().includes(q));
+  }, [rows, query]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`total-balance-currency-modal-overlay${entered ? ' is-visible' : ''}`}
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className={`total-balance-currency-modal${entered ? ' is-visible' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="total-balance-currency-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="total-balance-currency-modal-header">
+          <div className="total-balance-currency-modal-header-leading">
+            <span className="total-balance-currency-modal-accent" aria-hidden />
+            <h2 id="total-balance-currency-modal-title">Select Currency</h2>
+          </div>
           <button
             type="button"
-            role="option"
-            aria-selected={selected === 'USD'}
-            className={`total-balance-currency-option${selected === 'USD' ? ' is-active' : ''}`}
-            onClick={() => pick('USD')}
+            className="total-balance-currency-modal-close"
+            onClick={onClose}
+            aria-label="Close"
           >
-            <UsFlagCircleIcon size={20} />
-            <span>USD</span>
-          </button>
-          <button
-            type="button"
-            role="option"
-            aria-selected={selected === 'XRP'}
-            className={`total-balance-currency-option${selected === 'XRP' ? ' is-active' : ''}`}
-            onClick={() => pick('XRP')}
-          >
-            <XrpTokenCircleIcon size={20} />
-            <span>XRP</span>
+            <X size={22} strokeWidth={2} />
           </button>
         </div>
-      ) : null}
+
+        <div className="total-balance-currency-modal-search">
+          <input
+            type="search"
+            className="total-balance-currency-modal-search-input"
+            placeholder="Search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+          />
+          <button type="button" className="total-balance-currency-modal-search-btn" aria-label="Search">
+            <Search size={18} strokeWidth={2.25} />
+          </button>
+        </div>
+
+        <div className="total-balance-currency-modal-list" role="listbox" aria-label="Currencies">
+          {filteredRows.map((row) => {
+            const isActive = pending === row.code;
+            return (
+              <button
+                key={row.code}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                className={`total-balance-currency-modal-row${isActive ? ' is-selected' : ''}`}
+                onClick={() => setPending(row.code)}
+              >
+                <span className="total-balance-currency-modal-row-leading">
+                  <span className="total-balance-currency-modal-flag">
+                    {row.code === 'XRP' ? (
+                      <XrpTokenCircleIcon size={36} />
+                    ) : (
+                      <img
+                        src={`https://flagcdn.com/w80/${
+                          row.code === 'USD'
+                            ? 'us'
+                            : row.code === 'EUR'
+                              ? 'eu'
+                              : row.code === 'GBP'
+                                ? 'gb'
+                                : row.code === 'JPY'
+                                  ? 'jp'
+                                  : 'us'
+                        }.png`}
+                        alt=""
+                      />
+                    )}
+                  </span>
+                  <span className="total-balance-currency-modal-code">{row.code}</span>
+                </span>
+                <span className="total-balance-currency-modal-balance">
+                  {isLoadingBalances ? '…' : row.balanceLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="total-balance-currency-modal-footer">
+          <button
+            type="button"
+            className="total-balance-currency-modal-select-btn"
+            onClick={() => onConfirm(pending)}
+          >
+            Select
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -378,7 +516,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { score: trustiscoreScore, level: trustiscoreLevel, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, level: trustiscoreLevel, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
   const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
@@ -395,9 +533,7 @@ const Dashboard = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [showBalance, setShowBalance] = useState(true);
   const [balancePrimaryCurrency, setBalancePrimaryCurrency] = useState('USD');
-  const [balanceCurrencyMenuOpen, setBalanceCurrencyMenuOpen] = useState(false);
-  const balanceCurrencyMenuDesktopRef = useRef(null);
-  const balanceCurrencyMenuMobileRef = useRef(null);
+  const [balanceCurrencyModalOpen, setBalanceCurrencyModalOpen] = useState(false);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
     if (stored === 'Business Suite' || stored === 'Personal') return stored;
@@ -416,7 +552,6 @@ const Dashboard = () => {
     return false;
   };
   const [pendingAccountSwitch, setPendingAccountSwitch] = useState(false);
-  const [showConnectedWalletModal, setShowConnectedWalletModal] = useState(false);
   const [showTrustitagWelcome, setShowTrustitagWelcome] = useState(false);
   const [welcomeTrustitag, setWelcomeTrustitag] = useState('');
 
@@ -424,19 +559,6 @@ const Dashboard = () => {
   useEffect(() => {
     localStorage.setItem('dashboard_account_type', accountType);
   }, [accountType]);
-
-  useEffect(() => {
-    if (!balanceCurrencyMenuOpen) return undefined;
-    const onDocMouseDown = (e) => {
-      const t = e.target;
-      const d = balanceCurrencyMenuDesktopRef.current;
-      const m = balanceCurrencyMenuMobileRef.current;
-      if (d?.contains(t) || m?.contains(t)) return;
-      setBalanceCurrencyMenuOpen(false);
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
-  }, [balanceCurrencyMenuOpen]);
 
   useEffect(() => {
     const pending = peekTrustitagWelcomePending();
@@ -999,6 +1121,59 @@ const Dashboard = () => {
     }
   }, [showFundWalletModal, fundViaAddress]);
 
+  /** Same custodial wallet modal as header “View Wallet” (XRP + RLUSD rows). */
+  const handleViewWalletClick = async () => {
+    if (walletAddress) {
+      setShowWalletModal(true);
+      return;
+    }
+
+    setIsLoadingWalletAddress(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('No authentication token found.');
+        return;
+      }
+      const walletBalanceUrl =
+        accountType === 'Business Suite'
+          ? getApiUrl('api/business-suite/wallet/balance')
+          : getApiUrl('api/wallet/balance');
+      const res = await fetch(walletBalanceUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await res.json().catch(() => ({}));
+      const addresses = extractWalletAddresses(result);
+      if (result?.success && addresses.xrp) {
+        setWalletAddress(addresses.xrp);
+        setRlusdWalletAddress(addresses.rlusd);
+        setHasWallet(true);
+        setShowWalletModal(true);
+      } else {
+        const msg = (result?.message || '').toLowerCase();
+        const isNotFound = msg.includes('wallet not found') || msg.includes('not found') || !result?.success;
+        setWalletAddress('');
+        setRlusdWalletAddress('');
+        setHasWallet(false);
+        if (accountType === 'Business Suite' && isNotFound) {
+          toast.error('No Business Suite wallet connected. Use Create wallet to connect your XRPL address.');
+          setShowConnectBusinessWalletModal(true);
+        } else if (!showUnderReviewModalIfApplicable(result?.message)) {
+          toast.error(result?.message || 'Failed to fetch wallet address.');
+        }
+      }
+    } catch (err) {
+      toast.error('Failed to fetch wallet address.');
+      console.error(err);
+    } finally {
+      setIsLoadingWalletAddress(false);
+    }
+  };
+
   const depositDisplayAddress = useMemo(() => {
     if (!fundViaAddress) return '';
     const fromApi =
@@ -1164,32 +1339,49 @@ const Dashboard = () => {
     return null;
   };
 
-  const computeDashboardTotalUsdDisplay = () => {
-    if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
+  const getTotalPortfolioUsdNumber = () => {
+    if (
+      dashboardData?.balance?.xrp !== undefined &&
+      dashboardData?.balance?.xrp !== null &&
+      exchangeRates &&
+      exchangeRates.length > 0
+    ) {
       const xrpToUsdRate = getExchangeRate('XRP', 'USD');
       if (xrpToUsdRate) {
-        const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-        return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
       }
       const usdRate = exchangeRates.find(
         (r) =>
           (r.from === 'XRP' && r.to === 'USD') ||
           r.currency === 'USD' ||
-          r.code === 'USD'
+          r.code === 'USD',
       );
       if (usdRate && usdRate.rate) {
-        const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-        return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return Number(dashboardData.balance.xrp) * Number(usdRate.rate);
       }
     }
     const usdBalance = getBalanceValue(dashboardData, 'usd');
     if (usdBalance !== null && usdBalance !== undefined) {
-      return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return Number(usdBalance);
     }
     if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
-      return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return Number(dashboardData.balance.usd);
     }
-    return '$0.00';
+    return 0;
+  };
+
+  /** Interpret Live Exchange Rate row quotes vs total USD (JPY quoted as yen per USD). */
+  const convertUsdTotalToFiatDisplayAmount = (code, usdTotal) => {
+    const row = exchangeRates.find((r) => (r.currency || r.code || '').toUpperCase() === code);
+    const quote = Number(row?.rate ?? row?.value ?? 0);
+    if (!Number.isFinite(quote) || quote <= 0) return null;
+    if (code === 'JPY') return usdTotal * quote;
+    return usdTotal / quote;
+  };
+
+  const computeDashboardTotalUsdDisplay = () => {
+    const usdValue = getTotalPortfolioUsdNumber();
+    return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const computeDashboardXrpAmount = () => {
@@ -1200,6 +1392,44 @@ const Dashboard = () => {
     if (v !== null && v !== undefined) return Number(v);
     return 0;
   };
+
+  const formatFiatPrimaryBalance = (code) => {
+    const usd = getTotalPortfolioUsdNumber();
+    const amt = convertUsdTotalToFiatDisplayAmount(code, usd);
+    if (amt == null) return '—';
+    const sym = code === 'EUR' ? '€' : code === 'GBP' ? '£' : '¥';
+    const frac = code === 'JPY' ? 0 : 2;
+    return `${sym}${amt.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac })}`;
+  };
+
+  let balanceLabelUsd = '—';
+  let balanceLabelXrp = '—';
+  const fiatLabels = { EUR: '—', GBP: '—', JPY: '—' };
+
+  if (!isLoadingDashboard) {
+    const usdTotal = getTotalPortfolioUsdNumber();
+    balanceLabelUsd = `$${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const xrpAmt = computeDashboardXrpAmount();
+    balanceLabelXrp = `${xrpAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
+    ['EUR', 'GBP', 'JPY'].forEach((c) => {
+      const amt = convertUsdTotalToFiatDisplayAmount(c, usdTotal);
+      if (amt != null) {
+        const sym = c === 'EUR' ? '€' : c === 'GBP' ? '£' : '¥';
+        const frac = c === 'JPY' ? 0 : 2;
+        fiatLabels[c] = `${sym}${amt.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac })}`;
+      }
+    });
+  }
+
+  const balanceCurrencyModalRows = TOTAL_BALANCE_DISPLAY_CODES.map((code) => ({
+    code,
+    balanceLabel:
+      code === 'USD'
+        ? balanceLabelUsd
+        : code === 'XRP'
+          ? balanceLabelXrp
+          : fiatLabels[code] ?? '—',
+  }));
 
   const formatWalletDetailsFiat = (value) => (
     `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -4027,7 +4257,7 @@ const Dashboard = () => {
                       if (isLoadingWalletAddress) return;
                       setIsMobileMenuOpen(false);
                       if (hasWallet) {
-                        setShowWalletModal(true);
+                        handleViewWalletClick();
                       } else {
                         handleCreateWallet();
                       }
@@ -4074,12 +4304,10 @@ const Dashboard = () => {
                   {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
               </div>
-              <TotalBalanceCurrencyPicker
-                menuContainerRef={balanceCurrencyMenuMobileRef}
+              <TotalBalanceCurrencyTrigger
                 value={balancePrimaryCurrency}
-                open={balanceCurrencyMenuOpen}
-                setOpen={setBalanceCurrencyMenuOpen}
-                onChange={setBalancePrimaryCurrency}
+                modalOpen={balanceCurrencyModalOpen}
+                onOpen={() => setBalanceCurrencyModalOpen(true)}
               />
             </div>
             <div className="mobile-balance-amount">
@@ -4088,8 +4316,10 @@ const Dashboard = () => {
                   <LoadingIndicator size="sm" />
                 ) : balancePrimaryCurrency === 'USD' ? (
                   computeDashboardTotalUsdDisplay()
-                ) : (
+                ) : balancePrimaryCurrency === 'XRP' ? (
                   `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
+                ) : (
+                  formatFiatPrimaryBalance(balancePrimaryCurrency)
                 )
               ) : (
                 '••••••'
@@ -4800,12 +5030,10 @@ const Dashboard = () => {
                   {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
               </div>
-              <TotalBalanceCurrencyPicker
-                menuContainerRef={balanceCurrencyMenuDesktopRef}
+              <TotalBalanceCurrencyTrigger
                 value={balancePrimaryCurrency}
-                open={balanceCurrencyMenuOpen}
-                setOpen={setBalanceCurrencyMenuOpen}
-                onChange={setBalancePrimaryCurrency}
+                modalOpen={balanceCurrencyModalOpen}
+                onOpen={() => setBalanceCurrencyModalOpen(true)}
               />
             </div>
             <div className="summary-card-value-row">
@@ -4815,8 +5043,10 @@ const Dashboard = () => {
                     <LoadingIndicator size="sm" />
                   ) : balancePrimaryCurrency === 'USD' ? (
                     computeDashboardTotalUsdDisplay()
-                  ) : (
+                  ) : balancePrimaryCurrency === 'XRP' ? (
                     `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
+                  ) : (
+                    formatFiatPrimaryBalance(balancePrimaryCurrency)
                   )
                 ) : (
                   '••••••'
@@ -6071,7 +6301,8 @@ const Dashboard = () => {
             ) : hasWallet ? (
               <button
                 className="sidebar-wallet-btn"
-                onClick={() => (accountType === 'Business Suite' ? setShowBusinessSuiteWalletModal(true) : setShowConnectedWalletModal(true))}
+                type="button"
+                onClick={() => handleViewWalletClick()}
                 aria-label="View wallet"
               >
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
@@ -6197,10 +6428,16 @@ const Dashboard = () => {
             {accountType === 'Business Suite' || isKycCompleteForAccount ? (
               <>
                 <div className="account-type-buttons">
-                  <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                  <button
+                    type="button"
+                    className="header-trustiscore-box"
+                    role="status"
+                    aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                    onClick={openTrustiscoreModal}
+                  >
                     <span className="header-trustiscore-label">TrustiScore</span>
                     <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-                  </div>
+                  </button>
                   <button 
                     type="button" 
                     className={`account-type-btn ${accountType === 'Personal' ? 'active' : ''}`}
@@ -6232,74 +6469,6 @@ const Dashboard = () => {
                     Business Suite
                   </button>
                 </div>
-                {isKycCompleteForAccount && (
-                  <button 
-                    type="button" 
-                    className="create-wallet-btn"
-                    onClick={async () => {
-                      // If walletAddress is already set, just open the modal
-                      if (walletAddress) {
-                        console.log('View Wallet clicked - Using existing walletAddress:', walletAddress);
-                        setShowWalletModal(true);
-                        return;
-                      }
-                      
-                      console.log('View Wallet clicked - Fetching wallet address from API...');
-                      
-                      setIsLoadingWalletAddress(true);
-                      try {
-                        const token = localStorage.getItem('token');
-                        if (!token) {
-                          toast.error('No authentication token found.');
-                          setIsLoadingWalletAddress(false);
-                          return;
-                        }
-                        const walletBalanceUrl = accountType === 'Business Suite'
-                          ? getApiUrl('api/business-suite/wallet/balance')
-                          : getApiUrl('api/wallet/balance');
-                      console.log('[View Wallet] Request URL:', walletBalanceUrl);
-                        const res = await fetch(walletBalanceUrl, {
-                          method: 'GET',
-                          headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                          },
-                        });
-                      console.log('[View Wallet] Response status:', res.status, res.statusText);
-                        const result = await res.json().catch(() => ({}));
-                      console.log('[View Wallet] API response body:', result);
-                        const addresses = extractWalletAddresses(result);
-                        if (result?.success && addresses.xrp) {
-                          setWalletAddress(addresses.xrp);
-                          setRlusdWalletAddress(addresses.rlusd);
-                          setHasWallet(true);
-                          setShowWalletModal(true);
-                        } else {
-                          const msg = (result?.message || '').toLowerCase();
-                          const isNotFound = msg.includes('wallet not found') || msg.includes('not found') || !result?.success;
-                          setWalletAddress('');
-                          setRlusdWalletAddress('');
-                          setHasWallet(false);
-                          if (accountType === 'Business Suite' && isNotFound) {
-                            toast.error('No Business Suite wallet connected. Use Create wallet to connect your XRPL address.');
-                            setShowConnectBusinessWalletModal(true);
-                          } else {
-                            if (!showUnderReviewModalIfApplicable(result?.message)) {
-                              toast.error(result?.message || 'Failed to fetch wallet address.');
-                            }
-                          }
-                        }
-                      } catch (err) {
-                        toast.error('Failed to fetch wallet address.');
-                        console.error(err);
-                      } finally {
-                        setIsLoadingWalletAddress(false);
-                      }
-                    }}
-                  >
-                    {isLoadingWalletAddress ? <LoadingIndicator size="sm" /> : 'View Wallet'}
-                  </button>
-                )}
               </>
             ) : (
             <button type="button" className="kyc-status">
@@ -6312,7 +6481,7 @@ const Dashboard = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {accountType === 'Business Suite' ? (
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -6327,7 +6496,7 @@ const Dashboard = () => {
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>
@@ -6725,6 +6894,18 @@ const Dashboard = () => {
         </div>
       )}
 
+      <TotalBalanceCurrencySelectModal
+        isOpen={balanceCurrencyModalOpen}
+        onClose={() => setBalanceCurrencyModalOpen(false)}
+        selectedCode={balancePrimaryCurrency}
+        onConfirm={(code) => {
+          setBalancePrimaryCurrency(code);
+          setBalanceCurrencyModalOpen(false);
+        }}
+        rows={balanceCurrencyModalRows}
+        isLoadingBalances={isLoadingDashboard}
+      />
+
       {/* Fund Method Selection Modal */}
       {showFundMethodModal && (
         <div className="notification-modal-overlay" onClick={() => setShowFundMethodModal(false)}>
@@ -7083,13 +7264,6 @@ const Dashboard = () => {
         team={teamDetailData}
         loading={isLoadingTeamDetail}
         onMemberRemoved={handleTeamDetailMemberRemoved}
-      />
-
-      {/* Connected Wallet Modal */}
-      <ConnectedWalletModal
-        isOpen={showConnectedWalletModal}
-        onClose={() => setShowConnectedWalletModal(false)}
-        walletAddress={walletAddress}
       />
 
       {/* Fund Wallet Modal (Receive on personal platform) */}

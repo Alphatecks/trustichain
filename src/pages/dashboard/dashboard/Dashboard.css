@@ -986,6 +986,22 @@
   gap: 0.5rem;
 }
 
+/* Desktop: move only TrustiScore + account pills (wrapped or unwrapped)—not bell/avatar */
+@media (min-width: 769px) {
+  .dashboard-header .account-type-buttons {
+    margin-inline-start: -1rem;
+  }
+
+  /* Personal-suite headers: TrustiScore is a flex child without .account-type-buttons */
+  .dashboard-header .header-actions > button.header-trustiscore-box {
+    margin-inline-start: -1rem;
+  }
+
+  .dashboard-header > .header-actions > .account-type-display {
+    margin-left: 0.5rem;
+  }
+}
+
 .account-type-display {
   display: flex;
   align-items: center;
@@ -1653,10 +1669,25 @@
   gap: 0.8rem;
   background: #d8e9f8;
   border-radius: 0.55rem;
-  padding: 0.5rem 0.85rem;
+  /* Vertical padding tightened so the inner pill can grow taller without changing overall shell height */
+  padding: 0.36rem 0.85rem;
   min-height: 2.45rem;
   min-width: 11.2rem;
   flex-shrink: 0;
+}
+
+button.header-trustiscore-box {
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  text-align: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button.header-trustiscore-box:focus-visible {
+  outline: 2px solid var(--blue-600);
+  outline-offset: 2px;
 }
 
 .header-trustiscore-label {
@@ -1666,12 +1697,14 @@
   background: var(--blue-600);
   color: var(--white);
   border-radius: 0.4rem;
-  padding: 0.45rem 0.95rem;
+  padding: 0.59rem 0.95rem;
   min-width: 6.95rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1;
+  /* Nudge pill left inside the shell—does not change outer box dimensions (layout-neutral vs margin). */
+  transform: translateX(-0.42rem);
 }
 
 .header-trustiscore-value {
@@ -1730,6 +1763,22 @@
   border-radius: 0;
   border: none;
   flex-shrink: 0;
+}
+
+button.user-avatar.header-profile-avatar-nav {
+  padding: 0;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button.user-avatar.header-profile-avatar-nav:focus-visible {
+  outline: 2px solid var(--blue-600);
+  outline-offset: 2px;
 }
 
 .user-avatar {
@@ -2783,6 +2832,410 @@
 
 .total-balance-currency-option.is-active {
   background: rgba(6, 113, 255, 0.12);
+}
+
+/* Total balance — Select Currency modal */
+.total-balance-currency-trigger-flag {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: block;
+}
+
+.total-balance-currency-trigger-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.total-balance-currency-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.total-balance-currency-modal-overlay.is-visible {
+  opacity: 1;
+}
+
+.total-balance-currency-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(90vh, 640px);
+  background: var(--surface, #ffffff);
+  border-radius: 1rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  opacity: 0;
+  transform: scale(0.93) translateY(22px);
+  transition:
+    opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.34, 1.18, 0.64, 1),
+    box-shadow 0.45s ease;
+}
+
+.total-balance-currency-modal.is-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.22);
+}
+
+.total-balance-currency-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.06s,
+    transform 0.4s cubic-bezier(0.34, 1.12, 0.64, 1) 0.06s;
+}
+
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-header {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.total-balance-currency-modal-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.total-balance-currency-modal-accent {
+  width: 4px;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+
+.total-balance-currency-modal-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.total-balance-currency-modal-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.total-balance-currency-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.total-balance-currency-modal-search {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
+    transform 0.4s cubic-bezier(0.34, 1.12, 0.64, 1) 0.1s;
+}
+
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-search {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.total-balance-currency-modal-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.total-balance-currency-modal-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.total-balance-currency-modal-search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.total-balance-currency-modal-search-btn {
+  flex-shrink: 0;
+  width: 48px;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--blue-600, #2563eb);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.3, 0.64, 1), filter 0.2s ease;
+}
+
+.total-balance-currency-modal-search-btn:hover {
+  filter: brightness(1.05);
+}
+
+.total-balance-currency-modal-search-btn:active {
+  transform: scale(0.94);
+}
+
+.total-balance-currency-modal-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.total-balance-currency-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  background: #f1f5f9;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition:
+    background 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.22s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease;
+}
+
+.total-balance-currency-modal-row:active {
+  transform: scale(0.985);
+}
+
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row {
+  animation: total-balance-currency-row-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(1) {
+  animation-delay: 0.07s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(2) {
+  animation-delay: 0.11s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(4) {
+  animation-delay: 0.19s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(5) {
+  animation-delay: 0.23s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(6) {
+  animation-delay: 0.27s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(7) {
+  animation-delay: 0.31s;
+}
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-row:nth-child(8) {
+  animation-delay: 0.35s;
+}
+
+@keyframes total-balance-currency-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.total-balance-currency-modal-row:hover {
+  background: #e8f0fe;
+}
+
+.total-balance-currency-modal-row.is-selected {
+  background: #dbeafe;
+}
+
+.total-balance-currency-modal-row-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.total-balance-currency-modal-flag {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+}
+
+.total-balance-currency-modal-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.total-balance-currency-modal-code {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.total-balance-currency-modal-row.is-selected .total-balance-currency-modal-code {
+  color: var(--blue-600, #2563eb);
+}
+
+.total-balance-currency-modal-balance {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.total-balance-currency-modal-row.is-selected .total-balance-currency-modal-balance {
+  color: var(--blue-600, #2563eb);
+}
+
+.total-balance-currency-modal-footer {
+  padding: 1rem 1.25rem 1.25rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1) 0.14s,
+    transform 0.42s cubic-bezier(0.34, 1.12, 0.64, 1) 0.14s;
+}
+
+.total-balance-currency-modal.is-visible .total-balance-currency-modal-footer {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.total-balance-currency-modal-select-btn {
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #ffffff;
+  background: var(--blue-600, #2563eb);
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), filter 0.2s ease, box-shadow 0.25s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.total-balance-currency-modal-select-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.42);
+}
+
+.total-balance-currency-modal-select-btn:active {
+  transform: translateY(0) scale(0.99);
+}
+
+@media (max-width: 480px) {
+  .total-balance-currency-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .total-balance-currency-modal {
+    max-width: none;
+    max-height: 85vh;
+    border-radius: 1.25rem 1.25rem 0 0;
+    transform: translateY(110%);
+    opacity: 1;
+    transition: transform 0.42s cubic-bezier(0.32, 1.08, 0.32, 1), box-shadow 0.42s ease;
+  }
+
+  .total-balance-currency-modal.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .total-balance-currency-modal-overlay,
+  .total-balance-currency-modal,
+  .total-balance-currency-modal-header,
+  .total-balance-currency-modal-search,
+  .total-balance-currency-modal-footer {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .total-balance-currency-modal {
+    transform: none !important;
+  }
+
+  .total-balance-currency-modal.is-visible {
+    transform: none !important;
+  }
+
+  .total-balance-currency-modal.is-visible .total-balance-currency-modal-row {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .total-balance-currency-modal-header,
+  .total-balance-currency-modal-search,
+  .total-balance-currency-modal-footer {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .total-balance-currency-modal-overlay {
+    opacity: 1 !important;
+  }
 }
 
 .active-escrow-card .summary-card-header,
@@ -4398,8 +4851,9 @@ img.party-avatar {
     top: 0;
     z-index: 98;
     margin-bottom: 1rem;
-    padding-top: max(0.85rem, env(safe-area-inset-top, 0px));
-    padding-bottom: 0.85rem;
+    /* Tighter vertical padding offsets taller Trustiscore chip — net navbar height unchanged */
+    padding-top: max(0.66rem, env(safe-area-inset-top, 0px));
+    padding-bottom: 0.66rem;
     background: var(--surface, var(--white));
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     flex-direction: row;
@@ -4480,21 +4934,23 @@ img.party-avatar {
     width: fit-content;
     max-width: 100%;
     flex: 0 1 auto;
-    padding: 0.35rem 0.55rem;
-    gap: 0.5rem;
-    min-height: 2rem;
+    padding: 0.4rem 0.58rem;
+    gap: 0.58rem;
+    min-height: 2.68rem;
+    margin-left: 0.55rem;
   }
 
   .suite-mobile-header .mobile-dashboard-header-trustiscore .header-trustiscore-label {
     min-width: unset;
     flex: 0 0 auto;
-    padding: 0.35rem 0.6rem;
-    font-size: 0.7rem;
+    padding: 0.62rem 0.68rem;
+    font-size: 0.76rem;
     border-radius: 0.35rem;
+    transform: translateX(-0.28rem);
   }
 
   .suite-mobile-header .mobile-dashboard-header-trustiscore .header-trustiscore-value {
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     flex: 0 0 auto;
     min-width: 1.75ch;
     padding-right: 0.15rem;
@@ -4545,6 +5001,22 @@ img.party-avatar {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
     place-items: center;
+  }
+
+  button.mobile-user-avatar.mobile-profile-avatar-nav {
+    padding: 0;
+    margin: 0;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  button.mobile-user-avatar.mobile-profile-avatar-nav:focus-visible {
+    outline: 2px solid var(--blue-600);
+    outline-offset: 2px;
   }
 
   .mobile-user-avatar > * {
@@ -4670,6 +5142,22 @@ img.party-avatar {
 
   .mobile-header-bell {
     position: relative;
+  }
+
+  /* Lucide bell reads “filled” if paths inherit fill — force outline stroke only */
+  .mobile-header-bell svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .mobile-header-bell svg path,
+  .mobile-header-bell svg circle,
+  .mobile-header-bell svg line,
+  .mobile-header-bell svg polyline {
+    fill: none;
   }
 
   .mobile-header-bell::after {

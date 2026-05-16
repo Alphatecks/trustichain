@@ -64,6 +64,7 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
@@ -180,7 +181,7 @@ const Dispute = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
   const [accountType, setAccountType] = useState('Personal');
@@ -1125,10 +1126,16 @@ const Dispute = () => {
           <div className="header-actions">
             {kycComplete ? (
               <>
-                <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                <button
+                  type="button"
+                  className="header-trustiscore-box"
+                  role="status"
+                  aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                  onClick={openTrustiscoreModal}
+                >
                   <span className="header-trustiscore-label">TrustiScore</span>
                   <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-                </div>
+                </button>
                 <div className="account-type-display">
                   <span className="account-type-label">{accountType}</span>
                 </div>
@@ -1144,14 +1151,14 @@ const Dispute = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {userAvatar ? (
                   <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                 ) : (
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge show={kycComplete} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

@@ -37,6 +37,7 @@ import SandboxEnvironment from './pages/dashboard/business-suite/SandboxEnvironm
 import Webhook from './pages/dashboard/business-suite/Webhook';
 import Invoice from './pages/dashboard/business-suite/Invoice';
 import Settings from './pages/dashboard/settings/Settings';
+import Profile from './pages/dashboard/profile/Profile';
 import useAutoLogout from './hooks/useAutoLogout';
 import BusinessEmailGate from './components/BusinessEmailGate';
 import trustiChainLogoIcon from './assets/images/icons/logo.png';
@@ -116,7 +117,8 @@ function AppContent() {
     path === '/api-keys' ||
     path === '/sandbox-environment' ||
     path === '/webhook' ||
-    path === '/settings';
+    path === '/settings' ||
+    path === '/profile';
   // Use LandingNavbar for landing pages, Navbar for app pages
   const isLandingPage =
     path === '/' ||
@@ -163,6 +165,7 @@ function AppContent() {
           <Route path="/sandbox-environment" element={<SandboxEnvironment />} />
           <Route path="/webhook" element={<Webhook />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
       <Toaster

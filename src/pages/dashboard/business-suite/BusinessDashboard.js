@@ -38,6 +38,7 @@ import logo from '../../../assets/images/icons/logo.png';
 import logoWhite from '../../../assets/images/logo/logo_white.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import AddTeamMemberModal from '../../../components/AddTeamMemberModal';
 import AddTeamModal from '../../../components/AddTeamModal';
 import AddPayrollModal from '../../../components/AddPayrollModal';
@@ -150,7 +151,7 @@ const BusinessDashboard = ({
         {/* Mobile Header */}
         <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
-            <div className="mobile-user-avatar">
+            <HeaderProfileAvatarNav variant="mobile">
               {businessCompanyLogoUrl ? (
                 <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
               ) : userAvatar ? (
@@ -159,7 +160,7 @@ const BusinessDashboard = ({
                 userInitials
               )}
               <HeaderProfileVerifyBadge show={businessKycComplete} mobile />
-            </div>
+            </HeaderProfileAvatarNav>
           </div>
           <div className="mobile-header-right">
             <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>

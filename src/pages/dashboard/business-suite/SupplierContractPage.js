@@ -31,6 +31,7 @@ import WithdrawModal from '../../../components/WithdrawModal';
 import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import '../dashboard/Dashboard.css';
 import logo from '../../../assets/images/icons/logo.png';
@@ -795,7 +796,7 @@ const SupplierContractPage = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {accountType === 'Business Suite' ? (
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -810,7 +811,7 @@ const SupplierContractPage = () => {
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge show={accountType === 'Business Suite' ? businessKycComplete : true} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

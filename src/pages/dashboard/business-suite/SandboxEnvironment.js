@@ -40,6 +40,7 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import CreateSandboxKeyModal from '../../../components/CreateSandboxKeyModal';
 
@@ -754,7 +755,7 @@ const SandboxEnvironment = () => {
                   <Bell size={18} />
                 </button>
                 <div className="header-user">
-                  <div className="user-avatar">
+                  <HeaderProfileAvatarNav>
                     {accountType === 'Business Suite' ? (
                       businessCompanyLogoUrl ? (
                         <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -769,7 +770,7 @@ const SandboxEnvironment = () => {
                       userInitials
                     )}
                     <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
-                  </div>
+                  </HeaderProfileAvatarNav>
                 </div>
               </div>
             </header>

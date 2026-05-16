@@ -47,6 +47,7 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../../utils/config';
@@ -298,7 +299,7 @@ const TrustiCard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
 
@@ -1711,10 +1712,16 @@ const TrustiCard = () => {
           <div className="header-actions">
             {kycComplete ? (
               <>
-                  <div className="header-trustiscore-box" role="status">
-                  <span className="header-trustiscore-label">TrustiScore</span>
-                  <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-                </div>
+                  <button
+                    type="button"
+                    className="header-trustiscore-box"
+                    role="status"
+                    aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                    onClick={openTrustiscoreModal}
+                  >
+                    <span className="header-trustiscore-label">TrustiScore</span>
+                    <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
+                  </button>
                 <div className="account-type-display">
                   <span className="account-type-label">{accountType}</span>
                 </div>
@@ -1733,10 +1740,10 @@ const TrustiCard = () => {
                 <Menu size={18} />
               </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                   {userAvatar ? <img src={userAvatar} alt="" className="user-avatar-img" /> : userInitials}
                 <HeaderProfileVerifyBadge show={kycComplete} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

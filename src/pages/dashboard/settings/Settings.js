@@ -39,6 +39,7 @@ import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import GoogleAuthenticatorModal from '../../../components/GoogleAuthenticatorModal';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
@@ -527,7 +528,7 @@ const Settings = () => {
   const location = useLocation();
   const { isSessionExpired } = useSession();
   const { theme: dashboardTheme, setTheme: setDashboardTheme } = useTheme();
-  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
   const [accountType, setAccountType] = useState(() => {
@@ -1341,13 +1342,22 @@ const Settings = () => {
                 </button>
               </div>
 
-              <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end', justifySelf: 'end', marginLeft: 'auto' }}>
+              <div
+                className="header-actions"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end', justifySelf: 'end' }}
+              >
                 {isKycCompleteForAccount ? (
                   <>
-                    <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+                    <button
+                      type="button"
+                      className="header-trustiscore-box"
+                      role="status"
+                      aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                      onClick={openTrustiscoreModal}
+                    >
                       <span className="header-trustiscore-label">TrustiScore</span>
                       <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-                    </div>
+                    </button>
                     <div className="account-type-display">
                       <span className="account-type-label">{accountType}</span>
                     </div>
@@ -1363,7 +1373,7 @@ const Settings = () => {
                   <Bell size={18} />
                 </button>
                 <div className="header-user">
-                  <div className="user-avatar">
+                  <HeaderProfileAvatarNav>
                     {accountType === 'Business Suite' ? (
                       businessCompanyLogoUrl ? (
                         <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -1378,7 +1388,7 @@ const Settings = () => {
                       userInitials
                     )}
                     <HeaderProfileVerifyBadge show={isKycCompleteForAccount} />
-                  </div>
+                  </HeaderProfileAvatarNav>
                 </div>
               </div>
             </header>

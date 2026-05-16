@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useLocation } from 'react-router-dom';
 import { useSession } from './SessionContext';
 import { getApiUrl } from '../utils/config';
+import TrustiscoreSummaryModal from '../components/TrustiscoreSummaryModal/TrustiscoreSummaryModal';
 
 const TrustiscoreContext = createContext(null);
 
@@ -11,6 +12,10 @@ export function TrustiscoreProvider({ children }) {
   const [score, setScore] = useState(null);
   const [level, setLevel] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  const openTrustiscoreModal = useCallback(() => setDetailModalOpen(true), []);
+  const closeTrustiscoreModal = useCallback(() => setDetailModalOpen(false), []);
 
   const fetchTrustiscore = useCallback(async () => {
     if (isSessionExpired) {
@@ -97,11 +102,23 @@ export function TrustiscoreProvider({ children }) {
       level,
       isLoading,
       refetch: fetchTrustiscore,
+      openTrustiscoreModal,
+      closeTrustiscoreModal,
     }),
-    [score, level, isLoading, fetchTrustiscore]
+    [score, level, isLoading, fetchTrustiscore, openTrustiscoreModal, closeTrustiscoreModal]
   );
 
-  return <TrustiscoreContext.Provider value={value}>{children}</TrustiscoreContext.Provider>;
+  return (
+    <TrustiscoreContext.Provider value={value}>
+      {children}
+      <TrustiscoreSummaryModal
+        isOpen={detailModalOpen}
+        onClose={closeTrustiscoreModal}
+        score={score}
+        isLoading={isLoading}
+      />
+    </TrustiscoreContext.Provider>
+  );
 }
 
 export function useTrustiscore() {

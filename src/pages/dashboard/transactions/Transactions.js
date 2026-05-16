@@ -74,6 +74,7 @@ import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
 import TransactionSummaryModal from '../../../components/TransactionSummaryModal';
@@ -284,7 +285,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
   const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
@@ -4213,10 +4214,16 @@ const Transactions = () => {
 
           <div className="header-actions">
             {(isBusinessSuiteAccount || kycComplete) ? (
-              <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+              <button
+                type="button"
+                className="header-trustiscore-box"
+                role="status"
+                aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                onClick={openTrustiscoreModal}
+              >
                 <span className="header-trustiscore-label">TrustiScore</span>
                 <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-              </div>
+              </button>
             ) : (
               <button type="button" className="kyc-status">
                 <KeyRound size={16} />
@@ -4231,14 +4238,14 @@ const Transactions = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {headerAvatar ? (
                   <img src={headerAvatar} alt={headerName} className="user-avatar-img" />
                 ) : (
                   headerInitials
                 )}
                 <HeaderProfileVerifyBadge show={kycComplete} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>
@@ -5648,10 +5655,16 @@ const Transactions = () => {
 
           <div className="header-actions">
             {(isBusinessSuiteAccount || kycComplete) ? (
-              <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+              <button
+                type="button"
+                className="header-trustiscore-box"
+                role="status"
+                aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                onClick={openTrustiscoreModal}
+              >
                 <span className="header-trustiscore-label">TrustiScore</span>
                 <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-              </div>
+              </button>
             ) : (
               <button type="button" className="kyc-status">
                 <KeyRound size={16} />
@@ -5666,14 +5679,14 @@ const Transactions = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {headerAvatar ? (
                   <img src={headerAvatar} alt={headerName} className="user-avatar-img" />
                 ) : (
                   headerInitials
                 )}
                 <HeaderProfileVerifyBadge show={kycComplete} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

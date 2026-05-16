@@ -43,6 +43,7 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
 const businessSuiteNav = [
@@ -566,7 +567,7 @@ const BusinessSuiteDispute = () => {
       <div className="mobile-dashboard">
         <div className="mobile-dashboard-header">
           <div className="mobile-header-left">
-            <div className="mobile-user-avatar">
+            <HeaderProfileAvatarNav variant="mobile">
               {businessCompanyLogoUrl ? (
                 <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
               ) : userAvatar ? (
@@ -575,7 +576,7 @@ const BusinessSuiteDispute = () => {
                 userInitials
               )}
               <HeaderProfileVerifyBadge show={businessKycComplete} mobile />
-            </div>
+            </HeaderProfileAvatarNav>
           </div>
           <div className="mobile-header-right">
             <button type="button" className="mobile-header-bell"><Bell size={20} /></button>
@@ -791,7 +792,7 @@ const BusinessSuiteDispute = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {accountType === 'Business Suite' ? (
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -806,7 +807,7 @@ const BusinessSuiteDispute = () => {
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge show={businessKycComplete} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

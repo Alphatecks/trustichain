@@ -51,6 +51,7 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import AddPayrollModal from '../../../components/AddPayrollModal';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import TransactionDetailModal from './TransactionDetailModal';
@@ -738,8 +739,8 @@ const Payroll = () => {
         {/* Mobile Header */}
         {!selectedPayrollDetail && (
           <div className="mobile-dashboard-header">
-          <div className="mobile-header-left">
-            <div className="mobile-user-avatar">
+            <div className="mobile-header-left">
+            <HeaderProfileAvatarNav variant="mobile">
               {accountType === 'Business Suite' ? (
                 businessCompanyLogoUrl ? (
                   <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
@@ -754,7 +755,7 @@ const Payroll = () => {
                 userInitials
               )}
               <HeaderProfileVerifyBadge show={accountType !== 'Business Suite' ? true : businessKycComplete} mobile />
-            </div>
+            </HeaderProfileAvatarNav>
           </div>
           <div className="mobile-header-right">
             <button type="button" className="mobile-header-bell" onClick={() => setShowNotificationModal(true)}>
@@ -2429,7 +2430,7 @@ const Payroll = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {accountType === 'Business Suite' ? (
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -2444,7 +2445,7 @@ const Payroll = () => {
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge show={accountType !== 'Business Suite' ? true : businessKycComplete} />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

@@ -44,6 +44,7 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import AddTeamMemberModal from '../../../components/AddTeamMemberModal';
 import FundPayrollModal from '../../../components/FundPayrollModal';
@@ -394,7 +395,7 @@ const PayrollDetail = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {accountType === 'Business Suite' ? (
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
@@ -409,7 +410,7 @@ const PayrollDetail = () => {
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>

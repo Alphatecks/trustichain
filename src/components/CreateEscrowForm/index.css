@@ -225,22 +225,24 @@
 }
 
 .create-escrow-modal .counterparty-method-toggle {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 3px;
+  padding: 3px;
   margin-bottom: 1.25rem;
   border-radius: 0.625rem;
   background: #dbeafe;
 }
 
 .create-escrow-modal .counterparty-method-btn {
-  flex: 1;
+  flex: 0 1 auto;
   border: none;
   cursor: pointer;
-  padding: 0.625rem 1rem;
+  padding: 0.45rem 0.65rem;
   border-radius: 0.5rem;
   font-family: 'Satoshi', 'Inter', sans-serif;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--blue-600, #2563eb);
   background: transparent;
@@ -566,6 +568,11 @@
   color: var(--blue-600, #2563eb);
   margin: 0 0 1rem 0;
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-escrow-modal .confirmation-masked-input--plain {
+  letter-spacing: normal;
+  word-break: break-word;
 }
 
 .create-escrow-step3-type-grid {

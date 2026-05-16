@@ -44,6 +44,7 @@ import { getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
+import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 
@@ -89,7 +90,7 @@ const DisputeDetail = () => {
   const location = useLocation();
   const { id } = useParams();
   const { isSessionExpired } = useSession();
-  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
+  const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
   const [accountType, setAccountType] = useState('Personal');
@@ -1380,10 +1381,16 @@ const DisputeDetail = () => {
 
           <div className="header-actions">
             <>
-              <div className="header-trustiscore-box" role="status" aria-label={`TrustiScore ${trustiscoreBadgeText}`}>
+              <button
+                type="button"
+                className="header-trustiscore-box"
+                role="status"
+                aria-label={`TrustiScore ${trustiscoreBadgeText}`}
+                onClick={openTrustiscoreModal}
+              >
                 <span className="header-trustiscore-label">TrustiScore</span>
                 <span className="header-trustiscore-value">{trustiscoreBadgeText}</span>
-              </div>
+              </button>
               <div className="account-type-display">
                 <span className="account-type-label">{accountType}</span>
               </div>
@@ -1392,14 +1399,14 @@ const DisputeDetail = () => {
               <Bell size={18} />
             </button>
             <div className="header-user">
-              <div className="user-avatar">
+              <HeaderProfileAvatarNav>
                 {userAvatar ? (
                   <img src={userAvatar} alt={userFullName} className="user-avatar-img" />
                 ) : (
                   userInitials
                 )}
                 <HeaderProfileVerifyBadge />
-              </div>
+              </HeaderProfileAvatarNav>
             </div>
           </div>
         </header>
