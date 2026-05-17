@@ -412,6 +412,69 @@ function TotalBalanceCurrencySelectModal({
   );
 }
 
+function DashboardTrusticardMastercard({ size = 44 }) {
+  return (
+    <svg width={size} height={size * 0.62} viewBox="0 0 48 30" aria-hidden className="dashboard-trusticard-mastercard">
+      <circle cx="19" cy="15" r="10" fill="#EB001B" opacity={0.95} />
+      <circle cx="29" cy="15" r="10" fill="#F79E1B" opacity={0.95} />
+      <path d="M24 8.5a9.8 9.8 0 010 13 9.8 9.8 0 000-13z" fill="#FF5F00" />
+    </svg>
+  );
+}
+
+function DashboardTrusticardPreview({ variant = 'desktop', onOpen }) {
+  const isMobile = variant === 'mobile';
+
+  const card = (
+    <button
+      type="button"
+      className="dashboard-trusticard-stack"
+      onClick={onOpen}
+      aria-label="Open Trusticard"
+    >
+      <div className="dashboard-trusticard-shadow" aria-hidden />
+      <div className="dashboard-trusticard-face">
+        <div className="dashboard-trusticard-brand">
+          <img src={logoWhite} alt="" className="dashboard-trusticard-brand-logo" />
+          <span>TrustiChain</span>
+        </div>
+        <div className="dashboard-trusticard-pan" translate="no">
+          <span className="dashboard-trusticard-pan-blur" aria-hidden>
+            •••• •••• ••••
+          </span>
+          <span className="dashboard-trusticard-pan-last">0000</span>
+        </div>
+        <div className="dashboard-trusticard-footer">
+          <div className="dashboard-trusticard-meta">
+            <span className="dashboard-trusticard-meta-label">Card Name</span>
+            <span className="dashboard-trusticard-meta-value">Premium Card</span>
+          </div>
+          <DashboardTrusticardMastercard />
+        </div>
+      </div>
+    </button>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="mobile-trusticard-section">
+        <div className="mobile-section-header">
+          <div className="mobile-section-indicator" />
+          <h3 className="mobile-section-title">Trusticard</h3>
+        </div>
+        {card}
+      </div>
+    );
+  }
+
+  return (
+    <div className="trusticard-card dashboard-trusticard-card">
+      <h3>Trusticard</h3>
+      {card}
+    </div>
+  );
+}
+
 const personalSteps = [
   { label: 'Proof of identity', detail: 'Proof of identity' },
   { label: 'Document upload', detail: 'Document upload' },
@@ -1497,7 +1560,9 @@ const Dashboard = () => {
       return;
     }
 
-    toast('Convert flow is coming soon');
+    if (action === 'convert') {
+      navigate('/transactions', { state: { openSwapModal: true } });
+    }
   };
 
   const fetchDashboardSummary = async () => {
@@ -4358,6 +4423,14 @@ const Dashboard = () => {
               </button>
               <button 
                 type="button" 
+                className="mobile-convert-btn"
+                onClick={() => navigate('/transactions', { state: { openSwapModal: true } })}
+              >
+                <Repeat size={16} />
+                Convert
+              </button>
+              <button 
+                type="button" 
                 className="mobile-withdraw-btn"
                 onClick={() => navigate('/transactions', { state: { openSendModal: true } })}
               >
@@ -4854,6 +4927,8 @@ const Dashboard = () => {
             </div>
           </div>
 
+          <DashboardTrusticardPreview variant="mobile" onOpen={() => navigate('/trusticard')} />
+
           {/* Live Escrow Section */}
           <div className="mobile-escrow-section">
             <div className="mobile-section-header">
@@ -4986,30 +5061,6 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Trusticard Section (commented out per request)
-          <div className="mobile-trusticard-section">
-            <div className="mobile-section-header">
-              <div className="mobile-section-indicator"></div>
-              <h3 className="mobile-section-title">Trusticard</h3>
-            </div>
-            <div className="mobile-trusticard">
-              <div className="mobile-card-header-info">
-                <div className="mobile-card-logo">
-                  <img src={logoWhite} alt="TrustiChain" className="mobile-card-logo-img" />
-                  <span>TrustiChain</span>
-                </div>
-                <div className="mobile-card-type">Premium Debit</div>
-              </div>
-              <div className="mobile-card-number">7834 **** **** 6453</div>
-              <div className="mobile-card-holder">
-                <span className="mobile-card-holder-label">Card holder</span>
-                <span className="mobile-card-holder-name">
-                  {isLoadingUserProfile ? <LoadingIndicator size="sm" /> : userFullName}
-                </span>
-              </div>
-            </div>
-          </div>
-          */}
         </div>
 
         {/* Desktop Dashboard */}
@@ -5075,6 +5126,14 @@ const Dashboard = () => {
               >
                 <Plus size={16} strokeWidth={2.5} aria-hidden />
                 Deposit
+              </button>
+              <button 
+                type="button" 
+                className="summary-card-btn primary dashboard-tbc-btn-convert"
+                onClick={() => navigate('/transactions', { state: { openSwapModal: true } })}
+              >
+                <Repeat size={16} strokeWidth={2} aria-hidden />
+                Convert
               </button>
               <button 
                 type="button" 
@@ -5741,26 +5800,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-          {/* Trusticard (commented out per request)
-          <div className="trusticard-card">
-            <h3>Trusticard</h3>
-            <div className="virtual-card">
-              <div className="card-header-info">
-                <div className="card-logo">
-                  <img src={logoWhite} alt="TrustiChain" className="card-logo-img" />
-                  <span>TrustiChain</span>
-                </div>
-                <div className="card-type">Premium Debit</div>
-              </div>
-                <div className="card-number">7834 **** **** 6453</div>
-                <div className="card-holder">
-                  <span className="card-holder-label">Card holder</span>
-                  <span>Sarah Chen</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          */}
+            <DashboardTrusticardPreview variant="desktop" onOpen={() => navigate('/trusticard')} />
         </div>
         </div>
 

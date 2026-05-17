@@ -540,6 +540,14 @@ const Transactions = () => {
   }, [location.state?.openSendModal, location.pathname, location.search, navigate]);
 
   useEffect(() => {
+    if (!location.state?.openSwapModal) return;
+    setShowSwapModal(true);
+    const prev = location.state && typeof location.state === 'object' ? { ...location.state } : {};
+    delete prev.openSwapModal;
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: prev });
+  }, [location.state?.openSwapModal, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
     if (!showFundWalletModal || !fundViaAddress) return;
     const keys = getDepositNetworksForCurrency(fundWalletForm.currency);
     setDepositAddressNetwork((prev) => (keys.includes(prev) ? prev : keys[0]));

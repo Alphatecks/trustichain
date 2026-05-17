@@ -3399,13 +3399,15 @@ button.user-avatar.header-profile-avatar-nav:focus-visible {
   gap: 0.5rem;
 }
 
-.total-balance-card .summary-card-btn.primary {
+.total-balance-card .summary-card-btn.primary,
+.total-balance-card .summary-card-btn.dashboard-tbc-btn-convert {
   background: var(--surface, var(--white));
   color: var(--blue-600);
   backdrop-filter: none;
 }
 
-.total-balance-card .summary-card-btn.primary:hover {
+.total-balance-card .summary-card-btn.primary:hover,
+.total-balance-card .summary-card-btn.dashboard-tbc-btn-convert:hover {
   background: rgba(255, 255, 255, 0.9);
 }
 
@@ -4295,73 +4297,134 @@ img.party-avatar {
   border-top: 1px solid var(--border);
 }
 
-.trusticard-card h3 {
+.trusticard-card h3,
+.dashboard-trusticard-card h3 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-dark);
 }
 
-.virtual-card {
-  background: #0671FF;
+.dashboard-trusticard-stack {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 0 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.dashboard-trusticard-stack:focus-visible {
+  outline: 2px solid var(--blue-600);
+  outline-offset: 4px;
+  border-radius: 1rem;
+}
+
+.dashboard-trusticard-shadow {
+  position: absolute;
+  top: 0;
+  left: 6%;
+  right: 6%;
+  height: 1.35rem;
+  background: #3d8fff;
+  border-radius: 1rem 1rem 0.35rem 0.35rem;
+  z-index: 0;
+}
+
+.dashboard-trusticard-face {
+  position: relative;
+  z-index: 1;
+  background: #0671ff;
   background-image: url('../../../assets/images/backgrounds/card.png');
   background-position: bottom right;
   background-repeat: no-repeat;
   background-size: contain;
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1.25rem 1.35rem 1.15rem;
   color: var(--white);
+  min-height: 11.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  min-height: 200px;
-}
-
-.card-header-info {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
+  gap: 1.25rem;
+  overflow: hidden;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  box-shadow: 0 10px 28px rgba(6, 113, 255, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card-logo {
-  font-weight: 500 !important;
-  font-size: 1.1rem;
-  font-family: 'Satoshi', 'Inter', sans-serif;
+.dashboard-trusticard-stack:hover .dashboard-trusticard-face {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(6, 113, 255, 0.32);
+}
+
+.dashboard-trusticard-brand {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
-.card-logo-img {
-  width: 24px;
-  height: 24px;
+.dashboard-trusticard-brand-logo {
+  width: 1.35rem;
+  height: 1.35rem;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
-.card-type {
-  font-size: 0.85rem;
-  opacity: 0.9;
-}
-
-.card-number {
-  font-size: 1.5rem;
+.dashboard-trusticard-pan {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.35rem;
   font-weight: 600;
-  letter-spacing: 0;
-  margin-top: 0.2rem;
-  font-family: 'Satoshi', 'Inter', sans-serif;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
 }
 
-.card-holder {
-  font-size: 0.9rem;
-  opacity: 0.9;
+.dashboard-trusticard-pan-blur {
+  filter: blur(5px);
+  opacity: 0.85;
+  user-select: none;
+}
+
+.dashboard-trusticard-pan-last {
+  letter-spacing: 0.14em;
+}
+
+.dashboard-trusticard-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboard-trusticard-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
-.card-holder-label {
-  font-size: 0.75rem;
-  opacity: 0.7;
+.dashboard-trusticard-meta-label {
+  font-size: 0.72rem;
+  opacity: 0.78;
+  font-weight: 500;
+}
+
+.dashboard-trusticard-meta-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dashboard-trusticard-mastercard {
+  flex-shrink: 0;
 }
 
 @media (max-width: 1600px) and (min-width: 1201px) {
@@ -5266,7 +5329,8 @@ img.party-avatar {
     z-index: 1;
   }
 
-  .mobile-fund-btn {
+  .mobile-fund-btn,
+  .mobile-convert-btn {
     flex: 1;
     padding: 0.75rem 1rem;
     background: var(--surface, var(--white));
@@ -6268,76 +6332,16 @@ img.party-avatar {
     font-family: 'Satoshi', 'Inter', sans-serif;
   }
 
-  .mobile-trusticard {
-    background: #0671FF;
-    background-image: url('../../../assets/images/backgrounds/card.png');
-    background-position: bottom right;
-    background-repeat: no-repeat;
-    background-size: contain;
-    border-radius: 1rem;
-    padding: 1.5rem;
-    margin-top: 1rem;
-    color: var(--white);
-    position: relative;
-    overflow: hidden;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+  .mobile-trusticard-section .dashboard-trusticard-stack {
+    padding-top: 0.5rem;
   }
 
-  .mobile-card-header-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
+  .mobile-trusticard-section .dashboard-trusticard-face {
+    min-height: 10.5rem;
   }
 
-  .mobile-card-logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
-    font-size: 1rem;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-card-logo-img {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-  }
-
-  .mobile-card-type {
-    font-size: 0.85rem;
-    opacity: 0.9;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-card-number {
-    font-size: 1.5rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    margin-bottom: 1.5rem;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-card-holder {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .mobile-card-holder-label {
-    font-size: 0.75rem;
-    opacity: 0.7;
-    font-family: 'Satoshi', 'Inter', sans-serif;
-  }
-
-  .mobile-card-holder-name {
-    font-size: 0.9rem;
-    font-weight: 500;
-    font-family: 'Satoshi', 'Inter', sans-serif;
+  .mobile-trusticard-section .dashboard-trusticard-pan {
+    font-size: 1.2rem;
   }
 
   /* Mobile Sidebar Overlay */
