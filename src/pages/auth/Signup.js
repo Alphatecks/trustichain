@@ -120,13 +120,17 @@ const Signup = () => {
               </button>
             </div>
 
+            <div className="signup-divider">
+              <span>OR</span>
+            </div>
+
             <div className="signup-welcome">
               <h2>Create an Account</h2>
               <p>Welcome to Tustichain</p>
             </div>
 
             <form className="signup-form" onSubmit={handleSubmit}>
-              <label className="signup-field">
+              <label className="signup-field signup-field-name">
                 <span>Full Name</span>
                 <input
                   type="text"
@@ -137,7 +141,7 @@ const Signup = () => {
                 />
               </label>
 
-              <label className="signup-field">
+              <label className="signup-field signup-field-email">
                 <span>Email</span>
                 <input
                   type="email"
@@ -148,7 +152,7 @@ const Signup = () => {
                 />
               </label>
 
-              <label className="signup-field">
+              <label className="signup-field signup-field-password">
                 <span>Password</span>
                 <div className="signup-password-wrapper">
                   <input
@@ -169,7 +173,7 @@ const Signup = () => {
                 </div>
               </label>
 
-              <label className="signup-field">
+              <label className="signup-field signup-field-confirm">
                 <span>Confirm Password</span>
                 <div className="signup-password-wrapper">
                   <input
@@ -190,24 +194,20 @@ const Signup = () => {
                 </div>
               </label>
 
+              <button
+                type="button"
+                className="signup-social-btn"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+              >
+                <img src={googleLogo} alt="" />
+                <span>{isGoogleLoading ? 'Redirecting...' : 'Sign up with Google'}</span>
+              </button>
+
               <button type="submit" className="signup-primary-btn" disabled={!agreeTerms || isLoading}>
                 {isLoading ? 'Signing Up...' : 'Sign In'}
               </button>
             </form>
-
-            <div className="signup-divider">
-              <span>OR</span>
-            </div>
-
-            <button 
-              type="button" 
-              className="signup-social-btn" 
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-            >
-              <img src={googleLogo} alt="Google" />
-              {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
-            </button>
 
             <label className="signup-terms">
               <input

@@ -45,21 +45,69 @@
 }
 
 .signup-card {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "tabs"
+    "social"
+    "divider"
+    "welcome"
+    "name"
+    "email"
+    "password"
+    "confirm"
+    "submit"
+    "terms";
   gap: 24px;
   background: transparent;
   padding: 0;
 }
 
+.signup-form {
+  display: contents;
+}
+
 .signup-tabs {
+  grid-area: tabs;
   display: inline-flex;
   gap: 4px;
   padding: 2px;
   background: #eef2ff;
   border-radius: 12px;
-  align-self: center;
+  justify-self: center;
   width: fit-content;
+}
+
+.signup-divider {
+  grid-area: divider;
+}
+
+.signup-welcome {
+  grid-area: welcome;
+}
+
+.signup-field-name {
+  grid-area: name;
+  justify-self: center;
+}
+
+.signup-field-email {
+  grid-area: email;
+  justify-self: center;
+}
+
+.signup-field-password {
+  grid-area: password;
+  justify-self: center;
+}
+
+.signup-field-confirm {
+  grid-area: confirm;
+  justify-self: center;
+}
+
+.signup-primary-btn {
+  grid-area: submit;
 }
 
 .signup-tab {
@@ -83,27 +131,38 @@
 }
 
 .signup-social-btn {
+  grid-area: social;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  justify-self: center;
   padding: 14px 16px;
   border-radius: 10px;
   border: 1px solid #e4e8f5;
   background: #ffffff;
   font-family: 'Satoshi', 'Inter', sans-serif;
   font-weight: 500;
+  font-size: 15px;
+  line-height: 1.25;
   color: #121629;
   cursor: pointer;
   transition: border 0.2s ease, transform 0.2s ease;
-  width: 100%;
-  max-width: 360px;
-  align-self: center;
 }
 
-.signup-social-btn img {
+.signup-social-btn span {
+  display: inline;
+}
+
+.signup-social-btn img,
+.signup-social-btn svg {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .signup-social-btn:hover {
@@ -112,7 +171,7 @@
 }
 
 .signup-divider {
-  margin: 12px 0 8px;
+  margin: 8px 0 4px;
   text-align: center;
   font-size: 12px;
   font-weight: 700;
@@ -154,13 +213,6 @@
   font-size: 16px;
   text-align: center;
   font-family: 'Satoshi', 'Inter', sans-serif;
-}
-
-.signup-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
 }
 
 .signup-field {
@@ -221,6 +273,7 @@
   margin-top: 8px;
   width: 100%;
   max-width: 360px;
+  justify-self: center;
   border: none;
   border-radius: 12px;
   padding: 16px;
@@ -245,13 +298,16 @@
 }
 
 .signup-terms {
+  grid-area: terms;
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 13px;
   color: #6e7690;
   font-family: 'Satoshi', 'Inter', sans-serif;
-  align-self: center;
+  justify-self: center;
+  max-width: 360px;
+  width: 100%;
 }
 
 .signup-terms input {
@@ -382,15 +438,26 @@
   .signup-card {
     gap: 1.5rem;
     padding: 0;
+    grid-template-areas:
+      "tabs"
+      "welcome"
+      "name"
+      "email"
+      "password"
+      "confirm"
+      "divider"
+      "social"
+      "submit"
+      "terms";
   }
 
   .signup-tabs {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 
   .signup-welcome {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
   }
 
   .signup-welcome h2 {
@@ -407,11 +474,6 @@
     font-size: 0.9rem;
     color: var(--text-muted);
     font-family: 'Poppins', sans-serif;
-  }
-
-  .signup-form {
-    gap: 1.25rem;
-    align-items: stretch;
   }
 
   .signup-field {
@@ -435,13 +497,14 @@
   }
 
   .signup-divider {
-    margin: 1.5rem 0;
+    margin: 0.5rem 0;
     text-align: center;
   }
 
   .signup-social-btn {
     max-width: 100%;
-    margin-bottom: 1rem;
+    width: 100%;
+    margin-bottom: 0;
   }
 
   .signup-primary-btn {
@@ -450,8 +513,9 @@
   }
 
   .signup-terms {
-    align-self: flex-start;
-    margin-top: 1rem;
+    justify-self: stretch;
+    max-width: 100%;
+    margin-top: 0;
   }
 }
 

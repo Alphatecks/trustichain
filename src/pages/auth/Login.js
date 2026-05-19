@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './Login.css';
 import logo from '../../assets/images/icons/logo.png';
 import keyVisual from '../../assets/images/backgrounds/key.png';
 import googleLogo from '../../assets/images/icons/google-logo.svg';
+import passkeyIcon from '../../assets/images/icons/Frame.png';
 import socIcon from '../../assets/images/icons/SOC.png';
 import encryptionIcon from '../../assets/images/icons/Encryption.png';
 import kycIcon from '../../assets/images/icons/kyc.png';
@@ -226,13 +227,17 @@ const Login = () => {
               </Link>
             </div>
 
+            <div className="login-divider">
+              <span>OR</span>
+            </div>
+
             <div className="login-welcome">
               <h2>Welcome Back!</h2>
               <p>We are so excited to see you again!</p>
             </div>
 
             <form className="login-form" onSubmit={handleSubmit}>
-              <label className="login-field">
+              <label className="login-field login-field-email">
                 <span>Email</span>
                 <input
                   type="email"
@@ -243,7 +248,7 @@ const Login = () => {
                 />
               </label>
 
-              <label className="login-field">
+              <label className="login-field login-field-password">
                 <div className="login-field-header">
                   <span>Password</span>
                   <Link to="/forgot-password">Forgotten Password?</Link>
@@ -267,42 +272,38 @@ const Login = () => {
                 </div>
               </label>
 
+              <div className="login-social-buttons">
+                <button
+                  type="button"
+                  className="login-social-btn"
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading}
+                >
+                  <img src={googleLogo} alt="" />
+                  <span>{isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="login-social-btn"
+                  onClick={() => toast('Passkey sign-in is coming soon')}
+                >
+                  <img src={passkeyIcon} alt="" />
+                  <span>Sign in with passkey</span>
+                </button>
+                <button
+                  type="button"
+                  className="login-social-btn"
+                  onClick={() => toast('SSO sign-in is coming soon')}
+                >
+                  <ShieldCheck size={20} strokeWidth={2} aria-hidden />
+                  <span>Sign in with SSO</span>
+                </button>
+              </div>
+
               <button type="submit" className="login-primary-btn" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
             </form>
-
-            <div className="login-divider">
-              <span>OR</span>
-            </div>
-
-            <div className="login-social-buttons">
-              <button 
-                type="button" 
-                className="login-social-btn" 
-                onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading}
-              >
-                <img src={googleLogo} alt="Google" />
-                {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
-              </button>
-              {/*
-              <button type="button" className="login-social-btn">
-                <img
-                  className="login-apple-logo"
-                  src="https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png"
-                  alt="Apple"
-                />
-                Sign in with Apple
-              </button>
-              */}
-              {/*
-              <button type="button" className="login-social-btn">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/X-Logo-Round-Color.png" alt="X" />
-                Sign in with X
-              </button>
-              */}
-            </div>
 
             <label className="login-security-note">
               <input type="checkbox" defaultChecked readOnly />

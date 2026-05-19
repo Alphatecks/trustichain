@@ -225,17 +225,59 @@ function XrpTokenCircleIcon({ size = 20 }) {
 }
 
 /** Display currencies shown in Total Balance picker modal (portfolio USD ↔ fiat quotes + native XRP). */
-const TOTAL_BALANCE_DISPLAY_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'XRP'];
+const TOTAL_BALANCE_DISPLAY_CODES = [
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'CAD',
+  'AUD',
+  'CHF',
+  'CNY',
+  'HKD',
+  'SGD',
+  'INR',
+  'NGN',
+  'ZAR',
+  'BRL',
+  'MXN',
+  'AED',
+  'SAR',
+  'TRY',
+  'KRW',
+  'XRP',
+];
+
+const CURRENCY_FLAG_BY_CODE = {
+  USD: 'us',
+  EUR: 'eu',
+  GBP: 'gb',
+  JPY: 'jp',
+  CAD: 'ca',
+  AUD: 'au',
+  CHF: 'ch',
+  CNY: 'cn',
+  HKD: 'hk',
+  SGD: 'sg',
+  INR: 'in',
+  NGN: 'ng',
+  ZAR: 'za',
+  BRL: 'br',
+  MXN: 'mx',
+  AED: 'ae',
+  SAR: 'sa',
+  TRY: 'tr',
+  KRW: 'kr',
+};
+
+const getCurrencyFlagCode = (code) => CURRENCY_FLAG_BY_CODE[code] || 'us';
 
 function TotalBalanceCurrencyTriggerIcon({ code, size = 20 }) {
   if (code === 'XRP') {
     return <XrpTokenCircleIcon size={size} />;
   }
-  if (code === 'USD') {
-    return <UsFlagCircleIcon size={size} />;
-  }
-  const flagCode =
-    code === 'EUR' ? 'eu' : code === 'GBP' ? 'gb' : code === 'JPY' ? 'jp' : 'us';
+  if (code === 'USD') return <UsFlagCircleIcon size={size} />;
+  const flagCode = getCurrencyFlagCode(code);
   return (
     <span className="total-balance-currency-trigger-flag">
       <img src={`https://flagcdn.com/w40/${flagCode}.png`} alt="" />
@@ -373,17 +415,7 @@ function TotalBalanceCurrencySelectModal({
                       <XrpTokenCircleIcon size={36} />
                     ) : (
                       <img
-                        src={`https://flagcdn.com/w80/${
-                          row.code === 'USD'
-                            ? 'us'
-                            : row.code === 'EUR'
-                              ? 'eu'
-                              : row.code === 'GBP'
-                                ? 'gb'
-                                : row.code === 'JPY'
-                                  ? 'jp'
-                                  : 'us'
-                        }.png`}
+                        src={`https://flagcdn.com/w80/${getCurrencyFlagCode(row.code)}.png`}
                         alt=""
                       />
                     )}
@@ -1086,6 +1118,7 @@ const Dashboard = () => {
   const [businessSuiteDashboardData, setBusinessSuiteDashboardData] = useState(null);
   const [isLoadingBusinessSuiteDashboard, setIsLoadingBusinessSuiteDashboard] = useState(false);
   const [exchangeRates, setExchangeRates] = useState([]);
+  const [fallbackFxRates, setFallbackFxRates] = useState({});
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [portfolioPoints, setPortfolioPoints] = useState([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
@@ -1113,10 +1146,12 @@ const Dashboard = () => {
   const [escrows, setEscrows] = useState([]);
   const [isLoadingEscrows, setIsLoadingEscrows] = useState(true);
   const [escrowPage, setEscrowPage] = useState(1);
-  const [escrowPageSize] = useState(10);
+  const [escrowPageSize] = useState(3);
   const [escrowTotalCount, setEscrowTotalCount] = useState(0);
   const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(null);
   const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(true);
+  const [totalSavingsWalletAmount, setTotalSavingsWalletAmount] = useState(null);
+  const [isLoadingTotalSavingsWallet, setIsLoadingTotalSavingsWallet] = useState(true);
   const [userFullName, setUserFullName] = useState('');
   const [userInitials, setUserInitials] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -1437,9 +1472,37 @@ const Dashboard = () => {
   const convertUsdTotalToFiatDisplayAmount = (code, usdTotal) => {
     const row = exchangeRates.find((r) => (r.currency || r.code || '').toUpperCase() === code);
     const quote = Number(row?.rate ?? row?.value ?? 0);
-    if (!Number.isFinite(quote) || quote <= 0) return null;
-    if (code === 'JPY') return usdTotal * quote;
-    return usdTotal / quote;
+    if (Number.isFinite(quote) && quote > 0) {
+      // Higher quote values are typically "fiat per 1 USD" (e.g. JPY, NGN, KRW),
+      // while smaller values are usually "USD per 1 fiat" (e.g. EUR, GBP).
+      if (quote >= 20) return usdTotal * quote;
+      return usdTotal / quote;
+    }
+
+    // Fallback source uses USD as base: 1 USD = rate * target currency.
+    const fallbackRate = Number(fallbackFxRates?.[code]);
+    if (Number.isFinite(fallbackRate) && fallbackRate > 0) {
+      return usdTotal * fallbackRate;
+    }
+
+    return null;
+  };
+
+  const formatConvertedFiatAmount = (code, amount) => {
+    const fractionDigits = code === 'JPY' || code === 'KRW' ? 0 : 2;
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: code,
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      }).format(amount);
+    } catch (_) {
+      return `${code} ${amount.toLocaleString('en-US', {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      })}`;
+    }
   };
 
   const computeDashboardTotalUsdDisplay = () => {
@@ -1460,26 +1523,23 @@ const Dashboard = () => {
     const usd = getTotalPortfolioUsdNumber();
     const amt = convertUsdTotalToFiatDisplayAmount(code, usd);
     if (amt == null) return '—';
-    const sym = code === 'EUR' ? '€' : code === 'GBP' ? '£' : '¥';
-    const frac = code === 'JPY' ? 0 : 2;
-    return `${sym}${amt.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac })}`;
+    return formatConvertedFiatAmount(code, amt);
   };
 
   let balanceLabelUsd = '—';
   let balanceLabelXrp = '—';
-  const fiatLabels = { EUR: '—', GBP: '—', JPY: '—' };
+  const fiatCodes = TOTAL_BALANCE_DISPLAY_CODES.filter((code) => code !== 'USD' && code !== 'XRP');
+  const fiatLabels = fiatCodes.reduce((acc, code) => ({ ...acc, [code]: '—' }), {});
 
   if (!isLoadingDashboard) {
     const usdTotal = getTotalPortfolioUsdNumber();
     balanceLabelUsd = `$${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const xrpAmt = computeDashboardXrpAmount();
     balanceLabelXrp = `${xrpAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
-    ['EUR', 'GBP', 'JPY'].forEach((c) => {
+    fiatCodes.forEach((c) => {
       const amt = convertUsdTotalToFiatDisplayAmount(c, usdTotal);
       if (amt != null) {
-        const sym = c === 'EUR' ? '€' : c === 'GBP' ? '£' : '¥';
-        const frac = c === 'JPY' ? 0 : 2;
-        fiatLabels[c] = `${sym}${amt.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac })}`;
+        fiatLabels[c] = formatConvertedFiatAmount(c, amt);
       }
     });
   }
@@ -2222,6 +2282,45 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    const fiatCodes = TOTAL_BALANCE_DISPLAY_CODES.filter((code) => code !== 'USD' && code !== 'XRP');
+    if (!fiatCodes.length) return undefined;
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const fetchFallbackFxRates = async () => {
+      try {
+        const response = await fetch('https://open.er-api.com/v6/latest/USD', {
+          method: 'GET',
+          signal: controller.signal,
+        });
+        const result = await response.json().catch(() => ({}));
+        if (cancelled) return;
+
+        const rates = result?.rates && typeof result.rates === 'object' ? result.rates : {};
+        const mapped = {};
+        fiatCodes.forEach((code) => {
+          const rate = Number(rates[code]);
+          if (Number.isFinite(rate) && rate > 0) {
+            mapped[code] = rate;
+          }
+        });
+        setFallbackFxRates(mapped);
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.warn('Fallback FX rates unavailable:', error);
+        }
+      }
+    };
+
+    fetchFallbackFxRates();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchPortfolioPerformance = async () => {
       try {
         setIsLoadingPortfolio(true);
@@ -2759,6 +2858,64 @@ const Dashboard = () => {
 
     fetchEscrows();
   }, [isSessionExpired, escrowPage, escrowPageSize]);
+
+  useEffect(() => {
+    const fetchTotalSavingsWallet = async () => {
+      if (accountType !== 'Personal') {
+        setIsLoadingTotalSavingsWallet(false);
+        return;
+      }
+
+      if (isSessionExpired) {
+        setTotalSavingsWalletAmount(0);
+        setIsLoadingTotalSavingsWallet(false);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setTotalSavingsWalletAmount(0);
+        setIsLoadingTotalSavingsWallet(false);
+        return;
+      }
+
+      setIsLoadingTotalSavingsWallet(true);
+      try {
+        const response = await fetch(getApiUrl('api/savings/wallets/total'), {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result?.success) {
+          const data = result?.data ?? {};
+          const rawTotal =
+            data.totalUsd ??
+            data.totalUSD ??
+            data.total ??
+            data.totalAmount ??
+            data.amount ??
+            result?.totalUsd ??
+            result?.totalUSD ??
+            result?.total;
+          const parsedTotal = Number(rawTotal);
+          setTotalSavingsWalletAmount(Number.isFinite(parsedTotal) ? parsedTotal : 0);
+        } else {
+          setTotalSavingsWalletAmount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching total savings wallet:', error);
+        setTotalSavingsWalletAmount(0);
+      } finally {
+        setIsLoadingTotalSavingsWallet(false);
+      }
+    };
+
+    fetchTotalSavingsWallet();
+  }, [accountType, isSessionExpired]);
 
   const handleFundWallet = async (e) => {
     e.preventDefault();
@@ -4468,28 +4625,18 @@ const Dashboard = () => {
             </div>
             <div className="mobile-metric-card">
               <div className="mobile-metric-header">
-                <ShieldCheck size={16} />
-                <span>Trustiscore</span>
+                <PiggyBank size={16} />
+                <span>Total Savings Wallet</span>
               </div>
               <div className="mobile-metric-value">
-                {isTrustiscoreLoading ? (
-                  <LoadingIndicator size="sm" />
-                ) : trustiscoreScore != null && Number.isFinite(Number(trustiscoreScore)) ? (
-                  trustiscoreScore
-                ) : (
-                  '—'
-                )}
-                <span className="mobile-metric-suffix">/100</span>
-              </div>
-              <div className="mobile-metric-subvalue">
-                {isTrustiscoreLoading ? (
+                {isLoadingTotalSavingsWallet ? (
                   <LoadingIndicator size="sm" />
                 ) : (
-                  trustiscoreLevel || '—'
+                  `$${Number(totalSavingsWalletAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 )}
               </div>
-              <button type="button" className="mobile-metric-btn">
-                View Level
+              <button type="button" className="mobile-metric-btn" onClick={() => navigate('/savings')}>
+                View Savings
               </button>
             </div>
           </div>
@@ -5151,13 +5298,13 @@ const Dashboard = () => {
               <ShieldCheck size={16} />
               <h3>Active Escrow</h3>
             </div>
-            <div className="summary-card-value-row">
+            <div className="summary-card-value-row active-escrow-metrics">
               <div className="summary-card-value">
                 {dashboardData?.activeEscrows?.count !== undefined 
                   ? dashboardData.activeEscrows.count 
                   : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
               </div>
-              <div className="summary-card-subvalue">
+              <div className="summary-card-subvalue active-escrow-locked">
                 ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
                     ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
                     : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
@@ -5174,29 +5321,21 @@ const Dashboard = () => {
 
           <div className="summary-card trustiscore-card">
             <div className="summary-card-header">
-              <ShieldCheck size={16} />
-              <h3>Trustiscore</h3>
+              <PiggyBank size={16} />
+              <h3>Total Savings Wallet</h3>
             </div>
             <div className="summary-card-value-row">
               <div className="summary-card-value">
-                {isTrustiscoreLoading ? (
-                  <LoadingIndicator size="sm" />
-                ) : trustiscoreScore != null && Number.isFinite(Number(trustiscoreScore)) ? (
-                  trustiscoreScore
-                ) : (
-                  '—'
-                )}
-                <span className="summary-card-value-suffix">/100</span>
-              </div>
-              <div className="summary-card-subvalue">
-                {isTrustiscoreLoading ? (
+                {isLoadingTotalSavingsWallet ? (
                   <LoadingIndicator size="sm" />
                 ) : (
-                  trustiscoreLevel || '—'
+                  `$${Number(totalSavingsWalletAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 )}
               </div>
             </div>
-            <button type="button" className="summary-card-btn secondary">View Level</button>
+            <button type="button" className="summary-card-btn secondary" onClick={() => navigate('/savings')}>
+              View Savings
+            </button>
           </div>
 
           <div className="summary-card total-escrowed-card">

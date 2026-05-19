@@ -46,8 +46,17 @@
 }
 
 .login-card {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "tabs"
+    "social"
+    "divider"
+    "welcome"
+    "email"
+    "password"
+    "submit"
+    "security";
   gap: 24px;
   background: transparent;
   border-radius: 0;
@@ -55,15 +64,42 @@
   box-shadow: none;
 }
 
+.login-form {
+  display: contents;
+}
+
 .login-tabs {
+  grid-area: tabs;
   display: inline-flex;
   gap: 4px;
   padding: 2px;
   background: #eef2ff;
   border-radius: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
   width: fit-content;
-  align-self: center;
+  justify-self: center;
+}
+
+.login-divider {
+  grid-area: divider;
+}
+
+.login-welcome {
+  grid-area: welcome;
+}
+
+.login-field-email {
+  grid-area: email;
+  justify-self: center;
+}
+
+.login-field-password {
+  grid-area: password;
+  justify-self: center;
+}
+
+.login-primary-btn {
+  grid-area: submit;
 }
 
 .login-tab {
@@ -91,33 +127,51 @@
 }
 
 .login-social-buttons {
+  grid-area: social;
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  justify-self: center;
 }
 
 .login-social-btn {
-  flex: 1;
-  min-width: 160px;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 12px 10px;
   border-radius: 10px;
   border: 1px solid #e4e8f5;
   background: #ffffff;
   font-family: 'Satoshi', 'Inter', sans-serif;
   font-weight: 500;
+  font-size: 11px;
+  line-height: 1.25;
   color: #121629;
   cursor: pointer;
   transition: border 0.2s ease, transform 0.2s ease;
+  text-align: left;
+}
+
+.login-social-btn span {
+  display: inline;
+}
+
+.login-social-btn img,
+.login-social-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .login-social-btn img {
   width: 20px;
   height: 20px;
-  object-fit: contain;
 }
 
 .login-social-btn .login-apple-logo {
@@ -137,7 +191,7 @@
 }
 
 .login-divider {
-  margin: 24px 0;
+  margin: 8px 0 4px;
   text-align: center;
   font-size: 12px;
   font-weight: 700;
@@ -174,18 +228,11 @@
 }
 
 .login-welcome p {
-  margin: 4px 0 24px;
+  margin: 4px 0 20px;
   color: #5f667c;
   font-size: 16px;
   text-align: center;
   font-family: 'Satoshi', 'Inter', sans-serif;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
 }
 
 .login-field {
@@ -259,6 +306,7 @@
   margin-top: 8px;
   width: 100%;
   max-width: 360px;
+  justify-self: center;
   border: none;
   border-radius: 12px;
   padding: 16px;
@@ -277,14 +325,15 @@
 }
 
 .login-security-note {
-  margin-top: 20px;
+  grid-area: security;
+  margin-top: 0;
   display: flex;
   gap: 12px;
   font-size: 12px;
   color: #6e7690;
   line-height: 1.6;
   max-width: 360px;
-  align-self: center;
+  justify-self: center;
   text-align: left;
 }
 
@@ -435,15 +484,24 @@
   .login-card {
     gap: 1.5rem;
     padding: 0;
+    grid-template-areas:
+      "tabs"
+      "welcome"
+      "email"
+      "password"
+      "divider"
+      "social"
+      "submit"
+      "security";
   }
 
   .login-tabs {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 
   .login-welcome {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
   }
 
   .login-welcome h2 {
@@ -460,11 +518,6 @@
     font-size: 0.9rem;
     color: var(--text-muted);
     font-family: 'Poppins', sans-serif;
-  }
-
-  .login-form {
-    gap: 1.25rem;
-    align-items: stretch;
   }
 
   .login-field {
@@ -497,18 +550,26 @@
   }
 
   .login-divider {
-    margin: 1.5rem 0;
+    margin: 0.5rem 0;
     text-align: center;
   }
 
   .login-social-buttons {
     flex-direction: column;
     gap: 0.75rem;
+    max-width: 100%;
+    width: 100%;
   }
 
   .login-social-btn {
+    flex: none;
+    flex-direction: row;
+    justify-content: center;
+    font-size: 14px;
+    padding: 14px 16px;
+    width: 100%;
     max-width: 100%;
-    min-width: 100%;
+    min-width: 0;
   }
 
   .login-primary-btn {
