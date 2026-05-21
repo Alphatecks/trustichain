@@ -11,7 +11,6 @@ import {
   Search,
   Bell,
   LogOut,
-  ArrowRight,
   Plus,
   ArrowDown,
   ChevronDown,
@@ -35,6 +34,7 @@ import {
   Info,
   Copy,
   Calendar,
+  Check,
   Crosshair,
   Wallet,
   Award,
@@ -307,6 +307,18 @@ const TrustiCard = () => {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showFundModal, setShowFundModal] = useState(false);
   const [showCreateCardModal, setShowCreateCardModal] = useState(false);
+  const [showCreateCardKycModal, setShowCreateCardKycModal] = useState(false);
+  const [showCreateCardIdentityModal, setShowCreateCardIdentityModal] = useState(false);
+  const [showCreateCardAddressModal, setShowCreateCardAddressModal] = useState(false);
+  const [showCreateCardSuccessModal, setShowCreateCardSuccessModal] = useState(false);
+  const [createCardVerificationMode, setCreateCardVerificationMode] = useState('id');
+  const [createCardCountry, setCreateCardCountry] = useState('Nigeria');
+  const [createCardCountryMenuOpen, setCreateCardCountryMenuOpen] = useState(false);
+  const [createCardIdType, setCreateCardIdType] = useState('NIN');
+  const [createCardIdNumber, setCreateCardIdNumber] = useState('');
+  const [createCardBasicName, setCreateCardBasicName] = useState('');
+  const [createCardBasicDateOfBirth, setCreateCardBasicDateOfBirth] = useState('');
+  const [createCardBasicGender, setCreateCardBasicGender] = useState('');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
@@ -2006,19 +2018,18 @@ const TrustiCard = () => {
                       <th>Amount</th>
                       <th>Status</th>
                       <th>Date</th>
-                      <th className="tc-v2-th-action" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
                     {isLoadingCardTransactions ? (
                       <tr>
-                        <td colSpan={7} className="tc-v2-loading-inline">
+                        <td colSpan={6} className="tc-v2-loading-inline">
                           <LoadingIndicator size="md" />
                         </td>
                       </tr>
                     ) : filteredTransactions.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="tc-v2-tx-empty-cell">
+                        <td colSpan={6} className="tc-v2-tx-empty-cell">
                           No transactions for this card
                         </td>
                       </tr>
@@ -2054,11 +2065,6 @@ const TrustiCard = () => {
                             </span>
                           </td>
                           <td className="tc-v2-td-date">{tx.date}</td>
-                          <td className="tc-v2-td-action">
-                            <button type="button" className="tc-v2-row-action-ref" aria-label="View details">
-                              <ArrowRight size={17} strokeWidth={2.5} />
-                            </button>
-                          </td>
                         </tr>
                       ))
                     )}
@@ -2185,7 +2191,7 @@ const TrustiCard = () => {
                   <div className="trusticard-create-card-benefit-text">
                     <p className="trusticard-create-card-benefit-title">Enjoy Reward and exclusive deals</p>
                     <p className="trusticard-create-card-benefit-sub">
-                      Get special Visa offers and perks that give you more value every time you spend.
+                      Get special offers and perks that give you more value every time you spend.
                     </p>
                   </div>
                 </li>
@@ -2196,7 +2202,7 @@ const TrustiCard = () => {
                 className="trusticard-create-card-submit trusticard-btn-primary"
                 onClick={() => {
                   setShowCreateCardModal(false);
-                  setShowIssueCardModal(true);
+                  setShowCreateCardKycModal(true);
                 }}
               >
                 Create Card
@@ -2207,6 +2213,341 @@ const TrustiCard = () => {
                 Your funds will be added to your account within seconds or refunded if there&apos;s an issue.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateCardKycModal && (
+        <div
+          className="trusticard-modal-overlay trusticard-modal-overlay--create-card-fullbleed"
+          onClick={() => setShowCreateCardKycModal(false)}
+          role="presentation"
+        >
+          <div
+            className="trusticard-modal-panel trusticard-create-card-kyc-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trusticard-create-card-kyc-title"
+          >
+            <div className="trusticard-modal-head trusticard-add-funds-head">
+              <div className="trusticard-add-funds-title-row">
+                <span className="trusticard-add-funds-accent" aria-hidden />
+                <h2 id="trusticard-create-card-kyc-title">Create Card</h2>
+              </div>
+              <button
+                type="button"
+                className="trusticard-modal-close"
+                onClick={() => setShowCreateCardKycModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="trusticard-modal-body trusticard-create-card-kyc-body">
+              <div className="trusticard-create-card-kyc-card">
+                <h3 className="trusticard-create-card-kyc-heading">Update account information</h3>
+
+                <div className="trusticard-create-card-kyc-list" aria-label="KYC checklist">
+                  <div className="trusticard-create-card-kyc-item">
+                    <span className="trusticard-create-card-kyc-icon" aria-hidden>
+                      <CreditCard size={18} strokeWidth={2} />
+                    </span>
+                    <span className="trusticard-create-card-kyc-copy">
+                      <strong>Basic information</strong>
+                      <small>Name, Gender and date of birth</small>
+                    </span>
+                  </div>
+
+                  <div className="trusticard-create-card-kyc-item">
+                    <span className="trusticard-create-card-kyc-icon" aria-hidden>
+                      <Crosshair size={18} strokeWidth={2} />
+                    </span>
+                    <span className="trusticard-create-card-kyc-copy">
+                      <strong>Address information</strong>
+                      <small>Your address and proof of address</small>
+                    </span>
+                  </div>
+
+                  <div className="trusticard-create-card-kyc-item">
+                    <span className="trusticard-create-card-kyc-icon" aria-hidden>
+                      <FileCheck size={18} strokeWidth={2} />
+                    </span>
+                    <span className="trusticard-create-card-kyc-copy">
+                      <strong>Identity verification</strong>
+                      <small>Your ID document and identity information</small>
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="trusticard-create-card-kyc-submit trusticard-btn-primary"
+                  onClick={() => {
+                    setShowCreateCardKycModal(false);
+                    setShowCreateCardIdentityModal(true);
+                  }}
+                >
+                  Update KYC
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateCardIdentityModal && (
+        <div
+          className="trusticard-modal-overlay trusticard-modal-overlay--create-card-fullbleed"
+          onClick={() => setShowCreateCardIdentityModal(false)}
+          role="presentation"
+        >
+          <div
+            className="trusticard-modal-panel trusticard-create-card-identity-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trusticard-create-card-identity-title"
+          >
+            <div className="trusticard-modal-head trusticard-add-funds-head">
+              <div className="trusticard-add-funds-title-row">
+                <span className="trusticard-add-funds-accent" aria-hidden />
+                <h2 id="trusticard-create-card-identity-title">Create Card</h2>
+              </div>
+              <button
+                type="button"
+                className="trusticard-modal-close"
+                onClick={() => setShowCreateCardIdentityModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="trusticard-modal-body trusticard-create-card-identity-body">
+              <h3 className="trusticard-create-card-identity-heading">Identify Verification</h3>
+
+              <div className="trusticard-create-card-identity-mode-row" role="radiogroup" aria-label="Verification mode">
+                <button
+                  type="button"
+                  className={`trusticard-create-card-identity-mode ${createCardVerificationMode === 'id' ? 'is-active' : ''}`}
+                  onClick={() => setCreateCardVerificationMode('id')}
+                  aria-pressed={createCardVerificationMode === 'id'}
+                >
+                  <span className="trusticard-create-card-identity-ring" aria-hidden />
+                  ID Verification
+                </button>
+                <button
+                  type="button"
+                  className={`trusticard-create-card-identity-mode ${createCardVerificationMode === 'selfie' ? 'is-active' : ''}`}
+                  onClick={() => setCreateCardVerificationMode('selfie')}
+                  aria-pressed={createCardVerificationMode === 'selfie'}
+                >
+                  <span className="trusticard-create-card-identity-ring" aria-hidden />
+                  Selfie
+                </button>
+              </div>
+
+              <label className="trusticard-create-card-identity-label" htmlFor="trusticard-create-card-country">Country</label>
+              <div className={`trusticard-create-card-country-wrap ${createCardCountryMenuOpen ? 'is-open' : ''}`}>
+                <span className="trusticard-create-card-country-dot" aria-hidden />
+                <button
+                  id="trusticard-create-card-country"
+                  type="button"
+                  className="trusticard-create-card-country-trigger"
+                  onClick={() => setCreateCardCountryMenuOpen((v) => !v)}
+                  aria-expanded={createCardCountryMenuOpen}
+                  aria-haspopup="listbox"
+                >
+                  <span className="trusticard-create-card-country-value">{createCardCountry}</span>
+                  <ChevronDown size={18} className="trusticard-create-card-country-chevron" aria-hidden />
+                </button>
+                {createCardCountryMenuOpen ? (
+                  <div className="trusticard-create-card-country-menu" role="listbox" aria-label="Country">
+                    {['Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Rwanda', 'Uganda'].map((country) => (
+                      <button
+                        key={country}
+                        type="button"
+                        role="option"
+                        aria-selected={createCardCountry === country}
+                        className={`trusticard-create-card-country-option ${createCardCountry === country ? 'is-active' : ''}`}
+                        onClick={() => {
+                          setCreateCardCountry(country);
+                          setCreateCardCountryMenuOpen(false);
+                        }}
+                      >
+                        {country}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <label className="trusticard-create-card-identity-label">NIN</label>
+              <div className="trusticard-create-card-id-tabs" role="tablist" aria-label="Identity type">
+                {['NIN', 'Drivers Licences', 'Voter Card', 'Passport'].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`trusticard-create-card-id-tab ${createCardIdType === opt ? 'is-active' : ''}`}
+                    onClick={() => setCreateCardIdType(opt)}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+
+              <label className="trusticard-create-card-identity-label" htmlFor="trusticard-create-card-id-number">NIN</label>
+              <input
+                id="trusticard-create-card-id-number"
+                type="text"
+                className="trusticard-create-card-id-input"
+                placeholder="Enter"
+                value={createCardIdNumber}
+                onChange={(e) => setCreateCardIdNumber(e.target.value)}
+              />
+
+              <button
+                type="button"
+                className="trusticard-create-card-identity-submit trusticard-btn-primary"
+                onClick={() => {
+                  setShowCreateCardIdentityModal(false);
+                  setShowCreateCardAddressModal(true);
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateCardAddressModal && (
+        <div
+          className="trusticard-modal-overlay trusticard-modal-overlay--create-card-fullbleed"
+          onClick={() => setShowCreateCardAddressModal(false)}
+          role="presentation"
+        >
+          <div
+            className="trusticard-modal-panel trusticard-create-card-address-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trusticard-create-card-address-title"
+          >
+            <div className="trusticard-modal-head trusticard-add-funds-head">
+              <div className="trusticard-add-funds-title-row">
+                <span className="trusticard-add-funds-accent" aria-hidden />
+                <h2 id="trusticard-create-card-address-title">Create Card</h2>
+              </div>
+              <button
+                type="button"
+                className="trusticard-modal-close"
+                onClick={() => setShowCreateCardAddressModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="trusticard-modal-body trusticard-create-card-address-body">
+              <h3 className="trusticard-create-card-address-heading">Basic Information</h3>
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-basic-name">Name</label>
+              <input
+                id="trusticard-create-card-basic-name"
+                type="text"
+                className="trusticard-create-card-address-input"
+                placeholder="Add"
+                value={createCardBasicName}
+                onChange={(e) => setCreateCardBasicName(e.target.value)}
+              />
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-basic-dob">Date of birth</label>
+              <div className="trusticard-create-card-basic-dob-wrap">
+                <input
+                  id="trusticard-create-card-basic-dob"
+                  type="text"
+                  className="trusticard-create-card-address-input trusticard-create-card-basic-dob-input"
+                  placeholder="Select"
+                  value={createCardBasicDateOfBirth}
+                  onChange={(e) => setCreateCardBasicDateOfBirth(e.target.value)}
+                />
+                <Calendar size={18} className="trusticard-create-card-basic-dob-icon" aria-hidden />
+              </div>
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-basic-gender">Gender</label>
+              <div className="trusticard-create-card-basic-gender-wrap">
+                <select
+                  id="trusticard-create-card-basic-gender"
+                  className="trusticard-create-card-address-input trusticard-create-card-basic-gender-select"
+                  value={createCardBasicGender}
+                  onChange={(e) => setCreateCardBasicGender(e.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                <ChevronDown size={18} className="trusticard-create-card-basic-gender-chevron" aria-hidden />
+              </div>
+
+              <button
+                type="button"
+                className="trusticard-create-card-address-submit trusticard-btn-primary"
+                onClick={() => {
+                  setShowCreateCardAddressModal(false);
+                  setShowCreateCardSuccessModal(true);
+                }}
+              >
+                Update KYC
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateCardSuccessModal && (
+        <div
+          className="trusticard-create-card-success-overlay"
+          onClick={() => setShowCreateCardSuccessModal(false)}
+          role="presentation"
+        >
+          <div
+            className="trusticard-create-card-success-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trusticard-create-card-success-title"
+          >
+            <button
+              type="button"
+              className="trusticard-create-card-success-close"
+              onClick={() => setShowCreateCardSuccessModal(false)}
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="trusticard-create-card-success-icon" aria-hidden>
+              <Check size={42} strokeWidth={3.5} />
+            </div>
+
+            <h3 id="trusticard-create-card-success-title" className="trusticard-create-card-success-title">
+              Trusticard Created
+            </h3>
+            <p className="trusticard-create-card-success-copy">
+              You have successfully created a Trusticard
+            </p>
+
+            <button
+              type="button"
+              className="trusticard-create-card-success-submit trusticard-btn-primary"
+              onClick={() => setShowCreateCardSuccessModal(false)}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

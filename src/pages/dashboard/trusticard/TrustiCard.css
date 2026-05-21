@@ -1997,6 +1997,473 @@
   text-align: left;
 }
 
+.trusticard-modal-panel.trusticard-create-card-kyc-modal {
+  max-width: 560px;
+}
+
+.trusticard-create-card-kyc-body {
+  padding-top: 0.65rem;
+}
+
+.trusticard-create-card-kyc-card {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 0.95rem;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.06);
+}
+
+.trusticard-create-card-kyc-heading {
+  margin: 0 0 0.95rem;
+  font-size: 1.9rem;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: #111827;
+}
+
+.trusticard-create-card-kyc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin: 0 0 1rem;
+}
+
+.trusticard-create-card-kyc-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 0.78rem 0.85rem;
+}
+
+.trusticard-create-card-kyc-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #eef2ff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trusticard-create-card-kyc-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.trusticard-create-card-kyc-copy strong {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.trusticard-create-card-kyc-copy small {
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: #6b7280;
+}
+
+.trusticard-create-card-kyc-submit {
+  width: 100%;
+  border-radius: 0.85rem;
+  padding: 0.92rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
+.trusticard-create-card-kyc-modal .trusticard-modal-close {
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  color: #2563eb;
+}
+
+.trusticard-modal-panel.trusticard-create-card-identity-modal {
+  max-width: 560px;
+}
+
+.trusticard-modal-panel.trusticard-create-card-address-modal {
+  max-width: 560px;
+}
+
+.trusticard-create-card-identity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.trusticard-create-card-identity-heading {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.trusticard-create-card-identity-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 1.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.trusticard-create-card-identity-mode {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trusticard-create-card-identity-ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid #2563eb;
+}
+
+.trusticard-create-card-identity-mode.is-active .trusticard-create-card-identity-ring {
+  box-shadow: inset 0 0 0 4px #ffffff;
+  background: #2563eb;
+}
+
+.trusticard-create-card-identity-label {
+  font-size: 1.1rem;
+  line-height: 1.05;
+  font-weight: 600;
+  color: #111827;
+  margin-top: 0.05rem;
+}
+
+.trusticard-create-card-country-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  z-index: 3;
+}
+
+.trusticard-create-card-country-dot {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: #e5e7eb;
+  pointer-events: none;
+}
+
+.trusticard-create-card-country-trigger {
+  width: 100%;
+  height: 54px;
+  border: 1px solid #eff6ff;
+  border-radius: 0.7rem;
+  background: #f8fbff;
+  color: #2563eb;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 0 2.6rem 0 2.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  outline: none;
+  cursor: pointer;
+}
+
+.trusticard-create-card-country-chevron {
+  color: #111827;
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.trusticard-create-card-country-wrap.is-open .trusticard-create-card-country-chevron {
+  transform: rotate(180deg);
+}
+
+.trusticard-create-card-country-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trusticard-create-card-country-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.7rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  z-index: 8;
+}
+
+.trusticard-create-card-country-option {
+  width: 100%;
+  border: none;
+  background: #fff;
+  color: #1f2937;
+  font-size: 0.95rem;
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  cursor: pointer;
+}
+
+.trusticard-create-card-country-option + .trusticard-create-card-country-option {
+  border-top: 1px solid #f3f4f6;
+}
+
+.trusticard-create-card-country-option.is-active {
+  color: #2563eb;
+  font-weight: 600;
+  background: #f8fbff;
+}
+
+.trusticard-create-card-id-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.trusticard-create-card-id-tab {
+  border: none;
+  border-radius: 0.56rem;
+  min-height: 42px;
+  background: #f8fbff;
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.35rem 0.3rem;
+}
+
+.trusticard-create-card-id-tab.is-active {
+  background: #0d6efd;
+  color: #ffffff;
+}
+
+.trusticard-create-card-id-input {
+  width: 100%;
+  height: 54px;
+  border: 1px solid #eff6ff;
+  border-radius: 0.7rem;
+  background: #f8fbff;
+  color: #1f2937;
+  font-size: 0.92rem;
+  padding: 0 0.9rem;
+  outline: none;
+}
+
+.trusticard-create-card-id-input::placeholder {
+  color: #9ca3af;
+}
+
+.trusticard-create-card-identity-submit {
+  width: 100%;
+  border-radius: 0.85rem;
+  min-height: 52px;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
+.trusticard-create-card-address-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trusticard-create-card-address-heading {
+  margin: 0 0 0.2rem;
+  font-size: 1.7rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.trusticard-create-card-address-label {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.trusticard-create-card-address-input {
+  width: 100%;
+  height: 52px;
+  border: 1px solid #eff6ff;
+  border-radius: 0.7rem;
+  background: #f8fbff;
+  color: #2563eb;
+  font-size: 1rem;
+  padding: 0 0.85rem;
+  outline: none;
+}
+
+.trusticard-create-card-address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.trusticard-create-card-basic-dob-wrap,
+.trusticard-create-card-basic-gender-wrap {
+  position: relative;
+}
+
+.trusticard-create-card-basic-dob-input,
+.trusticard-create-card-basic-gender-select {
+  padding-right: 2.6rem;
+}
+
+.trusticard-create-card-basic-gender-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.trusticard-create-card-basic-dob-icon,
+.trusticard-create-card-basic-gender-chevron {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #0f274f;
+  pointer-events: none;
+}
+
+.trusticard-create-card-proof-upload {
+  min-height: 52px;
+  border: 1px solid #eff6ff;
+  border-radius: 0.7rem;
+  background: #f8fbff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.85rem;
+  cursor: pointer;
+}
+
+.trusticard-create-card-proof-name {
+  font-size: 0.98rem;
+  color: #9ca3af;
+}
+
+.trusticard-create-card-proof-name.has-file {
+  color: #111827;
+}
+
+.trusticard-create-card-proof-action {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0d6efd;
+}
+
+.trusticard-create-card-proof-input {
+  display: none;
+}
+
+.trusticard-create-card-address-submit {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
+.trusticard-create-card-success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.trusticard-create-card-success-modal {
+  width: 100%;
+  max-width: 430px;
+  background: #ffffff;
+  border-radius: 1.2rem;
+  position: relative;
+  padding: 1.5rem 1.2rem 1.2rem;
+  box-shadow: 0 22px 56px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.trusticard-create-card-success-close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  border: none;
+  background: transparent;
+  color: #111827;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.trusticard-create-card-success-icon {
+  width: 106px;
+  height: 106px;
+  border-radius: 999px;
+  margin: 0.4rem auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d6efd;
+  color: #ffffff;
+}
+
+.trusticard-create-card-success-title {
+  margin: 0;
+  color: #111827;
+  font-size: 1.65rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.trusticard-create-card-success-copy {
+  margin: 0.8rem auto 1rem;
+  max-width: 320px;
+  color: #111827;
+  font-size: 1.05rem;
+  line-height: 1.26;
+}
+
+.trusticard-create-card-success-submit {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 0.68rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .trusticard-add-funds-head {
   align-items: center;
   padding-bottom: 0.85rem;
@@ -2591,7 +3058,10 @@
   .trusticard-modal-overlay.trusticard-modal-overlay--withdraw-fullbleed .trusticard-modal-panel.trusticard-withdraw-modal,
   .trusticard-modal-overlay.trusticard-modal-overlay--card-info-fullbleed .trusticard-modal-panel.trusticard-card-info-modal,
   .trusticard-modal-overlay.trusticard-modal-overlay--statement-fullbleed .trusticard-modal-panel.trusticard-statement-modal,
-  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-modal {
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-modal,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-kyc-modal,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-identity-modal,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-address-modal {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -2634,7 +3104,10 @@
 
   .trusticard-modal-overlay.trusticard-modal-overlay--add-funds-fullbleed .trusticard-modal-body.trusticard-add-funds-body,
   .trusticard-modal-overlay.trusticard-modal-overlay--withdraw-fullbleed .trusticard-modal-body.trusticard-add-funds-body,
-  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-body {
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-body,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-kyc-body,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-identity-body,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-address-body {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -2646,7 +3119,10 @@
 
   .trusticard-modal-overlay.trusticard-modal-overlay--add-funds-fullbleed .trusticard-add-funds-submit,
   .trusticard-modal-overlay.trusticard-modal-overlay--withdraw-fullbleed .trusticard-add-funds-submit,
-  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-create-card-submit {
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-create-card-submit,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-create-card-kyc-submit,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-create-card-identity-submit,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-create-card-address-submit {
     margin-top: auto;
   }
 
@@ -2805,5 +3281,193 @@
   .trusticard-delete-card-close {
     top: 1.05rem;
     right: 1.05rem;
+  }
+
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-kyc-modal {
+    background: #fbfdff;
+  }
+
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-kyc-body {
+    padding: 1rem;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .trusticard-create-card-kyc-card {
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  }
+
+  .trusticard-create-card-kyc-heading {
+    font-size: 1.45rem;
+    line-height: 1.1;
+    margin-bottom: 0.9rem;
+    white-space: nowrap;
+  }
+
+  .trusticard-create-card-kyc-item {
+    padding: 0.7rem 0.8rem;
+    gap: 0.75rem;
+    border-radius: 0.7rem;
+  }
+
+  .trusticard-create-card-kyc-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .trusticard-create-card-kyc-copy strong {
+    font-size: 1.03rem;
+  }
+
+  .trusticard-create-card-kyc-copy small {
+    font-size: 0.95rem;
+  }
+
+  .trusticard-create-card-kyc-submit {
+    min-height: 52px;
+    border-radius: 0.82rem;
+  }
+
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-identity-modal {
+    background: #ffffff;
+  }
+
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-identity-body {
+    padding: 0.95rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-address-modal {
+    background: #ffffff;
+  }
+
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-address-body {
+    padding: 0.95rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.7rem;
+  }
+
+  .trusticard-create-card-identity-heading {
+    font-size: 1.35rem !important;
+    margin-bottom: 0.3rem;
+  }
+
+  .trusticard-create-card-identity-mode {
+    font-size: 0.84rem !important;
+  }
+
+  .trusticard-create-card-identity-ring {
+    width: 18px;
+    height: 18px;
+  }
+
+  .trusticard-create-card-identity-label {
+    font-size: 1rem !important;
+  }
+
+  .trusticard-create-card-country-trigger {
+    height: 56px;
+    font-size: 1rem !important;
+    font-weight: 600;
+    line-height: 1.25;
+    padding-right: 2.85rem;
+    padding-left: 2.95rem;
+    border-radius: 0.75rem;
+  }
+
+  .trusticard-create-card-country-wrap {
+    min-height: 56px;
+  }
+
+  .trusticard-create-card-country-dot {
+    width: 18px;
+    height: 18px;
+    left: 0.95rem;
+  }
+
+  .trusticard-create-card-country-option {
+    font-size: 0.95rem;
+    padding: 0.72rem 0.95rem;
+  }
+
+  .trusticard-create-card-id-tab {
+    min-height: 40px;
+    font-size: 0.74rem !important;
+  }
+
+  .trusticard-create-card-id-tabs .trusticard-create-card-id-tab:nth-child(2),
+  .trusticard-create-card-id-tabs .trusticard-create-card-id-tab:nth-child(3),
+  .trusticard-create-card-id-tabs .trusticard-create-card-id-tab:nth-child(4) {
+    color: #2563eb !important;
+  }
+
+  .trusticard-create-card-id-input {
+    height: 52px;
+    font-size: 0.86rem !important;
+  }
+
+  .trusticard-create-card-address-heading {
+    font-size: 1.35rem;
+  }
+
+  .trusticard-create-card-address-label {
+    font-size: 1.02rem;
+  }
+
+  .trusticard-create-card-address-input {
+    height: 50px;
+    font-size: 0.95rem;
+  }
+
+  .trusticard-create-card-address-grid {
+    gap: 0.7rem;
+  }
+
+  .trusticard-create-card-basic-dob-icon,
+  .trusticard-create-card-basic-gender-chevron {
+    right: 0.85rem;
+  }
+
+  .trusticard-create-card-proof-upload {
+    min-height: 50px;
+  }
+
+  .trusticard-create-card-proof-name,
+  .trusticard-create-card-proof-action {
+    font-size: 0.95rem;
+  }
+
+  .trusticard-create-card-success-overlay {
+    padding: 0.8rem;
+  }
+
+  .trusticard-create-card-success-modal {
+    max-width: 420px;
+    border-radius: 1rem;
+    padding: 1.1rem 0.95rem 0.95rem;
+  }
+
+  .trusticard-create-card-success-icon {
+    width: 76px;
+    height: 76px;
+    margin: 0.35rem auto 0.75rem;
+  }
+
+  .trusticard-create-card-success-icon svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .trusticard-create-card-success-title {
+    font-size: 1.35rem;
+  }
+
+  .trusticard-create-card-success-copy {
+    font-size: 0.95rem;
+    margin: 0.45rem auto 0.8rem;
+    max-width: 250px;
+  }
+
+  .trusticard-create-card-success-submit {
+    min-height: 44px;
+    font-size: 0.9rem;
   }
 }

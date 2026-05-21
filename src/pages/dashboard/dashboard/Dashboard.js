@@ -45,6 +45,7 @@ import {
   Mail,
   Send,
   Info,
+  ArrowUpDown,
 } from 'lucide-react';
 import './Dashboard.css';
 import '../transactions/Transactions.css';
@@ -1195,6 +1196,13 @@ const Dashboard = () => {
     destinationAddress: ''
   });
   const [isWithdrawingWallet, setIsWithdrawingWallet] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [swapForm, setSwapForm] = useState({
+    fromCurrency: 'XRP',
+    toCurrency: 'USDT',
+    fromAmount: '',
+    toAmount: '',
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const openFundingAssetModal = () => {
@@ -1621,8 +1629,84 @@ const Dashboard = () => {
     }
 
     if (action === 'convert') {
-      navigate('/transactions', { state: { openSwapModal: true } });
+      setShowSwapModal(true);
     }
+  };
+
+  const resetSwapModal = () => {
+    setShowSwapModal(false);
+    setSwapForm({
+      fromCurrency: 'XRP',
+      toCurrency: 'USDT',
+      fromAmount: '',
+      toAmount: '',
+    });
+  };
+
+  const getCurrencyDisplayName = (currency) => {
+    const mapping = {
+      XRP: 'XRP wallet',
+      USDT: 'Tether USD',
+      USDC: 'USD Coin',
+    };
+    return mapping[currency] || currency;
+  };
+
+  const getCurrencyBadge = (currency) => {
+    const mapping = {
+      XRP: 'XRP',
+      USDT: 'USDT',
+      USDC: 'USDC',
+    };
+    return mapping[currency] || currency;
+  };
+
+  const getCurrencyBalance = (currency) => {
+    if (!walletBalances) return 0;
+    return walletBalances[currency.toLowerCase()] || 0;
+  };
+
+  const computeSwapToAmount = (fromAmount, fromCurrency, toCurrency) => {
+    const n = parseFloat(fromAmount);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    const rate = getExchangeRate(fromCurrency, toCurrency);
+    if (!Number.isFinite(rate) || rate <= 0) return '';
+    return (n * rate).toFixed(6);
+  };
+
+  const handleSwapCurrencies = () => {
+    setSwapForm((prev) => {
+      const swapped = {
+        ...prev,
+        fromCurrency: prev.toCurrency,
+        toCurrency: prev.fromCurrency,
+        fromAmount: prev.toAmount,
+        toAmount: prev.fromAmount,
+      };
+      return {
+        ...swapped,
+        toAmount: computeSwapToAmount(swapped.fromAmount, swapped.fromCurrency, swapped.toCurrency),
+      };
+    });
+  };
+
+  const handleSwapCurrencyChange = (field, value) => {
+    setSwapForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (next.fromCurrency === next.toCurrency) {
+        next.toCurrency = value === 'XRP' ? 'USDT' : 'XRP';
+      }
+      next.toAmount = computeSwapToAmount(next.fromAmount, next.fromCurrency, next.toCurrency);
+      return next;
+    });
+  };
+
+  const handleSwapAmountChange = (value) => {
+    setSwapForm((prev) => ({
+      ...prev,
+      fromAmount: value,
+      toAmount: computeSwapToAmount(value, prev.fromCurrency, prev.toCurrency),
+    }));
   };
 
   const fetchDashboardSummary = async () => {
@@ -4581,7 +4665,7 @@ const Dashboard = () => {
               <button 
                 type="button" 
                 className="mobile-convert-btn"
-                onClick={() => navigate('/transactions', { state: { openSwapModal: true } })}
+                onClick={() => setShowSwapModal(true)}
               >
                 <Repeat size={16} />
                 Convert
@@ -5277,7 +5361,7 @@ const Dashboard = () => {
               <button 
                 type="button" 
                 className="summary-card-btn primary dashboard-tbc-btn-convert"
-                onClick={() => navigate('/transactions', { state: { openSwapModal: true } })}
+                onClick={() => setShowSwapModal(true)}
               >
                 <Repeat size={16} strokeWidth={2} aria-hidden />
                 Convert
@@ -7980,6 +8064,183 @@ const Dashboard = () => {
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Convert Modal */}
+      {showSwapModal && (
+        <div
+          className="notification-modal-overlay swap-modal-overlay"
+          onClick={() => resetSwapModal()}
+        >
+          <div className="notification-modal swap-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2>Convert</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={resetSwapModal}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              className="swap-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                toast.success('Swap details ready');
+              }}
+            >
+              <div className="swap-container">
+                <div className="swap-section">
+                  <div className="swap-section-header">
+                    <label className="swap-section-label">From</label>
+                    <div className="swap-currency-selector-wrapper">
+                      <select
+                        id="dashboard-swap-from-currency"
+                        className="swap-currency-select"
+                        value={swapForm.fromCurrency}
+                        onChange={(e) => handleSwapCurrencyChange('fromCurrency', e.target.value)}
+                      >
+                        <option value="XRP">XRP</option>
+                        <option value="USDT">USDT</option>
+                        <option value="USDC">USDC</option>
+                      </select>
+                      <div className="swap-currency-selector">
+                        <div className={`swap-currency-badge ${swapForm.fromCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
+                          {swapForm.fromCurrency === 'XRP' ? (
+                            <img
+                              src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                              alt="XRP"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            />
+                          ) : swapForm.fromCurrency === 'USDT' ? (
+                            <img
+                              src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png"
+                              alt="USDT"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            />
+                          ) : swapForm.fromCurrency === 'USDC' ? (
+                            <img
+                              src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389"
+                              alt="USDC"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            />
+                          ) : (
+                            getCurrencyBadge(swapForm.fromCurrency)
+                          )}
+                        </div>
+                        <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.fromCurrency)}</span>
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    min="0"
+                    className="swap-amount-input"
+                    placeholder="0.00"
+                    value={swapForm.fromAmount}
+                    onChange={(e) => handleSwapAmountChange(e.target.value)}
+                  />
+                  <div className="swap-balance-text">
+                    Balance: {isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : `${Number(getCurrencyBalance(swapForm.fromCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.fromCurrency}`}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="swap-icon-button"
+                  onClick={handleSwapCurrencies}
+                >
+                  <ArrowUpDown size={20} />
+                </button>
+
+                <div className="swap-section">
+                  <div className="swap-section-header">
+                    <label className="swap-section-label">To</label>
+                    <div className="swap-currency-selector-wrapper">
+                      <select
+                        id="dashboard-swap-to-currency"
+                        className="swap-currency-select"
+                        value={swapForm.toCurrency}
+                        onChange={(e) => handleSwapCurrencyChange('toCurrency', e.target.value)}
+                      >
+                        <option value="XRP">XRP</option>
+                        <option value="USDT">USDT</option>
+                        <option value="USDC">USDC</option>
+                      </select>
+                      <div className="swap-currency-selector">
+                        <div className={`swap-currency-badge ${swapForm.toCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
+                          {swapForm.toCurrency === 'XRP' ? (
+                            <img
+                              src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
+                              alt="XRP"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            />
+                          ) : swapForm.toCurrency === 'USDT' ? (
+                            <img
+                              src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png"
+                              alt="USDT"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            />
+                          ) : swapForm.toCurrency === 'USDC' ? (
+                            <img
+                              src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389"
+                              alt="USDC"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            />
+                          ) : (
+                            getCurrencyBadge(swapForm.toCurrency)
+                          )}
+                        </div>
+                        <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.toCurrency)}</span>
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    min="0"
+                    className="swap-amount-input"
+                    placeholder="0.00"
+                    value={swapForm.toAmount}
+                    readOnly
+                  />
+                  <div className="swap-balance-text">
+                    Balance: {isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : `${Number(getCurrencyBalance(swapForm.toCurrency)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${swapForm.toCurrency}`}
+                  </div>
+                </div>
+              </div>
+
+              {(() => {
+                const rate = getExchangeRate(swapForm.fromCurrency, swapForm.toCurrency);
+                if (!rate) return null;
+                return (
+                  <div className="swap-exchange-rate">
+                    <Info size={14} />
+                    <span>1 {getCurrencyBadge(swapForm.fromCurrency)} = {Number(rate).toFixed(6)} {getCurrencyBadge(swapForm.toCurrency)}</span>
+                  </div>
+                );
+              })()}
+
+              <div className="swap-actions">
+                <button
+                  type="button"
+                  className="swap-preview-btn"
+                  onClick={resetSwapModal}
+                >
+                  Done
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
