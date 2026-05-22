@@ -83,6 +83,8 @@ const TRUSTICARD_CARD_INFO_ADDRESS_FIELDS = [
 /** Flip to `false` when Cardyfie APIs are wired; until then the My Cards UI uses static data only. */
 const TRUSTICARD_USE_MOCK = true;
 
+const TRUSTICARD_HAS_CREATED_CARD_KEY = 'trusticard_has_created_card';
+
 const MOCK_TRUSTICARD_CARDS = [
   {
     ulid: 'mock-platinum',
@@ -311,6 +313,18 @@ const TrustiCard = () => {
   const [showCreateCardIdentityModal, setShowCreateCardIdentityModal] = useState(false);
   const [showCreateCardAddressModal, setShowCreateCardAddressModal] = useState(false);
   const [showCreateCardSuccessModal, setShowCreateCardSuccessModal] = useState(false);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [isSubmittingAddCard, setIsSubmittingAddCard] = useState(false);
+  const [hasCompletedFirstCardCreation, setHasCompletedFirstCardCreation] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(TRUSTICARD_HAS_CREATED_CARD_KEY) === '1';
+  });
+  const [addCardForm, setAddCardForm] = useState({
+    customer_ulid: '',
+    card_name: '',
+    card_type: 'standard',
+    card_provider: 'mastercard',
+  });
   const [createCardVerificationMode, setCreateCardVerificationMode] = useState('id');
   const [createCardCountry, setCreateCardCountry] = useState('Nigeria');
   const [createCardCountryMenuOpen, setCreateCardCountryMenuOpen] = useState(false);
@@ -739,6 +753,16 @@ const TrustiCard = () => {
   }, [isSessionExpired]);
 
   useEffect(() => { fetchCards(1); }, [fetchCards]);
+
+  useEffect(() => {
+    if (TRUSTICARD_USE_MOCK || hasCompletedFirstCardCreation) return;
+    if (cardsList.length > 0) {
+      setHasCompletedFirstCardCreation(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(TRUSTICARD_HAS_CREATED_CARD_KEY, '1');
+      }
+    }
+  }, [cardsList.length, hasCompletedFirstCardCreation]);
 
   useEffect(() => {
     if (cardsList.length > 0 && currentCardIndex >= cardsList.length) {
@@ -1304,6 +1328,96 @@ const TrustiCard = () => {
   const nCards = cardsList.length;
   nCardsRef.current = nCards;
 
+  const markFirstCardCreationComplete = useCallback(() => {
+    setHasCompletedFirstCardCreation(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(TRUSTICARD_HAS_CREATED_CARD_KEY, '1');
+    }
+  }, []);
+
+  const handleOpenAddCardFlow = useCallback(() => {
+    if (hasCompletedFirstCardCreation) {
+      setShowAddCardModal(true);
+    } else {
+      setShowCreateCardModal(true);
+    }
+  }, [hasCompletedFirstCardCreation]);
+
+  const handleAddCardSubmit = async (e) => {
+    e.preventDefault();
+    const { customer_ulid, card_name, card_type, card_provider } = addCardForm;
+    if (!customer_ulid?.trim() || !card_name?.trim()) {
+      toast.error('Customer ULID and card name are required');
+      return;
+    }
+    if (TRUSTICARD_USE_MOCK) {
+      const newCard = {
+        ulid: `mock-${Date.now()}`,
+        card_name: card_name.trim(),
+        card_balance: 0,
+        card_currency_code: 'USD',
+        masked_pan: '**** **** **** 0000',
+        card_provider: card_provider || 'mastercard',
+        status: 'active',
+      };
+      setCardsList((prev) => {
+        const next = [...prev, newCard];
+        setCurrentCardIndex(next.length - 1);
+        return next;
+      });
+      markFirstCardCreationComplete();
+      setShowAddCardModal(false);
+      setAddCardForm({
+        customer_ulid: '',
+        card_name: '',
+        card_type: 'standard',
+        card_provider: 'mastercard',
+      });
+      toast.success('Card added (preview)');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to add a card');
+      return;
+    }
+    setIsSubmittingAddCard(true);
+    try {
+      const body = {
+        customer_ulid: customer_ulid.trim(),
+        card_name: card_name.trim(),
+        card_currency: 'USD',
+        card_type: (card_type || 'standard').trim(),
+        card_provider: (card_provider || 'mastercard').trim(),
+      };
+      const response = await fetch(getApiUrl('api/cardyfie/card/issue'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (response.ok && result?.success) {
+        toast.success(result?.message || 'Card added');
+        markFirstCardCreationComplete();
+        setShowAddCardModal(false);
+        setAddCardForm({
+          customer_ulid: '',
+          card_name: '',
+          card_type: 'standard',
+          card_provider: 'mastercard',
+        });
+        fetchCards(cardsPage);
+      } else {
+        toast.error(result?.message || result?.error || 'Failed to add card');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to add card');
+    } finally {
+      setIsSubmittingAddCard(false);
+    }
+  };
+
   const updateCarouselTrack = useCallback(() => {
     const el = carouselViewportRef.current;
     if (!el || nCards < 1) {
@@ -1773,7 +1887,7 @@ const TrustiCard = () => {
                   <span className="tc-v2-accent-bar" aria-hidden />
                   <h2 id="tc-my-cards-title" className="tc-v2-section-title">My Cards</h2>
               </div>
-                <button type="button" className="tc-v2-add-card-link" onClick={() => setShowCreateCardModal(true)}>
+                <button type="button" className="tc-v2-add-card-link" onClick={handleOpenAddCardFlow}>
                   + Add card
                 </button>
             </div>
@@ -2511,7 +2625,10 @@ const TrustiCard = () => {
       {showCreateCardSuccessModal && (
         <div
           className="trusticard-create-card-success-overlay"
-          onClick={() => setShowCreateCardSuccessModal(false)}
+          onClick={() => {
+            markFirstCardCreationComplete();
+            setShowCreateCardSuccessModal(false);
+          }}
           role="presentation"
         >
           <div
@@ -2524,7 +2641,10 @@ const TrustiCard = () => {
             <button
               type="button"
               className="trusticard-create-card-success-close"
-              onClick={() => setShowCreateCardSuccessModal(false)}
+              onClick={() => {
+                markFirstCardCreationComplete();
+                setShowCreateCardSuccessModal(false);
+              }}
               aria-label="Close"
             >
               <X size={20} />
@@ -2544,10 +2664,115 @@ const TrustiCard = () => {
             <button
               type="button"
               className="trusticard-create-card-success-submit trusticard-btn-primary"
-              onClick={() => setShowCreateCardSuccessModal(false)}
+              onClick={() => {
+                markFirstCardCreationComplete();
+                setShowCreateCardSuccessModal(false);
+              }}
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Card — shown after first card has been created */}
+      {showAddCardModal && (
+        <div
+          className="trusticard-modal-overlay trusticard-modal-overlay--create-card-fullbleed"
+          onClick={() => !isSubmittingAddCard && setShowAddCardModal(false)}
+          role="presentation"
+        >
+          <div
+            className="trusticard-modal-panel trusticard-add-card-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trusticard-add-card-title"
+          >
+            <div className="trusticard-modal-head trusticard-add-funds-head">
+              <div className="trusticard-add-funds-title-row">
+                <span className="trusticard-add-funds-accent" aria-hidden />
+                <h2 id="trusticard-add-card-title">Add Card</h2>
+              </div>
+              <button
+                type="button"
+                className="trusticard-modal-close"
+                disabled={isSubmittingAddCard}
+                onClick={() => setShowAddCardModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form className="trusticard-modal-body trusticard-add-card-body" onSubmit={handleAddCardSubmit}>
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-add-card-customer">
+                Customer ULID
+              </label>
+              <input
+                id="trusticard-add-card-customer"
+                type="text"
+                className="trusticard-create-card-address-input trusticard-add-card-input"
+                placeholder="Select"
+                value={addCardForm.customer_ulid}
+                onChange={(e) => setAddCardForm({ ...addCardForm, customer_ulid: e.target.value })}
+                required
+              />
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-add-card-name">
+                Card Name
+              </label>
+              <input
+                id="trusticard-add-card-name"
+                type="text"
+                className="trusticard-create-card-address-input trusticard-add-card-input"
+                placeholder="Add"
+                value={addCardForm.card_name}
+                onChange={(e) => setAddCardForm({ ...addCardForm, card_name: e.target.value })}
+                required
+              />
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-add-card-type">
+                Type
+              </label>
+              <div className="trusticard-create-card-basic-gender-wrap">
+                <select
+                  id="trusticard-add-card-type"
+                  className="trusticard-create-card-address-input trusticard-create-card-basic-gender-select trusticard-add-card-select"
+                  value={addCardForm.card_type}
+                  onChange={(e) => setAddCardForm({ ...addCardForm, card_type: e.target.value })}
+                >
+                  <option value="standard">Standard</option>
+                  <option value="platinum">Platinum</option>
+                  <option value="gold">Gold</option>
+                </select>
+                <ChevronDown size={18} className="trusticard-create-card-basic-gender-chevron" aria-hidden />
+              </div>
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-add-card-provider">
+                Provider
+              </label>
+              <div className="trusticard-create-card-basic-gender-wrap">
+                <select
+                  id="trusticard-add-card-provider"
+                  className="trusticard-create-card-address-input trusticard-create-card-basic-gender-select trusticard-add-card-select"
+                  value={addCardForm.card_provider}
+                  onChange={(e) => setAddCardForm({ ...addCardForm, card_provider: e.target.value })}
+                >
+                  <option value="mastercard">Mastercard</option>
+                  <option value="visa">Visa</option>
+                </select>
+                <ChevronDown size={18} className="trusticard-create-card-basic-gender-chevron" aria-hidden />
+              </div>
+
+              <button
+                type="submit"
+                className="trusticard-create-card-address-submit trusticard-btn-primary"
+                disabled={isSubmittingAddCard}
+              >
+                {isSubmittingAddCard ? '…' : 'Add Card'}
+              </button>
+            </form>
           </div>
         </div>
       )}

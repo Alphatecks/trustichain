@@ -1997,6 +1997,32 @@
   text-align: left;
 }
 
+/* Add Card modal — issue another card after first creation */
+.trusticard-modal-panel.trusticard-add-card-modal {
+  max-width: 560px;
+}
+
+.trusticard-add-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.trusticard-add-card-input::placeholder {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.trusticard-add-card-input:not(:placeholder-shown) {
+  color: #111827;
+}
+
+.trusticard-add-card-select {
+  color: #6b7280;
+  font-weight: 500;
+}
+
 .trusticard-modal-panel.trusticard-create-card-kyc-modal {
   max-width: 560px;
 }
@@ -3061,7 +3087,8 @@
   .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-modal,
   .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-kyc-modal,
   .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-identity-modal,
-  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-address-modal {
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-address-modal,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-add-card-modal {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -3107,7 +3134,8 @@
   .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-body,
   .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-kyc-body,
   .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-identity-body,
-  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-address-body {
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-create-card-address-body,
+  .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-body.trusticard-add-card-body {
     flex: 1;
     display: flex;
     flex-direction: column;
