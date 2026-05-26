@@ -353,7 +353,7 @@ const BusinessDashboard = ({
               </div>
 
               <div className="mobile-sidebar-trustiscore">
-                <span className="mobile-sidebar-trustiscore-label">Suppliers</span>
+                <span className="mobile-sidebar-trustiscore-label">Active Suppliers</span>
                 <span className="mobile-sidebar-trustiscore-badge">
                   {dashboardData?.suppliers !== undefined 
                     ? dashboardData.suppliers 
@@ -476,7 +476,7 @@ const BusinessDashboard = ({
           <div className="mobile-metric-card">
             <div className="mobile-metric-header">
               <ShieldCheck size={16} />
-              <span>Suppliers</span>
+              <span>Active Suppliers</span>
             </div>
             <div className="mobile-metric-value">
               {dashboardData?.suppliers !== undefined 
@@ -551,7 +551,7 @@ const BusinessDashboard = ({
         <div className="mobile-my-teams-section">
           <div className="mobile-section-header">
             <div className="mobile-section-indicator"></div>
-            <h3 className="mobile-section-title">My Teams</h3>
+            <h3 className="mobile-section-title">My Payroll</h3>
             <button type="button" className="mobile-see-all-link" onClick={() => setShowAddTeamModal(true)}>Add a team</button>
           </div>
           <div className="mobile-teams-list">
@@ -772,7 +772,7 @@ const BusinessDashboard = ({
             <div className="bs-card-header">
               <div className="bs-card-header-left">
                 <ShieldCheck size={16} />
-                <h3 className="bs-card-title">Suppliers</h3>
+                <h3 className="bs-card-title">Active Suppliers</h3>
               </div>
             </div>
             <div className="bs-card-value-inline">
@@ -925,7 +925,7 @@ const BusinessDashboard = ({
           <div className="bs-middle-right">
             <div className="bs-teams-card">
               <div className="bs-teams-header">
-                <h3 className="bs-teams-title">My Teams</h3>
+                <h3 className="bs-teams-title">My Payroll</h3>
                 <button type="button" className="bs-teams-see-all" onClick={() => setShowAddTeamModal(true)}>Add a team</button>
               </div>
               <div className="bs-teams-list">

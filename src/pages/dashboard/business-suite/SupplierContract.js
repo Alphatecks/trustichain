@@ -38,7 +38,8 @@ import {
   Upload,
   AlertCircle,
   Activity,
-  Repeat
+  Repeat,
+  Copy
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import './SupplierContract.css';
@@ -76,6 +77,43 @@ const supportNav = [
   { label: 'Security', icon: ShieldCheck }
 ];
 
+const SupplierIdPanel = ({ supplierId, isLoading }) => {
+  const displayId = supplierId?.trim() || '—';
+
+  const handleCopy = async () => {
+    if (!supplierId?.trim()) return;
+    try {
+      await navigator.clipboard.writeText(supplierId.trim());
+      toast.success('Supplier ID copied');
+    } catch {
+      toast.error('Could not copy Supplier ID');
+    }
+  };
+
+  return (
+    <div className="supplier-id-panel">
+      <div className="supplier-id-panel-head">
+        <span className="supplier-id-accent" aria-hidden />
+        <h4 className="supplier-id-title">Supplier ID</h4>
+      </div>
+      <div className="supplier-id-field">
+        <span className="supplier-id-value">
+          {isLoading ? <LoadingIndicator size="sm" /> : displayId}
+        </span>
+        <button
+          type="button"
+          className="supplier-id-copy-btn"
+          onClick={handleCopy}
+          disabled={!supplierId?.trim() || isLoading}
+          aria-label="Copy Supplier ID"
+        >
+          <Copy size={18} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const SupplierContract = ({
   dashboardData,
   isLoadingDashboard,
@@ -110,6 +148,7 @@ const SupplierContract = ({
   businessKycComplete,
   businessCompanyName,
   businessCompanyLogoUrl,
+  businessSupplierId = '',
   isLoadingBusinessKyc,
   navigate,
   location,
@@ -809,6 +848,7 @@ const SupplierContract = ({
         {/* Mobile Supplier Contract Content */}
         <div className="supplier-contract-mobile-content">
           {/* Total Supply Amount Card - Mobile */}
+          <div className="total-supply-stack-mobile">
           <div className="supplier-total-supply-card-mobile">
             <div className="supplier-total-supply-header-mobile">
               <div className="supplier-total-supply-header-left-mobile">
@@ -871,6 +911,8 @@ const SupplierContract = ({
                 <span>View Supply status</span>
               </button>
             </div>
+          </div>
+          <SupplierIdPanel supplierId={businessSupplierId} isLoading={isLoadingBusinessKyc} />
           </div>
 
           {/* Supplier Cards - Horizontally Scrollable */}
@@ -1437,6 +1479,7 @@ const SupplierContract = ({
         {/* Summary Cards */}
         <div className="dashboard-summary-cards">
           {/* Total Supply Amount Card */}
+          <div className="total-supply-stack">
           <div className="summary-card total-supply-amount-card">
             <div className="total-supply-header">
               <div className="total-supply-header-left">
@@ -1506,6 +1549,8 @@ const SupplierContract = ({
                 <span>View Supply status</span>
               </button>
             </div>
+          </div>
+          <SupplierIdPanel supplierId={businessSupplierId} isLoading={isLoadingBusinessKyc} />
           </div>
 
           {/* Total Supplier Card */}

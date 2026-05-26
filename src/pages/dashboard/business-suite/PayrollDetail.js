@@ -488,6 +488,10 @@ const PayrollDetail = () => {
                     </div>
                     <div className="detail-card-value">{formatUsd(payrollDetail.totalAmountUsd)}</div>
                     <div className="detail-card-subtitle">Total</div>
+                    <button type="button" className="detail-card-btn" onClick={() => setShowFundPayrollModal(true)}>
+                      <Wallet size={16} />
+                      <span>Fund wallet</span>
+                    </button>
                   </div>
                 </div>
               </>

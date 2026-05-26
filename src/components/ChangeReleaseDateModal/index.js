@@ -27,11 +27,13 @@ const ChangeReleaseDateModal = ({ isOpen, onCancel, onSuccess, currentReleaseDat
 
   return (
     <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
-      <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <div className="create-escrow-modal change-release-date-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
         {/* Modal Header */}
-        <div className="create-escrow-modal-header">
-          <div className="modal-header-back-icon"></div>
-          <h2>Change Release Date</h2>
+        <div className="create-escrow-modal-header change-release-date-modal-header">
+          <div className="change-release-date-title-row">
+            <span className="change-release-date-accent" aria-hidden />
+            <h2>Change Release Date</h2>
+          </div>
           <button type="button" className="modal-close-btn" onClick={handleCloseModal}>
             <X size={24} />
           </button>

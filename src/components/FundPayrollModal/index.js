@@ -31,11 +31,13 @@ const FundPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
 
   return (
     <div className="create-escrow-modal-overlay" onClick={handleCloseModal}>
-      <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <div className="create-escrow-modal fund-payroll-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
         {/* Modal Header */}
-        <div className="create-escrow-modal-header">
-          <div className="modal-header-back-icon"></div>
-          <h2>Fund Payroll</h2>
+        <div className="create-escrow-modal-header fund-payroll-modal-header">
+          <div className="fund-payroll-title-row">
+            <span className="fund-payroll-accent" aria-hidden />
+            <h2>Fund Payroll</h2>
+          </div>
           <button type="button" className="modal-close-btn" onClick={handleCloseModal}>
             <X size={24} />
           </button>

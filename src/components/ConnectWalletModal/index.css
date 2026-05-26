@@ -254,20 +254,26 @@
 
 /* Mobile responsive */
 @media (max-width: 768px) {
-  /* Make overlay full screen on mobile */
+  /* Force true full-screen modal on mobile */
   .connect-wallet-modal-overlay {
-    padding: 0;
-    align-items: flex-start;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    padding: 0 !important;
+    align-items: stretch;
+    justify-content: stretch;
   }
 
-  /* Make modal full screen on mobile */
   .create-escrow-modal.connect-wallet-modal {
-    max-width: 100% !important;
-    width: 100%;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
+    max-width: none !important;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: none;
+    border-radius: 0 !important;
     margin: 0;
+    box-shadow: none;
   }
 
   .connect-wallet-content {
@@ -306,6 +312,7 @@
   /* Make content scrollable on mobile */
   .create-escrow-modal-content.connect-wallet-content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }

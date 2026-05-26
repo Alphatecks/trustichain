@@ -21,6 +21,7 @@ import {
 } from '../../utils/custodialWalletBalances';
 import { useWeb3 } from '../../context/Web3Context';
 import toast from 'react-hot-toast';
+import googleLogo from '../../assets/images/icons/google-logo.svg';
 import '../LoadingIndicator/index.css';
 import '../../pages/dashboard/my-escrow/MyEscrow.css';
 import './index.css';
@@ -42,6 +43,44 @@ const formatEscrowBalance = (value) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+const COUNTERPARTY_METHOD_META = {
+  wallet: {
+    tabLabel: 'Wallet Address',
+    inputLabel: 'Counterparty XRP Wallet Address',
+    placeholder: '••••••••••••••••',
+  },
+  trustitag: {
+    tabLabel: 'Trustitag',
+    inputLabel: 'Counterparty Trustitag',
+    placeholder: 'Enter Trustitag',
+  },
+};
+
+const GooglePayLogo = () => (
+  <span className="create-escrow-step3-payment-mark create-escrow-step3-payment-mark--google" aria-hidden>
+    <img src={googleLogo} alt="" className="create-escrow-step3-payment-logo" />
+    <span className="create-escrow-step3-payment-logo-text create-escrow-step3-payment-logo-text--google">
+      Pay
+    </span>
+  </span>
+);
+
+const ApplePayLogo = () => (
+  <span className="create-escrow-step3-payment-mark create-escrow-step3-payment-mark--apple" aria-hidden>
+    <svg className="create-escrow-step3-payment-logo" viewBox="0 0 24 24">
+      <path
+        d="M17.05 12.06c.01 2.56 2.24 3.41 2.26 3.42-.02.06-.36 1.23-1.19 2.43-.72 1.04-1.47 2.07-2.65 2.09-1.16.02-1.53-.69-2.86-.69-1.33 0-1.74.67-2.84.71-1.14.04-2.01-1.14-2.74-2.17-1.5-2.16-2.65-6.09-1.11-8.77.76-1.33 2.12-2.18 3.6-2.2 1.12-.02 2.18.75 2.86.75.68 0 1.95-.93 3.29-.79.56.02 2.14.23 3.16 1.72-.08.05-1.89 1.1-1.88 3.5zm-2.58-6.15c.6-.73 1.01-1.74.9-2.75-.86.03-1.91.57-2.53 1.3-.56.65-1.05 1.69-.92 2.68.96.08 1.95-.48 2.55-1.23z"
+        fill="currentColor"
+      />
+    </svg>
+    <span className="create-escrow-step3-payment-logo-text create-escrow-step3-payment-logo-text--apple">
+      Pay
+    </span>
+  </span>
+);
+
+const STRIPE_METHODS = new Set(['googlepay', 'applepay']);
 
 /** Connected/saved wallet used as payer when the Step 1 field is empty. */
 const resolvePayerWalletFromContext = (account) => {
@@ -121,8 +160,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   );
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedEscrowType, setSelectedEscrowType] = useState('Freelancing');
+  const [selectedConfirmationPaymentMethod, setSelectedConfirmationPaymentMethod] =
+    useState('googlepay');
   /** Step 1: identify counterparty by wallet vs Trustitag. */
   const [counterpartyMethod, setCounterpartyMethod] = useState('wallet');
+  const selectedCounterpartyMethodMeta =
+    COUNTERPARTY_METHOD_META[counterpartyMethod] || COUNTERPARTY_METHOD_META.trustitag;
 
   const [formData, setFormData] = useState({
     payerWallet: '',
@@ -158,6 +201,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [escrowFundingWalletsLoading, setEscrowFundingWalletsLoading] = useState(false);
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
   const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
+  const [stripePaymentStatus, setStripePaymentStatus] = useState(null);
 
   // Fetch exchange rate for XRP to USD conversion (copied from MyEscrow)
   useEffect(() => {
@@ -273,6 +317,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     setIsCreatingEscrow(false);
     setCurrentStep(1);
     setSelectedEscrowType('Freelancing');
+    setSelectedConfirmationPaymentMethod('googlepay');
+    setStripePaymentStatus(null);
     setCounterpartyMethod('wallet');
     setFormData({
       payerWallet: '',
@@ -385,6 +431,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     try {
       setIsCreatingEscrow(true);
       setEscrowCreationStep('creating');
+      setStripePaymentStatus(null);
 
       const payerWalletResolved =
         formData.payerWallet?.trim() || resolvePayerWalletFromContext(account) || '';
@@ -472,6 +519,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
         counterpartyName: formData.counterpartyName || '',
         releaseType: termsData.releaseType,
         totalAmount: parseFloat(termsData.totalAmount),
+        paymentMethod: selectedConfirmationPaymentMethod,
       };
 
       // Add date fields if provided
@@ -580,6 +628,85 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
           }
 
           // Case 2: XUMM/Xaman signing flow - open URL if provided (backend handles the rest)
+          if (STRIPE_METHODS.has(selectedConfirmationPaymentMethod)) {
+            const resolvedEscrowId = escrowId || escrow?.id || responseData?.id;
+            if (!resolvedEscrowId) {
+              toast.error('Escrow created but missing escrow ID for payment initialization.');
+              setEscrowCreationStep('idle');
+              setIsCreatingEscrow(false);
+              return;
+            }
+
+            const amountNumber = parseFloat(termsData.totalAmount);
+            const amountUsdEstimate = estimateUsdForConfirmationAmount(
+              amountNumber,
+              termsData.escrowCurrency,
+              exchangeRate,
+            );
+            const amountUsd = Number.isFinite(amountUsdEstimate)
+              ? Number(amountUsdEstimate.toFixed(2))
+              : Number(amountNumber.toFixed(2));
+
+            const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                escrowId: resolvedEscrowId,
+                amountUsd,
+                currency: 'usd',
+                idempotencyKey: `pi-${resolvedEscrowId}-${Date.now()}`,
+              }),
+            });
+            const piData = await piResponse.json().catch(() => ({}));
+            if (!piResponse.ok) {
+              throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
+            }
+
+            const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                escrowId: resolvedEscrowId,
+                customerEmail: formData.payerEmail?.trim() || 'unknown@trustichain.app',
+                idempotencyKey: `si-${resolvedEscrowId}-${Date.now()}`,
+              }),
+            });
+            const siData = await siResponse.json().catch(() => ({}));
+            if (!siResponse.ok) {
+              throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
+            }
+
+            const statusResponse = await fetch(
+              getApiUrl(`api/payments/escrow/${resolvedEscrowId}/status`),
+              {
+                method: 'GET',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            );
+            const statusData = await statusResponse.json().catch(() => null);
+            if (statusResponse.ok) {
+              setStripePaymentStatus(statusData?.data || statusData || null);
+            } else {
+              setStripePaymentStatus(null);
+            }
+
+            toast.success(
+              `${selectedConfirmationPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'} initialized. Continue payment using returned Stripe client secret.`,
+            );
+            setEscrowCreationStep('idle');
+            setIsCreatingEscrow(false);
+            return;
+          }
+
+          // Case 2: XUMM/Xaman signing flow - open URL if provided (backend handles the rest)
           if (xummUrl && escrowId) {
             console.log('Xaman signing URL provided. Escrow ID:', escrowId);
 
@@ -626,13 +753,10 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       }
     } catch (error) {
       console.error('Error creating escrow:', error);
-      toast.error('An error occurred while creating escrow');
+      toast.error(error?.message || 'An error occurred while creating escrow');
     } finally {
-      // Reset flags if not in creating state
-      if (escrowCreationStep !== 'creating') {
-        setIsCreatingEscrow(false);
-        setEscrowCreationStep('idle');
-      }
+      setIsCreatingEscrow(false);
+      setEscrowCreationStep('idle');
     }
   };
 
@@ -859,7 +983,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     className={`counterparty-method-btn ${counterpartyMethod === 'wallet' ? 'active' : ''}`}
                     onClick={() => setCounterpartyMethod('wallet')}
                   >
-                    Wallet Address
+                    {COUNTERPARTY_METHOD_META.wallet.tabLabel}
                   </button>
                   <button
                     type="button"
@@ -868,7 +992,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     className={`counterparty-method-btn ${counterpartyMethod === 'trustitag' ? 'active' : ''}`}
                     onClick={() => setCounterpartyMethod('trustitag')}
                   >
-                    Trustitag
+                    {COUNTERPARTY_METHOD_META.trustitag.tabLabel}
                   </button>
                 </div>
 
@@ -893,13 +1017,13 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                   <div className="create-escrow-step1-wallet-fields">
                     <div className="form-group">
                       <label htmlFor="create-escrow-counterparty-trustitag">
-                        Counterparty Trustitag <span className="required">*</span>
+                        {selectedCounterpartyMethodMeta.inputLabel} <span className="required">*</span>
                       </label>
                       <input
                         id="create-escrow-counterparty-trustitag"
                         type="text"
                         className="create-escrow-step1-input"
-                        placeholder="Enter Trustitag"
+                        placeholder={selectedCounterpartyMethodMeta.placeholder}
                         autoComplete="off"
                         value={formData.counterpartyTrustitag}
                         onChange={(e) =>
@@ -1371,11 +1495,46 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
               </div>
 
               <div className="confirmation-details-section">
+                <h3 className="create-escrow-step3-heading">Payment Method</h3>
+                <div className="create-escrow-step3-payment-toggle" role="tablist" aria-label="Payment method">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedConfirmationPaymentMethod === 'googlepay'}
+                    aria-label="Google Pay"
+                    className={`create-escrow-step3-payment-btn ${
+                      selectedConfirmationPaymentMethod === 'googlepay' ? 'active' : ''
+                    }`}
+                    onClick={() => setSelectedConfirmationPaymentMethod('googlepay')}
+                  >
+                    <GooglePayLogo />
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedConfirmationPaymentMethod === 'applepay'}
+                    aria-label="Apple Pay"
+                    className={`create-escrow-step3-payment-btn ${
+                      selectedConfirmationPaymentMethod === 'applepay' ? 'active' : ''
+                    }`}
+                    onClick={() => setSelectedConfirmationPaymentMethod('applepay')}
+                  >
+                    <ApplePayLogo />
+                  </button>
+                </div>
+                {stripePaymentStatus && (
+                  <p className="create-escrow-step3-payment-status">
+                    Payment status: {stripePaymentStatus?.status || 'initialized'}
+                  </p>
+                )}
+              </div>
+
+              <div className="confirmation-details-section">
                 <h3 className="create-escrow-step3-heading">Escrow Counterparty</h3>
-                {counterpartyMethod === 'trustitag' ? (
+                {counterpartyMethod !== 'wallet' ? (
                   <div className="confirmation-field-group">
                     <span className="confirmation-label">
-                      Counterparty Trustitag <span className="required">*</span>
+                      {selectedCounterpartyMethodMeta.inputLabel} <span className="required">*</span>
                     </span>
                     <div className="confirmation-masked-input confirmation-masked-input--plain">
                       {formData.counterpartyTrustitag.trim() || '—'}

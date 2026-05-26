@@ -17,12 +17,19 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState(null);
   const [xamanStatus, setXamanStatus] = useState('pending'); // pending, connected, cancelled
+  const hasWindow = typeof window !== 'undefined';
+  const hasMetaMaskProvider = hasWindow && Boolean(window.ethereum?.isMetaMask || window.ethereum);
+  const isMetaMaskConnected =
+    hasWindow &&
+    localStorage.getItem('metamaskWalletConnected') === 'true' &&
+    isConnected &&
+    Boolean(account);
 
   const wallets = [
     {
       id: 'xaman',
       name: 'XAMAN',
-      icon: 'https://xaman.app/logo.svg',
+      icon: 'https://cdn.prod.website-files.com/66ffb9c73bc7e83a1e0e1006/67028cc20682f3c6f7ec6161_Xaman%20Logo.svg',
       description: isWalletConnectedViaAPI && isConnected && account 
         ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
         : 'Connect using XAMAN mobile wallet',
@@ -32,6 +39,22 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       connect: async () => {
         await connectWallet('xaman');
       }
+    },
+    {
+      id: 'metamask',
+      name: 'MetaMask',
+      icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
+      description: isMetaMaskConnected
+        ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+        : hasWindow && window.ethereum?.isMetaMask
+          ? 'Connect using MetaMask extension'
+          : 'Install MetaMask to connect',
+      isInstalled: hasMetaMaskProvider,
+      comingSoon: false,
+      isConnected: isMetaMaskConnected,
+      connect: async () => {
+        await connectWallet('metamask');
+      },
     }
   ];
 

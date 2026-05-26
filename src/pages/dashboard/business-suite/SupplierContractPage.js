@@ -67,6 +67,20 @@ const normalizeCompanyLogoUrl = (data) => {
   return `${base}${path}`;
 };
 
+const extractBusinessSupplierId = (kycData) => {
+  if (!kycData || typeof kycData !== 'object') return '';
+  const candidates = [
+    kycData.supplierId,
+    kycData.supplier_id,
+    kycData.supplierReferenceId,
+    kycData.supplierReference,
+    kycData.referenceId,
+    kycData.businessSupplierId,
+  ];
+  const found = candidates.find((value) => typeof value === 'string' && value.trim());
+  return found ? found.trim() : '';
+};
+
 const SupplierContractPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,6 +125,7 @@ const SupplierContractPage = () => {
   });
   const [businessCompanyName, setBusinessCompanyName] = useState('');
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [businessSupplierId, setBusinessSupplierId] = useState('');
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [supplierDetailsItems, setSupplierDetailsItems] = useState([]);
   const [isLoadingSupplierDetails, setIsLoadingSupplierDetails] = useState(true);
@@ -152,13 +167,14 @@ const SupplierContractPage = () => {
           const kycData = result.data;
           setBusinessCompanyName(kycData.companyName || kycData?.companyName || '');
           setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+          setBusinessSupplierId(extractBusinessSupplierId(kycData));
           const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
           const status = statusRaw.replace(/_/g, ' ').toLowerCase();
           const verifiedStatuses = ['verified', 'approved', 'complete'];
           setBusinessKycComplete(verifiedStatuses.includes(status));
         }
       })
-      .catch(() => { if (!cancelled) { setBusinessCompanyName(''); setBusinessCompanyLogoUrl(''); } })
+      .catch(() => { if (!cancelled) { setBusinessCompanyName(''); setBusinessCompanyLogoUrl(''); setBusinessSupplierId(''); } })
       .finally(() => { if (!cancelled) setIsLoadingBusinessKyc(false); });
     return () => { cancelled = true; };
   }, [accountType]);
@@ -850,6 +866,7 @@ const SupplierContractPage = () => {
           businessKycComplete={businessKycComplete}
           businessCompanyName={businessCompanyName}
           businessCompanyLogoUrl={businessCompanyLogoUrl}
+          businessSupplierId={businessSupplierId}
           isLoadingBusinessKyc={isLoadingBusinessKyc}
           navigate={navigate}
           location={location}

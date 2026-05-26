@@ -602,6 +602,81 @@
   box-sizing: border-box;
 }
 
+.create-escrow-step3-payment-toggle {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.create-escrow-step3-payment-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #bfdbfe;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  min-width: 8.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-escrow-step3-payment-btn:hover {
+  background: #f8fafc;
+}
+
+.create-escrow-step3-payment-btn.active {
+  background: #ffffff;
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.create-escrow-step3-payment-logo {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.create-escrow-step3-payment-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  line-height: 1;
+}
+
+.create-escrow-step3-payment-mark--google {
+  color: #5f6368;
+}
+
+.create-escrow-step3-payment-mark--apple {
+  color: #111111;
+}
+
+.create-escrow-step3-payment-logo-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: currentColor;
+}
+
+.create-escrow-step3-payment-logo-text--google {
+  font-weight: 600;
+}
+
+.create-escrow-step3-payment-logo-text--apple {
+  font-weight: 700;
+}
+
+.create-escrow-step3-payment-status {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #6b7280);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
 .create-escrow-step3-amount-fee-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -738,6 +813,14 @@
 
   .create-escrow-step3-type-grid {
     grid-template-columns: 1fr;
+  }
+
+  .create-escrow-step3-payment-toggle {
+    width: 100%;
+  }
+
+  .create-escrow-step3-payment-btn {
+    flex: 1 1 0;
   }
 
   .create-escrow-step3-amount-fee-grid {

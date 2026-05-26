@@ -294,6 +294,94 @@
   height: 16px;
 }
 
+.total-supply-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.total-supply-stack-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.supplier-id-panel {
+  background: #ffffff;
+  border: 1px solid #e8eef7;
+  border-radius: 0.85rem;
+  padding: 1rem 1rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.supplier-id-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.supplier-id-accent {
+  width: 5px;
+  height: 22px;
+  border-radius: 999px;
+  background: #2563eb;
+  flex-shrink: 0;
+}
+
+.supplier-id-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.supplier-id-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0 0.95rem;
+  border: 1px solid #eff6ff;
+  border-radius: 0.75rem;
+  background: #f8fbff;
+}
+
+.supplier-id-value {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #2563eb;
+  word-break: break-all;
+}
+
+.supplier-id-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.supplier-id-copy-btn:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.supplier-id-copy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Supplier Contract Middle Section */
 .dashboard-middle.supplier-contract-middle {
   display: grid !important;

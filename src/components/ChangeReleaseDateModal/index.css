@@ -1,4 +1,35 @@
 /* Change Release Date Modal Styles */
+.change-release-date-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.change-release-date-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.change-release-date-accent {
+  width: 5px;
+  height: 28px;
+  border-radius: 999px;
+  background: #2563eb;
+  flex-shrink: 0;
+}
+
+.change-release-date-modal-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
 .change-release-date-section {
   display: flex;
   flex-direction: column;

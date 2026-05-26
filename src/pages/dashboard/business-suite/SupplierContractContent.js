@@ -42,6 +42,7 @@ const SupplierContractContent = ({
   businessKycComplete,
   businessCompanyName,
   businessCompanyLogoUrl,
+  businessSupplierId = '',
   isLoadingBusinessKyc,
   navigate,
   location,
@@ -361,6 +362,7 @@ const SupplierContractContent = ({
         businessKycComplete={businessKycComplete}
         businessCompanyName={businessCompanyName}
         businessCompanyLogoUrl={businessCompanyLogoUrl}
+        businessSupplierId={businessSupplierId}
         isLoadingBusinessKyc={isLoadingBusinessKyc}
         navigate={navigate}
         location={location}

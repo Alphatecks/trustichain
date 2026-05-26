@@ -104,6 +104,20 @@ const normalizeCompanyLogoUrl = (data) => {
   return `${base}${path}`;
 };
 
+const extractBusinessSupplierId = (kycData) => {
+  if (!kycData || typeof kycData !== 'object') return '';
+  const candidates = [
+    kycData.supplierId,
+    kycData.supplier_id,
+    kycData.supplierReferenceId,
+    kycData.supplierReference,
+    kycData.referenceId,
+    kycData.businessSupplierId,
+  ];
+  const found = candidates.find((value) => typeof value === 'string' && value.trim());
+  return found ? found.trim() : '';
+};
+
 // Check if business email is set from GET api/business-suite/business-email/status (accept any response shape)
 const isBusinessEmailSet = (result) => {
   if (!result) return false;
@@ -627,6 +641,7 @@ const Dashboard = () => {
   const [isSubmittingBusinessKyc, setIsSubmittingBusinessKyc] = useState(false);
   const [businessCompanyName, setBusinessCompanyName] = useState('');
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
+  const [businessSupplierId, setBusinessSupplierId] = useState('');
   const [showBalance, setShowBalance] = useState(true);
   const [balancePrimaryCurrency, setBalancePrimaryCurrency] = useState('USD');
   const [balanceCurrencyModalOpen, setBalanceCurrencyModalOpen] = useState(false);
@@ -774,21 +789,25 @@ const Dashboard = () => {
           const status = statusRaw.replace(/_/g, ' ').toLowerCase();
           const verifiedStatuses = ['verified', 'approved', 'complete'];
           const isKycVerified = verifiedStatuses.includes(status);
+          const supplierId = extractBusinessSupplierId(kycData);
           if (isKycVerified) {
             setBusinessKycComplete(true);
             setBusinessCompanyName(kycData.companyName || '');
             setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+            setBusinessSupplierId(supplierId);
             localStorage.setItem('businessKycComplete', 'true');
           } else {
             setBusinessKycComplete(false);
             setBusinessCompanyName(kycData?.companyName || '');
             setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
+            setBusinessSupplierId(supplierId);
             localStorage.removeItem('businessKycComplete');
           }
         } else {
           setBusinessKycComplete(false);
           setBusinessCompanyName('');
           setBusinessCompanyLogoUrl('');
+          setBusinessSupplierId('');
           localStorage.removeItem('businessKycComplete');
         }
       })
@@ -797,6 +816,7 @@ const Dashboard = () => {
           setBusinessKycComplete(false);
           setBusinessCompanyName('');
           setBusinessCompanyLogoUrl('');
+          setBusinessSupplierId('');
           localStorage.removeItem('businessKycComplete');
         }
       })
@@ -6804,6 +6824,7 @@ const Dashboard = () => {
                 businessKycComplete={businessKycComplete}
                 businessCompanyName={businessCompanyName}
                 businessCompanyLogoUrl={businessCompanyLogoUrl}
+                businessSupplierId={businessSupplierId}
                 isLoadingBusinessKyc={isLoadingBusinessKyc}
                 navigate={navigate}
                 location={location}
