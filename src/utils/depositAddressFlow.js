@@ -1,4 +1,15 @@
+import { getApiUrl } from './config';
+
 /** Shared deposit-by-address UI helpers (Transactions + Dashboard). */
+
+/** USDT/USDC networks provisioned via GET /api/wallet/deposit-address */
+export const STABLECOIN_DEPOSIT_PROVISIONS = [
+  { asset: 'USDT', network: 'ERC20' },
+  { asset: 'USDT', network: 'TRC20' },
+  { asset: 'USDT', network: 'BEP20' },
+  { asset: 'USDC', network: 'BEP20' },
+  { asset: 'USDC', network: 'SOLANA' },
+];
 
 export const DEPOSIT_ADDRESS_CURRENCY_ICON = {
   XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
@@ -124,3 +135,50 @@ export const splitDepositAddressLines = (addr) => {
   const mid = Math.ceil(addr.length / 2);
   return [addr.slice(0, mid), addr.slice(mid)];
 };
+
+export function extractDepositAddressFromApiResponse(result) {
+  if (!result || typeof result !== 'object') return '';
+  const nodes = [result.data, result].filter((n) => n && typeof n === 'object');
+  const keys = ['address', 'depositAddress', 'deposit_address', 'walletAddress', 'wallet_address'];
+  for (const node of nodes) {
+    for (const key of keys) {
+      const value = node[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * Provision USDT + USDC deposit addresses (one GET per asset/network).
+ * @param {{ token: string, apiBasePath?: string }} options — default `api/wallet`
+ */
+export async function provisionUsdtUsdcDepositAddresses({ token, apiBasePath = 'api/wallet' }) {
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+
+  const results = await Promise.all(
+    STABLECOIN_DEPOSIT_PROVISIONS.map(async ({ asset, network }) => {
+      const url = getApiUrl(
+        `${apiBasePath}/deposit-address?asset=${encodeURIComponent(asset)}&network=${encodeURIComponent(network)}`,
+      );
+      try {
+        const res = await fetch(url, { method: 'GET', headers });
+        const result = await res.json().catch(() => ({}));
+        const address = extractDepositAddressFromApiResponse(result);
+        const ok = res.ok && result?.success !== false && Boolean(address);
+        return { asset, network, ok, address, result };
+      } catch (error) {
+        return { asset, network, ok: false, address: '', error };
+      }
+    }),
+  );
+
+  return {
+    results,
+    succeeded: results.filter((r) => r.ok),
+    failed: results.filter((r) => !r.ok),
+  };
+}

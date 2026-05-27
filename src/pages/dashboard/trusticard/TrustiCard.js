@@ -56,6 +56,9 @@ import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
 import { handleLogout } from '../../../utils/logout';
+import { usePersonalSidebarWallet } from '../../../hooks/usePersonalSidebarWallet';
+import SidebarWalletSection from '../../../components/SidebarWalletNav';
+import PersonalWalletAddressesModal from '../../../components/PersonalWalletAddressesModal';
 import {
   emptyCustodialWalletBalances,
   parseCustodialWalletBalances,
@@ -354,6 +357,17 @@ const TrustiCard = () => {
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
+  const {
+    walletAddress: sidebarWalletAddress,
+    rlusdWalletAddress: sidebarRlusdWalletAddress,
+    showWalletModal: showSidebarWalletModal,
+    setShowWalletModal: setShowSidebarWalletModal,
+    isLoadingWalletAddress: isLoadingSidebarWallet,
+    isProvisioningWallets: isProvisioningSidebarWallets,
+    handleViewWalletClick: handleSidebarViewWallet,
+    handleCreateInitialWallet: handleSidebarCreateInitialWallet,
+    handleProvisionOtherWalletAddresses: handleSidebarProvisionOtherAddresses,
+  } = usePersonalSidebarWallet({ isSessionExpired });
 
   const [accountType] = useState('Personal');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -1950,6 +1964,14 @@ const TrustiCard = () => {
               </nav>
             </div>
           )}
+          <SidebarWalletSection
+            variant="mobile"
+            isLoading={isLoadingSidebarWallet}
+            onViewWallet={() => {
+              setIsMobileMenuOpen(false);
+              handleSidebarViewWallet();
+            }}
+          />
           <div className="mobile-sidebar-section">
             <p className="mobile-sidebar-section-label">Support</p>
             <nav className="mobile-sidebar-nav">
@@ -2039,6 +2061,10 @@ const TrustiCard = () => {
             })}
           </nav>
         </div>
+        <SidebarWalletSection
+          isLoading={isLoadingSidebarWallet}
+          onViewWallet={handleSidebarViewWallet}
+        />
         <div className="sidebar-section">
           <p className="sidebar-section-label">Support</p>
           <nav className="sidebar-nav">
@@ -3859,6 +3885,19 @@ const TrustiCard = () => {
           </div>
         </div>
       )}
+
+      <PersonalWalletAddressesModal
+        isOpen={showSidebarWalletModal}
+        onClose={() => setShowSidebarWalletModal(false)}
+        walletAddress={sidebarWalletAddress}
+        rlusdWalletAddress={sidebarRlusdWalletAddress}
+        isProvisioningWallets={isProvisioningSidebarWallets}
+        onCreateInitialWallet={async () => {
+          const ok = await handleSidebarCreateInitialWallet();
+          if (ok) setShowSidebarWalletModal(true);
+        }}
+        onProvisionOtherAddresses={handleSidebarProvisionOtherAddresses}
+      />
     </>
   );
 };

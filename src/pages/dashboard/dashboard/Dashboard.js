@@ -65,6 +65,9 @@ import {
   extractWalletAddresses,
   resolveDepositAddressFromBalance,
   splitDepositAddressLines,
+  provisionUsdtUsdcDepositAddresses,
+  STABLECOIN_DEPOSIT_PROVISIONS,
+  extractDepositAddressFromApiResponse,
 } from '../../../utils/depositAddressFlow';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
@@ -1182,9 +1185,12 @@ const Dashboard = () => {
   const [rlusdWalletAddress, setRlusdWalletAddress] = useState('');
   const [hasWallet, setHasWallet] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [isProvisioningMultichainWallets, setIsProvisioningMultichainWallets] = useState(false);
   const [showWalletDetailsModal, setShowWalletDetailsModal] = useState(false);
   const [selectedWalletDetails, setSelectedWalletDetails] = useState(null);
   const [walletDetailsNetwork, setWalletDetailsNetwork] = useState('ERC20');
+  const [walletDetailsDepositAddress, setWalletDetailsDepositAddress] = useState('');
+  const [isLoadingWalletDetailsAddress, setIsLoadingWalletDetailsAddress] = useState(false);
   const [walletDetailsPickerOpen, setWalletDetailsPickerOpen] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
@@ -1285,7 +1291,9 @@ const Dashboard = () => {
         setWalletAddress('');
         setRlusdWalletAddress('');
         setHasWallet(false);
-        if (accountType === 'Business Suite' && isNotFound) {
+        if (accountType === 'Personal') {
+          setShowWalletModal(true);
+        } else if (accountType === 'Business Suite' && isNotFound) {
           toast.error('No Business Suite wallet connected. Use Create wallet to connect your XRPL address.');
           setShowConnectBusinessWalletModal(true);
         } else if (!showUnderReviewModalIfApplicable(result?.message)) {
@@ -1323,9 +1331,27 @@ const Dashboard = () => {
     rlusdWalletAddress,
   ]);
 
-  const walletDetailsAddress = selectedWalletDetails?.code === 'RLUSD'
-    ? (rlusdWalletAddress || walletAddress)
-    : walletAddress;
+  const walletDetailsAddress = useMemo(() => {
+    const code = selectedWalletDetails?.code;
+    if (code === 'RLUSD') return (rlusdWalletAddress || walletAddress || '').trim();
+    if (code === 'XRP') return (walletAddress || '').trim();
+    if (code === 'USDT' || code === 'USDC') {
+      const fetched = String(walletDetailsDepositAddress || '').trim();
+      if (fetched) return fetched;
+      if (walletBalanceRaw) {
+        return resolveDepositAddressFromBalance(walletBalanceRaw, code, walletDetailsNetwork).trim();
+      }
+      return '';
+    }
+    return (walletAddress || '').trim();
+  }, [
+    selectedWalletDetails?.code,
+    walletAddress,
+    rlusdWalletAddress,
+    walletDetailsDepositAddress,
+    walletBalanceRaw,
+    walletDetailsNetwork,
+  ]);
 
   // Helper function to extract balance from different API response structures
   const getBalanceValue = (data, currency = 'usd') => {
@@ -2183,6 +2209,47 @@ const Dashboard = () => {
     fetchUserProfile();
   }, [isSessionExpired]);
 
+  const handleProvisionOtherWalletAddresses = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to continue.');
+      return;
+    }
+    if (accountType === 'Personal' && !walletAddress?.trim()) {
+      toast.error('Create your XRP wallet first.');
+      return;
+    }
+    setIsProvisioningMultichainWallets(true);
+    try {
+      const apiBasePath =
+        accountType === 'Business Suite' ? 'api/business-suite/wallet' : 'api/wallet';
+      const { results, succeeded, failed } = await provisionUsdtUsdcDepositAddresses({
+        token,
+        apiBasePath,
+      });
+      console.log('[Wallet details] USDT/USDC deposit-address provisioning:', { results, succeeded, failed });
+      setWalletBalancesRefreshTrigger((prev) => prev + 1);
+      if (succeeded.length === STABLECOIN_DEPOSIT_PROVISIONS.length) {
+        toast.success('USDT and USDC deposit addresses are ready');
+        return;
+      }
+      if (succeeded.length > 0) {
+        toast.success(`Created ${succeeded.length} of ${STABLECOIN_DEPOSIT_PROVISIONS.length} deposit addresses`);
+        return;
+      }
+      const firstMsg =
+        failed[0]?.result?.message || failed[0]?.result?.error || 'Could not create USDT/USDC deposit addresses.';
+      if (!showUnderReviewModalIfApplicable(firstMsg)) {
+        toast.error(firstMsg);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to create wallet addresses.');
+    } finally {
+      setIsProvisioningMultichainWallets(false);
+    }
+  };
+
   const handleCreateWallet = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -2224,6 +2291,7 @@ const Dashboard = () => {
 
     try {
       const apiUrl = getApiUrl('api/wallet/create');
+      setIsProvisioningMultichainWallets(true);
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -2246,6 +2314,8 @@ const Dashboard = () => {
           setWalletAddress(addresses.xrp);
           setRlusdWalletAddress(addresses.rlusd);
           setHasWallet(true);
+          setWalletBalancesRefreshTrigger((prev) => prev + 1);
+          setShowWalletModal(true);
           toast.success('Wallet creation was successful');
         } else {
           toast.error('Wallet was created but address is missing in the response.');
@@ -2258,6 +2328,8 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error creating wallet:', error);
       toast.error('An error occurred while creating the wallet. Please try again.');
+    } finally {
+      setIsProvisioningMultichainWallets(false);
     }
   };
 
@@ -2750,6 +2822,90 @@ const Dashboard = () => {
 
     fetchWalletBalances();
   }, [isSessionExpired, accountType, walletBalancesRefreshTrigger]);
+
+  // Fetch network-specific deposit address for USDT/USDC wallet details
+  useEffect(() => {
+    if (!showWalletDetailsModal || !selectedWalletDetails) {
+      setWalletDetailsDepositAddress('');
+      setIsLoadingWalletDetailsAddress(false);
+      return undefined;
+    }
+
+    const code = String(selectedWalletDetails.code || '').toUpperCase();
+    if (code !== 'USDT' && code !== 'USDC') {
+      setWalletDetailsDepositAddress('');
+      setIsLoadingWalletDetailsAddress(false);
+      return undefined;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      setWalletDetailsDepositAddress('');
+      setIsLoadingWalletDetailsAddress(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLoadingWalletDetailsAddress(true);
+    setWalletDetailsDepositAddress('');
+
+    const apiBase =
+      accountType === 'Business Suite' ? 'api/business-suite/wallet' : 'api/wallet';
+    const depositUrl = getApiUrl(
+      `${apiBase}/deposit-address?asset=${encodeURIComponent(code)}&network=${encodeURIComponent(walletDetailsNetwork)}`,
+    );
+
+    fetch(depositUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        console.log(
+          `[Wallet details] GET api/wallet/deposit-address (${code}/${walletDetailsNetwork}) response:`,
+          result,
+        );
+        const address = extractDepositAddressFromApiResponse(result);
+        if (address) {
+          setWalletDetailsDepositAddress(address);
+          return;
+        }
+        const fallback = resolveDepositAddressFromBalance(
+          walletBalanceRaw,
+          code,
+          walletDetailsNetwork,
+        );
+        setWalletDetailsDepositAddress(fallback || '');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('[Wallet details] GET api/wallet/deposit-address error:', err);
+        const fallback = resolveDepositAddressFromBalance(
+          walletBalanceRaw,
+          code,
+          walletDetailsNetwork,
+        );
+        setWalletDetailsDepositAddress(fallback || '');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingWalletDetailsAddress(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    showWalletDetailsModal,
+    selectedWalletDetails,
+    walletDetailsNetwork,
+    accountType,
+    isSessionExpired,
+    walletBalanceRaw,
+  ]);
 
   // When Business Suite wallet modal opens, fetch balance
   useEffect(() => {
@@ -4582,6 +4738,10 @@ const Dashboard = () => {
                       if (accountType === 'Business Suite' && !businessKycComplete) return;
                       if (isLoadingWalletAddress) return;
                       setIsMobileMenuOpen(false);
+                      if (accountType === 'Personal') {
+                        handleViewWalletClick();
+                        return;
+                      }
                       if (hasWallet) {
                         handleViewWalletClick();
                       } else {
@@ -4590,7 +4750,13 @@ const Dashboard = () => {
                     }}
                     disabled={isLoadingWalletAddress || (accountType === 'Business Suite' && !businessKycComplete)}
                   >
-                    <span>{isLoadingWalletAddress ? 'Loading...' : hasWallet ? 'View wallet' : 'Create wallet'}</span>
+                    <span>
+                      {isLoadingWalletAddress
+                        ? 'Loading...'
+                        : accountType === 'Personal' || hasWallet
+                          ? 'View wallet'
+                          : 'Create wallet'}
+                    </span>
                   </button>
                 </nav>
               </div>
@@ -6581,6 +6747,16 @@ const Dashboard = () => {
                 <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
                 <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
               </button>
+            ) : accountType === 'Personal' ? (
+              <button
+                className="sidebar-wallet-btn"
+                type="button"
+                onClick={() => handleViewWalletClick()}
+                aria-label="View wallet"
+              >
+                <svg className="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M20.5 21.5c-1.834-2.5-5.333-4-8.5-4s-6.666 1.5-8.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                <span style={{ marginLeft: '0.5rem' }}>View wallet</span>
+              </button>
             ) : hasWallet ? (
               <button
                 className="sidebar-wallet-btn"
@@ -7856,7 +8032,7 @@ const Dashboard = () => {
       )}
 
       {/* Wallet Modal */}
-      {showWalletModal && hasWallet && walletAddress && (
+      {showWalletModal && (accountType === 'Personal' || (hasWallet && walletAddress)) && (
         <div className="wallet-modal-overlay" onClick={() => setShowWalletModal(false)}>
           <div className="wallet-modal" onClick={(e) => e.stopPropagation()}>
             <div className="wallet-modal-header">
@@ -7870,14 +8046,20 @@ const Dashboard = () => {
               </button>
             </div>
             <div className="wallet-modal-body">
+              {!walletAddress ? (
+                <p style={{ marginBottom: '1rem', color: 'var(--text-muted, #64748b)', fontSize: '0.9rem' }}>
+                  No wallet yet. Create your XRP wallet to get started, then provision USDT and USDC deposit addresses.
+                </p>
+              ) : null}
               <p className="wallet-modal-label">XRP Address</p>
               <div className="wallet-modal-address-row">
                 <div className="wallet-modal-address-box">
-                  {walletAddress}
+                  {walletAddress || '—'}
                 </div>
                 <button
                   type="button"
                   className="wallet-modal-copy-btn"
+                  disabled={!walletAddress}
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(walletAddress);
@@ -7894,11 +8076,12 @@ const Dashboard = () => {
               <p className="wallet-modal-label" style={{ marginTop: '1rem' }}>RLUSD Address</p>
               <div className="wallet-modal-address-row">
                 <div className="wallet-modal-address-box">
-                  {rlusdWalletAddress || walletAddress}
+                  {rlusdWalletAddress || walletAddress || '—'}
                 </div>
                 <button
                   type="button"
                   className="wallet-modal-copy-btn"
+                  disabled={!(rlusdWalletAddress || walletAddress)}
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(rlusdWalletAddress || walletAddress);
@@ -7911,6 +8094,29 @@ const Dashboard = () => {
                 >
                   Copy
                 </button>
+              </div>
+              <div style={{ marginTop: '1.25rem' }}>
+                {!walletAddress ? (
+                  <button
+                    type="button"
+                    className="wallet-modal-copy-btn"
+                    style={{ width: '100%', minHeight: '44px' }}
+                    disabled={isProvisioningMultichainWallets}
+                    onClick={handleCreateWallet}
+                  >
+                    {isProvisioningMultichainWallets ? 'Creating…' : 'Create wallet'}
+                  </button>
+                ) : accountType === 'Personal' ? (
+                  <button
+                    type="button"
+                    className="wallet-modal-copy-btn"
+                    style={{ width: '100%', minHeight: '44px' }}
+                    disabled={isProvisioningMultichainWallets}
+                    onClick={handleProvisionOtherWalletAddresses}
+                  >
+                    {isProvisioningMultichainWallets ? 'Creating addresses…' : 'Create USDT & USDC addresses'}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -8028,17 +8234,31 @@ const Dashboard = () => {
               </div>
             ) : null}
 
-            <div className="wallet-details-address-card">
+            <div
+              className={`wallet-details-address-card${isLoadingWalletDetailsAddress ? ' wallet-details-address-card--pending' : ''}`}
+              aria-busy={isLoadingWalletDetailsAddress || undefined}
+            >
               <div className="wallet-details-qr-wrap">
-                <QRCode
-                  value={walletDetailsAddress || 'N/A'}
-                  size={128}
-                  bgColor="#ffffff"
-                  fgColor="#111827"
-                />
+                {isLoadingWalletDetailsAddress ? (
+                  <div className="wallet-details-qr-skeleton" aria-hidden />
+                ) : (
+                  <QRCode
+                    value={walletDetailsAddress || 'N/A'}
+                    size={128}
+                    bgColor="#ffffff"
+                    fgColor="#111827"
+                  />
+                )}
               </div>
               <div className="wallet-details-address-info">
-                <p>{walletDetailsAddress || 'Address not available yet'}</p>
+                {isLoadingWalletDetailsAddress ? (
+                  <div className="wallet-details-address-skeleton" aria-live="polite">
+                    <span className="wallet-details-address-skeleton-line wallet-details-address-skeleton-line--long" />
+                    <span className="wallet-details-address-skeleton-line wallet-details-address-skeleton-line--short" />
+                  </div>
+                ) : (
+                  <p>{walletDetailsAddress || 'Address not available yet'}</p>
+                )}
                 <button
                   type="button"
                   className="wallet-details-copy-icon-btn"
@@ -8056,6 +8276,7 @@ const Dashboard = () => {
                     }
                   }}
                   aria-label="Copy wallet address"
+                  disabled={!walletDetailsAddress || isLoadingWalletDetailsAddress}
                 >
                   <Copy size={20} />
                 </button>
@@ -8070,7 +8291,7 @@ const Dashboard = () => {
               <div className="wallet-details-meta-row">
                 <span>Wallet Address</span>
                 <strong className="wallet-details-meta-address-strong">
-                  {formatWalletDetailsAddressShort(walletDetailsAddress)}
+                  {isLoadingWalletDetailsAddress ? '…' : formatWalletDetailsAddressShort(walletDetailsAddress)}
                 </strong>
               </div>
             </div>
