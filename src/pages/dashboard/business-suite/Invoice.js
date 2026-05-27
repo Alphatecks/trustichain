@@ -440,7 +440,11 @@ const Invoice = () => {
   const invoiceDetailFields = invoiceDetailRow ? buildInvoiceDetailFields(invoiceDetailRow) : null;
 
   return (
-    <div className="dashboard invoice-dashboard">
+    <div
+      className={`dashboard invoice-dashboard${
+        showInvoiceEditor ? ' invoice-dashboard--editor-open' : ''
+      }`}
+    >
       {isSwitchingAccountType && <BusinessSuiteLoader message={switchMessage} />}
 
       {isMobileMenuOpen && (
@@ -1004,7 +1008,10 @@ const Invoice = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="invoice-detail-modal-header">
-              <h2 id="invoice-detail-modal-title">Invoice Details</h2>
+              <div className="invoice-detail-modal-title-wrap">
+                <span className="invoice-detail-modal-title-accent" aria-hidden />
+                <h2 id="invoice-detail-modal-title">Invoice Details</h2>
+              </div>
               <button
                 type="button"
                 className="invoice-detail-modal-close"
@@ -1044,6 +1051,16 @@ const Invoice = () => {
                 <span className="invoice-detail-modal-value">{invoiceDetailFields.currency}</span>
               </div>
               <div className="invoice-detail-modal-row">
+                <span className="invoice-detail-modal-label">Status</span>
+                <span
+                  className={`invoice-detail-modal-value invoice-detail-modal-value--status ${
+                    invoiceDetailRow?.status ? invoiceDetailRow.status.toLowerCase() : ''
+                  }`}
+                >
+                  {invoiceDetailRow?.status || 'Pending'}
+                </span>
+              </div>
+              <div className="invoice-detail-modal-row">
                 <span className="invoice-detail-modal-label invoice-detail-modal-label--accent">Milestone</span>
                 <span className="invoice-detail-modal-value">{invoiceDetailFields.milestone}</span>
               </div>
@@ -1057,8 +1074,22 @@ const Invoice = () => {
               </div>
             </div>
             <div className="invoice-detail-modal-footer">
-              <button type="button" className="invoice-detail-modal-done" onClick={closeInvoiceDetailModal}>
+              <button
+                type="button"
+                className="invoice-detail-modal-done"
+                onClick={closeInvoiceDetailModal}
+              >
                 Done
+              </button>
+              <button
+                type="button"
+                className="invoice-detail-modal-complete"
+                onClick={() => {
+                  toast.success('Invoice marked as completed');
+                  closeInvoiceDetailModal();
+                }}
+              >
+                Mark as Completed
               </button>
             </div>
           </div>

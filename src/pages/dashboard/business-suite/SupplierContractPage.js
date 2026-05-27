@@ -232,11 +232,27 @@ const SupplierContractPage = () => {
         ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(item.amount))
         : '—';
       const contractName = item.contractName ?? item.contractTitle ?? item.supplierName ?? `Contract #${id}`;
+      const supplierBusinessName =
+        item.supplierName ?? item.businessName ?? item.companyName ?? item.contractorName ?? '—';
       const buyer = item.buyerName ?? item.buyer ?? '—';
       const currency = item.currency ?? 'USDT';
       const escrowStatus = item.escrowStatus ?? item.status ?? 'Funds Locked in Escrow';
       const evidence = item.evidence ?? item.supplierEvidence ?? item.documents ?? [];
-      return { id, escrowId: item.escrowId, contractId: item.contractId, progress, dueDate, percentage, amount, contractName, buyer, currency, escrowStatus, evidence };
+      return {
+        id,
+        escrowId: item.escrowId,
+        contractId: item.contractId,
+        progress,
+        dueDate,
+        percentage,
+        amount,
+        contractName,
+        supplierBusinessName,
+        buyer,
+        currency,
+        escrowStatus,
+        evidence,
+      };
     });
   }, [supplierDetailsItems]);
 

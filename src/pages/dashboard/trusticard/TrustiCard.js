@@ -81,9 +81,59 @@ const TRUSTICARD_CARD_INFO_ADDRESS_FIELDS = [
 ];
 
 /** Flip to `false` when Cardyfie APIs are wired; until then the My Cards UI uses static data only. */
-const TRUSTICARD_USE_MOCK = true;
+const TRUSTICARD_USE_MOCK = false;
 
 const TRUSTICARD_HAS_CREATED_CARD_KEY = 'trusticard_has_created_card';
+const TRUSTICARD_CUSTOMER_ULID_KEY = 'trusticard_customer_ulid';
+
+function getStoredCustomerUlid() {
+  if (typeof window === 'undefined') return '';
+  return String(localStorage.getItem(TRUSTICARD_CUSTOMER_ULID_KEY) || '').trim();
+}
+
+function setStoredCustomerUlid(ulid) {
+  if (typeof window === 'undefined' || !ulid) return;
+  localStorage.setItem(TRUSTICARD_CUSTOMER_ULID_KEY, String(ulid).trim());
+}
+
+function extractCustomerUlid(result) {
+  return (
+    result?.customer?.ulid
+    ?? result?.data?.customer?.ulid
+    ?? result?.data?.ulid
+    ?? null
+  );
+}
+
+function normalizeCardyfieCard(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const statusRaw = String(raw.status ?? '').trim();
+  const statusLower = statusRaw.toLowerCase();
+  const status = statusRaw === 'ENABLED' ? 'active' : statusLower || 'active';
+  return {
+    ...raw,
+    card_balance: Number(raw.card_balance ?? raw.balance ?? 0) || 0,
+    card_currency_code: raw.card_currency_code ?? raw.card_currency ?? 'USD',
+    status,
+  };
+}
+
+function mapWizardIdType(uiLabel) {
+  const label = String(uiLabel || '').trim().toLowerCase();
+  if (label === 'passport') return 'passport';
+  if (label === 'bvn') return 'bvn';
+  return 'nid';
+}
+
+function splitFullName(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first_name: '', last_name: '' };
+  if (parts.length === 1) return { first_name: parts[0], last_name: parts[0] };
+  return {
+    first_name: parts[0],
+    last_name: parts.slice(1).join(' '),
+  };
+}
 
 const MOCK_TRUSTICARD_CARDS = [
   {
@@ -333,6 +383,15 @@ const TrustiCard = () => {
   const [createCardBasicName, setCreateCardBasicName] = useState('');
   const [createCardBasicDateOfBirth, setCreateCardBasicDateOfBirth] = useState('');
   const [createCardBasicGender, setCreateCardBasicGender] = useState('');
+  const [createCardHouseNumber, setCreateCardHouseNumber] = useState('');
+  const [createCardAddressLine1, setCreateCardAddressLine1] = useState('');
+  const [createCardCity, setCreateCardCity] = useState('');
+  const [createCardZipCode, setCreateCardZipCode] = useState('');
+  const [createCardIdFrontFile, setCreateCardIdFrontFile] = useState(null);
+  const [createCardIdBackFile, setCreateCardIdBackFile] = useState(null);
+  const [createCardUserImageFile, setCreateCardUserImageFile] = useState(null);
+  const [isSubmittingCreateCard, setIsSubmittingCreateCard] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
@@ -706,6 +765,7 @@ const TrustiCard = () => {
             setUserInitials(initials);
             setUserRole(data.role || data.userRole || 'User');
             setUserAvatar(getProfileAvatarUrl(data));
+            setUserEmail(String(data.email || data.userEmail || '').trim());
           }
         }
       } catch (e) {
@@ -739,7 +799,8 @@ const TrustiCard = () => {
       const result = await response.json();
       if (response.ok && result?.success && result?.cards) {
         const { data = [], current_page } = result.cards;
-        setCardsList(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data.map(normalizeCardyfieCard) : [];
+        setCardsList(list);
         setCardsPage(current_page ?? page);
       } else {
         setCardsList([]);
@@ -837,7 +898,7 @@ const TrustiCard = () => {
       });
       const result = await response.json();
       if (response.ok && result?.success && result?.card) {
-        setSelectedCardDetails(result.card);
+        setSelectedCardDetails(normalizeCardyfieCard(result.card));
       } else {
         setSelectedCardDetails(null);
       }
@@ -1015,11 +1076,13 @@ const TrustiCard = () => {
       toast.error('No card selected');
       return;
     }
-    const amount = parseFloat(String(amountInput ?? '').replace(/,/g, ''), 10);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const parsed = parseFloat(String(amountInput ?? '').replace(/,/g, ''), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
       toast.error('Enter a valid amount');
       return;
     }
+    const usdAmount =
+      activeFundWallet.id === 'rlusd' ? parsed * TRUSTICARD_RLUSD_TO_USD : parsed;
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('Please sign in to continue');
@@ -1030,12 +1093,13 @@ const TrustiCard = () => {
       const response = await fetch(getApiUrl(`api/cardyfie/card/${encodeURIComponent(cardUlid)}/deposit`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount: usdAmount }),
       });
       const result = await response.json();
       if (response.ok && result?.success) {
         if (result?.card) {
-          setCardsList((prev) => prev.map((c) => (c?.ulid === result.card?.ulid ? { ...c, ...result.card } : c)));
+          const normalized = normalizeCardyfieCard(result.card);
+          setCardsList((prev) => prev.map((c) => (c?.ulid === normalized?.ulid ? { ...c, ...normalized } : c)));
         }
         toast.success(result?.trx_id ? `Deposit successful. Ref: ${result.trx_id}` : 'Deposit successful');
         setShowFundModal(false);
@@ -1295,6 +1359,8 @@ const TrustiCard = () => {
       });
       const result = await response.json();
       if (response.ok && result?.success) {
+        const ulid = extractCustomerUlid(result);
+        if (ulid) setStoredCustomerUlid(ulid);
         toast.success(result?.message || 'Customer created');
         setShowCreateCustomerModal(false);
         fetchCards(1);
@@ -1335,6 +1401,185 @@ const TrustiCard = () => {
     }
   }, []);
 
+  const issueCardyfie = useCallback(async (token, { customerUlid, cardName, cardProvider = 'visa' }) => {
+    const response = await fetch(getApiUrl('api/cardyfie/card/issue'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_ulid: customerUlid,
+        card_name: cardName,
+        card_currency: 'USD',
+        card_provider: cardProvider,
+        card_type: 'universal',
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.message || result?.error || 'Failed to issue card');
+    }
+    return result;
+  }, []);
+
+  const issueCardForExistingCustomer = useCallback(async () => {
+    const customerUlid = getStoredCustomerUlid();
+    if (!customerUlid) {
+      toast.error('Complete card setup first');
+      return false;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to create a card');
+      return false;
+    }
+    setIsSubmittingCreateCard(true);
+    try {
+      const cardName = createCardBasicName.trim() || userFullName.trim() || 'My TrustiCard';
+      await issueCardyfie(token, { customerUlid, cardName, cardProvider: 'visa' });
+      markFirstCardCreationComplete();
+      setShowCreateCardModal(false);
+      setShowCreateCardKycModal(false);
+      setShowCreateCardIdentityModal(false);
+      setShowCreateCardAddressModal(false);
+      setShowCreateCardSuccessModal(true);
+      fetchCards(1);
+      toast.success('TrustiCard created');
+      return true;
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || 'Failed to create card');
+      return false;
+    } finally {
+      setIsSubmittingCreateCard(false);
+    }
+  }, [createCardBasicName, userFullName, fetchCards, issueCardyfie, markFirstCardCreationComplete]);
+
+  const submitCreateCardFlow = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to create a card');
+      return;
+    }
+
+    let customerUlid = getStoredCustomerUlid();
+
+    if (!customerUlid) {
+      const { first_name, last_name } = splitFullName(createCardBasicName);
+      const email = userEmail.trim();
+      if (!first_name || !email) {
+        toast.error('Name and profile email are required');
+        return;
+      }
+      if (!createCardBasicDateOfBirth.trim()) {
+        toast.error('Date of birth is required');
+        return;
+      }
+      if (!createCardIdNumber.trim()) {
+        toast.error('ID number is required');
+        return;
+      }
+      if (!createCardHouseNumber.trim() || !createCardAddressLine1.trim() || !createCardCity.trim() || !createCardZipCode.trim()) {
+        toast.error('Complete all address fields');
+        return;
+      }
+      if (!createCardIdFrontFile || !createCardUserImageFile) {
+        toast.error('ID front image and selfie are required');
+        return;
+      }
+
+      setIsSubmittingCreateCard(true);
+      try {
+        const formData = new FormData();
+        formData.append('first_name', first_name);
+        formData.append('last_name', last_name || first_name);
+        formData.append('email', email);
+        formData.append('date_of_birth', createCardBasicDateOfBirth.trim());
+        formData.append('id_type', mapWizardIdType(createCardIdType));
+        formData.append('id_number', createCardIdNumber.trim());
+        formData.append('house_number', createCardHouseNumber.trim());
+        formData.append('address_line_1', createCardAddressLine1.trim());
+        formData.append('city', createCardCity.trim());
+        formData.append('zip_code', createCardZipCode.trim());
+        formData.append('country', createCardCountry.trim());
+        formData.append('id_front_image', createCardIdFrontFile);
+        formData.append('user_image', createCardUserImageFile);
+        if (createCardIdBackFile) formData.append('id_back_image', createCardIdBackFile);
+
+        const customerRes = await fetch(getApiUrl('api/cardyfie/customer'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const customerResult = await customerRes.json();
+        if (!customerRes.ok || !customerResult?.success) {
+          toast.error(customerResult?.message || customerResult?.error || 'KYC submission failed');
+          return;
+        }
+        customerUlid = extractCustomerUlid(customerResult);
+        if (!customerUlid) {
+          toast.error('Customer created but ULID was not returned');
+          return;
+        }
+        setStoredCustomerUlid(customerUlid);
+      } catch (err) {
+        console.error(err);
+        toast.error('KYC submission failed');
+        return;
+      } finally {
+        setIsSubmittingCreateCard(false);
+      }
+    }
+
+    setIsSubmittingCreateCard(true);
+    try {
+      const cardName = createCardBasicName.trim() || userFullName.trim() || 'My TrustiCard';
+      await issueCardyfie(token, { customerUlid, cardName, cardProvider: 'visa' });
+      markFirstCardCreationComplete();
+      setShowCreateCardAddressModal(false);
+      setShowCreateCardSuccessModal(true);
+      fetchCards(1);
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || 'Failed to issue card');
+    } finally {
+      setIsSubmittingCreateCard(false);
+    }
+  }, [
+    createCardBasicName,
+    createCardBasicDateOfBirth,
+    createCardIdNumber,
+    createCardIdType,
+    createCardCountry,
+    createCardHouseNumber,
+    createCardAddressLine1,
+    createCardCity,
+    createCardZipCode,
+    createCardIdFrontFile,
+    createCardIdBackFile,
+    createCardUserImageFile,
+    userEmail,
+    userFullName,
+    fetchCards,
+    issueCardyfie,
+    markFirstCardCreationComplete,
+  ]);
+
+  const handleIdentityStepNext = useCallback(() => {
+    if (!createCardIdFrontFile) {
+      toast.error('Upload the front of your ID');
+      return;
+    }
+    if (!createCardUserImageFile) {
+      toast.error('Upload a selfie');
+      return;
+    }
+    if (!createCardIdNumber.trim()) {
+      toast.error('Enter your ID number');
+      return;
+    }
+    setShowCreateCardIdentityModal(false);
+    setShowCreateCardAddressModal(true);
+  }, [createCardIdFrontFile, createCardUserImageFile, createCardIdNumber]);
+
   const handleOpenAddCardFlow = useCallback(() => {
     if (hasCompletedFirstCardCreation) {
       setShowAddCardModal(true);
@@ -1345,9 +1590,14 @@ const TrustiCard = () => {
 
   const handleAddCardSubmit = async (e) => {
     e.preventDefault();
-    const { customer_ulid, card_name, card_type, card_provider } = addCardForm;
-    if (!customer_ulid?.trim() || !card_name?.trim()) {
-      toast.error('Customer ULID and card name are required');
+    const { card_name, card_provider } = addCardForm;
+    const customer_ulid = getStoredCustomerUlid();
+    if (!customer_ulid) {
+      toast.error('Complete card setup first');
+      return;
+    }
+    if (!card_name?.trim()) {
+      toast.error('Card name is required');
       return;
     }
     if (TRUSTICARD_USE_MOCK) {
@@ -1384,11 +1634,11 @@ const TrustiCard = () => {
     setIsSubmittingAddCard(true);
     try {
       const body = {
-        customer_ulid: customer_ulid.trim(),
+        customer_ulid,
         card_name: card_name.trim(),
         card_currency: 'USD',
-        card_type: (card_type || 'standard').trim(),
-        card_provider: (card_provider || 'mastercard').trim(),
+        card_type: 'universal',
+        card_provider: (card_provider || 'visa').trim(),
       };
       const response = await fetch(getApiUrl('api/cardyfie/card/issue'), {
         method: 'POST',
@@ -1896,10 +2146,9 @@ const TrustiCard = () => {
                 <div className="tc-v2-loading-inline"><LoadingIndicator size="md" /></div>
               ) : nCards === 0 ? (
                 <div className="tc-v2-empty-cards">
-                  <p>No cards yet. Create a customer, then issue a card.</p>
+                  <p>No cards yet. Create your first TrustiCard to get started.</p>
                   <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
-                    <button type="button" className="trusticard-btn-primary" onClick={() => setShowCreateCustomerModal(true)}>Create customer</button>
-                    <button type="button" className="trusticard-btn-ghost" onClick={() => setShowIssueCardModal(true)}>Issue card</button>
+                    <button type="button" className="trusticard-btn-primary" onClick={handleOpenAddCardFlow}>Create card</button>
                 </div>
               </div>
                       ) : (
@@ -2314,12 +2563,18 @@ const TrustiCard = () => {
               <button
                 type="button"
                 className="trusticard-create-card-submit trusticard-btn-primary"
-                onClick={() => {
+                disabled={isSubmittingCreateCard}
+                onClick={async () => {
                   setShowCreateCardModal(false);
+                  const existingUlid = getStoredCustomerUlid();
+                  if (existingUlid && !TRUSTICARD_USE_MOCK) {
+                    await issueCardForExistingCustomer();
+                    return;
+                  }
                   setShowCreateCardKycModal(true);
                 }}
               >
-                Create Card
+                {isSubmittingCreateCard ? '…' : 'Create Card'}
               </button>
 
               <p className="trusticard-add-funds-footnote trusticard-create-card-footnote">
@@ -2398,12 +2653,19 @@ const TrustiCard = () => {
                 <button
                   type="button"
                   className="trusticard-create-card-kyc-submit trusticard-btn-primary"
-                  onClick={() => {
+                  disabled={isSubmittingCreateCard}
+                  onClick={async () => {
+                    const existingUlid = getStoredCustomerUlid();
+                    if (existingUlid && !TRUSTICARD_USE_MOCK) {
+                      setShowCreateCardKycModal(false);
+                      await issueCardForExistingCustomer();
+                      return;
+                    }
                     setShowCreateCardKycModal(false);
                     setShowCreateCardIdentityModal(true);
                   }}
                 >
-                  Update KYC
+                  {isSubmittingCreateCard ? '…' : 'Update KYC'}
                 </button>
               </div>
             </div>
@@ -2522,13 +2784,55 @@ const TrustiCard = () => {
                 onChange={(e) => setCreateCardIdNumber(e.target.value)}
               />
 
+              <label className="trusticard-create-card-identity-label">ID front</label>
+              <label className="trusticard-create-card-proof-upload" htmlFor="trusticard-create-card-id-front">
+                <span className={`trusticard-create-card-proof-name ${createCardIdFrontFile ? 'has-file' : ''}`}>
+                  {createCardIdFrontFile?.name || 'Choose a file'}
+                </span>
+                <span className="trusticard-create-card-proof-action">Browse</span>
+                <input
+                  id="trusticard-create-card-id-front"
+                  type="file"
+                  accept="image/*"
+                  className="trusticard-create-card-proof-input"
+                  onChange={(e) => setCreateCardIdFrontFile(e.target.files?.[0] || null)}
+                />
+              </label>
+
+              <label className="trusticard-create-card-identity-label">ID back (optional)</label>
+              <label className="trusticard-create-card-proof-upload" htmlFor="trusticard-create-card-id-back">
+                <span className={`trusticard-create-card-proof-name ${createCardIdBackFile ? 'has-file' : ''}`}>
+                  {createCardIdBackFile?.name || 'Choose a file'}
+                </span>
+                <span className="trusticard-create-card-proof-action">Browse</span>
+                <input
+                  id="trusticard-create-card-id-back"
+                  type="file"
+                  accept="image/*"
+                  className="trusticard-create-card-proof-input"
+                  onChange={(e) => setCreateCardIdBackFile(e.target.files?.[0] || null)}
+                />
+              </label>
+
+              <label className="trusticard-create-card-identity-label">Selfie</label>
+              <label className="trusticard-create-card-proof-upload" htmlFor="trusticard-create-card-user-image">
+                <span className={`trusticard-create-card-proof-name ${createCardUserImageFile ? 'has-file' : ''}`}>
+                  {createCardUserImageFile?.name || 'Choose a file'}
+                </span>
+                <span className="trusticard-create-card-proof-action">Browse</span>
+                <input
+                  id="trusticard-create-card-user-image"
+                  type="file"
+                  accept="image/*"
+                  className="trusticard-create-card-proof-input"
+                  onChange={(e) => setCreateCardUserImageFile(e.target.files?.[0] || null)}
+                />
+              </label>
+
               <button
                 type="button"
                 className="trusticard-create-card-identity-submit trusticard-btn-primary"
-                onClick={() => {
-                  setShowCreateCardIdentityModal(false);
-                  setShowCreateCardAddressModal(true);
-                }}
+                onClick={handleIdentityStepNext}
               >
                 Next
               </button>
@@ -2607,15 +2911,53 @@ const TrustiCard = () => {
                 <ChevronDown size={18} className="trusticard-create-card-basic-gender-chevron" aria-hidden />
               </div>
 
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-house-number">House number</label>
+              <input
+                id="trusticard-create-card-house-number"
+                type="text"
+                className="trusticard-create-card-address-input"
+                placeholder="Add"
+                value={createCardHouseNumber}
+                onChange={(e) => setCreateCardHouseNumber(e.target.value)}
+              />
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-address-line">Address line</label>
+              <input
+                id="trusticard-create-card-address-line"
+                type="text"
+                className="trusticard-create-card-address-input"
+                placeholder="Add"
+                value={createCardAddressLine1}
+                onChange={(e) => setCreateCardAddressLine1(e.target.value)}
+              />
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-city">City</label>
+              <input
+                id="trusticard-create-card-city"
+                type="text"
+                className="trusticard-create-card-address-input"
+                placeholder="Add"
+                value={createCardCity}
+                onChange={(e) => setCreateCardCity(e.target.value)}
+              />
+
+              <label className="trusticard-create-card-address-label" htmlFor="trusticard-create-card-zip">Zip code</label>
+              <input
+                id="trusticard-create-card-zip"
+                type="text"
+                className="trusticard-create-card-address-input"
+                placeholder="Add"
+                value={createCardZipCode}
+                onChange={(e) => setCreateCardZipCode(e.target.value)}
+              />
+
               <button
                 type="button"
                 className="trusticard-create-card-address-submit trusticard-btn-primary"
-                onClick={() => {
-                  setShowCreateCardAddressModal(false);
-                  setShowCreateCardSuccessModal(true);
-                }}
+                disabled={isSubmittingCreateCard}
+                onClick={() => submitCreateCardFlow()}
               >
-                Update KYC
+                {isSubmittingCreateCard ? '…' : 'Update KYC'}
               </button>
             </div>
           </div>
@@ -2706,19 +3048,6 @@ const TrustiCard = () => {
             </div>
 
             <form className="trusticard-modal-body trusticard-add-card-body" onSubmit={handleAddCardSubmit}>
-              <label className="trusticard-create-card-address-label" htmlFor="trusticard-add-card-customer">
-                Customer ULID
-              </label>
-              <input
-                id="trusticard-add-card-customer"
-                type="text"
-                className="trusticard-create-card-address-input trusticard-add-card-input"
-                placeholder="Select"
-                value={addCardForm.customer_ulid}
-                onChange={(e) => setAddCardForm({ ...addCardForm, customer_ulid: e.target.value })}
-                required
-              />
-
               <label className="trusticard-create-card-address-label" htmlFor="trusticard-add-card-name">
                 Card Name
               </label>

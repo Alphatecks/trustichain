@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Plus, Check, Phone } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Phone, X } from 'lucide-react';
 import downloadCircleIcon from '../../../assets/images/icons/download-circle-02.png';
 import shareIcon from '../../../assets/images/icons/share-04.png';
 
@@ -14,6 +14,21 @@ const formatPreviewDate = (iso) => {
     const mon = d.toLocaleDateString('en-GB', { month: 'short' });
     const yr = d.getFullYear();
     return `${day}${suf} ${mon} ${yr}`;
+  } catch {
+    return iso;
+  }
+};
+
+const formatDueHeadlineDate = (iso) => {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
   } catch {
     return iso;
   }
@@ -92,6 +107,7 @@ function InvoiceEditorView({ listRow, issuerName, issuerLogoUrl, issuerEmail, is
     : listRow?.dueDate
       ? formatPreviewDate(listRow.dueDate)
       : '—';
+  const dueHeadlineDate = dueDate ? formatDueHeadlineDate(dueDate) : '';
 
   const currencySymbol =
     currency === 'EUR'
@@ -130,6 +146,20 @@ function InvoiceEditorView({ listRow, issuerName, issuerLogoUrl, issuerEmail, is
           <ArrowLeft size={18} aria-hidden />
           <span>Back to invoices</span>
         </button>
+        <div className="invoice-editor-mobile-header" role="presentation">
+          <div className="invoice-editor-mobile-header-title-wrap">
+            <span className="invoice-editor-mobile-header-accent" aria-hidden />
+            <h2 className="invoice-editor-mobile-header-title">Create Invoice</h2>
+          </div>
+          <button
+            type="button"
+            className="invoice-editor-mobile-close"
+            aria-label="Close create invoice"
+            onClick={onClose}
+          >
+            <X size={18} aria-hidden />
+          </button>
+        </div>
       </div>
 
       <div className="invoice-editor-grid">
@@ -319,6 +349,16 @@ function InvoiceEditorView({ listRow, issuerName, issuerLogoUrl, issuerEmail, is
                   <div className="invoice-editor-preview-muted">{dueDatePreview}</div>
                 </div>
               </div>
+
+              {dueHeadlineDate && (
+                <div className="invoice-editor-preview-due-headline">
+                  <span className="invoice-editor-preview-due-total">
+                    {currencySymbol}
+                    {total.toLocaleString('en-US')}
+                  </span>{' '}
+                  due by {dueHeadlineDate}
+                </div>
+              )}
 
               <div className="invoice-editor-preview-table-wrap">
                 <table className="invoice-editor-preview-table">

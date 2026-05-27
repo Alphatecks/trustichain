@@ -1050,7 +1050,9 @@ const SupplierContract = ({
                     </svg>
                     <span className="upcoming-supply-progress-text-mobile">{supplier.progress}%</span>
                   </div>
-                  <div className="upcoming-supply-id-mobile">#{supplier.id}</div>
+                  <div className="upcoming-supply-id-mobile">
+                    {supplier.supplierBusinessName || supplier.supplierName || supplier.contractName || `#${supplier.id}`}
+                  </div>
                   {supplier.dueDate && (
                     <div className="upcoming-supply-due-date-mobile">Due date: {supplier.dueDate}</div>
                   )}
@@ -1688,7 +1690,9 @@ const SupplierContract = ({
                       <span className="progress-text">{supplier.progress}%</span>
                     </div>
                     <div className="supplier-card-info">
-                      <div className="supplier-id">#{supplier.id}</div>
+                      <div className="supplier-id">
+                        {supplier.supplierBusinessName || supplier.supplierName || supplier.contractName || `#${supplier.id}`}
+                      </div>
                       {supplier.dueDate && (
                         <div className="supplier-due-date">Due date: {supplier.dueDate}</div>
                       )}

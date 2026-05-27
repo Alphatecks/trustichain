@@ -78,6 +78,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
   const [submitError, setSubmitError] = useState('');
   const [isLookingUpEmail, setIsLookingUpEmail] = useState(false);
   const [lookupEmailError, setLookupEmailError] = useState('');
+  const [lookupMatchedBusinessName, setLookupMatchedBusinessName] = useState('');
   const lookupTimeoutRef = useRef(null);
   const [supplierSuggestions, setSupplierSuggestions] = useState([]);
   const [isLoadingSupplierSuggestions, setIsLoadingSupplierSuggestions] = useState(false);
@@ -90,6 +91,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     const name = supplierName.trim();
     if (!name || name.length < 2) {
       setLookupEmailError('');
+      setLookupMatchedBusinessName('');
       return;
     }
     if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
@@ -105,18 +107,23 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
       })
         .then((res) => res.json().catch(() => ({})))
         .then((result) => {
+          console.log('[CreateSupplierEscrow] business-email lookup response:', result);
           if (result?.success && result?.data) {
             const businessEmail = result.data.businessEmail;
             const businessXrpAddress = result.data.businessXrpAddress;
+            const matchedName = result.data.matchedBusinessName;
 
             if (businessEmail) setSupplierEmail(businessEmail);
             if (businessXrpAddress) setSupplierWalletAddress(businessXrpAddress);
+            setLookupMatchedBusinessName(matchedName || '');
             setLookupEmailError('');
           } else {
+            setLookupMatchedBusinessName('');
             setLookupEmailError(result?.message || 'No business email found for this supplier.');
           }
         })
         .catch(() => {
+          setLookupMatchedBusinessName('');
           setLookupEmailError('Could not look up business email. Please enter it manually.');
         })
         .finally(() => {
@@ -153,6 +160,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
       })
         .then((res) => res.json().catch(() => ({})))
         .then((result) => {
+          console.log('[CreateSupplierEscrow] business name autocomplete response:', result);
           const items = Array.isArray(result?.data?.items) ? result.data.items : [];
           setSupplierSuggestions(items);
           setShowSupplierSuggestions(true);
@@ -207,6 +215,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     setUploadedFiles({ invoice: null, agreement: null, deliveryTerms: null });
     setSubmitError('');
     setLookupEmailError('');
+    setLookupMatchedBusinessName('');
     setSupplierSuggestions([]);
     setIsLoadingSupplierSuggestions(false);
     setShowSupplierSuggestions(false);
@@ -461,19 +470,32 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
                               {isLoadingSupplierSuggestions ? (
                                 <div className="add-supplier-autocomplete-meta">Loading supplier suggestions...</div>
                               ) : supplierSuggestions.length === 0 ? (
-                                <div className="add-supplier-autocomplete-meta">No matching businesses found</div>
-                              ) : (
-                                supplierSuggestions.map((item) => (
+                                lookupMatchedBusinessName ? (
                                   <button
-                                    key={item.businessId || item.businessName}
                                     type="button"
                                     className="add-supplier-dropdown-item"
                                     onClick={() => {
-                                      setSupplierName(item.businessName || '');
+                                      setSupplierName(lookupMatchedBusinessName);
                                       setShowSupplierSuggestions(false);
                                     }}
                                   >
-                                    {item.businessName}
+                                    {lookupMatchedBusinessName}
+                                  </button>
+                                ) : (
+                                  <div className="add-supplier-autocomplete-meta">No matching businesses found</div>
+                                )
+                              ) : (
+                                supplierSuggestions.map((item) => (
+                                  <button
+                                    key={item.businessId || item.companyName || item.businessName}
+                                    type="button"
+                                    className="add-supplier-dropdown-item"
+                                    onClick={() => {
+                                      setSupplierName(item.companyName || item.businessName || '');
+                                      setShowSupplierSuggestions(false);
+                                    }}
+                                  >
+                                    {item.companyName || item.businessName || 'Unnamed business'}
                                   </button>
                                 ))
                               )}
