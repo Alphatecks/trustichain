@@ -655,6 +655,11 @@
   color: #111111;
 }
 
+.create-escrow-step3-payment-mark--trustichain {
+  color: var(--blue-700, #1d4ed8);
+  font-weight: 700;
+}
+
 .create-escrow-step3-payment-logo-text {
   font-size: 0.9rem;
   font-weight: 700;
@@ -705,6 +710,11 @@
 
 .create-escrow-flow-root--desktop-modal .create-escrow-step3-footer-desktop .submit-next-btn {
   min-width: 10rem;
+}
+
+.create-escrow-modal .submit-next-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

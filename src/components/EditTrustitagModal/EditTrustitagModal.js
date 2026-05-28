@@ -67,7 +67,7 @@ export default function EditTrustitagModal({ isOpen, initialTrustitag = '', onCl
 
     setSaving(true);
     try {
-      const res = await fetch(getApiUrl('api/user/profile'), {
+      const res = await fetch(getApiUrl('api/user/trustitag'), {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,

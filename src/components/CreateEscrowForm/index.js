@@ -80,6 +80,12 @@ const ApplePayLogo = () => (
   </span>
 );
 
+const TrustichainPayBadge = () => (
+  <span className="create-escrow-step3-payment-mark create-escrow-step3-payment-mark--trustichain">
+    Trustichain
+  </span>
+);
+
 const STRIPE_METHODS = new Set(['googlepay', 'applepay']);
 
 /** Connected/saved wallet used as payer when the Step 1 field is empty. */
@@ -161,7 +167,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedEscrowType, setSelectedEscrowType] = useState('Freelancing');
   const [selectedConfirmationPaymentMethod, setSelectedConfirmationPaymentMethod] =
-    useState('googlepay');
+    useState('');
   /** Step 1: identify counterparty by wallet vs Trustitag. */
   const [counterpartyMethod, setCounterpartyMethod] = useState('wallet');
   const selectedCounterpartyMethodMeta =
@@ -317,7 +323,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     setIsCreatingEscrow(false);
     setCurrentStep(1);
     setSelectedEscrowType('Freelancing');
-    setSelectedConfirmationPaymentMethod('googlepay');
+    setSelectedConfirmationPaymentMethod('');
     setStripePaymentStatus(null);
     setCounterpartyMethod('wallet');
     setFormData({
@@ -461,6 +467,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
       if (!termsData.totalAmount) {
         toast.error('Please enter the total amount');
+        setIsCreatingEscrow(false);
+        return;
+      }
+
+      if (!selectedConfirmationPaymentMethod) {
+        toast.error('Please select a payment method');
         setIsCreatingEscrow(false);
         return;
       }
@@ -1521,6 +1533,18 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                   >
                     <ApplePayLogo />
                   </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedConfirmationPaymentMethod === 'trustichain'}
+                    aria-label="Pay with Trustichain"
+                    className={`create-escrow-step3-payment-btn ${
+                      selectedConfirmationPaymentMethod === 'trustichain' ? 'active' : ''
+                    }`}
+                    onClick={() => setSelectedConfirmationPaymentMethod('trustichain')}
+                  >
+                    <TrustichainPayBadge />
+                  </button>
                 </div>
                 {stripePaymentStatus && (
                   <p className="create-escrow-step3-payment-status">
@@ -1717,7 +1741,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
               type="button"
               className="submit-next-btn"
               onClick={handleCreateEscrow}
-              disabled={isCreatingEscrow}
+              disabled={isCreatingEscrow || !selectedConfirmationPaymentMethod}
             >
               <div className="submit-btn-icon-circle">
                 {isCreatingEscrow ? (
