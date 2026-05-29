@@ -100,6 +100,40 @@
   display: none;
 }
 
+.savings-lazy-loader {
+  width: 100%;
+  min-height: 8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.savings-lazy-loader--history {
+  min-height: 10rem;
+}
+
+.savings-lazy-loader--mobile {
+  min-height: 4rem;
+}
+
+.savings-empty-state {
+  width: 100%;
+  min-height: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.savings-empty-state--history {
+  min-height: 10rem;
+}
+
 .savings-plan-card {
   flex: 0 0 auto;
   position: relative;
@@ -468,6 +502,49 @@
 
 .savings-history-pill-btn:hover {
   border-color: rgba(0, 102, 255, 0.35);
+  color: #0066ff;
+}
+
+.savings-history-dropdown {
+  position: relative;
+}
+
+.savings-history-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  min-width: 9.5rem;
+  padding: 0.35rem;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.savings-history-dropdown-item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.savings-history-dropdown-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.savings-history-dropdown-item.active {
+  background: rgba(0, 102, 255, 0.08);
   color: #0066ff;
 }
 

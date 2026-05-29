@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -48,6 +48,7 @@ import NotificationCenterModal from '../../../components/NotificationCenterModal
 import SavingsWithdrawWalletModal from '../../../components/SavingsWithdrawWalletModal';
 import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
 import AddSavingsPlanModal, { planRequiresGoalAmount, planIsAutoSavings } from '../../../components/AddSavingsPlanModal';
+import LoadingIndicator from '../../../components/LoadingIndicator';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -62,15 +63,6 @@ const sidebarNav = [
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
 
-const MOCK_SAVINGS_PLANS = [
-  { id: '1', title: 'My goals', progressPct: 65, typeLabel: 'Fixed', savedUsd: 16000, ringColor: '#2563eb', Icon: Trophy },
-  { id: '2', title: 'Utility', progressPct: 15, typeLabel: 'Auto Savings', savedUsd: 4000, ringColor: '#22c55e', Icon: Home },
-  { id: '3', title: 'Expenses', progressPct: 15, typeLabel: 'Flex savings', savedUsd: 4000, ringColor: '#ec4899', Icon: Receipt },
-  { id: '4', title: 'Others', progressPct: 15, typeLabel: 'Goal', savedUsd: 4000, ringColor: '#f97316', Icon: Trophy },
-  { id: '5', title: 'Others', progressPct: 15, typeLabel: 'Goal', savedUsd: 4000, ringColor: '#a855f7', Icon: Package },
-  { id: '6', title: 'Others', progressPct: 15, typeLabel: 'Goal', savedUsd: 4000, ringColor: '#06b6d4', Icon: Package },
-];
-
 const MOBILE_SAVINGS_ALLOCATION_BUCKETS = [
   { id: 'mb1', label: 'My Goals', pct: 50, color: '#2563eb' },
   { id: 'mb2', label: 'House Rent', pct: 15, color: '#22c55e' },
@@ -78,43 +70,7 @@ const MOBILE_SAVINGS_ALLOCATION_BUCKETS = [
   { id: 'mb4', label: 'Set up', pct: 20, color: '#f97316' },
 ];
 
-const MOCK_SAVINGS_MOBILE_TX_FEED = [
-  {
-    id: 'mt1',
-    title: 'Received',
-    subtitle: 'You received 50 XRP, worth $25.00 USD.',
-    status: 'Successful',
-    date: '2024-07-04',
-  },
-  {
-    id: 'mt2',
-    title: 'Received',
-    subtitle: 'You received 50 XRP, worth $25.00 USD.',
-    status: 'Successful',
-    date: '2024-07-04',
-  },
-  {
-    id: 'mt3',
-    title: 'Received',
-    subtitle: 'You received 50 XRP, worth $25.00 USD.',
-    status: 'Successful',
-    date: '2024-07-04',
-  },
-];
-
-const MOCK_SAVING_HISTORY_ROWS = [
-  { id: 'h1', txShort: 'F4E5D6', txEnd: 'C1B2A3', amount: 1200, plan: 'Flex Savings', date: '2024-07-04' },
-  { id: 'h2', txShort: 'A1B2C3', txEnd: 'D4E5F6', amount: 800, plan: 'Auto-Save', date: '2024-07-03' },
-  { id: 'h3', txShort: '9F8E7D', txEnd: '1A2B3C', amount: 2500, plan: 'Fixed Saving', date: '2024-07-02' },
-  { id: 'h4', txShort: '7C8D9E', txEnd: 'F1A2B3', amount: 500, plan: 'Goal', date: '2024-07-01' },
-  { id: 'h5', txShort: '5D6E7F', txEnd: '8C9D0E', amount: 1500, plan: 'Flex Savings', date: '2024-06-29' },
-  { id: 'h6', txShort: '3E4F5A', txEnd: '6B7C8D', amount: 950, plan: 'Auto-Save', date: '2024-06-28' },
-  { id: 'h7', txShort: '1F2A3B', txEnd: '4E5F6C', amount: 2200, plan: 'Fixed Saving', date: '2024-06-26' },
-  { id: 'h8', txShort: '8N9P0Q', txEnd: '2R3S4T', amount: 650, plan: 'Goal', date: '2024-06-24' },
-];
-
 const HISTORY_PAGE_CHUNK = 10;
-const HISTORY_TOTAL_PAGES = 18;
 
 /** Pagination strip aligned with Saving history mock: `1 … 11–18` when there are many pages. */
 const getSavingHistoryPaginationStrip = (totalPages) => {
@@ -126,24 +82,98 @@ const getSavingHistoryPaginationStrip = (totalPages) => {
   return strip;
 };
 
-const MOCK_SAVINGS_ALLOCATION = {
-  totalUsd: 24567.89,
-  monthGrowthPct: 3.1,
-  buckets: [
-    { id: 'a1', label: 'My Goals', pct: 25, color: '#2563eb' },
-    { id: 'a2', label: 'House Rent', pct: 20, color: '#22c55e' },
-    { id: 'a3', label: 'Expenses', pct: 20, color: '#a855f7' },
-    { id: 'a4', label: 'Set up', pct: 20, color: '#f97316' },
-    { id: 'a5', label: 'Set up', pct: 10, color: '#4f46e5' },
-    { id: 'a6', label: 'Set up', pct: 5, color: '#06b6d4' },
-  ],
-};
-
 const fmtUsdWhole = (n) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
 const fmtUsdDecimals = (n) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+const fmtUsdNoCents = (n) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+    Number.isFinite(Number(n)) ? Number(n) : 0,
+  );
+
+const toNumeric = (value, fallback = 0) => {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const toYyyyMmDd = (date) => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const SAVINGS_WALLET_STYLE_PRESETS = [
+  { ringColor: '#2563eb', Icon: Trophy },
+  { ringColor: '#22c55e', Icon: Home },
+  { ringColor: '#ec4899', Icon: Receipt },
+  { ringColor: '#f97316', Icon: Package },
+  { ringColor: '#06b6d4', Icon: RefreshCw },
+];
+
+const hashStringToIndex = (value, modulo) => {
+  if (!value || !modulo) return 0;
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash % modulo;
+};
+
+const mapSavingsWalletApiToUi = (wallet, fallbackIndex = 0) => {
+  const idRaw = String(wallet?.id || '').trim();
+  const styleIndex = idRaw
+    ? hashStringToIndex(idRaw, SAVINGS_WALLET_STYLE_PRESETS.length)
+    : fallbackIndex % SAVINGS_WALLET_STYLE_PRESETS.length;
+  const style = SAVINGS_WALLET_STYLE_PRESETS[styleIndex] || SAVINGS_WALLET_STYLE_PRESETS[0];
+  const amountUsd = toNumeric(wallet?.amountUsd);
+  const targetAmountUsd = toNumeric(wallet?.targetAmountUsd);
+  const percentageNumRaw = toNumeric(wallet?.percentage, NaN);
+  const progressPct = Number.isFinite(percentageNumRaw)
+    ? Math.max(0, Math.min(100, percentageNumRaw))
+    : targetAmountUsd > 0
+      ? Math.max(0, Math.min(100, (amountUsd / targetAmountUsd) * 100))
+      : 0;
+
+  return {
+    id: idRaw || `wallet-${fallbackIndex + 1}`,
+    title: String(wallet?.name || `Wallet ${fallbackIndex + 1}`),
+    progressPct: Math.round(progressPct),
+    typeLabel: String(wallet?.planType || 'Savings'),
+    savedUsd: amountUsd,
+    ringColor: style.ringColor,
+    Icon: style.Icon,
+    status: String(wallet?.status || '').toLowerCase() === 'completed' ? 'completed' : 'active',
+    targetAmountUsd,
+  };
+};
+
+const mapSavingsTransactionApiToUi = (tx, idx) => {
+  const txHash = String(tx?.txHash || tx?.id || '').trim();
+  const txShort = txHash ? txHash.slice(0, 6) : `TX${String(idx + 1).padStart(4, '0')}`;
+  const txEnd = txHash ? txHash.slice(-6) : '—';
+  const amountUsd = toNumeric(tx?.amountUsd);
+  const walletName = String(tx?.walletName || tx?.wallet || tx?.planName || 'Savings');
+  const status = String(tx?.status || 'Successful');
+  const direction = String(tx?.direction || 'in').toLowerCase();
+  const dateRaw = tx?.date || tx?.createdAt;
+  const date = dateRaw ? toYyyyMmDd(dateRaw) : '—';
+  return {
+    id: txHash || `${txShort}-${idx}`,
+    txShort,
+    txEnd,
+    amount: amountUsd,
+    plan: walletName,
+    date,
+    status,
+    direction,
+    txLabel: String(tx?.txLabel || (direction === 'out' ? 'Sent' : 'Received')),
+  };
+};
 
 const Savings = () => {
   const navigate = useNavigate();
@@ -161,14 +191,31 @@ const Savings = () => {
   const [userAvatar, setUserAvatar] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [formattedToday, setFormattedToday] = useState('');
-  const [savingHistoryPage, setSavingHistoryPage] = useState(12);
+  const [savingHistoryPage, setSavingHistoryPage] = useState(1);
+  const [savingHistoryTotalPages, setSavingHistoryTotalPages] = useState(1);
+  const [savingHistoryDirection, setSavingHistoryDirection] = useState('all');
+  const [savingHistoryRange, setSavingHistoryRange] = useState('monthly');
+  const [showHistoryFilterMenu, setShowHistoryFilterMenu] = useState(false);
+  const [showHistoryRangeMenu, setShowHistoryRangeMenu] = useState(false);
   const [savingHistorySelectedIds, setSavingHistorySelectedIds] = useState(() => ({}));
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
   const [showAddSavingsPlanModal, setShowAddSavingsPlanModal] = useState(false);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
-  const [savingsPlans, setSavingsPlans] = useState(() => MOCK_SAVINGS_PLANS.map((p) => ({ ...p })));
-  const [addMoneyAccountId, setAddMoneyAccountId] = useState(MOCK_SAVINGS_PLANS[0]?.id ?? '1');
+  const [savingsPlans, setSavingsPlans] = useState([]);
+  const [addMoneyAccountId, setAddMoneyAccountId] = useState('');
+  const [savingsTotalUsd, setSavingsTotalUsd] = useState(0);
+  const [savingsGrowthPct, setSavingsGrowthPct] = useState(0);
+  const [savingsAllocationBuckets, setSavingsAllocationBuckets] = useState([]);
+  const [savingHistoryRows, setSavingHistoryRows] = useState([]);
+  const [savingsMobileTxFeed, setSavingsMobileTxFeed] = useState([]);
+  const [hasLoadedSavingsData, setHasLoadedSavingsData] = useState(false);
+  const [savingsReloadTick, setSavingsReloadTick] = useState(0);
+  const [isLoadingSavingsData, setIsLoadingSavingsData] = useState(false);
+  const [isCreatingSavingsWallet, setIsCreatingSavingsWallet] = useState(false);
+  const [isSubmittingSavingsTransfer, setIsSubmittingSavingsTransfer] = useState(false);
+  const [isSubmittingSavingsWithdraw, setIsSubmittingSavingsWithdraw] = useState(false);
+  const [deletingSavingsWalletId, setDeletingSavingsWalletId] = useState('');
   const [addSavingsPlanForm, setAddSavingsPlanForm] = useState({
     name: '',
     category: 'Fixed',
@@ -179,6 +226,8 @@ const Savings = () => {
   const [savingsMobileMq, setSavingsMobileMq] = useState(
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false,
   );
+  const historyFilterMenuRef = useRef(null);
+  const historyRangeMenuRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -260,6 +309,173 @@ const Savings = () => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    const onDocClick = (event) => {
+      if (
+        historyFilterMenuRef.current &&
+        !historyFilterMenuRef.current.contains(event.target)
+      ) {
+        setShowHistoryFilterMenu(false);
+      }
+      if (
+        historyRangeMenuRef.current &&
+        !historyRangeMenuRef.current.contains(event.target)
+      ) {
+        setShowHistoryRangeMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const fetchSavingsWithAuth = async (endpoint, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    const response = await fetch(getApiUrl(endpoint), {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.success === false) {
+      const msg =
+        (typeof payload?.message === 'string' && payload.message) ||
+        (typeof payload?.error === 'string' && payload.error) ||
+        'Savings request failed';
+      throw new Error(msg);
+    }
+    return payload;
+  };
+
+  useEffect(() => {
+    if (isSessionExpired) {
+      setHasLoadedSavingsData(true);
+      return;
+    }
+    let cancelled = false;
+
+    const fetchSavingsDashboardData = async () => {
+      setIsLoadingSavingsData(true);
+      try {
+        const [summaryRes, cashflowRes, totalRes, walletsRes, txRes] = await Promise.all([
+          fetchSavingsWithAuth('api/savings/summary?range=this_month'),
+          fetchSavingsWithAuth('api/savings/cashflow?interval=monthly&range=this_month'),
+          fetchSavingsWithAuth('api/savings/wallets/total'),
+          fetchSavingsWithAuth('api/savings/wallets'),
+          fetchSavingsWithAuth(
+            `api/savings/transactions?direction=${encodeURIComponent(
+              savingHistoryDirection,
+            )}&range=${encodeURIComponent(savingHistoryRange)}&page=${savingHistoryPage}&pageSize=${HISTORY_PAGE_CHUNK}`,
+          ),
+        ]);
+        if (cancelled) return;
+
+        const summaryData = summaryRes?.data || {};
+        const walletsRaw = Array.isArray(walletsRes?.data?.wallets) ? walletsRes.data.wallets : [];
+        const mappedWallets = walletsRaw.map((wallet, idx) => mapSavingsWalletApiToUi(wallet, idx));
+        const cashflowData = cashflowRes?.data || {};
+        const txRaw = Array.isArray(txRes?.data?.transactions) ? txRes.data.transactions : [];
+        const mappedTxRows = txRaw.map((tx, idx) => mapSavingsTransactionApiToUi(tx, idx));
+
+        setSavingsPlans(mappedWallets);
+        setAddMoneyAccountId((prev) => {
+          if (mappedWallets.length === 0) return '';
+          return mappedWallets.some((w) => w.id === prev) ? prev : mappedWallets[0].id;
+        });
+
+        const walletsTotalUsd = toNumeric(totalRes?.data?.totalUsd, NaN);
+        const summaryTotalUsd = toNumeric(summaryData?.totalUsd, NaN);
+        const resolvedTotalUsd = Number.isFinite(walletsTotalUsd)
+          ? walletsTotalUsd
+          : Number.isFinite(summaryTotalUsd)
+            ? summaryTotalUsd
+            : 0;
+        setSavingsTotalUsd(resolvedTotalUsd);
+
+        const growthCandidates = [
+          summaryData?.monthGrowthPct,
+          summaryData?.growthPct,
+          summaryData?.changePercent,
+        ];
+        const resolvedGrowth =
+          growthCandidates.map((v) => toNumeric(v, NaN)).find((v) => Number.isFinite(v)) ?? 0;
+        setSavingsGrowthPct(resolvedGrowth);
+
+        const bucketsFromApi = Array.isArray(cashflowData?.buckets)
+          ? cashflowData.buckets
+          : Array.isArray(summaryData?.allocation)
+            ? summaryData.allocation
+            : [];
+        if (bucketsFromApi.length > 0) {
+          const mappedBuckets = bucketsFromApi
+            .map((bucket, idx) => ({
+              id: String(bucket?.id || bucket?.name || bucket?.label || `bucket-${idx + 1}`),
+              label: String(bucket?.label || bucket?.name || `Bucket ${idx + 1}`),
+              pct: Math.max(0, toNumeric(bucket?.pct ?? bucket?.percentage, 0)),
+              color: String(
+                bucket?.color || MOBILE_SAVINGS_ALLOCATION_BUCKETS[idx % MOBILE_SAVINGS_ALLOCATION_BUCKETS.length]?.color || '#2563eb',
+              ),
+            }))
+            .filter((b) => b.pct > 0);
+          setSavingsAllocationBuckets(mappedBuckets);
+        } else {
+          const total = mappedWallets.reduce((acc, w) => acc + toNumeric(w.savedUsd), 0);
+          if (total > 0) {
+            setSavingsAllocationBuckets(
+              mappedWallets.map((w, idx) => ({
+                id: w.id,
+                label: w.title,
+                pct: Math.max(0, Math.round((toNumeric(w.savedUsd) / total) * 100)),
+                color:
+                  w.ringColor ||
+                  MOBILE_SAVINGS_ALLOCATION_BUCKETS[idx % MOBILE_SAVINGS_ALLOCATION_BUCKETS.length]?.color ||
+                  '#2563eb',
+              })),
+            );
+          } else {
+            setSavingsAllocationBuckets([]);
+          }
+        }
+
+        setSavingHistoryRows(mappedTxRows);
+        setSavingsMobileTxFeed(
+          mappedTxRows.slice(0, 3).map((row) => ({
+            id: row.id,
+            title: row.txLabel,
+            subtitle: `${row.txLabel} ${fmtUsdNoCents(row.amount)} in ${row.plan}.`,
+            status: row.status || 'Successful',
+            date: row.date || '—',
+          })),
+        );
+        const totalTx = toNumeric(txRes?.data?.total, mappedTxRows.length);
+        setSavingHistoryTotalPages(Math.max(1, Math.ceil(totalTx / HISTORY_PAGE_CHUNK)));
+      } catch (error) {
+        console.error('Error fetching savings dashboard data:', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSavingsData(false);
+          setHasLoadedSavingsData(true);
+        }
+      }
+    };
+
+    fetchSavingsDashboardData();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isSessionExpired,
+    savingHistoryPage,
+    savingHistoryDirection,
+    savingHistoryRange,
+    savingsReloadTick,
+  ]);
+
   const isNavActive = (label) =>
     (label === 'Dashboard' && location.pathname === '/dashboard') ||
     (label === 'My Escrow' && location.pathname === '/my-escrow') ||
@@ -277,8 +493,8 @@ const Savings = () => {
     else if (label === 'Trusticard') navigate('/trusticard');
   };
 
-  const savingHistoryPaginationStrip = getSavingHistoryPaginationStrip(HISTORY_TOTAL_PAGES);
-  const savingHistoryRowIds = MOCK_SAVING_HISTORY_ROWS.map((r) => r.id);
+  const savingHistoryPaginationStrip = getSavingHistoryPaginationStrip(savingHistoryTotalPages);
+  const savingHistoryRowIds = savingHistoryRows.map((r) => r.id);
   const savingHistoryAllChecked =
     savingHistoryRowIds.length > 0 && savingHistoryRowIds.every((id) => savingHistorySelectedIds[id]);
 
@@ -298,7 +514,32 @@ const Savings = () => {
     setSavingHistorySelectedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const savingsAllocationBuckets = savingsMobileMq ? MOBILE_SAVINGS_ALLOCATION_BUCKETS : MOCK_SAVINGS_ALLOCATION.buckets;
+  const effectiveSavingsAllocationBuckets = savingsMobileMq
+    ? MOBILE_SAVINGS_ALLOCATION_BUCKETS
+    : savingsAllocationBuckets;
+  const showSavingsLazyLoader = isLoadingSavingsData && !hasLoadedSavingsData;
+  const savingHistoryRangeLabel =
+    savingHistoryRange === 'daily'
+      ? 'Daily'
+      : savingHistoryRange === 'weekly'
+        ? 'Weekly'
+        : 'Monthly';
+  const savingHistoryDirectionLabel =
+    savingHistoryDirection === 'in'
+      ? 'Received'
+      : savingHistoryDirection === 'out'
+        ? 'Sent'
+        : 'All';
+  const savingHistoryDirectionOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'in', label: 'Received' },
+    { value: 'out', label: 'Sent' },
+  ];
+  const savingHistoryRangeOptions = [
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'daily', label: 'Daily' },
+  ];
 
   const savingsAddMoneyAccounts = useMemo(
     () => savingsPlans.map((p) => ({ id: p.id, label: p.title })),
@@ -312,42 +553,104 @@ const Savings = () => {
     }
   }, [savingsPlans, addMoneyAccountId]);
 
-  const deleteSavingsPlanCard = (plan) => {
-    if (!window.confirm(`Remove "${plan.title}" from your savings wallets?`)) {
+  const deleteSavingsPlanCard = async (plan) => {
+    if (!plan?.id || String(plan.id).startsWith('wallet-')) {
+      toast.error('Invalid savings wallet');
       return;
     }
-    setSavingsPlans((prev) => prev.filter((p) => p.id !== plan.id));
-    toast.success('Plan removed');
+    if (!window.confirm(`Remove "${plan.title}" from your savings wallets?`)) return;
+    try {
+      setDeletingSavingsWalletId(String(plan.id));
+      const queryTargetWalletId = '';
+      await fetchSavingsWithAuth(
+        `api/savings/wallets/${encodeURIComponent(String(plan.id))}${
+          queryTargetWalletId ? `?targetWalletId=${encodeURIComponent(queryTargetWalletId)}` : ''
+        }`,
+        { method: 'DELETE' },
+      );
+      toast.success('Savings wallet removed');
+      setSavingsPlans((prev) => prev.filter((p) => p.id !== plan.id));
+      setSavingsReloadTick((v) => v + 1);
+    } catch (error) {
+      toast.error(error?.message || 'Could not delete savings wallet');
+    } finally {
+      setDeletingSavingsWalletId('');
+    }
   };
 
-  const savingsWithdrawWallets = useMemo(() => {
-    const eurFmt = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
-    const utilityBalance = 20567.89;
-    return [
-      {
-        id: 'sw-withdraw-1',
-        title: 'My goals',
-        progressPct: 100,
-        ringColor: '#2563eb',
-        Icon: Trophy,
-        balanceLabel: fmtUsdDecimals(24567.89),
-        confirmBalanceLabel: fmtUsdWhole(16000),
-        planStatus: 'completed',
-        accent: 'blue',
-      },
-      ...['sw-withdraw-2', 'sw-withdraw-3', 'sw-withdraw-4'].map((id) => ({
-        id,
-        title: 'Utility',
-        progressPct: 15,
-        ringColor: '#22c55e',
-        Icon: RefreshCw,
-        balanceLabel: eurFmt.format(utilityBalance),
-        confirmBalanceLabel: eurFmt.format(utilityBalance),
-        planStatus: 'active',
-        accent: 'green',
+  const savingsWithdrawWallets = useMemo(
+    () =>
+      savingsPlans.map((plan) => ({
+        id: plan.id,
+        title: plan.title,
+        progressPct: plan.progressPct,
+        ringColor: plan.ringColor,
+        Icon: plan.Icon,
+        balanceLabel: fmtUsdDecimals(plan.savedUsd),
+        confirmBalanceLabel: fmtUsdDecimals(plan.savedUsd),
+        planStatus: plan.status === 'completed' ? 'completed' : 'active',
+        accent: plan.status === 'completed' ? 'blue' : 'green',
       })),
-    ];
-  }, []);
+    [savingsPlans],
+  );
+
+  const submitSavingsTransfer = async () => {
+    const savingsWalletId = String(addMoneyAccountId || '').trim();
+    const amountXrp = parseFloat(String(addMoneyAmount || '').replace(/,/g, '').trim());
+    if (!savingsWalletId) {
+      toast.error('Select a savings wallet');
+      return;
+    }
+    if (!Number.isFinite(amountXrp) || amountXrp <= 0) {
+      toast.error('Enter a valid XRP amount');
+      return;
+    }
+    try {
+      setIsSubmittingSavingsTransfer(true);
+      const payload = await fetchSavingsWithAuth('api/savings/transfer', {
+        method: 'POST',
+        body: JSON.stringify({
+          savingsWalletId,
+          amountXrp,
+        }),
+      });
+      toast.success(payload?.message || 'Funds moved to savings');
+      setShowAddMoneyModal(false);
+      setAddMoneyAmount('');
+      setSavingsReloadTick((v) => v + 1);
+      setSavingHistoryPage(1);
+    } catch (error) {
+      toast.error(error?.message || 'Transfer failed');
+    } finally {
+      setIsSubmittingSavingsTransfer(false);
+    }
+  };
+
+  const submitSavingsWithdraw = async (wallet) => {
+    const savingsWalletId = String(wallet?.id || '').trim();
+    if (!savingsWalletId) {
+      toast.error('Select a savings wallet');
+      return;
+    }
+    try {
+      setIsSubmittingSavingsWithdraw(true);
+      const payload = await fetchSavingsWithAuth('api/savings/withdraw', {
+        method: 'POST',
+        body: JSON.stringify({
+          savingsWalletId,
+          withdrawAll: true,
+        }),
+      });
+      toast.success(payload?.message || 'Withdrawal submitted');
+      setShowWithdrawWalletModal(false);
+      setSavingsReloadTick((v) => v + 1);
+      setSavingHistoryPage(1);
+    } catch (error) {
+      toast.error(error?.message || 'Withdrawal failed');
+    } finally {
+      setIsSubmittingSavingsWithdraw(false);
+    }
+  };
 
   return (
     <>
@@ -602,40 +905,50 @@ const Savings = () => {
               </div>
 
               <div className="savings-wallet-track" role="list">
-                {savingsPlans.map((plan) => {
-                  const Pi = plan.Icon;
-                  return (
-                    <article key={plan.id} className="savings-plan-card" role="listitem">
-                      <button
-                        type="button"
-                        className="savings-plan-delete-btn"
-                        onClick={() => deleteSavingsPlanCard(plan)}
-                        aria-label={`Remove ${plan.title}`}
-                      >
-                        <Trash2 size={16} strokeWidth={2} aria-hidden />
-                      </button>
-                      <div className="savings-plan-top">
-                        <div
-                          className="savings-plan-ring"
-                          style={{ '--sv-pct': plan.progressPct, '--sv-ring-color': plan.ringColor }}
+                {showSavingsLazyLoader ? (
+                  <div className="savings-lazy-loader">
+                    <LoadingIndicator size="md" />
+                    <span>Loading savings wallets…</span>
+                  </div>
+                ) : savingsPlans.length === 0 ? (
+                  <div className="savings-empty-state">No savings wallet yet.</div>
+                ) : (
+                  savingsPlans.map((plan) => {
+                    const Pi = plan.Icon;
+                    return (
+                      <article key={plan.id} className="savings-plan-card" role="listitem">
+                        <button
+                          type="button"
+                          className="savings-plan-delete-btn"
+                          onClick={() => deleteSavingsPlanCard(plan)}
+                          disabled={deletingSavingsWalletId === plan.id}
+                          aria-label={`Remove ${plan.title}`}
                         >
-                          <div className="savings-plan-ring-inner">
-                            <Pi size={20} strokeWidth={2} aria-hidden />
+                          <Trash2 size={16} strokeWidth={2} aria-hidden />
+                        </button>
+                        <div className="savings-plan-top">
+                          <div
+                            className="savings-plan-ring"
+                            style={{ '--sv-pct': plan.progressPct, '--sv-ring-color': plan.ringColor }}
+                          >
+                            <div className="savings-plan-ring-inner">
+                              <Pi size={20} strokeWidth={2} aria-hidden />
+                            </div>
+                          </div>
+                          <div className="savings-plan-meta">
+                            <p className="savings-plan-name">{plan.title}</p>
+                            <p className="savings-plan-pct">{plan.progressPct}%</p>
                           </div>
                         </div>
-                        <div className="savings-plan-meta">
-                          <p className="savings-plan-name">{plan.title}</p>
-                          <p className="savings-plan-pct">{plan.progressPct}%</p>
+                        <p className="savings-plan-type">{plan.typeLabel}</p>
+                        <div className="savings-plan-saved-row">
+                          <span className="savings-plan-saved-label">Saved:</span>
+                          <span className="savings-plan-saved-amt">{fmtUsdWhole(plan.savedUsd)}</span>
                         </div>
-                      </div>
-                      <p className="savings-plan-type">{plan.typeLabel}</p>
-                      <div className="savings-plan-saved-row">
-                        <span className="savings-plan-saved-label">Saved:</span>
-                        <span className="savings-plan-saved-amt">{fmtUsdWhole(plan.savedUsd)}</span>
-                      </div>
-                    </article>
-                  );
-                })}
+                      </article>
+                    );
+                  })
+                )}
               </div>
 
               <div className="savings-wallet-footer">
@@ -647,6 +960,7 @@ const Savings = () => {
                   type="button"
                   className="savings-wallet-withdraw"
                   onClick={() => setShowWithdrawWalletModal(true)}
+                  disabled={savingsPlans.length === 0}
                 >
                   <Wallet size={17} aria-hidden strokeWidth={2} />
                   <ArrowDownToLine size={17} aria-hidden strokeWidth={2} />
@@ -667,10 +981,17 @@ const Savings = () => {
               </div>
 
               <div className="savings-allocation-summary" role="group" aria-label="Total savings summary">
-                <span className="savings-allocation-total">{fmtUsdDecimals(MOCK_SAVINGS_ALLOCATION.totalUsd)}</span>
+                <span className="savings-allocation-total">
+                  {showSavingsLazyLoader ? <LoadingIndicator size="sm" /> : fmtUsdDecimals(savingsTotalUsd)}
+                </span>
                 <span className="savings-allocation-growth">
-                  <TrendingUp size={14} strokeWidth={2.25} aria-hidden />
-                  +{MOCK_SAVINGS_ALLOCATION.monthGrowthPct}%
+                  {showSavingsLazyLoader ? null : (
+                    <>
+                      <TrendingUp size={14} strokeWidth={2.25} aria-hidden />
+                      {savingsGrowthPct >= 0 ? '+' : ''}
+                      {Number(savingsGrowthPct).toFixed(1)}%
+                    </>
+                  )}
                 </span>
                 <span className="savings-allocation-period">This Month</span>
               </div>
@@ -678,9 +999,9 @@ const Savings = () => {
               <div
                 className="savings-allocation-bar"
                 role="img"
-                aria-label={savingsAllocationBuckets.map((b) => `${b.label} ${b.pct}%`).join(', ')}
+                aria-label={effectiveSavingsAllocationBuckets.map((b) => `${b.label} ${b.pct}%`).join(', ')}
               >
-                {savingsAllocationBuckets.map((b) => (
+                {effectiveSavingsAllocationBuckets.map((b) => (
                   <div
                     key={b.id}
                     className="savings-allocation-bar-segment"
@@ -690,7 +1011,7 @@ const Savings = () => {
               </div>
 
               <ul className="savings-allocation-legend" aria-label="Allocation categories">
-                {savingsAllocationBuckets.map((b) => (
+                {effectiveSavingsAllocationBuckets.map((b) => (
                   <li key={b.id} className="savings-allocation-legend-item">
                     <span className="savings-allocation-legend-dot" style={{ backgroundColor: b.color }} aria-hidden />
                     <span>{b.label}</span>
@@ -709,14 +1030,83 @@ const Savings = () => {
                   </h2>
                 </div>
                 <div className="savings-history-controls savings-history-desktop-only">
-                  <button type="button" className="savings-history-pill-btn" onClick={() => toast.success('Filters — coming soon')}>
-                    Filter
-                    <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
-                  </button>
-                  <button type="button" className="savings-history-pill-btn" onClick={() => toast.success('Period — coming soon')}>
-                    Monthly
-                    <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
-                  </button>
+                  <div className="savings-history-dropdown" ref={historyFilterMenuRef}>
+                    <button
+                      type="button"
+                      className="savings-history-pill-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={showHistoryFilterMenu}
+                      onClick={() => {
+                        setShowHistoryFilterMenu((v) => !v);
+                        setShowHistoryRangeMenu(false);
+                      }}
+                    >
+                      {savingHistoryDirectionLabel}
+                      <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
+                    </button>
+                    {showHistoryFilterMenu && (
+                      <div className="savings-history-dropdown-menu" role="menu" aria-label="Transaction direction">
+                        {savingHistoryDirectionOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={savingHistoryDirection === option.value}
+                            className={`savings-history-dropdown-item ${
+                              savingHistoryDirection === option.value ? 'active' : ''
+                            }`}
+                            onClick={() => {
+                              setSavingHistoryDirection(option.value);
+                              setSavingHistoryPage(1);
+                              setSavingHistorySelectedIds({});
+                              setShowHistoryFilterMenu(false);
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="savings-history-dropdown" ref={historyRangeMenuRef}>
+                    <button
+                      type="button"
+                      className="savings-history-pill-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={showHistoryRangeMenu}
+                      onClick={() => {
+                        setShowHistoryRangeMenu((v) => !v);
+                        setShowHistoryFilterMenu(false);
+                      }}
+                    >
+                      {savingHistoryRangeLabel}
+                      <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
+                    </button>
+                    {showHistoryRangeMenu && (
+                      <div className="savings-history-dropdown-menu" role="menu" aria-label="Transaction range">
+                        {savingHistoryRangeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={savingHistoryRange === option.value}
+                            className={`savings-history-dropdown-item ${
+                              savingHistoryRange === option.value ? 'active' : ''
+                            }`}
+                            onClick={() => {
+                              setSavingHistoryRange(option.value);
+                              setSavingHistoryPage(1);
+                              setSavingHistorySelectedIds({});
+                              setShowHistoryRangeMenu(false);
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     className="savings-history-icon-round"
@@ -737,6 +1127,14 @@ const Savings = () => {
               </div>
 
               <div className="savings-history-table-scroll savings-history-desktop-only">
+                {showSavingsLazyLoader ? (
+                  <div className="savings-lazy-loader savings-lazy-loader--history">
+                    <LoadingIndicator size="md" />
+                    <span>Loading transactions…</span>
+                  </div>
+                ) : savingHistoryRows.length === 0 ? (
+                  <div className="savings-empty-state savings-empty-state--history">No savings transactions yet.</div>
+                ) : (
                 <table className="savings-history-table">
                   <thead>
                     <tr>
@@ -773,7 +1171,7 @@ const Savings = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {MOCK_SAVING_HISTORY_ROWS.map((row) => (
+                    {savingHistoryRows.map((row) => (
                       <tr key={row.id}>
                         <td className="savings-history-cell savings-history-cell-check">
                           <input
@@ -789,7 +1187,7 @@ const Savings = () => {
                             <span className="savings-history-tx-icon" aria-hidden>
                               <ArrowDown size={12} strokeWidth={2.5} />
                             </span>
-                            <span className="savings-history-tx-label">Received</span>
+                            <span className="savings-history-tx-label">{row.txLabel || 'Received'}</span>
                           </span>
                         </td>
                         <td className="savings-history-cell savings-history-cell-mono savings-history-cell-txid">
@@ -798,7 +1196,7 @@ const Savings = () => {
                         <td className="savings-history-cell">{fmtUsdWhole(row.amount)}</td>
                         <td className="savings-history-cell">{row.plan}</td>
                         <td className="savings-history-cell">
-                          <span className="savings-history-status-ok">Successful</span>
+                          <span className="savings-history-status-ok">{row.status || 'Successful'}</span>
                         </td>
                         <td className="savings-history-cell savings-history-cell-mono">{row.date}</td>
                         <td className="savings-history-cell savings-history-cell-action">
@@ -815,13 +1213,14 @@ const Savings = () => {
                     ))}
                   </tbody>
                 </table>
+                )}
               </div>
 
               <nav className="savings-history-pagination savings-history-desktop-only" aria-label="Saving history pagination">
                 <button
                   type="button"
                   className="savings-history-page-nav"
-                  disabled={savingHistoryPage <= 1}
+                  disabled={showSavingsLazyLoader || savingHistoryRows.length === 0 || savingHistoryPage <= 1}
                   onClick={() => setSavingHistoryPage((p) => Math.max(1, p - HISTORY_PAGE_CHUNK))}
                 >
                   ← Prev {HISTORY_PAGE_CHUNK}
@@ -847,29 +1246,42 @@ const Savings = () => {
                 <button
                   type="button"
                   className="savings-history-page-nav"
-                  disabled={savingHistoryPage >= HISTORY_TOTAL_PAGES}
-                  onClick={() => setSavingHistoryPage((p) => Math.min(HISTORY_TOTAL_PAGES, p + HISTORY_PAGE_CHUNK))}
+                  disabled={
+                    showSavingsLazyLoader ||
+                    savingHistoryRows.length === 0 ||
+                    savingHistoryPage >= savingHistoryTotalPages
+                  }
+                  onClick={() => setSavingHistoryPage((p) => Math.min(savingHistoryTotalPages, p + HISTORY_PAGE_CHUNK))}
                 >
                   Next {HISTORY_PAGE_CHUNK} →
                 </button>
               </nav>
 
               <ul className="savings-history-mobile-feed savings-history-mobile-only" aria-label="Recent transactions">
-                {MOCK_SAVINGS_MOBILE_TX_FEED.map((item) => (
-                  <li key={item.id} className="savings-history-mobile-feed-item">
-                    <span className="savings-history-mobile-feed-icon" aria-hidden>
-                      <ArrowDown size={14} strokeWidth={2.5} />
-                    </span>
-                    <div className="savings-history-mobile-feed-main">
-                      <p className="savings-history-mobile-feed-title">{item.title}</p>
-                      <p className="savings-history-mobile-feed-sub">{item.subtitle}</p>
-                    </div>
-                    <div className="savings-history-mobile-feed-meta">
-                      <span className="savings-history-mobile-feed-status">{item.status}</span>
-                      <span className="savings-history-mobile-feed-date">{item.date}</span>
-                    </div>
+                {showSavingsLazyLoader ? (
+                  <li className="savings-lazy-loader savings-lazy-loader--mobile">
+                    <LoadingIndicator size="sm" />
+                    <span>Loading transactions…</span>
                   </li>
-                ))}
+                ) : savingsMobileTxFeed.length === 0 ? (
+                  <li className="savings-empty-state">No recent transactions yet.</li>
+                ) : (
+                  savingsMobileTxFeed.map((item) => (
+                    <li key={item.id} className="savings-history-mobile-feed-item">
+                      <span className="savings-history-mobile-feed-icon" aria-hidden>
+                        <ArrowDown size={14} strokeWidth={2.5} />
+                      </span>
+                      <div className="savings-history-mobile-feed-main">
+                        <p className="savings-history-mobile-feed-title">{item.title}</p>
+                        <p className="savings-history-mobile-feed-sub">{item.subtitle}</p>
+                      </div>
+                      <div className="savings-history-mobile-feed-meta">
+                        <span className="savings-history-mobile-feed-status">{item.status}</span>
+                        <span className="savings-history-mobile-feed-date">{item.date}</span>
+                      </div>
+                    </li>
+                  ))
+                )}
               </ul>
             </section>
           </div>
@@ -922,10 +1334,39 @@ const Savings = () => {
               return;
             }
           }
-          toast.success('Add savings plan — coming soon');
-          setShowAddSavingsPlanModal(false);
-          setAddSavingsPlanForm({ name: '', category: 'Fixed', amount: '', autoSaveAmount: '', autoSaveFrequency: '' });
+          const submitCreateWallet = async () => {
+            try {
+              setIsCreatingSavingsWallet(true);
+              const amountRaw = String(addSavingsPlanForm.amount || '').replace(/,/g, '').trim();
+              const targetAmountUsd = Math.max(1, parseFloat(amountRaw) || 5000);
+              const targetDate = toYyyyMmDd(new Date(new Date().getFullYear(), 11, 31));
+              const payload = await fetchSavingsWithAuth('api/savings/wallets', {
+                method: 'POST',
+                body: JSON.stringify({
+                  name: n,
+                  targetAmountUsd,
+                  targetDate,
+                }),
+              });
+              toast.success(payload?.message || 'Savings wallet created');
+              setShowAddSavingsPlanModal(false);
+              setAddSavingsPlanForm({
+                name: '',
+                category: 'Fixed',
+                amount: '',
+                autoSaveAmount: '',
+                autoSaveFrequency: '',
+              });
+              setSavingsReloadTick((v) => v + 1);
+            } catch (error) {
+              toast.error(error?.message || 'Failed to create savings wallet');
+            } finally {
+              setIsCreatingSavingsWallet(false);
+            }
+          };
+          submitCreateWallet();
         }}
+        isSubmitting={isCreatingSavingsWallet}
       />
 
       <SavingsAddMoneyModal
@@ -933,27 +1374,26 @@ const Savings = () => {
         onClose={() => {
           setShowAddMoneyModal(false);
           setAddMoneyAmount('');
-          setAddMoneyAccountId(MOCK_SAVINGS_PLANS[0]?.id ?? '1');
+          setAddMoneyAccountId(savingsPlans[0]?.id ?? '');
         }}
         amount={addMoneyAmount}
         onAmountChange={setAddMoneyAmount}
         accounts={savingsAddMoneyAccounts}
         selectedAccountId={addMoneyAccountId}
         onSelectAccount={setAddMoneyAccountId}
-        onTransfer={() => {
-          toast.success('Add money — coming soon');
-          setShowAddMoneyModal(false);
-          setAddMoneyAmount('');
-        }}
-        balanceLine="24,567.89 USDT"
-        amountPrefix="$"
-        amountSuffix=""
+        onTransfer={submitSavingsTransfer}
+        isSubmitting={isSubmittingSavingsTransfer}
+        balanceLine={isLoadingSavingsData ? 'Loading…' : `${Number(savingsTotalUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`}
+        amountPrefix=""
+        amountSuffix="XRP"
       />
 
       <SavingsWithdrawWalletModal
         isOpen={showWithdrawWalletModal}
         onClose={() => setShowWithdrawWalletModal(false)}
         wallets={savingsWithdrawWallets}
+        onConfirmWithdraw={submitSavingsWithdraw}
+        isSubmitting={isSubmittingSavingsWithdraw}
       />
 
       <NotificationCenterModal open={showNotificationModal} onClose={() => setShowNotificationModal(false)} titleId="savings-notifications-title" />

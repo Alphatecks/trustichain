@@ -18,9 +18,16 @@ import './SavingsWithdrawWalletModal.css';
 
 /**
  * Savings withdraw: step 1 = select wallet, step 2 = confirm (balance + Withdraw).
- * @param {{ isOpen: boolean, onClose: () => void, onNext?: (w: object) => void, wallets: SavingsWithdrawWalletOption[] }} props
+ * @param {{ isOpen: boolean, onClose: () => void, onNext?: (w: object) => void, onConfirmWithdraw?: (w: object) => void|Promise<void>, isSubmitting?: boolean, wallets: SavingsWithdrawWalletOption[] }} props
  */
-const SavingsWithdrawWalletModal = ({ isOpen, onClose, onNext, wallets = [] }) => {
+const SavingsWithdrawWalletModal = ({
+  isOpen,
+  onClose,
+  onNext,
+  onConfirmWithdraw,
+  isSubmitting = false,
+  wallets = [],
+}) => {
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(() => wallets[0]?.id ?? '');
@@ -59,7 +66,15 @@ const SavingsWithdrawWalletModal = ({ isOpen, onClose, onNext, wallets = [] }) =
     }
   };
 
-  const handleConfirmWithdraw = () => {
+  const handleConfirmWithdraw = async () => {
+    if (!selected) {
+      toast.error('Select a wallet');
+      return;
+    }
+    if (typeof onConfirmWithdraw === 'function') {
+      await onConfirmWithdraw(selected);
+      return;
+    }
     toast.success('Withdrawal — coming soon');
     handleClose();
   };
@@ -175,8 +190,13 @@ const SavingsWithdrawWalletModal = ({ isOpen, onClose, onNext, wallets = [] }) =
                 </div>
               </div>
 
-              <button type="button" className="savings-withdraw-confirm-submit" onClick={handleConfirmWithdraw}>
-                Withdraw
+              <button
+                type="button"
+                className="savings-withdraw-confirm-submit"
+                onClick={handleConfirmWithdraw}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Withdrawing…' : 'Withdraw'}
               </button>
             </div>
           )
