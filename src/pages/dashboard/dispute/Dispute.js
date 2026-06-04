@@ -51,6 +51,7 @@ import {
 } from 'lucide-react';
 import '../dashboard/Dashboard.css';
 import '../my-escrow/MyEscrow.css';
+import '../../../components/CreateEscrowForm/index.css';
 import './Dispute.css';
 import './DisputeDetail.css';
 import logo from '../../../assets/images/icons/logo.png';
@@ -177,6 +178,58 @@ const monthLabelToYYYYMM = (monthLabel) => {
   return `${year}-${String(monthNumber).padStart(2, '0')}`;
 };
 
+const pickPartyPhone = (party) => {
+  if (!party || typeof party !== 'object') return undefined;
+  for (const key of ['phoneNumber', 'phone', 'mobile', 'mobileNumber', 'phone_number']) {
+    const value = party[key];
+    if (value != null && String(value).trim() !== '') return String(value).trim();
+  }
+  return undefined;
+};
+
+const pickNonEmptyString = (value) => {
+  if (value == null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
+const resolveEscrowPartiesFromApiData = (data) => {
+  if (!data || typeof data !== 'object') {
+    return { initiator: null, counterparty: null };
+  }
+  return {
+    initiator: data.payer ?? data.initiator ?? null,
+    counterparty: data.counterparty ?? data.respondent ?? null,
+  };
+};
+
+/** Map escrow `amount` from parties API into dispute step 2 fields (prefers XRP). */
+const resolveEscrowDisputeAmount = (amount) => {
+  if (amount == null) return { amountInDispute: undefined, currency: undefined };
+  if (typeof amount === 'number' && !Number.isNaN(amount)) {
+    return { amountInDispute: String(amount), currency: 'XRP' };
+  }
+  if (typeof amount !== 'object') return { amountInDispute: undefined, currency: undefined };
+  const xrp = amount.xrp;
+  if (xrp != null && !Number.isNaN(Number(xrp))) {
+    return { amountInDispute: String(xrp), currency: 'XRP' };
+  }
+  const usd = amount.usd;
+  if (usd != null && !Number.isNaN(Number(usd))) {
+    return { amountInDispute: String(usd), currency: 'USD' };
+  }
+  return { amountInDispute: undefined, currency: undefined };
+};
+
+/** Matches Create Escrow / My Escrow breakpoint (`min-width: 769px`). */
+const CREATE_DISPUTE_DESKTOP_MODAL_MQ = '(min-width: 769px)';
+
+const CREATE_DISPUTE_FLOW_STEPS = [
+  { step: 1, Icon: CreditCard, title: 'Type/ Counterparty' },
+  { step: 2, Icon: FileText, title: 'Terms' },
+  { step: 3, Icon: CheckCircle, title: 'Confirmation' },
+];
+
 const Dispute = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -273,6 +326,9 @@ const Dispute = () => {
 
   // Dispute creation modal state
   const [showCreateDisputeModal, setShowCreateDisputeModal] = useState(false);
+  const [createDisputeDesktopLayout, setCreateDisputeDesktopLayout] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(CREATE_DISPUTE_DESKTOP_MODAL_MQ).matches,
+  );
   const [disputeCurrentStep, setDisputeCurrentStep] = useState(1);
   const [selectedDisputeType, setSelectedDisputeType] = useState('Freelancing');
   const [disputeFormData, setDisputeFormData] = useState({
@@ -294,8 +350,7 @@ const Dispute = () => {
     amountInDispute: '',
     currency: 'XRP',
     disputeResolutionPeriod: '',
-    evidenceDescription: '',
-    expectedResolutionDate: ''
+    evidenceDescription: ''
   });
 
   const [evidenceImages, setEvidenceImages] = useState([]);
@@ -319,8 +374,9 @@ const Dispute = () => {
     }
 
     setIsFetchingEscrowParties(true);
+    const partiesUrl = getApiUrl(`api/escrow/${encodeURIComponent(id)}/parties`);
     try {
-      const response = await fetch(getApiUrl(`api/escrow/${encodeURIComponent(id)}/parties`), {
+      const response = await fetch(partiesUrl, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -329,29 +385,63 @@ const Dispute = () => {
       });
 
       const result = await response.json();
-      console.log('Escrow parties API response:', result);
+      console.log('[Create Dispute] Escrow parties fetch', {
+        escrowId: id,
+        url: partiesUrl,
+        status: response.status,
+        ok: response.ok,
+      });
+      console.log('[Create Dispute] Escrow parties API response:', result);
+      console.log('[Create Dispute] Escrow parties API response (JSON):', JSON.stringify(result, null, 2));
 
       if (!response.ok || !result?.success) {
         toast.error(result?.message || 'Could not load escrow details');
         return;
       }
 
-      const { payer, counterparty } = result.data || {};
+      const data = result.data || {};
+      const { initiator, counterparty } = resolveEscrowPartiesFromApiData(data);
+      const initiatorPhone =
+        pickPartyPhone(initiator) ??
+        pickNonEmptyString(data.initiatorPhone) ??
+        pickNonEmptyString(data.payerPhone);
+      const counterpartyPhone =
+        pickPartyPhone(counterparty) ??
+        pickNonEmptyString(data.counterpartyPhone) ??
+        pickNonEmptyString(data.respondentPhone);
+
       setDisputeFormData((prev) => ({
         ...prev,
         escrowId: prev.escrowId,
-        payerWallet: payer?.walletAddress ?? prev.payerWallet,
-        payerName: payer?.name ?? prev.payerName,
-        payerEmail: payer?.email ?? prev.payerEmail,
-        payerPhone: payer?.phoneNumber ?? prev.payerPhone,
-        counterpartyWallet: counterparty?.xrpWalletAddress ?? prev.counterpartyWallet,
+        payerWallet:
+          initiator?.walletAddress ??
+          initiator?.xrpWalletAddress ??
+          prev.payerWallet,
+        payerName: initiator?.name ?? prev.payerName,
+        payerEmail: initiator?.email ?? prev.payerEmail,
+        payerPhone: initiator ? (initiatorPhone ?? '') : prev.payerPhone,
+        counterpartyWallet:
+          counterparty?.xrpWalletAddress ??
+          counterparty?.walletAddress ??
+          prev.counterpartyWallet,
         counterpartyName: counterparty?.name ?? prev.counterpartyName,
         counterpartyEmail: counterparty?.email ?? prev.counterpartyEmail,
-        counterpartyPhone: counterparty?.phoneNumber ?? prev.counterpartyPhone,
+        counterpartyPhone: counterparty ? (counterpartyPhone ?? '') : prev.counterpartyPhone,
       }));
+
+      const { amountInDispute: resolvedAmount, currency: resolvedCurrency } =
+        resolveEscrowDisputeAmount(data.amount);
+      if (resolvedAmount != null) {
+        setDisputeTermsData((prev) => ({
+          ...prev,
+          amountInDispute: resolvedAmount,
+          ...(resolvedCurrency != null && { currency: resolvedCurrency }),
+        }));
+      }
+
       toast.success('Escrow details filled');
     } catch (error) {
-      console.error('Fetch escrow parties error:', error);
+      console.error('[Create Dispute] Escrow parties fetch failed', { escrowId: id, url: partiesUrl, error });
       toast.error('Failed to load escrow details');
     } finally {
       setIsFetchingEscrowParties(false);
@@ -616,11 +706,11 @@ const Dispute = () => {
       return false;
     }
     if (!disputeFormData.payerWallet || disputeFormData.payerWallet.trim() === '') {
-      toast.error('Payer XRP Wallet Address is required');
+      toast.error('Enter a valid escrow ID and wait for escrow details to load');
       return false;
     }
     if (!disputeFormData.counterpartyWallet || disputeFormData.counterpartyWallet.trim() === '') {
-      toast.error('Counterparty XRP Wallet Address is required');
+      toast.error('Enter a valid escrow ID and wait for escrow details to load');
       return false;
     }
     return true;
@@ -651,6 +741,24 @@ const Dispute = () => {
   };
 
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia(CREATE_DISPUTE_DESKTOP_MODAL_MQ);
+    const sync = () => setCreateDisputeDesktopLayout(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    if (!showCreateDisputeModal) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showCreateDisputeModal]);
+
   // Reset form when modal closes
   useEffect(() => {
     if (!showCreateDisputeModal) {
@@ -674,8 +782,7 @@ const Dispute = () => {
         amountInDispute: '',
         currency: 'XRP',
         disputeResolutionPeriod: '',
-        evidenceDescription: '',
-        expectedResolutionDate: ''
+        evidenceDescription: ''
       });
       // Cleanup evidence images
       setEvidenceImages(prevImages => {
@@ -1475,309 +1582,110 @@ const Dispute = () => {
 
       {/* Create Dispute Modal */}
       {showCreateDisputeModal && (
-        <div className="create-escrow-modal-overlay" onClick={() => setShowCreateDisputeModal(false)}>
-          <div className="create-escrow-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`create-escrow-flow-root ${
+            createDisputeDesktopLayout
+              ? 'create-escrow-flow-root--desktop-modal'
+              : 'create-escrow-flow-root--mobile-fullscreen'
+          }`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-dispute-modal-title"
+          onClick={createDisputeDesktopLayout ? () => setShowCreateDisputeModal(false) : undefined}
+        >
+          <div
+            className="create-escrow-modal create-escrow-flow-panel create-dispute-modal"
+            onClick={createDisputeDesktopLayout ? (e) => e.stopPropagation() : undefined}
+          >
             {/* Modal Header - Mobile with back icon */}
             <div className="create-escrow-modal-header">
-              <div className="modal-header-back-icon"></div>
-              <h2>Create Dispute</h2>
+              <div className="modal-header-leading">
+                <span className="modal-header-accent-bar" aria-hidden />
+                <h2 id="create-dispute-modal-title">Create Dispute</h2>
+              </div>
               <button type="button" className="modal-close-btn" onClick={() => setShowCreateDisputeModal(false)}>
                 <X size={24} />
               </button>
             </div>
 
-            {/* Step Indicator - Mobile Card Style */}
-            <div className="create-escrow-steps-mobile">
-              {disputeCurrentStep === 1 && (
-                <div className="step-indicator-mobile active">
-                  <div className="step-icon-mobile">
-                    <CreditCard size={20} />
+            <div className="create-dispute-steps-track" aria-label="Create dispute progress">
+              {CREATE_DISPUTE_FLOW_STEPS.map(({ step, Icon, title }) => (
+                <div
+                  key={step}
+                  className={`create-dispute-steps-track__item ${
+                    disputeCurrentStep === step
+                      ? 'is-active'
+                      : disputeCurrentStep > step
+                        ? 'is-complete'
+                        : ''
+                  }`}
+                >
+                  <div className="create-dispute-steps-track__icon" aria-hidden>
+                    {disputeCurrentStep > step ? <CheckCircle size={18} /> : <Icon size={18} />}
                   </div>
-                  <div className="step-content-mobile">
-                    <span className="step-number-mobile">Step 1/3</span>
-                    <span className="step-title-mobile">Type/ Counterparty</span>
-                  </div>
-                </div>
-              )}
-              {disputeCurrentStep === 2 && (
-                <div className="step-indicator-mobile active">
-                  <div className="step-icon-mobile">
-                    <FileText size={20} />
-                  </div>
-                  <div className="step-content-mobile">
-                    <span className="step-number-mobile">Step 2/3</span>
-                    <span className="step-title-mobile">Terms</span>
+                  <div className="create-dispute-steps-track__text">
+                    <span className="create-dispute-steps-track__number">Step {step}/3</span>
+                    <span className="create-dispute-steps-track__title">{title}</span>
                   </div>
                 </div>
-              )}
-              {disputeCurrentStep === 3 && (
-                <div className="step-indicator-mobile active">
-                  <div className="step-icon-mobile">
-                    <CheckCircle size={20} />
-                  </div>
-                  <div className="step-content-mobile">
-                    <span className="step-number-mobile">Step 3/3</span>
-                    <span className="step-title-mobile">Confirmation</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Step Indicator - Desktop with vertical divider */}
-            <div className="create-escrow-steps">
-              <div className={`step-indicator ${disputeCurrentStep === 1 ? 'active' : disputeCurrentStep > 1 ? 'completed' : ''}`}>
-                <div className="step-icon">
-                  {disputeCurrentStep > 1 ? <CheckCircle size={20} /> : <CreditCard size={20} />}
-                </div>
-                <div className="step-content">
-                  <span className="step-number">Step 1/3</span>
-                  <span className="step-title">Type/ Counterparty</span>
-                </div>
-              </div>
-              <div className="step-divider"></div>
-              <div className={`step-indicator ${disputeCurrentStep === 2 ? 'active' : disputeCurrentStep > 2 ? 'completed' : ''}`}>
-                <div className="step-icon">
-                  {disputeCurrentStep > 2 ? <CheckCircle size={20} /> : <FileText size={20} />}
-                </div>
-                <div className="step-content">
-                  <span className="step-number">Step 2/3</span>
-                  <span className="step-title">Terms</span>
-                </div>
-              </div>
-              <div className="step-divider"></div>
-              <div className={`step-indicator ${disputeCurrentStep === 3 ? 'active' : ''}`}>
-                <div className="step-icon">
-                  <CheckCircle size={20} />
-                </div>
-                <div className="step-content">
-                  <span className="step-number">Step 3/3</span>
-                  <span className="step-title">Confirmation</span>
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Modal Content */}
             <div className="create-escrow-modal-content">
               {disputeCurrentStep === 1 && (
-                <>
-                  {/* Dispute Type Section - Horizontal buttons */}
-                  <div className="escrow-form-section">
-                    <h3 className="section-title">Dispute Type</h3>
-                    <div className="escrow-type-buttons">
-                      <button
-                        type="button"
-                        className={`escrow-type-btn ${selectedDisputeType === 'Freelancing' ? 'active' : ''}`}
-                        onClick={() => setSelectedDisputeType('Freelancing')}
-                      >
-                        {selectedDisputeType === 'Freelancing' && <CheckCircle size={18} />}
-                        {selectedDisputeType !== 'Freelancing' && <Plus size={18} />}
-                        Freelancing
-                      </button>
-                      <button
-                        type="button"
-                        className={`escrow-type-btn ${selectedDisputeType === 'Real Estate' ? 'active' : ''}`}
-                        onClick={() => setSelectedDisputeType('Real Estate')}
-                      >
-                        {selectedDisputeType === 'Real Estate' ? <CheckCircle size={18} /> : <Plus size={18} />}
-                        Real Estate
-                      </button>
-                      <button
-                        type="button"
-                        className={`escrow-type-btn ${selectedDisputeType === 'Product purchase' ? 'active' : ''}`}
-                        onClick={() => setSelectedDisputeType('Product purchase')}
-                      >
-                        {selectedDisputeType === 'Product purchase' ? <CheckCircle size={18} /> : <Plus size={18} />}
-                        Product purchase
-                      </button>
-                      <button
-                        type="button"
-                        className={`escrow-type-btn ${selectedDisputeType === 'Custom' ? 'active' : ''}`}
-                        onClick={() => setSelectedDisputeType('Custom')}
-                      >
-                        {selectedDisputeType === 'Custom' ? <CheckCircle size={18} /> : <Plus size={18} />}
-                        Custom
-                      </button>
+                <div className="create-dispute-step1">
+                  <div className="escrow-form-section create-escrow-step1-type-block">
+                    <h3 className="section-title create-escrow-step1-section-label">Escrow Type</h3>
+                    <div className="escrow-type-buttons create-escrow-step1-type-buttons">
+                      {['Freelancing', 'Real Estate', 'Product purchase', 'Custom'].map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          className={`escrow-type-btn ${selectedDisputeType === type ? 'active' : ''}`}
+                          onClick={() => setSelectedDisputeType(type)}
+                        >
+                          {selectedDisputeType === type ? (
+                            <CheckCircle size={18} strokeWidth={2.25} />
+                          ) : (
+                            <Plus size={18} strokeWidth={2.25} />
+                          )}
+                          <span>{type}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Escrow ID Section */}
-                  <div className="escrow-form-section">
-                    <h3 className="section-title">Escrow ID</h3>
-                    <div className="form-group">
-                      <label>Escrow ID <span className="required">*</span></label>
-                      <div style={{ position: 'relative' }}>
+                  <div className="escrow-form-section create-dispute-step1-escrow-id-block">
+                    <h3 className="section-title create-escrow-step1-section-label">Escrow ID</h3>
+                    <div className="form-group create-dispute-step1-escrow-id-field">
+                      <label htmlFor="create-dispute-escrow-id">Escrow ID</label>
+                      <div className="create-dispute-escrow-id-input-wrap">
                         <input
+                          id="create-dispute-escrow-id"
                           type="text"
-                          placeholder="Enter or paste escrow ID"
+                          className="create-escrow-step1-input"
+                          placeholder="*********************"
                           value={disputeFormData.escrowId}
                           onChange={(e) => setDisputeFormData({ ...disputeFormData, escrowId: e.target.value })}
+                          autoComplete="off"
                         />
                         {isFetchingEscrowParties && (
-                          <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#6b7280' }}>
-                            Loading…
-                          </span>
+                          <span className="create-dispute-escrow-id-loading">Loading…</span>
                         )}
                       </div>
-                      <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                        Details auto-fill as you enter the escrow ID (after a short pause).
-                      </p>
                     </div>
                   </div>
-
-                  {/* Dispute Counterparty Section */}
-                  <div className="escrow-form-section">
-                    <h3 className="section-title">Dispute Counterparty</h3>
-                    <div className="counterparty-form-grid">
-                      {/* Left Column - Payer's Information */}
-                      <div className="form-column">
-                        <div className="form-group">
-                          <label>Payers (You) XRP Wallet Address <span className="required">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="••••••••••••••••"
-                            value={disputeFormData.payerWallet}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerWallet: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Your Email</label>
-                          <input
-                            type="email"
-                            placeholder="Enter your Email"
-                            value={disputeFormData.payerEmail}
-                            onChange={(e) => {
-                              const email = e.target.value;
-                              setDisputeFormData({ ...disputeFormData, payerEmail: email });
-                              
-                              // Clear previous timeout
-                              if (validationTimeouts.payer) {
-                                clearTimeout(validationTimeouts.payer);
-                              }
-                              
-                              // Debounce validation (500ms delay)
-                              const timeout = setTimeout(() => {
-                                validatePayerEmail(email);
-                              }, 500);
-                              
-                              setValidationTimeouts(prev => ({ ...prev, payer: timeout }));
-                            }}
-                            style={{
-                              borderColor: payerEmailValidation.isValid === true ? '#10b981' : 
-                                         payerEmailValidation.isValid === false ? '#ef4444' : undefined
-                            }}
-                          />
-                          {payerEmailValidation.message && (
-                            <div style={{
-                              fontSize: '0.75rem',
-                              marginTop: '0.25rem',
-                              color: payerEmailValidation.isValid === true ? '#10b981' : 
-                                     payerEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
-                            }}>
-                              {payerEmailValidation.message}
-                            </div>
-                          )}
-                        </div>
-                        <div className="form-group">
-                          <label>Counterparty XRP Wallet Address <span className="required">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="••••••••••••••••"
-                            value={disputeFormData.counterpartyWallet}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyWallet: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Counterparty Email</label>
-                          <input
-                            type="email"
-                            placeholder="Enter counterparty Email"
-                            value={disputeFormData.counterpartyEmail}
-                            onChange={(e) => {
-                              const email = e.target.value;
-                              setDisputeFormData({ ...disputeFormData, counterpartyEmail: email });
-                              
-                              // Clear previous timeout
-                              if (validationTimeouts.counterparty) {
-                                clearTimeout(validationTimeouts.counterparty);
-                              }
-                              
-                              // Debounce validation (500ms delay)
-                              const timeout = setTimeout(() => {
-                                validateCounterpartyEmail(email);
-                              }, 500);
-                              
-                              setValidationTimeouts(prev => ({ ...prev, counterparty: timeout }));
-                            }}
-                            style={{
-                              borderColor: counterpartyEmailValidation.isValid === true ? '#10b981' : 
-                                         counterpartyEmailValidation.isValid === false ? '#ef4444' : undefined
-                            }}
-                          />
-                          {counterpartyEmailValidation.message && (
-                            <div style={{
-                              fontSize: '0.75rem',
-                              marginTop: '0.25rem',
-                              color: counterpartyEmailValidation.isValid === true ? '#10b981' : 
-                                     counterpartyEmailValidation.isValid === false ? '#ef4444' : '#6b7280'
-                            }}>
-                              {counterpartyEmailValidation.message}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Column - Names and Phone Numbers */}
-                      <div className="form-column">
-                        <div className="form-group">
-                          <label>Your Name</label>
-                          <input
-                            type="text"
-                            placeholder="Enter your name"
-                            value={disputeFormData.payerName}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerName: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Your Phone Number</label>
-                          <input
-                            type="tel"
-                            placeholder="Enter your Number"
-                            value={disputeFormData.payerPhone}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, payerPhone: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Name</label>
-                          <input
-                            type="text"
-                            placeholder="Enter your name"
-                            value={disputeFormData.counterpartyName}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyName: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Phone Number</label>
-                          <input
-                            type="tel"
-                            placeholder="Enter your Number"
-                            value={disputeFormData.counterpartyPhone}
-                            onChange={(e) => setDisputeFormData({ ...disputeFormData, counterpartyPhone: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
+                </div>
               )}
 
               {disputeCurrentStep === 2 && (
-                <>
-                  {/* Dispute Details Section */}
+                <div className="create-dispute-step2 create-escrow-step2">
                   <div className="escrow-form-section">
-                    <h3 className="section-title">Dispute Details</h3>
+                    <h3 className="section-title create-escrow-step1-section-label">Dispute Details</h3>
                     
                     {/* Dispute Category Buttons */}
-                    <div className="release-type-buttons">
+                    <div className="release-type-buttons create-dispute-category-buttons">
                       <button
                         type="button"
                         className={`release-type-btn ${disputeTermsData.disputeCategory === 'Quality Issue' ? 'active' : ''}`}
@@ -1804,12 +1712,12 @@ const Dispute = () => {
                       </button>
                     </div>
 
-                    {/* Dispute Form Fields */}
-                    <div className="terms-form-grid">
+                    <div className="terms-form-grid create-dispute-step2-terms-grid">
                       <div className="form-group">
                         <label>Dispute Reason <span className="required">*</span></label>
                         <input
                           type="text"
+                          className="create-escrow-step1-input"
                           placeholder="Enter dispute reason"
                           value={disputeTermsData.disputeReason}
                           onChange={(e) => setDisputeTermsData({ ...disputeTermsData, disputeReason: e.target.value })}
@@ -1820,6 +1728,7 @@ const Dispute = () => {
                         <label>Amount in Dispute <span className="required">*</span></label>
                         <input
                           type="text"
+                          className="create-escrow-step1-input"
                           placeholder="Enter amount"
                           value={disputeTermsData.amountInDispute}
                           onChange={(e) => setDisputeTermsData({ ...disputeTermsData, amountInDispute: e.target.value })}
@@ -1828,8 +1737,9 @@ const Dispute = () => {
 
                       <div className="form-group">
                         <label>Dispute Resolution Period</label>
-                        <div className="select-input-wrapper">
+                        <div className="select-input-wrapper create-dispute-select-wrap">
                           <select
+                            className="create-escrow-step1-input"
                             value={disputeTermsData.disputeResolutionPeriod}
                             onChange={(e) => setDisputeTermsData({ ...disputeTermsData, disputeResolutionPeriod: e.target.value })}
                           >
@@ -1842,22 +1752,10 @@ const Dispute = () => {
                         </div>
                       </div>
 
-                      <div className="form-group">
-                        <label>Expected Resolution Date</label>
-                        <div className="date-input-wrapper">
-                          <input
-                            type="text"
-                            placeholder="Add Date"
-                            value={disputeTermsData.expectedResolutionDate}
-                            onChange={(e) => setDisputeTermsData({ ...disputeTermsData, expectedResolutionDate: e.target.value })}
-                          />
-                          <Calendar size={18} className="input-icon" />
-                        </div>
-                      </div>
-
                       <div className="form-group form-group-full">
                         <label>Dispute Description <span className="required">*</span></label>
                         <textarea
+                          className="create-escrow-step1-input create-dispute-textarea"
                           placeholder="Describe the dispute in detail"
                           value={disputeTermsData.disputeDescription}
                           onChange={(e) => setDisputeTermsData({ ...disputeTermsData, disputeDescription: e.target.value })}
@@ -1934,7 +1832,7 @@ const Dispute = () => {
                       </div>
                     </div>
                   </div>
-                </>
+                </div>
               )}
 
               {disputeCurrentStep === 3 && (
@@ -2026,7 +1924,9 @@ const Dispute = () => {
                       <div className="form-group">
                         <label>Amount in Dispute</label>
                         <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                          {disputeTermsData.amountInDispute ? `${disputeTermsData.amountInDispute} XRP` : '—'}
+                          {disputeTermsData.amountInDispute
+                            ? `${disputeTermsData.amountInDispute} ${disputeTermsData.currency || 'XRP'}`
+                            : '—'}
                         </div>
                       </div>
 
@@ -2034,13 +1934,6 @@ const Dispute = () => {
                         <label>Dispute Resolution Period</label>
                         <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
                           {disputeTermsData.disputeResolutionPeriod ? `${disputeTermsData.disputeResolutionPeriod} days` : '—'}
-                        </div>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Expected Resolution Date</label>
-                        <div style={{ padding: '0.75rem 0', fontSize: '0.95rem', color: 'inherit' }}>
-                          {disputeTermsData.expectedResolutionDate || '—'}
                         </div>
                       </div>
 
@@ -2187,23 +2080,6 @@ const Dispute = () => {
                         toast.success('Evidence files uploaded successfully', { id: 'upload-evidence' });
                       }
 
-                      // Format expected resolution date if provided
-                      let formattedExpectedDate = undefined;
-                      if (disputeTermsData.expectedResolutionDate && disputeTermsData.expectedResolutionDate.trim() !== '') {
-                        try {
-                          // Try to parse the date - handles various formats
-                          const date = new Date(disputeTermsData.expectedResolutionDate);
-                          if (!isNaN(date.getTime())) {
-                            // Convert to ISO 8601 format
-                            formattedExpectedDate = date.toISOString();
-                          } else {
-                            console.warn('Invalid date format, skipping expectedResolutionDate');
-                          }
-                        } catch (error) {
-                          console.warn('Error parsing date, skipping expectedResolutionDate:', error);
-                        }
-                      }
-
                       // Build API request body
                       const requestBody = {
                         escrowId: disputeFormData.escrowId.trim(),
@@ -2221,7 +2097,6 @@ const Dispute = () => {
                         amount: parseFloat(disputeTermsData.amountInDispute),
                         currency: disputeTermsData.currency || 'XRP',
                         resolutionPeriod: formatResolutionPeriod(disputeTermsData.disputeResolutionPeriod),
-                        expectedResolutionDate: formattedExpectedDate,
                         description: disputeTermsData.disputeDescription.trim(),
                         evidence: evidenceArray.length > 0 ? evidenceArray : undefined
                       };
