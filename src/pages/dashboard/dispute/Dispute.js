@@ -58,12 +58,11 @@ import logo from '../../../assets/images/icons/logo.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
-import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
+import { getDisputeSummary, getDisputes, getDisputeDetail } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
-import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
@@ -230,6 +229,55 @@ const CREATE_DISPUTE_FLOW_STEPS = [
   { step: 3, Icon: CheckCircle, title: 'Confirmation' },
 ];
 
+const DISPUTE_LIST_SKELETON_COUNT = 5;
+
+const DisputeMetricValueSkeleton = () => (
+  <span className="dispute-skeleton dispute-skeleton--metric-value" role="status" aria-label="Loading metrics" />
+);
+
+const DisputeChangeBadgeSkeleton = () => (
+  <span className="dispute-skeleton dispute-skeleton--change-badge" aria-hidden />
+);
+
+const DisputeTableRowsSkeleton = () => (
+  <>
+    {Array.from({ length: DISPUTE_LIST_SKELETON_COUNT }, (_, rowIndex) => (
+      <div
+        key={`dispute-table-skeleton-${rowIndex}`}
+        className="dispute-table-row dispute-table-row--skeleton"
+        aria-hidden
+      >
+        {Array.from({ length: 6 }, (_, cellIndex) => (
+          <div key={cellIndex} className="dispute-table-cell">
+            <span className="dispute-skeleton dispute-skeleton--table-cell" />
+          </div>
+        ))}
+      </div>
+    ))}
+  </>
+);
+
+const DisputeMobileCardsSkeleton = () => (
+  <>
+    {Array.from({ length: DISPUTE_LIST_SKELETON_COUNT }, (_, index) => (
+      <div
+        key={`dispute-mobile-skeleton-${index}`}
+        className="mobile-dispute-history-card mobile-dispute-history-card--skeleton"
+        aria-hidden
+      >
+        <div className="mobile-dispute-history-row">
+          <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-long" />
+          <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-short" />
+        </div>
+        <div className="mobile-dispute-history-row">
+          <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-medium" />
+          <span className="dispute-skeleton dispute-skeleton--pill" />
+        </div>
+      </div>
+    ))}
+  </>
+);
+
 const Dispute = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -246,7 +294,7 @@ const Dispute = () => {
   const [userRole, setUserRole] = useState('Personal Account');
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(12);
+  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -267,6 +315,13 @@ const Dispute = () => {
   });
 
   const [disputeData, setDisputeData] = useState([]);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+  const [isLoadingDisputes, setIsLoadingDisputes] = useState(true);
+  const [showDisputeDetailModal, setShowDisputeDetailModal] = useState(false);
+  const [selectedDisputePreview, setSelectedDisputePreview] = useState(null);
+  const [selectedDisputeDetailId, setSelectedDisputeDetailId] = useState(null);
+  const [selectedDisputeDetail, setSelectedDisputeDetail] = useState(null);
+  const [isLoadingDisputeDetail, setIsLoadingDisputeDetail] = useState(false);
 
   const monthParam = useMemo(() => monthLabelToYYYYMM(selectedMonth), [selectedMonth]);
   const statusParam = useMemo(() => {
@@ -280,6 +335,77 @@ const Dispute = () => {
     () => formatAvgResolutionParts(summaryMetrics.avgResolutionTimeSeconds),
     [summaryMetrics.avgResolutionTimeSeconds],
   );
+
+  const showSummarySkeleton = useMemo(
+    () =>
+      isLoadingSummary &&
+      summaryMetrics.totalDisputes == null &&
+      summaryMetrics.activeDisputes == null &&
+      summaryMetrics.resolvedDisputes == null &&
+      summaryMetrics.avgResolutionTimeSeconds == null,
+    [isLoadingSummary, summaryMetrics],
+  );
+
+  const showDisputeListSkeleton = isLoadingDisputes && disputeData.length === 0;
+
+  const closeDisputeDetailModal = () => {
+    setShowDisputeDetailModal(false);
+    setSelectedDisputePreview(null);
+    setSelectedDisputeDetailId(null);
+    setSelectedDisputeDetail(null);
+    setIsLoadingDisputeDetail(false);
+  };
+
+  const openDisputeDetailModal = (dispute) => {
+    const detailId = dispute?.apiId || dispute?.id;
+    if (!detailId) return;
+    setSelectedDisputePreview(dispute);
+    setSelectedDisputeDetailId(detailId);
+    setSelectedDisputeDetail(null);
+    setShowDisputeDetailModal(true);
+  };
+
+  useEffect(() => {
+    if (!showDisputeDetailModal || !selectedDisputeDetailId) return undefined;
+    let cancelled = false;
+
+    const fetchDetail = async () => {
+      if (isSessionExpired) {
+        setIsLoadingDisputeDetail(false);
+        return;
+      }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setIsLoadingDisputeDetail(false);
+        return;
+      }
+
+      setIsLoadingDisputeDetail(true);
+      try {
+        const data = await getDisputeDetail({ token, id: selectedDisputeDetailId });
+        if (!cancelled) setSelectedDisputeDetail(data);
+      } catch (error) {
+        console.error('Error fetching dispute detail:', error);
+        if (!cancelled) setSelectedDisputeDetail(null);
+      } finally {
+        if (!cancelled) setIsLoadingDisputeDetail(false);
+      }
+    };
+
+    fetchDetail();
+    return () => {
+      cancelled = true;
+    };
+  }, [showDisputeDetailModal, selectedDisputeDetailId, isSessionExpired]);
+
+  useEffect(() => {
+    if (!showDisputeDetailModal) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showDisputeDetailModal]);
 
   const handleMonthSelect = (month) => {
     setSelectedMonth(month);
@@ -821,6 +947,7 @@ const Dispute = () => {
         resolvedChangePercent: null,
         avgResolutionTimeChangePercent: null
       });
+      setIsLoadingSummary(false);
     }
   }, [isSessionExpired]);
 
@@ -828,6 +955,7 @@ const Dispute = () => {
   useEffect(() => {
     if (isSessionExpired) {
       setDisputeData([]);
+      setIsLoadingDisputes(false);
     }
   }, [isSessionExpired]);
 
@@ -838,8 +966,12 @@ const Dispute = () => {
     const fetchSummary = async () => {
       if (isSessionExpired) return;
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        if (!cancelled) setIsLoadingSummary(false);
+        return;
+      }
 
+      if (!cancelled) setIsLoadingSummary(true);
       try {
         const data = await getDisputeSummary({ token, month: monthParam });
         const metrics = data?.metrics;
@@ -848,6 +980,8 @@ const Dispute = () => {
         }
       } catch (error) {
         console.error('Error fetching dispute summary:', error);
+      } finally {
+        if (!cancelled) setIsLoadingSummary(false);
       }
     };
 
@@ -864,8 +998,12 @@ const Dispute = () => {
     const fetchList = async () => {
       if (isSessionExpired) return;
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        if (!cancelled) setIsLoadingDisputes(false);
+        return;
+      }
 
+      if (!cancelled) setIsLoadingDisputes(true);
       try {
         const data = await getDisputes({
           token,
@@ -900,6 +1038,8 @@ const Dispute = () => {
         if (!cancelled) {
           setDisputeData([]);
         }
+      } finally {
+        if (!cancelled) setIsLoadingDisputes(false);
       }
     };
 
@@ -1294,11 +1434,23 @@ const Dispute = () => {
                 <div className="dispute-card-title-row">
                   <span className="dispute-card-title">Total Dispute</span>
                   <div className="dispute-card-change-badge positive">
-                    <TrendingUp size={12} />
-                    <span>{formatPercent(summaryMetrics.totalChangePercent)}</span>
+                    {showSummarySkeleton ? (
+                      <DisputeChangeBadgeSkeleton />
+                    ) : (
+                      <>
+                        <TrendingUp size={12} />
+                        <span>{formatPercent(summaryMetrics.totalChangePercent)}</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="dispute-card-value">{summaryMetrics.totalDisputes ?? 'N/A'}</div>
+                <div className="dispute-card-value">
+                  {showSummarySkeleton ? (
+                    <DisputeMetricValueSkeleton />
+                  ) : (
+                    summaryMetrics.totalDisputes ?? '—'
+                  )}
+                </div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -1312,11 +1464,23 @@ const Dispute = () => {
                 <div className="dispute-card-title-row">
                   <span className="dispute-card-title">Active Dispute</span>
                   <div className="dispute-card-change-badge positive">
-                    <TrendingUp size={12} />
-                    <span>{formatPercent(summaryMetrics.activeChangePercent)}</span>
+                    {showSummarySkeleton ? (
+                      <DisputeChangeBadgeSkeleton />
+                    ) : (
+                      <>
+                        <TrendingUp size={12} />
+                        <span>{formatPercent(summaryMetrics.activeChangePercent)}</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="dispute-card-value">{summaryMetrics.activeDisputes ?? 'N/A'}</div>
+                <div className="dispute-card-value">
+                  {showSummarySkeleton ? (
+                    <DisputeMetricValueSkeleton />
+                  ) : (
+                    summaryMetrics.activeDisputes ?? '—'
+                  )}
+                </div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -1330,11 +1494,23 @@ const Dispute = () => {
                 <div className="dispute-card-title-row">
                   <span className="dispute-card-title">Resolved Dispute</span>
                   <div className="dispute-card-change-badge positive">
-                    <TrendingUp size={12} />
-                    <span>{formatPercent(summaryMetrics.resolvedChangePercent)}</span>
+                    {showSummarySkeleton ? (
+                      <DisputeChangeBadgeSkeleton />
+                    ) : (
+                      <>
+                        <TrendingUp size={12} />
+                        <span>{formatPercent(summaryMetrics.resolvedChangePercent)}</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="dispute-card-value">{summaryMetrics.resolvedDisputes ?? 'N/A'}</div>
+                <div className="dispute-card-value">
+                  {showSummarySkeleton ? (
+                    <DisputeMetricValueSkeleton />
+                  ) : (
+                    summaryMetrics.resolvedDisputes ?? '—'
+                  )}
+                </div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
                   <ChevronDown size={14} />
@@ -1349,12 +1525,18 @@ const Dispute = () => {
                   <span className="dispute-card-title">Avg Resolution Time</span>
                 </div>
                 <div
-                  className={`dispute-card-value${avgResolutionParts.unit ? ' dispute-card-value--split' : ''}`}
+                  className={`dispute-card-value${!showSummarySkeleton && avgResolutionParts.unit ? ' dispute-card-value--split' : ''}`}
                 >
-                  <span className="dispute-card-value-main">{avgResolutionParts.main}</span>
-                  {avgResolutionParts.unit ? (
-                    <span className="dispute-card-value-unit">{avgResolutionParts.unit}</span>
-                  ) : null}
+                  {showSummarySkeleton ? (
+                    <DisputeMetricValueSkeleton />
+                  ) : (
+                    <>
+                      <span className="dispute-card-value-main">{avgResolutionParts.main}</span>
+                      {avgResolutionParts.unit ? (
+                        <span className="dispute-card-value-unit">{avgResolutionParts.unit}</span>
+                      ) : null}
+                    </>
+                  )}
                 </div>
                 <div className="dispute-card-dropdown">
                   <span>This Monthly</span>
@@ -1445,13 +1627,22 @@ const Dispute = () => {
             </div>
 
             <div className="mobile-dispute-history-cards">
-              {Array.isArray(disputeData) && disputeData.length > 0 ? (
+              {showDisputeListSkeleton ? (
+                <DisputeMobileCardsSkeleton />
+              ) : Array.isArray(disputeData) && disputeData.length > 0 ? (
                 disputeData.map((dispute, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={dispute.apiId || dispute.id || index}
                     className="mobile-dispute-history-card"
-                    onClick={() => navigate(`/dispute/${dispute.apiId || dispute.id}`)}
-                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openDisputeDetailModal(dispute)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openDisputeDetailModal(dispute);
+                      }
+                    }}
                   >
                     <div className="mobile-dispute-history-row">
                       <div className="mobile-dispute-history-parties">
@@ -1472,9 +1663,7 @@ const Dispute = () => {
                   </div>
                 ))
               ) : (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  N/A
-                </div>
+                <div className="dispute-empty-state">No disputes found.</div>
               )}
             </div>
           </div>
@@ -1491,13 +1680,27 @@ const Dispute = () => {
               <div className="dispute-table-cell">Duration</div>
             </div>
             {/* Data Rows */}
-            {Array.isArray(disputeData) && disputeData.length > 0 ? (
+            {showDisputeListSkeleton ? (
+              <DisputeTableRowsSkeleton />
+            ) : Array.isArray(disputeData) && disputeData.length > 0 ? (
               disputeData.map((dispute, index) => (
-                <div key={index} className="dispute-table-row">
+                <div
+                  key={dispute.apiId || dispute.id || index}
+                  className="dispute-table-row dispute-table-row--interactive"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openDisputeDetailModal(dispute)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openDisputeDetailModal(dispute);
+                    }
+                  }}
+                >
                   <div className="dispute-table-cell dispute-case-id">#{dispute.id}</div>
                   <div className="dispute-table-cell dispute-parties">
                     <span className="party-link">{dispute.parties.from}</span>
-                    <ArrowRight size={14} className="party-arrow" />
+                    <ArrowRight size={14} className="party-arrow" aria-hidden />
                     <span>{dispute.parties.to}</span>
                   </div>
                   <div className="dispute-table-cell dispute-amount">
@@ -1510,20 +1713,11 @@ const Dispute = () => {
                   <div className="dispute-table-cell dispute-reason">{dispute.reason}</div>
                   <div className="dispute-table-cell dispute-duration">
                     <span>{dispute.duration}</span>
-                    <button 
-                      type="button" 
-                      className="dispute-action-btn"
-                      onClick={() => navigate(`/dispute/${dispute.apiId || dispute.id}`)}
-                    >
-                      <ArrowRight size={16} />
-                    </button>
                   </div>
                 </div>
               ))
             ) : (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                N/A
-              </div>
+              <div className="dispute-empty-state dispute-empty-state--table">No disputes found.</div>
             )}
           </div>
 
@@ -2188,6 +2382,117 @@ const Dispute = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showDisputeDetailModal && selectedDisputePreview && (
+        <div
+          className="create-escrow-modal-overlay escrow-detail-modal-overlay"
+          onClick={closeDisputeDetailModal}
+        >
+          <div
+            className="create-escrow-modal escrow-detail-modal dispute-list-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dispute-list-detail-modal-title"
+          >
+            <div className="create-escrow-modal-header escrow-detail-modal-header">
+              <div className="modal-header-leading">
+                <span className="modal-header-accent-bar" aria-hidden />
+                <h2 id="dispute-list-detail-modal-title" className="escrow-detail-modal-title">
+                  Dispute Details
+                </h2>
+              </div>
+              <button type="button" className="modal-close-btn" onClick={closeDisputeDetailModal} aria-label="Close">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="create-escrow-modal-content escrow-detail-modal-content">
+              {isLoadingDisputeDetail ? (
+                <div className="dispute-list-detail-modal-loading" role="status" aria-label="Loading dispute details">
+                  <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-long" />
+                  <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-medium" />
+                  <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-long" />
+                  <span className="dispute-skeleton dispute-skeleton--line dispute-skeleton--line-short" />
+                </div>
+              ) : (
+                <div className="escrow-detail-sheet-rows">
+                  <div className="escrow-detail-row">
+                    <span className="escrow-detail-label">Case ID</span>
+                    <span className="escrow-detail-value escrow-detail-id-link">
+                      #{selectedDisputeDetail?.caseId?.replace(/^#/, '') || selectedDisputePreview.id}
+                    </span>
+                  </div>
+                  <div className="escrow-detail-row">
+                    <span className="escrow-detail-label">Status</span>
+                    <span className="escrow-detail-value">
+                      <span className="escrow-detail-status-badge escrow-detail-status-badge--pending">
+                        {titleCaseStatus(selectedDisputeDetail?.status || selectedDisputePreview.status)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="escrow-detail-row escrow-detail-row--stacked">
+                    <span className="escrow-detail-label">Parties</span>
+                    <span className="escrow-detail-value">
+                      {selectedDisputeDetail?.initiatorName || selectedDisputePreview.parties.from}
+                      {' → '}
+                      {selectedDisputeDetail?.respondentName || selectedDisputePreview.parties.to}
+                    </span>
+                  </div>
+                  <div className="escrow-detail-row">
+                    <span className="escrow-detail-label">Amount</span>
+                    <span className="escrow-detail-value escrow-detail-value--strong">
+                      {selectedDisputeDetail?.amount?.xrp != null
+                        ? `${formatXrpAmount(selectedDisputeDetail.amount.xrp)} XRP`
+                        : `${selectedDisputePreview.amount.xrp} XRP`}
+                      {' '}
+                      ≈{' '}
+                      {selectedDisputeDetail?.amount?.usd != null
+                        ? formatUsdAmount(selectedDisputeDetail.amount.usd)
+                        : selectedDisputePreview.amount.usd}
+                    </span>
+                  </div>
+                  <div className="escrow-detail-row">
+                    <span className="escrow-detail-label">Reason</span>
+                    <span className="escrow-detail-value">
+                      {selectedDisputeDetail?.reason || selectedDisputePreview.reason}
+                    </span>
+                  </div>
+                  <div className="escrow-detail-row">
+                    <span className="escrow-detail-label">Duration</span>
+                    <span className="escrow-detail-value">
+                      {selectedDisputeDetail?.durationSeconds != null
+                        ? formatDurationSeconds(selectedDisputeDetail.durationSeconds)
+                        : selectedDisputePreview.duration}
+                    </span>
+                  </div>
+                  {(selectedDisputeDetail?.description || selectedDisputeDetail?.disputeReason) && (
+                    <div className="escrow-detail-row escrow-detail-row--stacked escrow-detail-row--last">
+                      <span className="escrow-detail-label">Description</span>
+                      <span className="escrow-detail-value">
+                        {selectedDisputeDetail.description || selectedDisputeDetail.disputeReason}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="dispute-list-detail-modal-footer">
+                <button
+                  type="button"
+                  className="submit-next-btn dispute-list-detail-open-btn"
+                  onClick={() => {
+                    const detailId = selectedDisputeDetailId || selectedDisputePreview.apiId || selectedDisputePreview.id;
+                    closeDisputeDetailModal();
+                    navigate(`/dispute/${detailId}`);
+                  }}
+                >
+                  <span>Open full case</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

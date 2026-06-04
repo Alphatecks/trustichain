@@ -231,6 +231,21 @@
   margin-left: 0;
 }
 
+.party-contact-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.buyer-card .party-contact-text {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.seller-card .party-contact-text {
+  color: var(--text-muted);
+}
+
 /* Details Card */
 .dispute-details-card {
   background: var(--surface, var(--white));

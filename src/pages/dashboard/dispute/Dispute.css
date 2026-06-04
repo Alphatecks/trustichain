@@ -395,29 +395,44 @@
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
-.dispute-action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--blue-600);
-  color: var(--white);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dispute-table-row--interactive {
   cursor: pointer;
-  transition: background 0.2s;
-  flex-shrink: 0;
-  padding: 0;
-  margin-left: auto;
 }
 
-.dispute-action-btn:hover {
-  background: var(--blue-500);
+.dispute-table-row--interactive:focus-visible {
+  outline: 2px solid var(--blue-600, #2563eb);
+  outline-offset: 2px;
 }
 
-.dispute-action-btn svg {
-  color: var(--white);
+.dispute-table-row--interactive:hover .dispute-table-cell {
+  background: #f8fafc;
+}
+
+.dispute-list-detail-modal .dispute-list-detail-modal-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0 1rem;
+}
+
+.dispute-list-detail-modal .dispute-list-detail-modal-loading .dispute-skeleton--line-long {
+  width: 100%;
+}
+
+.dispute-list-detail-modal-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e8eaef;
+}
+
+.dispute-list-detail-open-btn {
+  width: 100%;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.dispute-list-detail-open-btn span {
+  order: 0;
 }
 
 /* Pagination */
@@ -853,6 +868,111 @@
   .mobile-dispute-history-section {
     display: none !important;
   }
+}
+
+/* Dispute page — shimmer skeletons (no bouncing spinner; stable layout) */
+@keyframes dispute-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.dispute-skeleton {
+  display: block;
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, #e8eef8 0%, #f4f8ff 45%, #e8eef8 90%);
+  background-size: 200% 100%;
+  animation: dispute-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.dispute-skeleton--metric-value {
+  width: 4.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+}
+
+.dispute-skeleton--change-badge {
+  width: 2.75rem;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.dispute-card-value .dispute-skeleton--metric-value {
+  flex-shrink: 0;
+}
+
+.dispute-table-row--skeleton .dispute-table-cell {
+  min-height: 3.25rem;
+}
+
+.dispute-skeleton--table-cell {
+  width: 72%;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.dispute-table-row--skeleton .dispute-table-cell:nth-child(2) .dispute-skeleton--table-cell {
+  width: 88%;
+}
+
+.dispute-table-row--skeleton .dispute-table-cell:nth-child(3) .dispute-skeleton--table-cell {
+  width: 65%;
+}
+
+.mobile-dispute-history-card--skeleton {
+  pointer-events: none;
+  cursor: default;
+}
+
+.mobile-dispute-history-card--skeleton:active {
+  transform: none;
+}
+
+.dispute-skeleton--line {
+  height: 0.85rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.dispute-skeleton--line-long {
+  width: 55%;
+  max-width: 11rem;
+}
+
+.dispute-skeleton--line-medium {
+  width: 42%;
+  max-width: 8rem;
+}
+
+.dispute-skeleton--line-short {
+  width: 4.5rem;
+}
+
+.dispute-skeleton--pill {
+  width: 4.25rem;
+  height: 1.65rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.dispute-empty-state {
+  width: 100%;
+  min-height: 8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  text-align: center;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.dispute-empty-state--table {
+  min-height: 12rem;
 }
 
 /* Create Dispute modal — step track + step 1/2 form (reference layout) */

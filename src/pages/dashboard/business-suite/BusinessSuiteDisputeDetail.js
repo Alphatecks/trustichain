@@ -40,6 +40,7 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getDisputeDetail } from '../../../utils/disputesApi';
+import { resolveDisputePartyProfile } from '../../../utils/disputeParty';
 import { handleLogout } from '../../../utils/logout';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
@@ -329,11 +330,16 @@ const BusinessSuiteDisputeDetail = () => {
     return raw ? String(raw).replace(/^#/, '') : '';
   }, [disputeDetail?.caseId, id]);
 
-  const initiatorName = disputeDetail?.initiatorName || '';
-  const respondentName = disputeDetail?.respondentName || '';
-  const initiatorInitials = useMemo(() => getInitials(initiatorName), [initiatorName]);
-  const respondentInitials = useMemo(() => getInitials(respondentName), [respondentName]);
-  const disputeClaimsText = disputeDetail?.description || disputeDetail?.reason || '';
+  const initiatorProfile = useMemo(
+    () => resolveDisputePartyProfile(disputeDetail, 'initiator'),
+    [disputeDetail],
+  );
+  const respondentProfile = useMemo(
+    () => resolveDisputePartyProfile(disputeDetail, 'respondent'),
+    [disputeDetail],
+  );
+  const initiatorInitials = useMemo(() => getInitials(initiatorProfile.name), [initiatorProfile.name]);
+  const respondentInitials = useMemo(() => getInitials(respondentProfile.name), [respondentProfile.name]);
   const disputeStatusText = disputeDetail?.status ? titleCaseStatus(disputeDetail.status) : '';
   const disputeAmountText = disputeDetail?.amount?.usd !== undefined ? formatUsdAmount(disputeDetail.amount.usd) : '';
 
@@ -1412,8 +1418,8 @@ const BusinessSuiteDisputeDetail = () => {
                 <div className="party-info">
                   <div className="party-header-row">
                     <div className="party-name-section">
-                      <h3 className="party-name">{initiatorName}</h3>
-                      <p className="party-role">Buyer ( me )</p>
+                      <h3 className="party-name">{initiatorProfile.name || '—'}</h3>
+                      <p className="party-role">{initiatorProfile.roleLabel}</p>
                     </div>
                     <span className="party-badge">Party 1</span>
                   </div>
@@ -1421,7 +1427,13 @@ const BusinessSuiteDisputeDetail = () => {
               </div>
               <div className="buyer-card-claims">
                 <h4 className="party-claims-heading">Claims</h4>
-                <p className="party-claims-text">{disputeClaimsText}</p>
+                <p className="party-claims-text">{initiatorProfile.claimsDisplay}</p>
+                {initiatorProfile.email ? (
+                  <p className="party-contact-text">Email: {initiatorProfile.email}</p>
+                ) : null}
+                {initiatorProfile.phone ? (
+                  <p className="party-contact-text">Phone: {initiatorProfile.phone}</p>
+                ) : null}
               </div>
             </div>
 
@@ -1435,10 +1447,10 @@ const BusinessSuiteDisputeDetail = () => {
                   <div className="party-header-row">
                     <div className="party-name-section">
                       <div className="party-name-with-check">
-                        <h3 className="party-name">{respondentName}</h3>
+                        <h3 className="party-name">{respondentProfile.name || '—'}</h3>
                         <CheckCircle2 size={16} className="party-check-icon" />
                       </div>
-                      <p className="party-role">Seller</p>
+                      <p className="party-role">{respondentProfile.roleLabel}</p>
                     </div>
                     <span className="party-badge">Party 2</span>
                   </div>
@@ -1446,7 +1458,13 @@ const BusinessSuiteDisputeDetail = () => {
               </div>
               <div className="seller-card-claims">
                 <h4 className="party-claims-heading">Claims</h4>
-                <p className="party-claims-text">{disputeClaimsText}</p>
+                <p className="party-claims-text">{respondentProfile.claimsDisplay}</p>
+                {respondentProfile.email ? (
+                  <p className="party-contact-text">Email: {respondentProfile.email}</p>
+                ) : null}
+                {respondentProfile.phone ? (
+                  <p className="party-contact-text">Phone: {respondentProfile.phone}</p>
+                ) : null}
               </div>
             </div>
 
