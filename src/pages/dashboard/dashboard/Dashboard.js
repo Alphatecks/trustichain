@@ -63,6 +63,7 @@ import {
   getDepositNetworksForCurrency,
   depositAddressNetworkLabel,
   extractWalletAddresses,
+  buildWalletAddressRows,
   resolveDepositAddressFromBalance,
   splitDepositAddressLines,
   provisionUsdtUsdcDepositAddresses,
@@ -95,6 +96,7 @@ import NotificationListItems from '../../../components/NotificationListItems/Not
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
+import PersonalWalletAddressesModal from '../../../components/PersonalWalletAddressesModal';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
 const normalizeCompanyLogoUrl = (data) => {
@@ -1279,6 +1281,7 @@ const Dashboard = () => {
         },
       });
       const result = await res.json().catch(() => ({}));
+      setWalletBalanceRaw(result && typeof result === 'object' ? result : null);
       const addresses = extractWalletAddresses(result);
       if (result?.success && addresses.xrp) {
         setWalletAddress(addresses.xrp);
@@ -1307,6 +1310,11 @@ const Dashboard = () => {
       setIsLoadingWalletAddress(false);
     }
   };
+
+  const walletAddressRows = useMemo(
+    () => buildWalletAddressRows(walletBalanceRaw),
+    [walletBalanceRaw],
+  );
 
   const depositDisplayAddress = useMemo(() => {
     if (!fundViaAddress) return '';
@@ -8031,97 +8039,18 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Wallet Modal */}
-      {showWalletModal && (accountType === 'Personal' || (hasWallet && walletAddress)) && (
-        <div className="wallet-modal-overlay" onClick={() => setShowWalletModal(false)}>
-          <div className="wallet-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="wallet-modal-header">
-              <h2>Your Wallet</h2>
-              <button
-                type="button"
-                className="wallet-modal-close-btn"
-                onClick={() => setShowWalletModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="wallet-modal-body">
-              {!walletAddress ? (
-                <p style={{ marginBottom: '1rem', color: 'var(--text-muted, #64748b)', fontSize: '0.9rem' }}>
-                  No wallet yet. Create your XRP wallet to get started, then provision USDT and USDC deposit addresses.
-                </p>
-              ) : null}
-              <p className="wallet-modal-label">XRP Address</p>
-              <div className="wallet-modal-address-row">
-                <div className="wallet-modal-address-box">
-                  {walletAddress || '—'}
-                </div>
-                <button
-                  type="button"
-                  className="wallet-modal-copy-btn"
-                  disabled={!walletAddress}
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(walletAddress);
-                      toast.success('Wallet address copied');
-                    } catch (err) {
-                      console.error('Failed to copy wallet address:', err);
-                      toast.error('Failed to copy wallet address');
-                    }
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-              <p className="wallet-modal-label" style={{ marginTop: '1rem' }}>RLUSD Address</p>
-              <div className="wallet-modal-address-row">
-                <div className="wallet-modal-address-box">
-                  {rlusdWalletAddress || walletAddress || '—'}
-                </div>
-                <button
-                  type="button"
-                  className="wallet-modal-copy-btn"
-                  disabled={!(rlusdWalletAddress || walletAddress)}
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(rlusdWalletAddress || walletAddress);
-                      toast.success('RLUSD address copied');
-                    } catch (err) {
-                      console.error('Failed to copy RLUSD address:', err);
-                      toast.error('Failed to copy RLUSD address');
-                    }
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-              <div style={{ marginTop: '1.25rem' }}>
-                {!walletAddress ? (
-                  <button
-                    type="button"
-                    className="wallet-modal-copy-btn"
-                    style={{ width: '100%', minHeight: '44px' }}
-                    disabled={isProvisioningMultichainWallets}
-                    onClick={handleCreateWallet}
-                  >
-                    {isProvisioningMultichainWallets ? 'Creating…' : 'Create wallet'}
-                  </button>
-                ) : accountType === 'Personal' ? (
-                  <button
-                    type="button"
-                    className="wallet-modal-copy-btn"
-                    style={{ width: '100%', minHeight: '44px' }}
-                    disabled={isProvisioningMultichainWallets}
-                    onClick={handleProvisionOtherWalletAddresses}
-                  >
-                    {isProvisioningMultichainWallets ? 'Creating addresses…' : 'Create USDT & USDC addresses'}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PersonalWalletAddressesModal
+        isOpen={showWalletModal && (accountType === 'Personal' || (hasWallet && walletAddress))}
+        onClose={() => setShowWalletModal(false)}
+        walletAddress={walletAddress}
+        rlusdWalletAddress={rlusdWalletAddress}
+        addressRows={walletAddressRows}
+        walletBalanceRaw={walletBalanceRaw}
+        isProvisioningWallets={isProvisioningMultichainWallets}
+        showProvisionButton={accountType === 'Personal'}
+        onCreateInitialWallet={handleCreateWallet}
+        onProvisionOtherAddresses={handleProvisionOtherWalletAddresses}
+      />
 
       {showWalletDetailsModal && selectedWalletDetails && (
         <div

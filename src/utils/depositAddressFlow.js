@@ -129,6 +129,70 @@ export const resolveDepositAddressFromBalance = (apiResult, currency, networkKey
   return (xrp || '').trim();
 };
 
+/**
+ * Build display rows for View wallet modal from balance/create-wallet API payloads.
+ * @returns {{ id: string, label: string, address: string }[]}
+ */
+export function buildWalletAddressRows(apiResult) {
+  const rows = [];
+  const seen = new Set();
+
+  const addRow = (label, address) => {
+    const normalizedLabel = String(label || '').trim();
+    const normalizedAddress = String(address || '').trim();
+    if (!normalizedLabel || !normalizedAddress) return;
+    const dedupeKey = `${normalizedLabel}::${normalizedAddress}`;
+    if (seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
+    rows.push({ id: dedupeKey, label: normalizedLabel, address: normalizedAddress });
+  };
+
+  if (!apiResult || typeof apiResult !== 'object') return rows;
+
+  const { xrp, rlusd } = extractWalletAddresses(apiResult);
+
+  if (xrp) {
+    addRow('XRP Address', xrp);
+    addRow('RLUSD Address', rlusd || xrp);
+  } else if (rlusd) {
+    addRow('RLUSD Address', rlusd);
+  }
+
+  for (const currency of ['USDT', 'USDC']) {
+    for (const network of getDepositNetworksForCurrency(currency)) {
+      const addr = resolveDepositAddressFromBalance(apiResult, currency, network);
+      if (addr) {
+        addRow(`${currency} — ${depositAddressNetworkLabel(network)}`, addr);
+      }
+    }
+  }
+
+  const d = apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : apiResult;
+  const map = d.depositAddresses || d.deposit_addresses || d.receiveAddresses || d.chainAddresses;
+  if (map && typeof map === 'object' && !Array.isArray(map)) {
+    for (const [curRaw, val] of Object.entries(map)) {
+      const curUpper = String(curRaw).trim().toUpperCase();
+      if (typeof val === 'string' && val.trim()) {
+        const label =
+          curUpper === 'XRP'
+            ? 'XRP Address'
+            : curUpper === 'RLUSD'
+              ? 'RLUSD Address'
+              : `${curUpper} Address`;
+        addRow(label, val);
+      } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+        for (const [netRaw, addr] of Object.entries(val)) {
+          if (typeof addr !== 'string' || !addr.trim()) continue;
+          const net = String(netRaw).trim().toUpperCase();
+          addRow(`${curUpper} — ${depositAddressNetworkLabel(net) || netRaw}`, addr);
+        }
+      }
+    }
+  }
+
+  return rows;
+}
+
 export const splitDepositAddressLines = (addr) => {
   if (!addr || typeof addr !== 'string') return [];
   if (addr.length <= 18) return [addr];

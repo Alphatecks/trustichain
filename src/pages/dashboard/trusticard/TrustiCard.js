@@ -360,6 +360,8 @@ const TrustiCard = () => {
   const {
     walletAddress: sidebarWalletAddress,
     rlusdWalletAddress: sidebarRlusdWalletAddress,
+    walletAddressRows: sidebarWalletAddressRows,
+    walletBalanceRaw: sidebarWalletBalanceRaw,
     showWalletModal: showSidebarWalletModal,
     setShowWalletModal: setShowSidebarWalletModal,
     isLoadingWalletAddress: isLoadingSidebarWallet,
@@ -3891,6 +3893,8 @@ const TrustiCard = () => {
         onClose={() => setShowSidebarWalletModal(false)}
         walletAddress={sidebarWalletAddress}
         rlusdWalletAddress={sidebarRlusdWalletAddress}
+        addressRows={sidebarWalletAddressRows}
+        walletBalanceRaw={sidebarWalletBalanceRaw}
         isProvisioningWallets={isProvisioningSidebarWallets}
         onCreateInitialWallet={async () => {
           const ok = await handleSidebarCreateInitialWallet();
