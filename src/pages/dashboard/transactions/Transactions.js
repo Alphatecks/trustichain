@@ -55,6 +55,7 @@ import {
 import '../dashboard/Dashboard.css';
 import './Transactions.css';
 import logo from '../../../assets/images/icons/logo.png';
+import googleLogo from '../../../assets/images/icons/google-logo.svg';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
@@ -81,6 +82,27 @@ import TransactionSummaryModal from '../../../components/TransactionSummaryModal
 import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
 import AddSavingsPlanModal, { planRequiresGoalAmount } from '../../../components/AddSavingsPlanModal';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+
+const DepositGooglePayMark = () => (
+  <span className="fund-method-payment-mark fund-method-payment-mark--google" aria-hidden>
+    <img src={googleLogo} alt="" className="fund-method-payment-logo" />
+    <span className="fund-method-payment-logo-text fund-method-payment-logo-text--google">Pay</span>
+  </span>
+);
+
+const DepositApplePayMark = () => (
+  <span className="fund-method-payment-mark fund-method-payment-mark--apple" aria-hidden>
+    <svg className="fund-method-payment-logo" viewBox="0 0 24 24" aria-hidden>
+      <path
+        d="M17.05 12.06c.01 2.56 2.24 3.41 2.26 3.42-.02.06-.36 1.23-1.19 2.43-.72 1.04-1.47 2.07-2.65 2.09-1.16.02-1.53-.69-2.86-.69-1.33 0-1.74.67-2.84.71-1.14.04-2.01-1.14-2.74-2.17-1.5-2.16-2.65-6.09-1.11-8.77.76-1.33 2.12-2.18 3.6-2.2 1.12-.02 2.18.75 2.86.75.68 0 1.95-.93 3.29-.79.56.02 2.14.23 3.16 1.72-.08.05-1.89 1.1-1.88 3.5zm-2.58-6.15c.6-.73 1.01-1.74.9-2.75-.86.03-1.91.57-2.53 1.3-.56.65-1.05 1.69-.92 2.68.96.08 1.95-.48 2.55-1.23z"
+        fill="currentColor"
+      />
+    </svg>
+    <span className="fund-method-payment-logo-text fund-method-payment-logo-text--apple">Pay</span>
+  </span>
+);
+
+const STRIPE_DEPOSIT_METHODS = new Set(['googlepay', 'applepay']);
 
 /** Placeholder avatars for “Send to Trustichain Users” row (UI reference). */
 const TRUSTICHAIN_USER_SAMPLE_AVATARS = [
@@ -445,6 +467,7 @@ const Transactions = () => {
   const [fundingStep, setFundingStep] = useState('idle');
   const [transactionData, setTransactionData] = useState(null);
   const [fundViaAddress, setFundViaAddress] = useState(false);
+  const [fundDepositPaymentMethod, setFundDepositPaymentMethod] = useState(null);
   const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletAddress, setWalletAddress] = useState('');
   /** Last successful GET wallet/balance JSON (used to resolve deposit address by currency/network). */
@@ -2181,6 +2204,7 @@ const Transactions = () => {
         setFundingStep('idle');
         setIsFundingWallet(false);
         setFundViaAddress(false);
+        setFundDepositPaymentMethod(null);
         setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
         await fetchWalletBalances();
@@ -2198,6 +2222,14 @@ const Transactions = () => {
     }
   };
 
+  const openStripeDeposit = (method) => {
+    setShowFundMethodModal(false);
+    setFundViaAddress(false);
+    setFundDepositPaymentMethod(method);
+    setFundWalletForm({ amount: '', currency: 'USD' });
+    setShowFundWalletModal(true);
+  };
+
   const handleFundWallet = async (e) => {
     e.preventDefault();
     
@@ -2209,6 +2241,77 @@ const Transactions = () => {
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('Please login to fund your wallet');
+      return;
+    }
+
+    if (STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)) {
+      const amountUsd = Number(parseFloat(fundWalletForm.amount).toFixed(2));
+      const methodLabel = fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay';
+      setIsFundingWallet(true);
+      setFundingStep('preparing');
+      try {
+        toast.loading(`Preparing ${methodLabel}…`, { id: 'fund-wallet' });
+        const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amountUsd,
+            currency: 'usd',
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-pi-${Date.now()}`,
+          }),
+        });
+        const piData = await piResponse.json().catch(() => ({}));
+        if (!piResponse.ok) {
+          throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
+        }
+
+        const customerEmail =
+          dashboardData?.user?.email?.trim() ||
+          dashboardData?.email?.trim() ||
+          'unknown@trustichain.app';
+        const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerEmail,
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-si-${Date.now()}`,
+          }),
+        });
+        const siData = await siResponse.json().catch(() => ({}));
+        if (!siResponse.ok) {
+          throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
+        }
+
+        toast.success(
+          `${methodLabel} initialized. Continue payment using the returned Stripe client secret.`,
+          { id: 'fund-wallet' },
+        );
+        setShowFundWalletModal(false);
+        setFundWalletForm({ amount: '', currency: 'XRP' });
+        setFundDepositPaymentMethod(null);
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+        await fetchDashboardSummary();
+        await fetchWalletBalances();
+      } catch (stripeError) {
+        console.error('Stripe deposit error:', stripeError);
+        toast.error(
+          stripeError?.message || `Failed to initialize ${methodLabel}. Please try again.`,
+          { id: 'fund-wallet' },
+        );
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+      }
       return;
     }
 
@@ -2256,6 +2359,7 @@ const Transactions = () => {
         setFundingStep('idle');
         setIsFundingWallet(false);
         setFundViaAddress(false);
+        setFundDepositPaymentMethod(null);
         setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
         return;
@@ -2298,6 +2402,7 @@ const Transactions = () => {
                 setFundingStep('idle');
                 setIsFundingWallet(false);
                 setFundViaAddress(false);
+                setFundDepositPaymentMethod(null);
                 setDepositAddressNetwork('XRPL');
                 await fetchDashboardSummary();
               } else if (statusResult.data?.cancelled || statusResult.data?.expired) {
@@ -5785,14 +5890,7 @@ const Transactions = () => {
                 <button 
                   type="button" 
                   className="summary-card-btn primary transactions-tbc-btn-deposit"
-                  onClick={() => {
-                    // On mobile, show full page; on desktop, show modal
-                    if (window.innerWidth <= 768) {
-                      setShowFundWalletPage(true);
-                    } else {
-                      setShowFundMethodModal(true);
-                    }
-                  }}
+                  onClick={() => setShowFundMethodModal(true)}
                 >
                   <Plus size={18} strokeWidth={2.5} aria-hidden />
                   Deposit
@@ -5953,12 +6051,12 @@ const Transactions = () => {
           <div className="transactions-middle">
             {/* Left Column */}
             <div className="transactions-left-column">
-              {/* My Details Section */}
+              {/* Payment Methods Section */}
               <div className="transactions-section-card my-details-section">
                 <div className="section-content my-details-inner">
                   <div className="my-details-header">
                     <span className="my-details-accent-bar" aria-hidden />
-                    <h3 className="my-details-heading">My Details</h3>
+                    <h3 className="my-details-heading">Payment Methods</h3>
                   </div>
                   <ul className="my-details-rows">
                     <li className="my-details-row">
@@ -6016,7 +6114,14 @@ const Transactions = () => {
                 <div className="section-content beneficiaries-inner">
                   <div className="beneficiaries-header">
                     <span className="beneficiaries-accent-bar" aria-hidden />
-                    <h3 className="beneficiaries-heading">Send to Trustichain Users</h3>
+                    <h3 className="beneficiaries-heading">
+                      <span className="beneficiaries-heading-label beneficiaries-heading-label--desktop">
+                        Send to Trustichain Users
+                      </span>
+                      <span className="beneficiaries-heading-label beneficiaries-heading-label--mobile">
+                        Beneficiaries
+                      </span>
+                    </h3>
                   </div>
                   <div className="beneficiaries-toolbar">
                     <div className="beneficiaries-avatars-row">
@@ -6128,13 +6233,18 @@ const Transactions = () => {
             {/* Right Column */}
             <div className="transactions-right-column">
               {/* Transaction History Section */}
-              <div className="transactions-section-card">
-                <div className="section-indicator"></div>
-                <div className="section-content">
+              <div className="transactions-section-card transaction-history-card">
+                <div className="section-content transaction-history-inner">
                   <div className="transaction-history-header">
                     <div className="transaction-history-title-wrapper">
-                      <h3 className="section-title">Transaction history</h3>
-                      <ArrowRight size={20} className="transaction-history-arrow" />
+                      <h3 className="transaction-history-heading">Transaction History</h3>
+                      <button
+                        type="button"
+                        className="transaction-history-nav-btn"
+                        aria-label="View all transactions"
+                      >
+                        <ArrowRight size={18} className="transaction-history-arrow" aria-hidden />
+                      </button>
                     </div>
                     <div className="transaction-filters">
                       <select 
@@ -6195,25 +6305,35 @@ const Transactions = () => {
                             setSelectedTransaction(transaction);
                             setShowTransactionDetailsModal(true);
                           }}
-                          style={{ cursor: 'pointer' }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedTransaction(transaction);
+                              setShowTransactionDetailsModal(true);
+                            }
+                          }}
                         >
-                          <div className="mobile-transaction-left">
-                            <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`}>
-                              {isReceived ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+                          <div className="mobile-transaction-top">
+                            <div className="mobile-transaction-left">
+                              <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`}>
+                                {isReceived ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+                              </div>
+                              <div className="mobile-transaction-type">{type}</div>
                             </div>
-                            <div className="mobile-transaction-type">{type}</div>
-                          </div>
-                          <div className="mobile-transaction-center">
-                            <div className="mobile-transaction-details">
-                              {isReceived ? 'You received' : 'You sent'} {Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP, worth ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD.
+                            <div className="mobile-transaction-right">
+                              <div className={`mobile-transaction-status ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
+                                {status}
+                              </div>
+                              <div className="mobile-transaction-date">{formatDate(date)}</div>
                             </div>
                           </div>
-                          <div className="mobile-transaction-right">
-                            <div className={`mobile-transaction-status ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
-                              {status}
-                            </div>
-                            <div className="mobile-transaction-date">{formatDate(date)}</div>
-                          </div>
+                          <p className="mobile-transaction-details">
+                            {isReceived ? 'You received' : 'You sent'}{' '}
+                            {Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP, worth $
+                            {Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD.
+                          </p>
                         </div>
                       );
                     })}
@@ -6419,7 +6539,7 @@ const Transactions = () => {
       {/* Fund Wallet Modal (Receive on personal platform) */}
       {showFundWalletModal && (
         <div
-          className={`notification-modal-overlay${fundViaAddress ? ' deposit-address-overlay' : ''}`}
+          className={`notification-modal-overlay deposit-flow-overlay${fundViaAddress ? ' deposit-address-overlay' : ''}`}
           onClick={() => {
           if (!isFundingWallet || fundingStep === 'idle') {
             setShowFundWalletModal(false);
@@ -6428,6 +6548,7 @@ const Transactions = () => {
             setFundingStep('idle');
             setIsFundingWallet(false);
             setFundViaAddress(false);
+            setFundDepositPaymentMethod(null);
             setDepositAddressNetwork('XRPL');
           }
         }}>
@@ -6450,6 +6571,7 @@ const Transactions = () => {
                   setFundingStep('idle');
                   setIsFundingWallet(false);
                   setFundViaAddress(false);
+                  setFundDepositPaymentMethod(null);
                   setDepositAddressNetwork('XRPL');
                 }}
                 disabled={isFundingWallet && fundingStep !== 'idle'}
@@ -6566,6 +6688,7 @@ const Transactions = () => {
                       setFundingStep('idle');
                       setIsFundingWallet(false);
                       setFundViaAddress(false);
+                      setFundDepositPaymentMethod(null);
                       setDepositAddressNetwork('XRPL');
                     }}
                   >
@@ -6622,8 +6745,22 @@ const Transactions = () => {
                 )}
 
                 <form onSubmit={handleFundWallet} className="fund-wallet-form">
+                  {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
+                    <div className="fund-wallet-stripe-method">
+                      {fundDepositPaymentMethod === 'googlepay' ? (
+                        <DepositGooglePayMark />
+                      ) : (
+                        <DepositApplePayMark />
+                      )}
+                      <span>
+                        {fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'} deposit
+                      </span>
+                    </div>
+                  )}
                   <div className="form-group">
-                    <label htmlFor="fund-amount">Amount</label>
+                    <label htmlFor="fund-amount">
+                      {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? 'Amount (USD)' : 'Amount'}
+                    </label>
                     <input
                       id="fund-amount"
                       type="number"
@@ -6637,22 +6774,30 @@ const Transactions = () => {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="fund-currency">Wallets</label>
-                    <select
-                      id="fund-currency"
-                      value={fundWalletForm.currency}
-                      onChange={(e) => setFundWalletForm(prev => ({ ...prev, currency: e.target.value }))}
-                      disabled={isFundingWallet}
-                    >
-                      <option value="XRP">XRP</option>
-                      <option value="RLUSD">Ripple (RLUSD)</option>
-                      <option value="USDT">USDT</option>
-                      <option value="USDC">USDC</option>
-                    </select>
-                  </div>
+                  {!STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
+                    <div className="form-group">
+                      <label htmlFor="fund-currency">Wallets</label>
+                      <select
+                        id="fund-currency"
+                        value={fundWalletForm.currency}
+                        onChange={(e) => setFundWalletForm(prev => ({ ...prev, currency: e.target.value }))}
+                        disabled={isFundingWallet}
+                      >
+                        <option value="XRP">XRP</option>
+                        <option value="RLUSD">Ripple (RLUSD)</option>
+                        <option value="USDT">USDT</option>
+                        <option value="USDC">USDC</option>
+                      </select>
+                    </div>
+                  )}
 
-                  <div className="fund-wallet-actions">
+                  <div
+                    className={`fund-wallet-actions${
+                      STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)
+                        ? ' fund-wallet-actions--stripe'
+                        : ''
+                    }`}
+                  >
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
@@ -6663,6 +6808,7 @@ const Transactions = () => {
                         setFundingStep('idle');
                         setIsFundingWallet(false);
                         setFundViaAddress(false);
+                        setFundDepositPaymentMethod(null);
                         setDepositAddressNetwork('XRPL');
                       }}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
@@ -6671,13 +6817,22 @@ const Transactions = () => {
                     </button>
                     <button
                       type="submit"
-                      className="fund-wallet-btn primary"
+                      className={`fund-wallet-btn primary${
+                        STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)
+                          ? ' fund-wallet-btn--stripe-pay'
+                          : ''
+                      }`}
                       disabled={isFundingWallet}
                     >
                       {fundingStep === 'preparing' && 'Preparing...'}
                       {fundingStep === 'signing' && 'Waiting for signature...'}
                       {fundingStep === 'completing' && 'Completing...'}
-                      {!isFundingWallet && 'Fund Wallet'}
+                      {!isFundingWallet &&
+                        (fundDepositPaymentMethod === 'googlepay'
+                          ? 'Continue with Google Pay'
+                          : fundDepositPaymentMethod === 'applepay'
+                            ? 'Continue with Apple Pay'
+                            : 'Fund Wallet')}
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
                   </div>
@@ -7850,8 +8005,11 @@ const Transactions = () => {
       
       {/* Fund Method Selection Modal */}
       {showFundMethodModal && (
-        <div className="notification-modal-overlay" onClick={() => setShowFundMethodModal(false)}>
-          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <div
+          className="notification-modal-overlay deposit-flow-overlay"
+          onClick={() => setShowFundMethodModal(false)}
+        >
+          <div className="notification-modal fund-method-modal" onClick={(e) => e.stopPropagation()}>
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
@@ -7865,110 +8023,70 @@ const Transactions = () => {
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '2rem' }}>
-              <p style={{ marginBottom: '1.5rem', color: '#666', fontSize: '0.95rem' }}>
+            <div className="fund-method-modal-body">
+              <p className="fund-method-modal-intro">
                 Choose how you want to fund your wallet
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="fund-method-options">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowFundMethodModal(false);
-                    setShowConnectWalletModal(true);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '1rem 1.25rem',
-                    background: '#ffffff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '0.75rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'Satoshi, Inter, sans-serif',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#0066ff';
-                    e.target.style.background = '#f0f7ff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.borderColor = '#e0e0e0';
-                    e.target.style.background = '#ffffff';
-                  }}
+                  className="fund-method-option"
+                  onClick={() => openStripeDeposit('googlepay')}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#f9fafb',
-                    borderRadius: '0.5rem',
-                    flexShrink: 0
-                  }}>
-                    <Wallet size={24} color="#0066ff" />
+                  <div className="fund-method-option-icon fund-method-option-icon--payment">
+                    <DepositGooglePayMark />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
-                      Fund with Wallet
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                      Connect your crypto wallet to fund
-                    </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Google Pay</div>
+                    <div className="fund-method-option-desc">Deposit USD instantly with Google Pay</div>
                   </div>
                 </button>
                 <button
                   type="button"
+                  className="fund-method-option"
+                  onClick={() => openStripeDeposit('applepay')}
+                >
+                  <div className="fund-method-option-icon fund-method-option-icon--payment">
+                    <DepositApplePayMark />
+                  </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Apple Pay</div>
+                    <div className="fund-method-option-desc">Deposit USD instantly with Apple Pay</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="fund-method-option"
                   onClick={() => {
                     setShowFundMethodModal(false);
+                    setFundDepositPaymentMethod(null);
+                    setShowConnectWalletModal(true);
+                  }}
+                >
+                  <div className="fund-method-option-icon">
+                    <Wallet size={24} color="#0066ff" />
+                  </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Wallet</div>
+                    <div className="fund-method-option-desc">Connect your crypto wallet to fund</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="fund-method-option"
+                  onClick={() => {
+                    setShowFundMethodModal(false);
+                    setFundDepositPaymentMethod(null);
                     setFundViaAddress(true);
                     setShowFundWalletModal(true);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '1rem 1.25rem',
-                    background: '#ffffff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '0.75rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'Satoshi, Inter, sans-serif',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#0066ff';
-                    e.target.style.background = '#f0f7ff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.borderColor = '#e0e0e0';
-                    e.target.style.background = '#ffffff';
-                  }}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#f9fafb',
-                    borderRadius: '0.5rem',
-                    flexShrink: 0
-                  }}>
+                  <div className="fund-method-option-icon">
                     <QrCode size={24} color="#0066ff" />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
-                      Fund with Address
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                      Send funds to your wallet address
-                    </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Address</div>
+                    <div className="fund-method-option-desc">Send funds to your wallet address</div>
                   </div>
                 </button>
               </div>

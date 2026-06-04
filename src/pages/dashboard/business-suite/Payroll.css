@@ -2647,7 +2647,7 @@
   padding: 1.5rem;
 }
 
-.transaction-history-header {
+.payroll-dashboard .transaction-history-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -2657,7 +2657,7 @@
   min-height: 24px;
 }
 
-.transaction-history-header::before {
+.payroll-dashboard .transaction-history-header::before {
   content: '';
   position: absolute;
   left: 0;

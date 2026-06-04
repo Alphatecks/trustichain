@@ -103,12 +103,6 @@ body.transactions-page-active .landing-navbar {
   align-self: stretch;
 }
 
-.transactions-section-card:has(.transaction-history-header) .section-indicator {
-  align-self: flex-start;
-  height: 1rem;
-  margin-top: 0;
-}
-
 .transactions-left-column .transactions-section-card .section-indicator {
   align-self: flex-start;
   height: 1rem;
@@ -375,7 +369,7 @@ body.transactions-page-active .landing-navbar {
     white-space: normal;
     text-align: center;
     width: 100%;
-    max-width: 280px;
+    max-width: none;
   }
 }
 
@@ -424,6 +418,10 @@ body.transactions-page-active .landing-navbar {
   color: #111827;
   letter-spacing: -0.02em;
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.beneficiaries-heading-label--mobile {
+  display: none;
 }
 
 .beneficiaries-toolbar {
@@ -1090,11 +1088,14 @@ body.transactions-page-active .landing-navbar {
 }
 
 /* Transaction History Section */
-.transaction-history-header {
+.transaction-history-card .transaction-history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  padding-left: 0;
+  position: static;
+  min-height: 0;
 }
 
 .transaction-filters {
@@ -3051,7 +3052,7 @@ body.transactions-page-active .landing-navbar {
 
 /* Fund Wallet Transfer Modal Styles */
 .fund-wallet-transfer-modal {
-  max-width: 450px;
+  max-width: 520px;
   width: 90%;
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
@@ -5155,6 +5156,34 @@ body.transactions-page-active .landing-navbar {
     display: none !important;
   }
 
+  /* Contain transactions layout — prevent section cards stretching past viewport */
+  .dashboard.transactions-page .dashboard-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .dashboard.transactions-page .dashboard-main .transactions-content {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .transactions-middle,
+  .transactions-left-column,
+  .transactions-right-column {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
   /* Wallet Cards Grid - Mobile: XRP and USDT side by side, USDC below */
   .dashboard.transactions-page .transactions-content .dashboard-summary-cards .wallet-cards-grid {
     display: grid !important;
@@ -5217,68 +5246,106 @@ body.transactions-page-active .landing-navbar {
     height: 12px !important;
   }
 
-  /* Reduce My Details section width for mobile */
+  /* Payment Methods — fit within padded content area */
   .transactions-left-column .my-details-section {
-    max-width: 85% !important;
-    width: 85% !important;
-    margin-right: auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-right: 0 !important;
     margin-left: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
-  /* Reduce Beneficiaries section width for mobile */
+  .transactions-left-column .transactions-section-card {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Beneficiaries — mobile layout matches reference mock */
+  .beneficiaries-heading-label--desktop {
+    display: none;
+  }
+
+  .beneficiaries-heading-label--mobile {
+    display: inline;
+  }
+
   .transactions-left-column .beneficiaries-card {
-    max-width: 85% !important;
-    width: 85% !important;
-    margin-right: auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-right: 0 !important;
     margin-left: 0 !important;
     box-sizing: border-box !important;
-    padding: 1rem !important;
-    overflow: visible !important;
+    padding: 1.25rem 1rem !important;
+    overflow: hidden !important;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiaries-inner.section-content {
     min-width: 0 !important;
     max-width: 100% !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     margin-left: 0 !important;
+    gap: 1rem !important;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiaries-toolbar {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 1rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0.5rem !important;
     flex-wrap: nowrap !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiaries-avatars-row {
-    width: 100% !important;
-    flex: none !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    gap: 0.5rem !important;
+    overflow: hidden !important;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiary-avatar-stack {
     justify-content: flex-start !important;
-    flex-wrap: wrap !important;
-    flex: 1 !important;
+    flex-wrap: nowrap !important;
+    flex: 1 1 0 !important;
     gap: 0.5rem !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .transactions-left-column .beneficiaries-card .beneficiary-avatar-stack::-webkit-scrollbar {
+    display: none;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiary-add-btn {
     width: 44px !important;
     height: 44px !important;
-    align-self: flex-start !important;
+    flex-shrink: 0 !important;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiary-avatar-img {
     width: 44px !important;
     height: 44px !important;
+    flex-shrink: 0 !important;
   }
 
   .transactions-left-column .beneficiaries-card .send-beneficiary-btn {
-    margin-left: 0 !important;
-    width: 100% !important;
+    margin-left: auto !important;
+    width: auto !important;
+    flex-shrink: 0 !important;
     justify-content: center !important;
-    padding: 0.6rem 1rem !important;
+    padding: 0.55rem 1rem !important;
     font-size: 0.875rem !important;
+    border-radius: 12px !important;
+    min-height: 44px;
   }
 
   /* Redesign Live Exchange Rate section for mobile - indicator and title side by side */
@@ -5313,6 +5380,73 @@ body.transactions-page-active .landing-navbar {
 
 }
 
+/* Transaction History — card shell (matches Beneficiaries / Payment Methods) */
+.transaction-history-card {
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid #e8eaef !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.transaction-history-card .transaction-history-inner {
+  margin-left: 0 !important;
+  gap: 1rem !important;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Single blue accent — scoped to Transactions card (overrides global .transaction-history-header::before e.g. Payroll.css) */
+.transaction-history-card .transaction-history-header::before,
+.transaction-history-card .transaction-history-header::after {
+  display: none !important;
+  content: none !important;
+}
+
+.transaction-history-card .transaction-history-title-wrapper::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: #0671ff;
+  flex-shrink: 0;
+}
+
+.transaction-history-heading {
+  margin: 0;
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.transaction-history-nav-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #e8ecf0;
+  border-radius: 10px;
+  background: #f9fafb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.transaction-history-nav-btn:hover {
+  background: #f0f7ff;
+  border-color: #bfdbfe;
+}
+
+.transaction-history-nav-btn .transaction-history-arrow {
+  color: #0671ff;
+}
+
 /* Hide mobile cards on desktop */
 @media (min-width: 769px) {
   .mobile-transaction-cards {
@@ -5320,89 +5454,114 @@ body.transactions-page-active .landing-navbar {
   }
 
   .transaction-history-title-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.65rem !important;
+    margin-bottom: 0 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .transaction-history-nav-btn {
     display: none !important;
+  }
+
+  .transaction-history-header {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1rem !important;
   }
 }
 
-/* Mobile Transaction History Redesign */
+/* Mobile Transaction History — matches reference mock */
 @media (max-width: 768px) {
-  /* Hide desktop table on mobile */
   .transaction-table-wrapper {
     display: none !important;
   }
 
-  /* Transaction History Header - Mobile */
+  .transactions-right-column .transaction-history-card,
+  .transaction-history-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 1.25rem 1rem !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+  }
+
+  .transaction-history-card .transaction-history-inner {
+    padding: 0;
+  }
+
   .transaction-history-header {
     flex-direction: column !important;
-    gap: 1rem !important;
-    margin-bottom: 1rem !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   .transaction-history-title-wrapper {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
+    gap: 0.65rem !important;
     width: 100% !important;
+    margin-bottom: 1rem !important;
   }
 
-  .transaction-history-title-wrapper .section-title {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 0.5rem !important;
-    margin: 0 !important;
-    font-family: 'Satoshi', 'Inter', sans-serif !important;
-  }
-
-  .transaction-history-title-wrapper .section-title::before {
-    content: '' !important;
-    display: inline-block !important;
-    width: 4px !important;
-    height: 1rem !important;
-    background: var(--blue-600) !important;
-    border-radius: 2px !important;
-    flex-shrink: 0 !important;
-  }
-
-  .transaction-history-arrow {
-    color: var(--blue-600) !important;
-    flex-shrink: 0 !important;
-  }
-
-  /* Hide original indicator on mobile */
-  .transactions-section-card:has(.transaction-history-header) .section-indicator {
-    display: none !important;
-  }
-
-  /* Hide filters on mobile */
   .transaction-filters {
     display: none !important;
   }
 
-  /* Mobile Transaction Cards */
+  .transaction-history-card .transaction-pagination {
+    display: none !important;
+  }
+
   .mobile-transaction-cards {
     display: flex !important;
     flex-direction: column !important;
     gap: 0.75rem !important;
-    margin-top: 1rem !important;
+    margin-top: 0 !important;
+    width: 100%;
   }
 
   .mobile-transaction-card {
-    background: var(--blue-100) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 0.75rem !important;
-    padding: 1rem !important;
+    background: #ffffff !important;
+    border: 1px solid #e8eaef !important;
+    border-radius: 12px !important;
+    padding: 1rem 1.1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.65rem !important;
+    font-family: 'Satoshi', 'Inter', sans-serif !important;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .mobile-transaction-card:active {
+    border-color: #bfdbfe;
+    box-shadow: 0 1px 4px rgba(6, 113, 255, 0.08);
+  }
+
+  .mobile-transaction-top {
     display: flex !important;
     align-items: flex-start !important;
+    justify-content: space-between !important;
     gap: 0.75rem !important;
-    font-family: 'Satoshi', 'Inter', sans-serif !important;
-    transition: background 0.2s ease, border-color 0.2s ease !important;
+    width: 100%;
   }
 
   .mobile-transaction-left {
     display: flex !important;
     align-items: center !important;
     gap: 0.5rem !important;
-    flex-shrink: 0 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
 
   .mobile-transaction-icon {
@@ -5416,8 +5575,8 @@ body.transactions-page-active .landing-navbar {
   }
 
   .mobile-transaction-icon.received {
-    background: var(--blue-200) !important;
-    color: var(--blue-600) !important;
+    background: #e8f1ff !important;
+    color: #0671ff !important;
   }
 
   .mobile-transaction-icon.sent {
@@ -5426,53 +5585,59 @@ body.transactions-page-active .landing-navbar {
   }
 
   .mobile-transaction-type {
-    font-size: 0.9rem !important;
+    font-size: 0.9375rem !important;
     font-weight: 600 !important;
-    color: var(--text-dark) !important;
+    color: #111827 !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
-    white-space: nowrap !important;
-  }
-
-  .mobile-transaction-center {
-    flex: 1 !important;
-    min-width: 0 !important;
-  }
-
-  .mobile-transaction-details {
-    font-size: 0.85rem !important;
-    font-weight: 400 !important;
-    color: var(--text-dark) !important;
-    font-family: 'Satoshi', 'Inter', sans-serif !important;
-    line-height: 1.4 !important;
   }
 
   .mobile-transaction-right {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-end !important;
-    gap: 0.25rem !important;
+    gap: 0.2rem !important;
     flex-shrink: 0 !important;
+    text-align: right;
   }
 
   .mobile-transaction-status {
-    font-size: 0.9rem !important;
-    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
+    line-height: 1.2;
   }
 
   .mobile-transaction-status.successful {
-    color: #10b981 !important;
+    color: #16a34a !important;
   }
 
   .mobile-transaction-status.pending {
-    color: #f59e0b !important;
+    color: #d97706 !important;
   }
 
   .mobile-transaction-date {
-    font-size: 0.85rem !important;
-    font-weight: 400 !important;
-    color: var(--text-dark) !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    color: #374151 !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
+    line-height: 1.2;
+  }
+
+  .mobile-transaction-details {
+    margin: 0 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    font-family: 'Satoshi', 'Inter', sans-serif !important;
+    line-height: 1.45 !important;
+    width: 100%;
+  }
+
+  .mobile-transaction-card .mobile-transaction-content {
+    width: 100%;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
   }
 }
 
@@ -8946,6 +9111,244 @@ body.transactions-page-active .landing-navbar {
 
 .savings-add-account-create-btn:disabled .loading-indicator-dot {
   background: var(--white, #ffffff);
+}
+
+/* Deposit method picker — Google Pay / Apple Pay logos match Create Escrow */
+@media (min-width: 769px) {
+  .notification-modal.fund-method-modal,
+  .notification-modal.fund-wallet-modal,
+  .notification-modal.deposit-address-flow.fund-wallet-transfer-modal {
+    max-width: 520px;
+    width: 100%;
+  }
+}
+
+.fund-method-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fund-method-option {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fund-method-option:hover {
+  border-color: #0066ff;
+  background: #f0f7ff;
+}
+
+.fund-method-option-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.fund-method-option-icon--payment {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.fund-method-option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-method-option-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 0.25rem;
+}
+
+.fund-method-option-desc {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.fund-method-payment-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  line-height: 1;
+}
+
+.fund-method-payment-mark--google {
+  color: #5f6368;
+}
+
+.fund-method-payment-mark--apple {
+  color: #111111;
+}
+
+.fund-method-payment-logo {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+}
+
+.fund-method-payment-logo-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: currentColor;
+}
+
+.fund-method-payment-logo-text--google {
+  font-weight: 600;
+}
+
+.fund-method-payment-logo-text--apple {
+  font-weight: 700;
+}
+
+.fund-wallet-actions--stripe {
+  flex-wrap: nowrap;
+  gap: 0.65rem;
+}
+
+.fund-wallet-actions--stripe .fund-wallet-btn.cancel {
+  flex: 0 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-size: 0.875rem;
+}
+
+.fund-wallet-btn--stripe-pay {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-left: 0.65rem;
+  padding-right: 0.65rem;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .fund-wallet-actions--stripe {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fund-wallet-actions--stripe .fund-wallet-btn {
+    width: 100%;
+    flex: none;
+  }
+
+  .fund-wallet-btn--stripe-pay {
+    font-size: 0.9375rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+  }
+}
+
+.fund-wallet-stripe-method {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.fund-method-modal-body {
+  padding: 2rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fund-method-modal-intro {
+  margin: 0 0 1.5rem;
+  color: #666;
+  font-size: 0.95rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+/* Deposit flows — full screen on mobile (method picker, wallet fund, address) */
+@media (max-width: 768px) {
+  .notification-modal-overlay.deposit-flow-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    background: var(--surface, var(--white));
+  }
+
+  .notification-modal.fund-method-modal,
+  .notification-modal.fund-wallet-modal {
+    position: fixed;
+    inset: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notification-modal.fund-method-modal .notification-modal-header,
+  .notification-modal.fund-wallet-modal .notification-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    background: var(--surface, var(--white));
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
+
+  .fund-method-modal-body {
+    padding-top: 1rem;
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .notification-modal.fund-wallet-modal .fund-wallet-form {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .notification-modal.fund-wallet-modal .fund-wallet-progress {
+    flex-shrink: 0;
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
 }
 
 
