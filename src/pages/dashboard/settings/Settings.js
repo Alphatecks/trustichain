@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Globe,
   KeyRound,
+  Lock,
   Sun,
   Moon,
   Copy,
@@ -482,6 +483,83 @@ const SettingsUserAccountForm = ({
   </div>
 );
 
+const maskNidPassportDisplay = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '######';
+  return '#'.repeat(Math.max(6, raw.length));
+};
+
+const maskPasswordDisplay = () => '*******yg';
+
+const SettingsPasswordSecurityPanel = ({
+  trustitag,
+  nidPassportNumber,
+  isLoadingProfile,
+  emailActive,
+  onChangePin,
+  onChangePassword,
+}) => (
+  <div className="settings-password-panel-inner">
+    <section className="settings-password-section">
+      <h2 className="settings-password-section-title">Pin Settings</h2>
+      <div className="settings-form-row">
+        <div className="settings-form-field">
+          <label className="settings-form-label">NID/Passport Number</label>
+          <input
+            type="text"
+            readOnly
+            className="settings-form-input settings-form-input--readonly settings-form-input--masked"
+            value={isLoadingProfile ? '' : maskNidPassportDisplay(nidPassportNumber)}
+            placeholder={isLoadingProfile ? 'Loading…' : '######'}
+          />
+        </div>
+        <div className="settings-form-field">
+          <label className="settings-form-label">Trustitag ID</label>
+          <input
+            type="text"
+            readOnly
+            className="settings-form-input settings-form-input--readonly"
+            value={isLoadingProfile ? '' : trustitag || '—'}
+            placeholder={isLoadingProfile ? 'Loading…' : 'Not assigned'}
+          />
+        </div>
+      </div>
+      <button type="button" className="settings-password-action-btn" onClick={onChangePin}>
+        Change Pin
+      </button>
+    </section>
+
+    <section className="settings-password-section">
+      <h2 className="settings-password-section-title">Password Settings</h2>
+      <div className="settings-form-row">
+        <div className="settings-form-field">
+          <label className="settings-form-label">Password</label>
+          <input
+            type="text"
+            readOnly
+            className="settings-form-input settings-form-input--readonly settings-form-input--masked"
+            value={isLoadingProfile ? '' : maskPasswordDisplay()}
+            placeholder={isLoadingProfile ? 'Loading…' : '*******yg'}
+          />
+        </div>
+        <div className="settings-form-field">
+          <label className="settings-form-label">Allocated email</label>
+          <input
+            type="text"
+            readOnly
+            className="settings-form-input settings-form-input--readonly settings-form-input--status"
+            value={isLoadingProfile ? '' : emailActive ? 'Active' : 'Inactive'}
+            placeholder={isLoadingProfile ? 'Loading…' : '—'}
+          />
+        </div>
+      </div>
+      <button type="button" className="settings-password-action-btn" onClick={onChangePassword}>
+        Change password
+      </button>
+    </section>
+  </div>
+);
+
 const SettingsBusinessAccountForm = ({
   isLoadingProfile,
   businessName,
@@ -581,6 +659,7 @@ const Settings = () => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [userTrustitag, setUserTrustitag] = useState('');
+  const [nidPassportNumber, setNidPassportNumber] = useState('');
   const [language, setLanguage] = useState('English');
   const [businessProfilePicture, setBusinessProfilePicture] = useState('');
   const [businessProfileName, setBusinessProfileName] = useState('');
@@ -875,6 +954,7 @@ const Settings = () => {
       setLastName('');
       setEmail('');
       setUserTrustitag('');
+      setNidPassportNumber('');
       setTwoFactorEnabled(false);
       setIsLoadingUserProfile(false);
       return;
@@ -887,6 +967,7 @@ const Settings = () => {
         setLastName('');
         setEmail('');
         setUserTrustitag('');
+        setNidPassportNumber('');
         setLocalPhotoPreview(null);
         setPendingPhotoFile(null);
         if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = '';
@@ -995,6 +1076,18 @@ const Settings = () => {
           setUserTrustitag(
             typeof tagRaw === 'string' && tagRaw.trim() ? tagRaw.trim() : ''
           );
+
+          const nidRaw =
+            data.nidPassportNumber ??
+            data.nid_passport_number ??
+            data.passportNumber ??
+            data.passport ??
+            data.nid ??
+            data.kyc?.nidPassportNumber ??
+            data.kyc?.passport;
+          setNidPassportNumber(
+            typeof nidRaw === 'string' && nidRaw.trim() ? nidRaw.trim() : ''
+          );
         }
       }
     } catch (error) {
@@ -1066,8 +1159,25 @@ const Settings = () => {
     fetchBusinessProfileDetails();
   }, [fetchBusinessProfileDetails]);
 
+  const handleChangePin = () => {
+    toast('PIN change coming soon');
+  };
+
+  const handleChangePassword = () => {
+    toast('Password change coming soon');
+  };
+
+  const passwordSecurityProps = {
+    trustitag: userTrustitag,
+    nidPassportNumber,
+    isLoadingProfile: isLoadingUserProfile,
+    emailActive: Boolean(email?.trim()),
+    onChangePin: handleChangePin,
+    onChangePassword: handleChangePassword,
+  };
+
   useEffect(() => {
-    const sheetOpen = selectedCategory === 'User';
+    const sheetOpen = selectedCategory === 'User' || selectedCategory === 'Password Settings';
     if (!sheetOpen) return undefined;
 
     const applyBodyScrollLock = () => {
@@ -1492,6 +1602,14 @@ const Settings = () => {
                     </button>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className={`settings-category-btn ${selectedCategory === 'Password Settings' ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory('Password Settings')}
+                >
+                  <Lock size={18} />
+                  Password Settings
+                </button>
                 {/* KYC Verification — disabled (personal + business suite)
                 <button
                   type="button"
@@ -1613,6 +1731,41 @@ const Settings = () => {
                             />
                           </>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedCategory === 'Password Settings' && (
+                <>
+                  <div className="settings-details-panel settings-password-panel">
+                    <SettingsPasswordSecurityPanel {...passwordSecurityProps} />
+                  </div>
+
+                  <div
+                    className="settings-user-mobile-sheet settings-password-mobile-sheet"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="settings-password-sheet-title"
+                  >
+                    <div className="settings-user-mobile-sheet-inner">
+                      <header className="settings-user-mobile-sheet-header">
+                        <span className="settings-user-mobile-sheet-accent" aria-hidden />
+                        <h2 id="settings-password-sheet-title" className="settings-user-mobile-sheet-title">
+                          Password Settings
+                        </h2>
+                        <button
+                          type="button"
+                          className="settings-user-mobile-sheet-close"
+                          aria-label="Close"
+                          onClick={() => setSelectedCategory('')}
+                        >
+                          <X size={22} />
+                        </button>
+                      </header>
+                      <div className="settings-user-mobile-sheet-card">
+                        <SettingsPasswordSecurityPanel {...passwordSecurityProps} />
                       </div>
                     </div>
                   </div>
