@@ -67,6 +67,7 @@ import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBad
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
+import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, active: false, badge: null },
@@ -1119,6 +1120,10 @@ const Dispute = () => {
   }, [isSessionExpired]);
 
   return (
+    <PersonalSidebarWalletProvider
+      isSessionExpired={isSessionExpired}
+      enabled={accountType !== 'Business Suite'}
+    >
     <>
       {/* Mobile Header */}
       <PersonalSuiteMobileHeader
@@ -1206,6 +1211,13 @@ const Dispute = () => {
               })}
             </nav>
           </div>
+
+          {accountType !== 'Business Suite' && (
+            <PersonalSidebarWalletNav
+              variant="mobile"
+              onBeforeViewWallet={() => setIsMobileMenuOpen(false)}
+            />
+          )}
 
           <div className="mobile-sidebar-section">
             <p className="mobile-sidebar-section-label">Support</p>
@@ -1313,6 +1325,8 @@ const Dispute = () => {
             })}
           </nav>
         </div>
+
+        {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
         <div className="sidebar-section">
           <p className="sidebar-section-label">Support</p>
@@ -2503,6 +2517,7 @@ const Dispute = () => {
         titleId="dispute-notifications-title"
       />
     </>
+    </PersonalSidebarWalletProvider>
   );
 };
 

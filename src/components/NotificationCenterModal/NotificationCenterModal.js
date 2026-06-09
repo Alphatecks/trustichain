@@ -183,6 +183,7 @@ function NotificationCenterModal({ open, onClose, titleId = 'notification-center
             onMarkRead={handleMarkNotificationRead}
             formatTimeAgo={formatTimeAgo}
             emptyText={"You're all caught up."}
+            onBeforeCtaNavigate={onClose}
           />
         </div>
       </div>

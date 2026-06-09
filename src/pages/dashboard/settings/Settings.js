@@ -42,6 +42,7 @@ import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBad
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import GoogleAuthenticatorModal from '../../../components/GoogleAuthenticatorModal';
+import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
@@ -1124,6 +1125,10 @@ const Settings = () => {
   // const kycEditorProps = { ... }; // see commented SettingsKycEditorBody + KYC state
 
   return (
+    <PersonalSidebarWalletProvider
+      isSessionExpired={isSessionExpired}
+      enabled={accountType !== 'Business Suite'}
+    >
     <div className="dashboard settings-dashboard">
       {isMobileMenuOpen && (
         <div
@@ -1255,6 +1260,8 @@ const Settings = () => {
                 </nav>
               </div>
             )}
+
+            {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
             <div className="sidebar-section">
               <p className="sidebar-section-label">Support</p>
@@ -1667,6 +1674,7 @@ const Settings = () => {
         }}
       />
     </div>
+    </PersonalSidebarWalletProvider>
   );
 };
 

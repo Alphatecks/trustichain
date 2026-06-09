@@ -35,6 +35,7 @@ import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import EditTrustitagModal from '../../../components/EditTrustitagModal/EditTrustitagModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -414,6 +415,10 @@ const Profile = () => {
     ) : null;
 
   return (
+    <PersonalSidebarWalletProvider
+      isSessionExpired={isSessionExpired}
+      enabled={accountType !== 'Business Suite'}
+    >
     <div className="profile-route">
       <header className="profile-mobile-topbar">
         <div className="profile-mobile-topbar-title">
@@ -456,6 +461,8 @@ const Profile = () => {
               })}
             </nav>
           </div>
+
+          {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
           <div className="sidebar-section">
             <p className="sidebar-section-label">Support</p>
@@ -656,6 +663,7 @@ const Profile = () => {
 
       <NotificationCenterModal open={showNotificationModal} onClose={() => setShowNotificationModal(false)} titleId="profile-notifications-title" />
     </div>
+    </PersonalSidebarWalletProvider>
   );
 };
 

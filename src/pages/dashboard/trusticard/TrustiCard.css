@@ -1910,91 +1910,157 @@
 
 /* Create Card modal — reference sheet */
 .trusticard-modal-panel.trusticard-create-card-modal {
-  max-width: 560px;
+  max-width: 420px;
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+
+.trusticard-create-card-modal .trusticard-modal-head.trusticard-add-funds-head {
+  border-bottom: none;
+  padding: 1.35rem 1.5rem 0.65rem;
+}
+
+.trusticard-create-card-modal .trusticard-add-funds-head h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.trusticard-create-card-modal .trusticard-modal-close {
+  background: transparent;
+  color: #111827;
+  width: auto;
+  height: auto;
+  padding: 0.2rem;
+  border-radius: 0.35rem;
+}
+
+.trusticard-create-card-modal .trusticard-modal-close:hover {
+  background: #f3f4f6;
 }
 
 .trusticard-create-card-body {
-  padding-top: 0.75rem;
+  padding: 0 1.5rem 1.5rem;
 }
 
 .trusticard-create-card-preview {
   display: flex;
-  justify-content: center;
-  margin-bottom: 1.35rem;
+  justify-content: stretch;
+  margin-bottom: 1.5rem;
 }
 
 .trusticard-create-card-preview .tc-v2-card-face {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  aspect-ratio: 1.58 / 1;
+  height: auto;
+  padding: 1.35rem 1.5rem;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.2);
 }
 
-@media (min-width: 901px) {
-  .trusticard-create-card-preview .tc-v2-card-face--active {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1.58 / 1;
-  }
+.tc-v2-card-face--create-preview .tc-v2-card-face-balance-wrap {
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex: 1;
+  margin: 0.65rem 0 0.35rem;
+}
+
+.tc-v2-card-face--create-preview .tc-v2-card-face-balance {
+  font-size: clamp(1.75rem, 6vw, 2.2rem);
+  font-weight: 700;
+  filter: blur(7px);
+  user-select: none;
+  opacity: 0.95;
+}
+
+.tc-v2-card-face--create-preview .tc-v2-card-face-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.tc-v2-card-face--create-preview .tc-v2-card-number-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.tc-v2-card-face--create-preview .tc-v2-card-number-value {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 .trusticard-create-card-benefits {
   list-style: none;
-  margin: 0 0 1.35rem;
+  margin: 0 0 1.5rem;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1.25rem;
 }
 
 .trusticard-create-card-benefit {
   display: flex;
   align-items: flex-start;
-  gap: 0.85rem;
+  gap: 0.9rem;
 }
 
 .trusticard-create-card-benefit-icon {
   flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  border-radius: 0.75rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.85rem;
   border: 2px solid #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #2563eb;
-  background: rgba(37, 99, 235, 0.04);
+  background: #fff;
 }
 
 .trusticard-create-card-benefit-text {
   min-width: 0;
   flex: 1;
+  padding-top: 0.1rem;
 }
 
 .trusticard-create-card-benefit-title {
-  margin: 0 0 0.2rem;
-  font-size: 0.95rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   color: #2563eb;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .trusticard-create-card-benefit-sub {
   margin: 0;
   font-size: 0.8125rem;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #6b7280;
+  font-weight: 500;
 }
 
 .trusticard-create-card-submit {
   width: 100%;
-  padding: 0.85rem 1rem;
-  border-radius: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 0.85rem;
   font-size: 1rem;
-  margin-bottom: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  background: #2563eb;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+}
+
+.trusticard-create-card-submit:hover:not(:disabled) {
+  background: #1d4ed8;
 }
 
 .trusticard-create-card-footnote {
   text-align: left;
+  margin-top: 0.25rem;
 }
 
 /* Add Card modal — issue another card after first creation */

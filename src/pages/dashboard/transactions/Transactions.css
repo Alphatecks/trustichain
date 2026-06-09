@@ -349,6 +349,46 @@ body.transactions-page-active .landing-navbar {
   background: rgba(6, 113, 255, 0.06);
 }
 
+.my-details-digital-wallets {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.my-details-digital-wallet-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #bfdbfe;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  min-width: 7.5rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.my-details-digital-wallet-btn:hover {
+  background: #f8fafc;
+  border-color: #0671ff;
+}
+
+.my-details-digital-wallet-btn:focus-visible {
+  outline: none;
+  border-color: #0671ff;
+  box-shadow: 0 0 0 2px rgba(6, 113, 255, 0.2);
+}
+
+.my-details-digital-wallet-btn .fund-method-payment-logo {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.my-details-digital-wallet-btn .fund-method-payment-logo-text {
+  font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
   .my-details-row {
     align-items: flex-start;
@@ -370,6 +410,16 @@ body.transactions-page-active .landing-navbar {
     text-align: center;
     width: 100%;
     max-width: none;
+  }
+
+  .my-details-row--digital-wallets .my-details-digital-wallets {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .my-details-digital-wallet-btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
   }
 }
 

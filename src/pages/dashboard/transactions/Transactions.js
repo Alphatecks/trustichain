@@ -82,6 +82,16 @@ import TransactionSummaryModal from '../../../components/TransactionSummaryModal
 import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
 import AddSavingsPlanModal, { planRequiresGoalAmount } from '../../../components/AddSavingsPlanModal';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
+import {
+  buildTransactionFromNotification,
+  extractNotificationLookupId,
+  findTransactionForNotification,
+  isTransactionNotification,
+  transactionRecordMatchesEscrowId,
+  transactionRecordMatchesId,
+} from '../../../utils/transactionDeepLink';
+import { getNotificationId } from '../../../utils/notificationItemHelpers';
 
 const DepositGooglePayMark = () => (
   <span className="fund-method-payment-mark fund-method-payment-mark--google" aria-hidden>
@@ -1666,6 +1676,158 @@ const Transactions = () => {
 
     fetchTransactions();
   }, [isSessionExpired, accountType]);
+
+  const transactionDeepLinkHandledRef = useRef(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const targetId = params.get('transactionId')?.trim();
+    if (!targetId) {
+      transactionDeepLinkHandledRef.current = null;
+      return;
+    }
+    if (transactionDeepLinkHandledRef.current === targetId) return;
+    if (isLoadingTransactions) return;
+
+    const clearTransactionQuery = () => {
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.delete('transactionId');
+      const qs = nextParams.toString();
+      const nextState = location.state?.notificationForTransactionDetail
+        ? { ...location.state, notificationForTransactionDetail: undefined }
+        : location.state;
+      navigate(`${location.pathname}${qs ? `?${qs}` : ''}`, { replace: true, state: nextState });
+    };
+
+    const openTransactionDetail = async () => {
+      let match = transactions.find((tx) => transactionRecordMatchesId(tx, targetId));
+      if (!match) {
+        match = transactions.find((tx) => transactionRecordMatchesEscrowId(tx, targetId));
+      }
+
+      const notification = location.state?.notificationForTransactionDetail;
+      if (!match && notification) {
+        const found = findTransactionForNotification(notification, transactions);
+        if (found?.transaction) match = found.transaction;
+      }
+
+      if (!match && !isSessionExpired) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const businessMode = accountType === 'Business Suite';
+            const detailUrl = businessMode
+              ? getApiUrl(`api/business-suite/transactions/${encodeURIComponent(targetId)}`)
+              : getApiUrl(`api/transactions/${encodeURIComponent(targetId)}`);
+            const response = await fetch(detailUrl, {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            if (response.ok) {
+              const result = await response.json().catch(() => ({}));
+              const raw = result?.data?.transaction ?? result?.data ?? result?.transaction;
+              if (raw && typeof raw === 'object') {
+                match = {
+                  ...raw,
+                  id: raw?.id ?? raw?.transactionId ?? raw?.txId ?? targetId,
+                  transactionId: raw?.transactionId ?? raw?.id ?? raw?.txId ?? raw?.reference ?? targetId,
+                  type: raw?.type ?? raw?.transactionType ?? raw?.direction ?? 'Transaction',
+                  amountXrp:
+                    raw?.amountXrp ??
+                    raw?.amount_xrp ??
+                    raw?.amount?.xrp ??
+                    raw?.amount?.XRP ??
+                    0,
+                  amountUsd:
+                    raw?.amountUsd ??
+                    raw?.amount_usd ??
+                    raw?.amount?.usd ??
+                    raw?.amount?.USD ??
+                    0,
+                  status: raw?.status ?? raw?.transactionStatus ?? raw?.state ?? 'Successful',
+                  date: raw?.date ?? raw?.createdAt ?? raw?.transactionDate ?? raw?.created_at ?? raw?.timestamp,
+                };
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching transaction detail:', error);
+          }
+        }
+      }
+
+      if (!match && notification) {
+        match = buildTransactionFromNotification(notification, targetId);
+      }
+
+      transactionDeepLinkHandledRef.current = targetId;
+
+      if (match) {
+        setShowNotificationModal(false);
+        setSelectedTransaction(match);
+        setShowTransactionDetailsModal(true);
+      } else {
+        toast.error('Transaction not found');
+      }
+
+      clearTransactionQuery();
+    };
+
+    openTransactionDetail();
+  }, [
+    location.search,
+    location.pathname,
+    location.state,
+    isLoadingTransactions,
+    transactions,
+    isSessionExpired,
+    accountType,
+    navigate,
+  ]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('transactionId')) return;
+
+    const notification = location.state?.notificationForTransactionDetail;
+    if (!notification || isLoadingTransactions) return;
+
+    const notifKey = `list-${getNotificationId(notification, 0)}`;
+    if (transactionDeepLinkHandledRef.current === notifKey) return;
+    if (!isTransactionNotification(notification)) return;
+
+    const lookupId = extractNotificationLookupId(notification);
+    const found = findTransactionForNotification(notification, transactions);
+    let match = found?.transaction ?? null;
+
+    if (!match && lookupId) {
+      match = buildTransactionFromNotification(notification, lookupId);
+    }
+
+    if (!match) return;
+
+    transactionDeepLinkHandledRef.current = notifKey;
+    setShowNotificationModal(false);
+    setSelectedTransaction(match);
+    setShowTransactionDetailsModal(true);
+
+    navigate(location.pathname, {
+      replace: true,
+      state: {
+        ...location.state,
+        notificationForTransactionDetail: undefined,
+      },
+    });
+  }, [
+    location.pathname,
+    location.search,
+    location.state,
+    isLoadingTransactions,
+    transactions,
+    navigate,
+  ]);
 
   const loadBeneficiaries = useCallback(async () => {
     try {
@@ -4025,6 +4187,10 @@ const Transactions = () => {
       savingHistory.length > 0 ? savingHistory : (isLoadingSavingsTransactions ? placeholderSavingsTransactions : []);
 
     return (
+      <PersonalSidebarWalletProvider
+        isSessionExpired={isSessionExpired}
+        enabled={accountType !== 'Business Suite'}
+      >
       <>
       {/* Mobile Header - Only visible on mobile for savings details */}
       <PersonalSuiteMobileHeader
@@ -4127,6 +4293,13 @@ const Transactions = () => {
               })}
             </nav>
           </div>
+        )}
+
+        {accountType !== 'Business Suite' && (
+          <PersonalSidebarWalletNav
+            variant="mobile"
+            onBeforeViewWallet={() => setIsMobileMenuOpen(false)}
+          />
         )}
 
         <div className="mobile-sidebar-section">
@@ -4252,6 +4425,8 @@ const Transactions = () => {
             </nav>
           </div>
         )}
+
+        {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
         <div className="sidebar-section">
           <p className="sidebar-section-label">Support</p>
@@ -4949,6 +5124,7 @@ const Transactions = () => {
                 onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
                 onMarkRead={handleMarkNotificationRead}
                 formatTimeAgo={formatTimeAgo}
+                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
               />
             </div>
           </div>
@@ -5197,12 +5373,17 @@ const Transactions = () => {
       {renderTransactionDetailsModal()}
 
     </>
+      </PersonalSidebarWalletProvider>
     );
   }
 
   // Render mobile savings full page
   if (showSavingsPage) {
     return (
+      <PersonalSidebarWalletProvider
+        isSessionExpired={isSessionExpired}
+        enabled={accountType !== 'Business Suite'}
+      >
       <>
         {/* Mobile Sidebar Overlay */}
         {isMobileMenuOpen && (
@@ -5292,6 +5473,13 @@ const Transactions = () => {
                   })}
                 </nav>
               </div>
+            )}
+
+            {accountType !== 'Business Suite' && (
+              <PersonalSidebarWalletNav
+                variant="mobile"
+                onBeforeViewWallet={() => setIsMobileMenuOpen(false)}
+              />
             )}
 
             <div className="mobile-sidebar-section">
@@ -5459,10 +5647,15 @@ const Transactions = () => {
         </div>
       </div>
       </>
+      </PersonalSidebarWalletProvider>
     );
   }
 
   return (
+    <PersonalSidebarWalletProvider
+      isSessionExpired={isSessionExpired}
+      enabled={accountType !== 'Business Suite'}
+    >
     <>
       {/* Mobile Header - Only visible on mobile */}
       <PersonalSuiteMobileHeader
@@ -5568,6 +5761,13 @@ const Transactions = () => {
                 })}
               </nav>
             </div>
+          )}
+
+          {accountType !== 'Business Suite' && (
+            <PersonalSidebarWalletNav
+              variant="mobile"
+              onBeforeViewWallet={() => setIsMobileMenuOpen(false)}
+            />
           )}
 
           <div className="mobile-sidebar-section">
@@ -5693,6 +5893,8 @@ const Transactions = () => {
             </nav>
           </div>
         )}
+
+        {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
         <div className="sidebar-section">
           <p className="sidebar-section-label">Support</p>
@@ -6063,7 +6265,7 @@ const Transactions = () => {
                       <div className="my-details-row-icon" aria-hidden>
                         <Building2 size={20} strokeWidth={1.75} />
                       </div>
-                      <span className="my-details-row-label">Linked bank account</span>
+                      <span className="my-details-row-label">Fund with bank account</span>
                       <div className="my-details-row-value">
                         {linkedAccounts?.bankAccount ? (
                           <span>{linkedAccounts.bankAccount}</span>
@@ -6084,7 +6286,7 @@ const Transactions = () => {
                       <div className="my-details-row-icon" aria-hidden>
                         <Wallet size={20} strokeWidth={1.75} />
                       </div>
-                      <span className="my-details-row-label">Linked Web3 Wallet:</span>
+                      <span className="my-details-row-label">Fund with Web3 Wallet</span>
                       <div className="my-details-row-value">
                         {linkedAccounts?.web3Wallet ? (
                           <span>{linkedAccounts.web3Wallet}</span>
@@ -6103,6 +6305,30 @@ const Transactions = () => {
                             Connect Wallet
                           </button>
                         )}
+                      </div>
+                    </li>
+                    <li className="my-details-row my-details-row--digital-wallets">
+                      <div className="my-details-row-icon" aria-hidden>
+                        <CreditCard size={20} strokeWidth={1.75} />
+                      </div>
+                      <span className="my-details-row-label">Fund with digital wallets</span>
+                      <div className="my-details-row-value my-details-digital-wallets">
+                        <button
+                          type="button"
+                          className="my-details-digital-wallet-btn"
+                          aria-label="Fund with Google Pay"
+                          onClick={() => openStripeDeposit('googlepay')}
+                        >
+                          <DepositGooglePayMark />
+                        </button>
+                        <button
+                          type="button"
+                          className="my-details-digital-wallet-btn"
+                          aria-label="Fund with Apple Pay"
+                          onClick={() => openStripeDeposit('applepay')}
+                        >
+                          <DepositApplePayMark />
+                        </button>
                       </div>
                     </li>
                   </ul>
@@ -6530,6 +6756,7 @@ const Transactions = () => {
                 onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
                 onMarkRead={handleMarkNotificationRead}
                 formatTimeAgo={formatTimeAgo}
+                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
               />
             </div>
           </div>
@@ -8111,6 +8338,7 @@ const Transactions = () => {
         transaction={selectedTransaction}
       />
     </>
+    </PersonalSidebarWalletProvider>
   );
 };
 

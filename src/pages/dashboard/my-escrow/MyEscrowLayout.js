@@ -39,6 +39,7 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -309,6 +310,10 @@ const MyEscrowLayout = ({ children }) => {
   }, [isSessionExpired]);
 
   return (
+    <PersonalSidebarWalletProvider
+      isSessionExpired={isSessionExpired}
+      enabled={accountType !== 'Business Suite'}
+    >
     <div className="dashboard">
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
@@ -377,6 +382,8 @@ const MyEscrowLayout = ({ children }) => {
             </nav>
           </div>
         )}
+
+        {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
         <div className="sidebar-section">
           <p className="sidebar-section-label">Support</p>
@@ -535,12 +542,15 @@ const MyEscrowLayout = ({ children }) => {
                 onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
                 onMarkRead={handleMarkNotificationRead}
                 formatTimeAgo={formatTimeAgo}
+                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
               />
             </div>
           </div>
         </div>
       )}
+
     </div>
+    </PersonalSidebarWalletProvider>
   );
 };
 

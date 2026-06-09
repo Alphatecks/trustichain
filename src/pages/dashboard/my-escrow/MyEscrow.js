@@ -50,8 +50,13 @@ import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import toast from 'react-hot-toast';
 import logo from '../../../assets/images/icons/logo.png';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+import { PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 import '../dashboard/Dashboard.css';
 import './MyEscrow.css';
+import {
+  getEscrowDisplayStatus,
+  isEscrowCompleted,
+} from '../../../utils/escrowDisplayStatus';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -94,25 +99,6 @@ const formatTimeAgo = (isoString) => {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
-};
-
-const normalizeEscrowStatus = (value) =>
-  String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ');
-
-const isCompletedEscrowStatus = (value) => {
-  const normalized = normalizeEscrowStatus(value);
-  return (
-    normalized === 'completed' ||
-    normalized === 'complete' ||
-    normalized === 'released' ||
-    normalized === 'escrow released' ||
-    normalized === 'release completed' ||
-    normalized === 'release complete'
-  );
 };
 
 const MyEscrow = () => {
@@ -339,7 +325,8 @@ const MyEscrow = () => {
               setTotalEscrowCount(result.data.escrows.length);
               
               // Filter and count active escrows (pending, active, pending release)
-              const activeEscrows = result.data.escrows.filter(escrow => {
+              const activeEscrows = result.data.escrows.filter((escrow) => {
+                if (isEscrowCompleted(escrow)) return false;
                 const status = (escrow.status || '').toLowerCase();
                 return status === 'pending' || status === 'active' || status === 'pending release';
               });
@@ -1073,6 +1060,13 @@ const MyEscrow = () => {
                 </div>
               )}
 
+              {accountType !== 'Business Suite' && (
+                <PersonalSidebarWalletNav
+                  variant="mobile"
+                  onBeforeViewWallet={() => setIsMobileMenuOpen(false)}
+                />
+              )}
+
               <div className="mobile-sidebar-section">
                 <p className="mobile-sidebar-section-label">Support</p>
                 <nav className="mobile-sidebar-nav">
@@ -1380,9 +1374,7 @@ const MyEscrow = () => {
             ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             : '0.00';
           
-          // Get status
-          const status = escrow.status || 'Unknown';
-          const statusLower = status.toLowerCase();
+          const displayStatus = getEscrowDisplayStatus(escrow);
           
           return (
             <div
@@ -1425,8 +1417,8 @@ const MyEscrow = () => {
                     <span className="escrow-card-party-to">{userFullName}</span>
                   </span>
                 </div>
-                <button type="button" className={`escrow-card-status ${statusLower}`}>
-                  {status}
+                <button type="button" className={`escrow-card-status ${displayStatus.className}`}>
+                  {displayStatus.label}
                 </button>
               </div>
             </div>
@@ -1482,10 +1474,9 @@ const MyEscrow = () => {
                 ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 : '0.00';
               
-              // Get status
-              const status = escrow.status || 'Unknown';
-              const statusLower = status.toLowerCase();
-              const isCompletedStatus = isCompletedEscrowStatus(status);
+              const displayStatus = getEscrowDisplayStatus(escrow);
+              const statusLower = (escrow.status || 'Unknown').toLowerCase();
+              const isCompletedStatus = displayStatus.isCompleted;
               
               // Completed escrows should always show full completion progress.
               const rawProgress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0);
@@ -1563,8 +1554,8 @@ const MyEscrow = () => {
                     </span>
                   </td>
                   <td>
-                    <button type="button" className={`status-btn ${statusLower}`}>
-                      {status}
+                    <button type="button" className={`status-btn ${displayStatus.className}`}>
+                      {displayStatus.label}
                     </button>
                   </td>
                   <td className="escrow-progress">
@@ -2067,10 +2058,9 @@ const MyEscrow = () => {
                       ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       : '0.00';
                     
-                    // Get status
-                    const status = escrow.status || 'Unknown';
-                    const statusLower = status.toLowerCase();
-                    const isCompletedStatus = isCompletedEscrowStatus(status);
+                    const displayStatus = getEscrowDisplayStatus(escrow);
+                    const statusLower = (escrow.status || 'Unknown').toLowerCase();
+                    const isCompletedStatus = displayStatus.isCompleted;
                     
                     // Completed escrows should always show full completion progress.
                     const rawProgress = Number(escrow.progress ?? escrow.milestoneProgress ?? 0);
@@ -2147,8 +2137,8 @@ const MyEscrow = () => {
                           </span>
                         </td>
                         <td>
-                          <button type="button" className={`status-btn ${statusLower}`}>
-                            {status}
+                          <button type="button" className={`status-btn ${displayStatus.className}`}>
+                            {displayStatus.label}
                           </button>
                         </td>
                         <td className="escrow-progress">
@@ -2476,6 +2466,7 @@ const MyEscrow = () => {
                 onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
                 onMarkRead={handleMarkNotificationRead}
                 formatTimeAgo={formatTimeAgo}
+                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
               />
             </div>
           </div>

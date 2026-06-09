@@ -330,8 +330,38 @@
   overflow: hidden;
 }
 
-/* Make Fund Wallet modal full screen on mobile */
+/* Make notification center and Fund Wallet modals full screen on mobile */
 @media (max-width: 768px) {
+  .notification-modal-overlay:has(.notification-filter-bar) {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .notification-modal:has(.notification-filter-bar) {
+    position: fixed;
+    inset: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden;
+  }
+
+  .notification-modal:has(.notification-filter-bar) .notification-modal-header,
+  .notification-modal:has(.notification-filter-bar) .notification-filter-bar {
+    flex-shrink: 0;
+  }
+
+  .notification-modal:has(.notification-filter-bar) .notification-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
   .notification-modal.fund-wallet-modal {
     position: fixed;
     inset: 0;
@@ -3807,6 +3837,31 @@ button.user-avatar.header-profile-avatar-nav:focus-visible {
   height: 100%;
 }
 
+.bar-chart--daily {
+  justify-content: space-between;
+  gap: 0;
+  width: 100%;
+  padding: 0 0.35rem;
+}
+
+.bar-chart--daily .bar-wrapper {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+.bar-chart--daily .bar {
+  width: 36px;
+  max-width: 100%;
+}
+
+.bar-chart--daily .bar-label {
+  font-size: 0.7rem;
+  text-align: center;
+  width: 100%;
+}
+
 .bar-wrapper {
   display: flex;
   flex-direction: column;
@@ -5740,6 +5795,32 @@ img.party-avatar {
     gap: 0.5rem;
     height: 190px;
     position: relative;
+  }
+
+  .mobile-bar-chart--daily {
+    justify-content: space-between;
+    gap: 0;
+    width: 100%;
+    padding: 0 0.15rem 0.25rem;
+  }
+
+  .mobile-bar-chart--daily .mobile-bar-wrapper {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .mobile-bar-chart--daily .mobile-bar {
+    max-width: 20px;
+  }
+
+  .mobile-bar-chart--daily .mobile-bar-label {
+    font-size: 0.62rem;
+    text-align: center;
+    width: 100%;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   .mobile-bar-wrapper {

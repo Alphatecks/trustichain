@@ -76,6 +76,7 @@ import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
+import { getEscrowDisplayStatus } from '../../../utils/escrowDisplayStatus';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
@@ -170,6 +171,48 @@ const developersNav = [
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
 const PORTFOLIO_Y_AXIS_MAX = 10000;
+const PORTFOLIO_WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function resolvePortfolioWeekdayIndex(label) {
+  const s = String(label ?? '').trim().toLowerCase();
+  const byName = {
+    mon: 0,
+    monday: 0,
+    tue: 1,
+    tues: 1,
+    tuesday: 1,
+    wed: 2,
+    weds: 2,
+    wednesday: 2,
+    thu: 3,
+    thur: 3,
+    thurs: 3,
+    thursday: 3,
+    fri: 4,
+    friday: 4,
+    sat: 5,
+    saturday: 5,
+    sun: 6,
+    sunday: 6,
+  };
+  if (byName[s] !== undefined) return byName[s];
+  const n = parseInt(s, 10);
+  if (Number.isNaN(n)) return -1;
+  if (n >= 1 && n <= 7) return n - 1;
+  if (n === 0) return 6;
+  return -1;
+}
+
+function getCurrentWeekCalendarDays() {
+  const now = new Date();
+  const dow = now.getDay();
+  const mondayDelta = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayDelta);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    return d.getDate();
+  });
+}
 const isRlusdCurrency = (currency) => {
   const normalized = String(currency || '')
     .toLowerCase()
@@ -1176,7 +1219,7 @@ const Dashboard = () => {
   const [escrowTotalCount, setEscrowTotalCount] = useState(0);
   const [totalEscrowedAmount, setTotalEscrowedAmount] = useState(null);
   const [isLoadingTotalEscrowed, setIsLoadingTotalEscrowed] = useState(true);
-  const [totalSavingsWalletAmount, setTotalSavingsWalletAmount] = useState(null);
+  const [totalSavingsWalletCount, setTotalSavingsWalletCount] = useState(null);
   const [isLoadingTotalSavingsWallet, setIsLoadingTotalSavingsWallet] = useState(true);
   const [userFullName, setUserFullName] = useState('');
   const [userInitials, setUserInitials] = useState('');
@@ -2574,6 +2617,7 @@ const Dashboard = () => {
   }, [portfolioTimeframe, portfolioYear]);
 
   const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const PORTFOLIO_TIMEFRAME_OPTIONS = ['daily', 'monthly', 'yearly'];
 
   const portfolioChartPoints = useMemo(() => {
     const data = portfolioPoints || [];
@@ -2587,9 +2631,17 @@ const Dashboard = () => {
           return dLabel === labelNorm || dLabel.slice(0, 3) === labelNorm.slice(0, 3) || labelNorm.slice(0, 3) === dLabel.slice(0, 3);
         }
         if (portfolioTimeframe === 'daily') {
-          const dayNum = parseInt(labelStr, 10);
-          const dNum = parseInt(dLabel, 10);
-          if (!Number.isNaN(dayNum) && !Number.isNaN(dNum)) return dayNum === dNum;
+          const targetIdx = PORTFOLIO_WEEKDAY_LABELS.findIndex((weekday) => {
+            const weekdayNorm = weekday.toLowerCase();
+            return weekdayNorm === labelNorm || weekdayNorm.startsWith(labelNorm) || labelNorm.startsWith(weekdayNorm);
+          });
+          if (targetIdx >= 0) {
+            const dWeekIdx = resolvePortfolioWeekdayIndex(d.label);
+            if (dWeekIdx === targetIdx) return true;
+            const calendarDay = getCurrentWeekCalendarDays()[targetIdx];
+            const dNum = parseInt(dLabel, 10);
+            if (!Number.isNaN(dNum) && dNum === calendarDay) return true;
+          }
           return dLabel === labelNorm;
         }
         if (portfolioTimeframe === 'yearly') {
@@ -2604,11 +2656,7 @@ const Dashboard = () => {
     };
 
     if (portfolioTimeframe === 'daily') {
-      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-      return Array.from({ length: daysInMonth }, (_, i) => {
-        const day = i + 1;
-        return { label: String(day), value: findValue(String(day)) };
-      });
+      return PORTFOLIO_WEEKDAY_LABELS.map((label) => ({ label, value: findValue(label) }));
     }
     if (portfolioTimeframe === 'monthly') {
       return MONTH_LABELS.map((label) => ({ label, value: findValue(label) }));
@@ -3135,21 +3183,21 @@ const Dashboard = () => {
       }
 
       if (isSessionExpired) {
-        setTotalSavingsWalletAmount(0);
+        setTotalSavingsWalletCount(0);
         setIsLoadingTotalSavingsWallet(false);
         return;
       }
 
       const token = localStorage.getItem('token');
       if (!token) {
-        setTotalSavingsWalletAmount(0);
+        setTotalSavingsWalletCount(0);
         setIsLoadingTotalSavingsWallet(false);
         return;
       }
 
       setIsLoadingTotalSavingsWallet(true);
       try {
-        const response = await fetch(getApiUrl('api/savings/wallets/total'), {
+        const response = await fetch(getApiUrl('api/savings/wallets'), {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -3160,23 +3208,21 @@ const Dashboard = () => {
         const result = await response.json().catch(() => ({}));
         if (response.ok && result?.success) {
           const data = result?.data ?? {};
-          const rawTotal =
-            data.totalUsd ??
-            data.totalUSD ??
-            data.total ??
-            data.totalAmount ??
-            data.amount ??
-            result?.totalUsd ??
-            result?.totalUSD ??
-            result?.total;
-          const parsedTotal = Number(rawTotal);
-          setTotalSavingsWalletAmount(Number.isFinite(parsedTotal) ? parsedTotal : 0);
+          const wallets = Array.isArray(data.wallets) ? data.wallets : [];
+          const rawCount =
+            data.count ??
+            data.totalWallets ??
+            data.walletCount ??
+            result?.count ??
+            wallets.length;
+          const parsedCount = Number(rawCount);
+          setTotalSavingsWalletCount(Number.isFinite(parsedCount) ? parsedCount : wallets.length);
         } else {
-          setTotalSavingsWalletAmount(0);
+          setTotalSavingsWalletCount(0);
         }
       } catch (error) {
-        console.error('Error fetching total savings wallet:', error);
-        setTotalSavingsWalletAmount(0);
+        console.error('Error fetching savings wallet count:', error);
+        setTotalSavingsWalletCount(0);
       } finally {
         setIsLoadingTotalSavingsWallet(false);
       }
@@ -4903,14 +4949,28 @@ const Dashboard = () => {
             </div>
             <div className="mobile-metric-card">
               <div className="mobile-metric-header">
+                <CreditCard size={16} />
+                <span>Total Escrowed</span>
+              </div>
+              <div className="mobile-metric-value">
+                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                  ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '0.00')}
+              </div>
+              <button type="button" className="mobile-metric-btn" onClick={() => navigate('/my-escrow')}>
+                View Escrow
+              </button>
+            </div>
+            <div className="mobile-metric-card">
+              <div className="mobile-metric-header">
                 <PiggyBank size={16} />
-                <span>Total Savings Wallet</span>
+                <span>Total Number of Wallets</span>
               </div>
               <div className="mobile-metric-value">
                 {isLoadingTotalSavingsWallet ? (
                   <LoadingIndicator size="sm" />
                 ) : (
-                  `$${Number(totalSavingsWalletAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  Number(totalSavingsWalletCount || 0).toLocaleString('en-US')
                 )}
               </div>
               <button type="button" className="mobile-metric-btn" onClick={() => navigate('/savings')}>
@@ -4965,13 +5025,14 @@ const Dashboard = () => {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {['monthly', 'yearly'].map((timeframe) => (
+                      {PORTFOLIO_TIMEFRAME_OPTIONS.map((timeframe) => (
                         <button
                           key={timeframe}
                           type="button"
                           onClick={() => {
                             setPortfolioTimeframe(timeframe);
                             setShowMobilePortfolioDropdown(false);
+                            setShowMobilePortfolioYearDropdown(false);
                           }}
                           style={{
                             width: '100%',
@@ -5001,6 +5062,7 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
+                {portfolioTimeframe === 'monthly' ? (
                 <div className="mobile-section-dropdown" style={{ position: 'relative' }}>
                   <button
                     type="button"
@@ -5070,6 +5132,7 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
+                ) : null}
               </div>
             </div>
             <div className="mobile-chart-container">
@@ -5078,7 +5141,7 @@ const Dashboard = () => {
                   <span key={val}>{formatPortfolioYAxisTick(val)}</span>
                 ))}
               </div>
-              <div className="mobile-bar-chart">
+              <div className={`mobile-bar-chart${portfolioTimeframe === 'daily' ? ' mobile-bar-chart--daily' : ''}`}>
                 {isLoadingPortfolio && (
                   <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
                 )}
@@ -5389,10 +5452,9 @@ const Dashboard = () => {
                     }
                   }
                   
-                  const status = escrow.status || escrow.escrowStatus || 'pending';
-                  const statusText = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
-                  // Normalize status for CSS class (handle spaces, underscores, etc.)
-                  const statusClass = status.toLowerCase().replace(/[\s_]/g, '_');
+                  const displayStatus = getEscrowDisplayStatus(escrow);
+                  const statusText = displayStatus.label;
+                  const statusClass = displayStatus.className;
                   
                   return (
                     <div
@@ -5597,25 +5659,6 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <div className="summary-card trustiscore-card">
-            <div className="summary-card-header">
-              <PiggyBank size={16} />
-              <h3>Total Savings Wallet</h3>
-            </div>
-            <div className="summary-card-value-row">
-              <div className="summary-card-value">
-                {isLoadingTotalSavingsWallet ? (
-                  <LoadingIndicator size="sm" />
-                ) : (
-                  `$${Number(totalSavingsWalletAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                )}
-              </div>
-            </div>
-            <button type="button" className="summary-card-btn secondary" onClick={() => navigate('/savings')}>
-              View Savings
-            </button>
-          </div>
-
           <div className="summary-card total-escrowed-card">
             <div className="summary-card-header">
               <CreditCard size={16} />
@@ -5629,6 +5672,25 @@ const Dashboard = () => {
               </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Escrow</button>
+          </div>
+
+          <div className="summary-card trustiscore-card">
+            <div className="summary-card-header">
+              <PiggyBank size={16} />
+              <h3>Total Number of Wallets</h3>
+            </div>
+            <div className="summary-card-value-row">
+              <div className="summary-card-value">
+                {isLoadingTotalSavingsWallet ? (
+                  <LoadingIndicator size="sm" />
+                ) : (
+                  Number(totalSavingsWalletCount || 0).toLocaleString('en-US')
+                )}
+              </div>
+            </div>
+            <button type="button" className="summary-card-btn secondary" onClick={() => navigate('/savings')}>
+              View Savings
+            </button>
           </div>
         </div>
 
@@ -5680,13 +5742,14 @@ const Dashboard = () => {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {['monthly', 'yearly'].map((timeframe) => (
+                      {PORTFOLIO_TIMEFRAME_OPTIONS.map((timeframe) => (
                         <button
                           key={timeframe}
                           type="button"
                           onClick={() => {
                             setPortfolioTimeframe(timeframe);
                             setShowPortfolioDropdown(false);
+                            setShowPortfolioYearDropdown(false);
                           }}
                           style={{
                             width: '100%',
@@ -5716,6 +5779,7 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
+                {portfolioTimeframe === 'monthly' ? (
                 <div className="chart-dropdown chart-year-dropdown" style={{ position: 'relative' }}>
                   <button
                     type="button"
@@ -5791,6 +5855,7 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
+                ) : null}
               </div>
             </div>
             <div className="chart-container">
@@ -5799,7 +5864,7 @@ const Dashboard = () => {
                   <span key={val}>{formatPortfolioYAxisTick(val)}</span>
                 ))}
               </div>
-              <div className="bar-chart">
+              <div className={`bar-chart${portfolioTimeframe === 'daily' ? ' bar-chart--daily' : ''}`}>
                 {isLoadingPortfolio && (
                   <span className="rate-currency"><LoadingIndicator size="md" /></span>
                 )}
@@ -5893,23 +5958,16 @@ const Dashboard = () => {
                         ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         : '0.00';
                       
-                      // Map status to badge class and label
-                      const getStatusBadge = (status) => {
-                        const statusLower = (status || '').toLowerCase();
-                        if (statusLower === 'active') {
-                          return { class: 'active', label: 'Active' };
-                        } else if (statusLower === 'pending' || statusLower === 'pending release') {
-                          return { class: 'pending-release', label: 'Pending release' };
-                        } else if (statusLower === 'review' || statusLower === 'under review') {
-                          return { class: 'review', label: 'Under Review' };
-                        } else if (statusLower === 'completed' || statusLower === 'complete') {
-                          return { class: 'completed', label: 'Completed' };
-                        } else {
-                          return { class: 'unknown', label: status || 'Unknown' };
-                        }
+                      const displayStatus = getEscrowDisplayStatus(escrow);
+                      const statusBadge = {
+                        class:
+                          displayStatus.className === 'pending_release' || displayStatus.className === 'pending'
+                            ? 'pending-release'
+                            : displayStatus.className === 'under_review' || displayStatus.className === 'review'
+                              ? 'review'
+                              : displayStatus.className,
+                        label: displayStatus.label,
                       };
-                      
-                      const statusBadge = getStatusBadge(escrow.status);
                       
                       return (
                         <tr
@@ -7172,6 +7230,7 @@ const Dashboard = () => {
                 onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
                 onMarkRead={handleMarkNotificationRead}
                 formatTimeAgo={formatTimeAgo}
+                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
               />
             </div>
           </div>

@@ -121,6 +121,24 @@ function normalizeCardyfieCard(raw) {
   };
 }
 
+function extractIssuedCard(result) {
+  if (!result || typeof result !== 'object') return null;
+  const raw =
+    result.card
+    ?? result.data?.card
+    ?? (result.data && typeof result.data === 'object' && (result.data.ulid || result.data.card_ulid) ? result.data : null);
+  if (!raw || typeof raw !== 'object') return null;
+  const ulid = raw.ulid ?? raw.card_ulid;
+  if (!ulid) return null;
+  return normalizeCardyfieCard({ ...raw, ulid: String(ulid) });
+}
+
+function extractCardUlid(result) {
+  const issued = extractIssuedCard(result);
+  if (issued?.ulid) return issued.ulid;
+  return result?.card_ulid ?? result?.data?.card_ulid ?? null;
+}
+
 function mapWizardIdType(uiLabel) {
   const label = String(uiLabel || '').trim().toLowerCase();
   if (label === 'passport') return 'passport';
@@ -167,6 +185,15 @@ const MOCK_TRUSTICARD_CARDS = [
     status: 'active',
   },
 ];
+
+/** Static preview shown on the Create Card onboarding modal. */
+const CREATE_CARD_PREVIEW = {
+  card_name: 'Platinum Card',
+  card_balance: 24567.89,
+  card_currency_code: 'USD',
+  masked_pan: '**** **** **** 0000',
+  card_provider: 'mastercard',
+};
 
 /** Source wallets for Add funds modal; deposit POST still sends numeric amount (same as legacy field). */
 /** Demo transaction rows when tx API returns empty (mock preview only). */
@@ -798,13 +825,13 @@ const TrustiCard = () => {
       setCardsList(MOCK_TRUSTICARD_CARDS);
       setCardsPage(1);
       setIsLoadingCards(false);
-      return;
+      return MOCK_TRUSTICARD_CARDS;
     }
     const token = localStorage.getItem('token');
     if (!token || isSessionExpired) {
       setCardsList([]);
       setIsLoadingCards(false);
-      return;
+      return [];
     }
     setIsLoadingCards(true);
     try {
@@ -818,12 +845,14 @@ const TrustiCard = () => {
         const list = Array.isArray(data) ? data.map(normalizeCardyfieCard) : [];
         setCardsList(list);
         setCardsPage(current_page ?? page);
-      } else {
-        setCardsList([]);
+        return list;
       }
+      setCardsList([]);
+      return [];
     } catch (e) {
       console.error(e);
       setCardsList([]);
+      return [];
     } finally {
       setIsLoadingCards(false);
     }
@@ -926,7 +955,61 @@ const TrustiCard = () => {
     }
   }, [isSessionExpired]);
 
+  const presentCardInfoAfterCreate = useCallback(async (preferredUlid, issueResult) => {
+    setShowCreateCardModal(false);
+    setShowCreateCardKycModal(false);
+    setShowCreateCardIdentityModal(false);
+    setShowCreateCardAddressModal(false);
+    setShowCreateCardSuccessModal(false);
+    setShowAddCardModal(false);
+    setCardDetailsModalTab('info');
+    setShowSensitiveCardInfo(false);
+
+    const issuedCard = extractIssuedCard(issueResult);
+    const resolvedUlid = preferredUlid || issuedCard?.ulid || null;
+
+    if (issuedCard?.ulid) {
+      setCardsList((prev) => {
+        const existingIdx = prev.findIndex((card) => card?.ulid === issuedCard.ulid);
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = { ...next[existingIdx], ...issuedCard };
+          return next;
+        }
+        return [...prev, issuedCard];
+      });
+      setSelectedCardDetails(issuedCard);
+    }
+
+    const list = await fetchCards(1);
+    let idx = 0;
+    const matchUlid = resolvedUlid || list?.[list.length - 1]?.ulid || issuedCard?.ulid || null;
+
+    if (matchUlid && Array.isArray(list) && list.length > 0) {
+      const found = list.findIndex((card) => card?.ulid === matchUlid);
+      idx = found >= 0 ? found : Math.max(0, list.length - 1);
+    } else if (Array.isArray(list) && list.length > 0) {
+      idx = list.length - 1;
+    } else if (issuedCard?.ulid) {
+      setCardsList((prev) => (prev.some((card) => card?.ulid === issuedCard.ulid) ? prev : [issuedCard]));
+      idx = 0;
+    }
+
+    setCurrentCardIndex(idx);
+    const ulid = matchUlid || list?.[idx]?.ulid || issuedCard?.ulid || null;
+    setShowDetailsModal(true);
+    if (ulid) {
+      await fetchCardDetails(ulid);
+    }
+  }, [fetchCards, fetchCardDetails]);
+
   const activeCard = cardsList[currentCardIndex] ?? null;
+
+  const cardInfoDisplayCard = useMemo(() => {
+    if (activeCard) return activeCard;
+    if (selectedCardDetails?.ulid) return normalizeCardyfieCard(selectedCardDetails);
+    return null;
+  }, [activeCard, selectedCardDetails]);
 
   const activeFundWallet = useMemo(
     () =>
@@ -1450,15 +1533,10 @@ const TrustiCard = () => {
     setIsSubmittingCreateCard(true);
     try {
       const cardName = createCardBasicName.trim() || userFullName.trim() || 'My TrustiCard';
-      await issueCardyfie(token, { customerUlid, cardName, cardProvider: 'visa' });
+      const issueResult = await issueCardyfie(token, { customerUlid, cardName, cardProvider: 'visa' });
       markFirstCardCreationComplete();
-      setShowCreateCardModal(false);
-      setShowCreateCardKycModal(false);
-      setShowCreateCardIdentityModal(false);
-      setShowCreateCardAddressModal(false);
-      setShowCreateCardSuccessModal(true);
-      fetchCards(1);
       toast.success('TrustiCard created');
+      await presentCardInfoAfterCreate(extractCardUlid(issueResult), issueResult);
       return true;
     } catch (err) {
       console.error(err);
@@ -1467,7 +1545,7 @@ const TrustiCard = () => {
     } finally {
       setIsSubmittingCreateCard(false);
     }
-  }, [createCardBasicName, userFullName, fetchCards, issueCardyfie, markFirstCardCreationComplete]);
+  }, [createCardBasicName, userFullName, issueCardyfie, markFirstCardCreationComplete, presentCardInfoAfterCreate]);
 
   const submitCreateCardFlow = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -1548,11 +1626,10 @@ const TrustiCard = () => {
     setIsSubmittingCreateCard(true);
     try {
       const cardName = createCardBasicName.trim() || userFullName.trim() || 'My TrustiCard';
-      await issueCardyfie(token, { customerUlid, cardName, cardProvider: 'visa' });
+      const issueResult = await issueCardyfie(token, { customerUlid, cardName, cardProvider: 'visa' });
       markFirstCardCreationComplete();
-      setShowCreateCardAddressModal(false);
-      setShowCreateCardSuccessModal(true);
-      fetchCards(1);
+      toast.success('TrustiCard created');
+      await presentCardInfoAfterCreate(extractCardUlid(issueResult), issueResult);
     } catch (err) {
       console.error(err);
       toast.error(err?.message || 'Failed to issue card');
@@ -1574,9 +1651,9 @@ const TrustiCard = () => {
     createCardUserImageFile,
     userEmail,
     userFullName,
-    fetchCards,
     issueCardyfie,
     markFirstCardCreationComplete,
+    presentCardInfoAfterCreate,
   ]);
 
   const handleIdentityStepNext = useCallback(() => {
@@ -1597,12 +1674,12 @@ const TrustiCard = () => {
   }, [createCardIdFrontFile, createCardUserImageFile, createCardIdNumber]);
 
   const handleOpenAddCardFlow = useCallback(() => {
-    if (hasCompletedFirstCardCreation) {
+    if (hasCompletedFirstCardCreation && cardsList.length > 0) {
       setShowAddCardModal(true);
     } else {
       setShowCreateCardModal(true);
     }
-  }, [hasCompletedFirstCardCreation]);
+  }, [hasCompletedFirstCardCreation, cardsList.length]);
 
   const handleAddCardSubmit = async (e) => {
     e.preventDefault();
@@ -1632,7 +1709,6 @@ const TrustiCard = () => {
         return next;
       });
       markFirstCardCreationComplete();
-      setShowAddCardModal(false);
       setAddCardForm({
         customer_ulid: '',
         card_name: '',
@@ -1640,6 +1716,15 @@ const TrustiCard = () => {
         card_provider: 'mastercard',
       });
       toast.success('Card added (preview)');
+      setShowAddCardModal(false);
+      setCardDetailsModalTab('info');
+      setShowSensitiveCardInfo(false);
+      setSelectedCardDetails({
+        ...newCard,
+        card_exp_time: '12/28',
+        status: 'active',
+      });
+      setShowDetailsModal(true);
       return;
     }
     const token = localStorage.getItem('token');
@@ -1665,14 +1750,13 @@ const TrustiCard = () => {
       if (response.ok && result?.success) {
         toast.success(result?.message || 'Card added');
         markFirstCardCreationComplete();
-        setShowAddCardModal(false);
         setAddCardForm({
           customer_ulid: '',
           card_name: '',
           card_type: 'standard',
           card_provider: 'mastercard',
         });
-        fetchCards(cardsPage);
+        await presentCardInfoAfterCreate(extractCardUlid(result), result);
       } else {
         toast.error(result?.message || result?.error || 'Failed to add card');
       }
@@ -1812,7 +1896,8 @@ const TrustiCard = () => {
     });
   }, []);
 
-  const renderCardFace = (card, variant) => {
+  const renderCardFace = (card, variant, options = {}) => {
+    const { createPreview = false } = options;
     const isActive = variant === 'active';
     const balance = Number(card?.card_balance) || 0;
     const currency = card?.card_currency_code || 'USD';
@@ -1827,7 +1912,9 @@ const TrustiCard = () => {
     const prov = String(card?.card_provider || 'mastercard').toLowerCase();
 
     return (
-      <div className={`tc-v2-card-face ${isActive ? 'tc-v2-card-face--active' : 'tc-v2-card-face--muted'}`}>
+      <div
+        className={`tc-v2-card-face ${isActive ? 'tc-v2-card-face--active' : 'tc-v2-card-face--muted'}${createPreview ? ' tc-v2-card-face--create-preview' : ''}`}
+      >
         <div className="tc-v2-card-face-top">
           <span className="tc-v2-card-face-name">{name}</span>
         </div>
@@ -2554,18 +2641,11 @@ const TrustiCard = () => {
             </div>
 
             <div className="trusticard-modal-body trusticard-create-card-body">
-              <div className="trusticard-create-card-preview">{renderCardFace(MOCK_TRUSTICARD_CARDS[0], 'active')}</div>
+              <div className="trusticard-create-card-preview">
+                {renderCardFace(CREATE_CARD_PREVIEW, 'active', { createPreview: true })}
+              </div>
 
               <ul className="trusticard-create-card-benefits" aria-label="Card benefits">
-                <li className="trusticard-create-card-benefit">
-                  <span className="trusticard-create-card-benefit-icon" aria-hidden>
-                    <Wallet size={22} strokeWidth={2} />
-                  </span>
-                  <div className="trusticard-create-card-benefit-text">
-                    <p className="trusticard-create-card-benefit-title">Spend directly from your balance</p>
-                    <p className="trusticard-create-card-benefit-sub">Seamlessly spend from your balances.</p>
-                  </div>
-                </li>
                 <li className="trusticard-create-card-benefit">
                   <span className="trusticard-create-card-benefit-icon" aria-hidden>
                     <ShieldCheck size={22} strokeWidth={2} />
@@ -2573,6 +2653,15 @@ const TrustiCard = () => {
                   <div className="trusticard-create-card-benefit-text">
                     <p className="trusticard-create-card-benefit-title">3D secure transactions</p>
                     <p className="trusticard-create-card-benefit-sub">Shop confidently with extra payment protection.</p>
+                  </div>
+                </li>
+                <li className="trusticard-create-card-benefit">
+                  <span className="trusticard-create-card-benefit-icon" aria-hidden>
+                    <Wallet size={22} strokeWidth={2} />
+                  </span>
+                  <div className="trusticard-create-card-benefit-text">
+                    <p className="trusticard-create-card-benefit-title">Spend directly from your balance</p>
+                    <p className="trusticard-create-card-benefit-sub">Seamlessly spend from your balances.</p>
                   </div>
                 </li>
                 <li className="trusticard-create-card-benefit">
@@ -2593,12 +2682,14 @@ const TrustiCard = () => {
                 className="trusticard-create-card-submit trusticard-btn-primary"
                 disabled={isSubmittingCreateCard}
                 onClick={async () => {
-                  setShowCreateCardModal(false);
                   const existingUlid = getStoredCustomerUlid();
                   if (existingUlid && !TRUSTICARD_USE_MOCK) {
-                    await issueCardForExistingCustomer();
+                    setShowCreateCardModal(false);
+                    const ok = await issueCardForExistingCustomer();
+                    if (!ok) setShowCreateCardModal(true);
                     return;
                   }
+                  setShowCreateCardModal(false);
                   setShowCreateCardKycModal(true);
                 }}
               >
@@ -2686,7 +2777,8 @@ const TrustiCard = () => {
                     const existingUlid = getStoredCustomerUlid();
                     if (existingUlid && !TRUSTICARD_USE_MOCK) {
                       setShowCreateCardKycModal(false);
-                      await issueCardForExistingCustomer();
+                      const ok = await issueCardForExistingCustomer();
+                      if (!ok) setShowCreateCardKycModal(true);
                       return;
                     }
                     setShowCreateCardKycModal(false);
@@ -2997,7 +3089,7 @@ const TrustiCard = () => {
           className="trusticard-create-card-success-overlay"
           onClick={() => {
             markFirstCardCreationComplete();
-            setShowCreateCardSuccessModal(false);
+            void presentCardInfoAfterCreate(activeCard?.ulid);
           }}
           role="presentation"
         >
@@ -3013,7 +3105,7 @@ const TrustiCard = () => {
               className="trusticard-create-card-success-close"
               onClick={() => {
                 markFirstCardCreationComplete();
-                setShowCreateCardSuccessModal(false);
+                void presentCardInfoAfterCreate(activeCard?.ulid);
               }}
               aria-label="Close"
             >
@@ -3036,7 +3128,7 @@ const TrustiCard = () => {
               className="trusticard-create-card-success-submit trusticard-btn-primary"
               onClick={() => {
                 markFirstCardCreationComplete();
-                setShowCreateCardSuccessModal(false);
+                void presentCardInfoAfterCreate(activeCard?.ulid);
               }}
             >
               Done
@@ -3580,7 +3672,7 @@ const TrustiCard = () => {
       )}
 
       {/* Details modal — Card Info (reference UI with Card Info | Address tabs) */}
-      {showDetailsModal && activeCard && (
+      {showDetailsModal && (cardInfoDisplayCard || isLoadingCardDetails) && (
         <div className="trusticard-modal-overlay trusticard-modal-overlay--card-info-fullbleed" onClick={() => setShowDetailsModal(false)} role="presentation">
           <div className="trusticard-modal-panel trusticard-card-info-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="trusticard-card-info-title">
             <div className="trusticard-modal-head trusticard-card-info-head">
@@ -3635,7 +3727,7 @@ const TrustiCard = () => {
                   <div className="trusticard-card-info-field">
                     <span className="trusticard-card-info-label">Card name</span>
                     <div className="trusticard-card-info-value-row">
-                      <span className="trusticard-card-info-value">{activeCard.card_name || selectedCardDetails?.card_name || '—'}</span>
+                      <span className="trusticard-card-info-value">{cardInfoDisplayCard?.card_name || selectedCardDetails?.card_name || '—'}</span>
                     </div>
                   </div>
                   <div className="trusticard-card-info-field">
@@ -3645,7 +3737,7 @@ const TrustiCard = () => {
                         {formatPanForDisplay(
                           showSensitiveCardInfo && selectedCardDetails?.real_pan
                             ? selectedCardDetails.real_pan
-                            : (selectedCardDetails?.masked_pan || activeCard.masked_pan),
+                            : (selectedCardDetails?.masked_pan || cardInfoDisplayCard?.masked_pan),
                         )}
                       </span>
                       <button
@@ -3656,7 +3748,7 @@ const TrustiCard = () => {
                           const source =
                             showSensitiveCardInfo && selectedCardDetails?.real_pan
                               ? selectedCardDetails.real_pan
-                              : (selectedCardDetails?.masked_pan || activeCard.masked_pan);
+                              : (selectedCardDetails?.masked_pan || cardInfoDisplayCard?.masked_pan);
                           const toCopy = String(source ?? '').replace(/\s/g, '');
                           copyCardDetailValue(toCopy, 'Card number');
                         }}
@@ -3690,12 +3782,12 @@ const TrustiCard = () => {
                   <div className="trusticard-card-info-field">
                     <span className="trusticard-card-info-label">Expiration date</span>
                     <div className="trusticard-card-info-value-row">
-                      <span className="trusticard-card-info-value">{selectedCardDetails?.card_exp_time || activeCard.card_exp_time || '—'}</span>
+                      <span className="trusticard-card-info-value">{selectedCardDetails?.card_exp_time || cardInfoDisplayCard?.card_exp_time || '—'}</span>
                       <button
                         type="button"
                         className="trusticard-card-info-copy"
                         aria-label="Copy expiration date"
-                        onClick={() => copyCardDetailValue(selectedCardDetails?.card_exp_time || activeCard.card_exp_time || '', 'Expiration date')}
+                        onClick={() => copyCardDetailValue(selectedCardDetails?.card_exp_time || cardInfoDisplayCard?.card_exp_time || '', 'Expiration date')}
                       >
                         <Copy size={18} strokeWidth={2.25} />
                       </button>
@@ -3882,6 +3974,7 @@ const TrustiCard = () => {
                 onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
                 onMarkRead={handleMarkNotificationRead}
                 formatTimeAgo={formatTimeAgo}
+                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
               />
             </div>
           </div>

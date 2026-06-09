@@ -1,6 +1,7 @@
 import React from 'react';
 import { Copy, ExternalLink, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getEscrowDisplayStatus, isEscrowCompleted } from '../../utils/escrowDisplayStatus';
 
 /**
  * Shared escrow detail sheet (rows, explorer/dispute, optional XRPL release/cancel, footnote).
@@ -15,8 +16,10 @@ export default function EscrowDetailModalBody({
   const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
   const formattedId = escrowId || '#ESC-N/A';
   const displayId = String(formattedId).replace(/^#/, '').toUpperCase();
-  const status = escrow.status || 'Unknown';
-  const statusLower = (status || '').toLowerCase();
+  const displayStatus = getEscrowDisplayStatus(escrow);
+  const status = displayStatus.label;
+  const statusLower = (escrow.status || '').toLowerCase();
+  const escrowCompleted = isEscrowCompleted(escrow);
   const createdDate = escrow.createdAt || escrow.created || '';
   const createdTimestamp = createdDate ? new Date(createdDate).getTime() : null;
   const timeSinceCreation = createdTimestamp ? (Date.now() - createdTimestamp) / 1000 : null;
@@ -142,8 +145,9 @@ export default function EscrowDetailModalBody({
       ? `https://xrpscan.com/account/${xrplAcct}`
       : null;
 
-  const statusBadgeVariant =
-    statusLower.includes('pending') || statusLower.includes('wait')
+  const statusBadgeVariant = escrowCompleted
+    ? 'complete'
+    : statusLower.includes('pending') || statusLower.includes('wait')
       ? 'pending'
       : statusLower.includes('complete') ||
           statusLower.includes('released') ||
@@ -255,9 +259,11 @@ export default function EscrowDetailModalBody({
           <ExternalLink size={16} aria-hidden />
           View on block Explorer
         </button>
-        <button type="button" className="escrow-detail-btn escrow-detail-btn--primary" onClick={onDispute}>
-          Dispute
-        </button>
+        {!escrowCompleted && typeof onDispute === 'function' ? (
+          <button type="button" className="escrow-detail-btn escrow-detail-btn--primary" onClick={onDispute}>
+            Dispute
+          </button>
+        ) : null}
       </div>
 
       {showSecondaryXRPL && (

@@ -49,6 +49,7 @@ import SavingsWithdrawWalletModal from '../../../components/SavingsWithdrawWalle
 import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
 import AddSavingsPlanModal, { planRequiresGoalAmount, planIsAutoSavings } from '../../../components/AddSavingsPlanModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -653,6 +654,10 @@ const Savings = () => {
   };
 
   return (
+    <PersonalSidebarWalletProvider
+      isSessionExpired={isSessionExpired}
+      enabled={accountType !== 'Business Suite'}
+    >
     <>
       <PersonalSuiteMobileHeader
         variant="personal"
@@ -710,6 +715,13 @@ const Savings = () => {
               })}
             </nav>
           </div>
+
+          {accountType !== 'Business Suite' && (
+            <PersonalSidebarWalletNav
+              variant="mobile"
+              onBeforeViewWallet={() => setIsMobileMenuOpen(false)}
+            />
+          )}
 
           <div className="mobile-sidebar-section">
             <p className="mobile-sidebar-section-label">Support</p>
@@ -789,6 +801,8 @@ const Savings = () => {
               })}
             </nav>
           </div>
+
+          {accountType !== 'Business Suite' && <PersonalSidebarWalletNav />}
 
           <div className="sidebar-section">
             <p className="sidebar-section-label">Support</p>
@@ -1398,6 +1412,7 @@ const Savings = () => {
 
       <NotificationCenterModal open={showNotificationModal} onClose={() => setShowNotificationModal(false)} titleId="savings-notifications-title" />
     </>
+    </PersonalSidebarWalletProvider>
   );
 };
 

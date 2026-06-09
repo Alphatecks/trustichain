@@ -40,6 +40,7 @@ function NotificationListItems({
   onMarkRead,
   formatTimeAgo,
   emptyText = 'N/A',
+  onBeforeCtaNavigate,
 }) {
   const navigate = useNavigate();
 
@@ -75,7 +76,13 @@ function NotificationListItems({
             window.open(u, '_blank', 'noopener,noreferrer');
             return;
           }
-          navigate(u.startsWith('/') ? u : `/${u}`);
+          onBeforeCtaNavigate?.();
+          const path = u.startsWith('/') ? u : `/${u}`;
+          const isTransactionsLink = /\/transactions/i.test(path);
+          navigate(
+            path,
+            isTransactionsLink ? { state: { notificationForTransactionDetail: n } } : undefined,
+          );
         };
 
         const onActivate = () => {

@@ -1,3 +1,14 @@
+import {
+  buildTransactionDetailPath,
+  extractNotificationLookupId,
+  extractNotificationTransactionId,
+  extractTransactionIdFromUrl,
+  isEscrowNotificationPath,
+  isTransactionNotification,
+  isTransactionsPagePath,
+  TRANSACTIONS_PAGE_PATH,
+} from './transactionDeepLink';
+
 const strip = (s) => (typeof s === 'string' ? s.replace(/\s+/g, ' ').trim() : '');
 
 const COLLAPSED_MAX = 90;
@@ -27,11 +38,79 @@ function firstUrl(...candidates) {
   return null;
 }
 
+function getCtaLabel(n, merged) {
+  return strip(
+    n?.actionLabel
+    || n?.action_label
+    || n?.ctaLabel
+    || n?.ctaText
+    || n?.buttonText
+    || merged?.actionLabel
+    || merged?.action_label
+    || merged?.ctaLabel
+    || merged?.buttonText,
+  ) || DEFAULT_CTA_LABEL;
+}
+
+function normalizeInAppPath(url) {
+  const raw = String(url ?? '').trim();
+  if (!raw) return null;
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function resolveTransactionDetailCta(n, label = DEFAULT_CTA_LABEL) {
+  const lookupId = extractNotificationLookupId(n);
+  if (lookupId) {
+    const url = buildTransactionDetailPath(lookupId);
+    if (url) return { url, label };
+  }
+  return null;
+}
+
+function resolveTransactionListCta(label = DEFAULT_CTA_LABEL) {
+  return { url: TRANSACTIONS_PAGE_PATH, label };
+}
+
 /**
  * Explicit URL from the notification or nested `details` / `metadata` (not raw field dumps in the list).
  */
 export function getNotificationCta(n) {
   const merged = getMergedDetails(n) || {};
+  const label = getCtaLabel(n, merged);
+  const transactionIntent = isTransactionNotification(n) || label.toLowerCase().includes('transaction');
+
+  if (transactionIntent) {
+    const direct = resolveTransactionDetailCta(n, label);
+    if (direct) return direct;
+
+    const explicitUrl = firstUrl(
+      n?.actionUrl,
+      n?.action_url,
+      n?.link,
+      n?.url,
+      n?.href,
+      merged.actionUrl,
+      merged.action_url,
+      merged.link,
+      merged.url,
+      merged.href,
+      merged.deeplink,
+    );
+    if (explicitUrl) {
+      const txFromUrl = extractTransactionIdFromUrl(explicitUrl);
+      if (txFromUrl) {
+        const url = buildTransactionDetailPath(txFromUrl);
+        if (url) return { url, label };
+      }
+      if (!isEscrowNotificationPath(explicitUrl) && isTransactionsPagePath(explicitUrl)) {
+        return { url: normalizeInAppPath(explicitUrl), label };
+      }
+    }
+
+    // Always show Review Transaction for wallet/transaction alerts — open Transactions, never Escrow History.
+    return resolveTransactionListCta(label);
+  }
+
   const url = firstUrl(
     n?.actionUrl,
     n?.action_url,
@@ -43,26 +122,19 @@ export function getNotificationCta(n) {
     merged.link,
     merged.url,
     merged.href,
-    merged.deeplink
+    merged.deeplink,
   );
   if (url) {
-    const label = strip(
-      n?.actionLabel || n?.action_label || n?.ctaLabel || n?.ctaText || n?.buttonText
-        || merged.actionLabel || merged.action_label || merged.ctaLabel || merged.buttonText
-    );
-    return { url, label: label || DEFAULT_CTA_LABEL };
+    if (isEscrowNotificationPath(url)) {
+      return { url, label };
+    }
+    return { url, label };
   }
 
-  // Inferred in-app CTA: same intent as the mock ("Review Transaction") without listing all API fields
-  const tx = merged.transactionId;
-  if (tx != null && String(tx).trim() !== '') {
-    const id = String(tx).trim();
-    return {
-      url: `/transactions?transactionId=${encodeURIComponent(id)}`,
-      label: DEFAULT_CTA_LABEL,
-    };
-  }
-  const esc = merged.escrowId || merged.xrplEscrowId;
+  const txCta = resolveTransactionDetailCta(n, label);
+  if (txCta) return txCta;
+
+  const esc = merged.escrowId || merged.xrplEscrowId || merged.escrow_id;
   if (esc != null && String(esc).trim() !== '') {
     const id = String(esc).trim();
     return {
