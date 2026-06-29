@@ -1725,18 +1725,16 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
               desktopModalLayout ? ' create-escrow-step3-footer-desktop' : ''
             }`}
           >
-            {!desktopModalLayout && (
-              <button
-                type="button"
-                className="previous-btn"
-                onClick={() => setCurrentStep(2)}
-              >
-                <div className="previous-btn-icon-circle">
-                  <ArrowLeft size={16} />
-                </div>
-                <span>Previous</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className="previous-btn"
+              onClick={() => setCurrentStep(2)}
+            >
+              <div className="previous-btn-icon-circle">
+                <ArrowLeft size={16} />
+              </div>
+              <span>Previous</span>
+            </button>
             <button
               type="button"
               className="submit-next-btn"

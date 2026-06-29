@@ -43,6 +43,7 @@ import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBad
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import GoogleAuthenticatorModal from '../../../components/GoogleAuthenticatorModal';
+import ChangePasscodeModal from '../../../components/ChangePasscodeModal';
 import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
@@ -618,6 +619,7 @@ const Settings = () => {
   const profileCategoryLabel = accountType === 'Business Suite' ? 'Business' : 'User';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [changePasscodeModalStep, setChangePasscodeModalStep] = useState(null);
   const [userFullName, setUserFullName] = useState('');
   const [userInitials, setUserInitials] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -1160,11 +1162,11 @@ const Settings = () => {
   }, [fetchBusinessProfileDetails]);
 
   const handleChangePin = () => {
-    toast('PIN change coming soon');
+    setChangePasscodeModalStep('code');
   };
 
   const handleChangePassword = () => {
-    toast('Password change coming soon');
+    setChangePasscodeModalStep('email');
   };
 
   const passwordSecurityProps = {
@@ -1825,6 +1827,13 @@ const Settings = () => {
         onSuccess={() => {
           void fetchUserProfile();
         }}
+      />
+
+      <ChangePasscodeModal
+        isOpen={changePasscodeModalStep != null}
+        step={changePasscodeModalStep || 'email'}
+        onClose={() => setChangePasscodeModalStep(null)}
+        defaultEmail={email}
       />
     </div>
     </PersonalSidebarWalletProvider>

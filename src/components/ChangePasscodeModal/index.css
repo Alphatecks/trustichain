@@ -1,0 +1,235 @@
+.change-passcode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.change-passcode-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+.change-passcode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1rem;
+}
+
+.change-passcode-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.change-passcode-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.change-passcode-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.change-passcode-body {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.change-passcode-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.change-passcode-form--code {
+  gap: 1rem;
+}
+
+.change-passcode-subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #111827;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.change-passcode-otp-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.change-passcode-otp-cell {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  background: #f9fafb;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1.1rem;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.change-passcode-otp-cell.is-focused {
+  border-color: #0671ff;
+  background: #ffffff;
+}
+
+.change-passcode-otp-cell.is-filled .change-passcode-otp-dash {
+  color: #111827;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1;
+  padding-bottom: 0;
+}
+
+.change-passcode-otp-dash {
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.change-passcode-otp-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  opacity: 0;
+  cursor: text;
+}
+
+.change-passcode-resend {
+  margin: 0;
+  text-align: center;
+}
+
+.change-passcode-resend-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.change-passcode-resend-btn:disabled {
+  cursor: default;
+}
+
+.change-passcode-resend-btn:not(:disabled) {
+  color: #0671ff;
+  font-weight: 600;
+}
+
+.change-passcode-resend-timer {
+  color: #0671ff;
+  font-weight: 600;
+}
+
+.change-passcode-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #111827;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.change-passcode-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: #f3f7ff;
+  font-size: 0.9375rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: #111827;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.change-passcode-input::placeholder {
+  color: #0671ff;
+  opacity: 1;
+}
+
+.change-passcode-input:focus {
+  box-shadow: 0 0 0 2px rgba(6, 113, 255, 0.15);
+}
+
+.change-passcode-submit {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.25rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: #0671ff;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.change-passcode-submit:hover {
+  background: #0560e0;
+}
+
+.change-passcode-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #6b7280;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.change-passcode-info svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .change-passcode-overlay {
+    padding: 1rem;
+    align-items: flex-end;
+  }
+
+  .change-passcode-modal {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}

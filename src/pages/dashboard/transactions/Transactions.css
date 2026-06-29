@@ -1223,24 +1223,19 @@ body.transactions-page-active .landing-navbar {
 }
 
 .transaction-table th:first-child {
-  padding-left: 1rem;
-  padding-right: 1rem;
-  width: 40px;
+  min-width: 200px;
+  padding-left: 1.5rem;
 }
 
 .transaction-table th:nth-child(2) {
-  min-width: 200px;
-}
-
-.transaction-table th:nth-child(3) {
   min-width: 180px;
 }
 
-.transaction-table th:nth-child(4) {
+.transaction-table th:nth-child(3) {
   min-width: 120px;
 }
 
-.transaction-table th:nth-child(5) {
+.transaction-table th:nth-child(4) {
   min-width: 120px;
 }
 
@@ -1256,17 +1251,8 @@ body.transactions-page-active .landing-navbar {
   white-space: nowrap;
 }
 
-.transaction-table td:first-child {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
 .transaction-table td:last-child {
   padding: 1rem;
-}
-
-.transaction-table tbody tr:hover {
-  background: var(--blue-100);
 }
 
 .transaction-id-with-type {
@@ -1348,13 +1334,6 @@ body.transactions-page-active .landing-navbar {
   border-radius: 50%;
   background: var(--blue-100);
   color: var(--blue-600);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.transaction-direction-icon:hover {
-  background: var(--blue-600);
-  color: var(--white);
 }
 
 /* Transaction Pagination */
@@ -5586,16 +5565,9 @@ body.transactions-page-active .landing-navbar {
     align-items: stretch !important;
     gap: 0.65rem !important;
     font-family: 'Satoshi', 'Inter', sans-serif !important;
-    cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
-  }
-
-  .mobile-transaction-card:active {
-    border-color: #bfdbfe;
-    box-shadow: 0 1px 4px rgba(6, 113, 255, 0.08);
   }
 
   .mobile-transaction-top {
@@ -6863,8 +6835,7 @@ body.transactions-page-active .landing-navbar {
 }
 
 .desktop-savings-history-table th:first-child {
-  width: 40px;
-  padding-left: 0.5rem;
+  min-width: 200px;
 }
 
 .desktop-savings-history-table td {
@@ -6873,14 +6844,6 @@ body.transactions-page-active .landing-navbar {
   font-size: 0.9rem;
   white-space: nowrap;
   font-family: 'Satoshi', 'Inter', sans-serif;
-}
-
-.desktop-savings-history-table td:first-child {
-  padding-left: 0.5rem;
-}
-
-.desktop-savings-history-table tbody tr:hover {
-  background: var(--blue-100);
 }
 
 .desktop-savings-transaction-type {
@@ -6934,14 +6897,6 @@ body.transactions-page-active .landing-navbar {
   border-radius: 50%;
   background: var(--blue-100);
   color: var(--blue-600);
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.desktop-savings-transaction-arrow:hover {
-  background: var(--blue-600);
-  color: var(--white);
 }
 
 /* Pagination */

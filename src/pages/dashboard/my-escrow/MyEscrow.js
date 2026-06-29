@@ -1592,45 +1592,49 @@ const MyEscrow = () => {
                         </button>
                       </>
                     )}
-                    <button 
-                      type="button" 
-                      className="action-menu-btn"
-                      onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-                    {openActionMenu === escrowId && (
-                      <div 
-                        className="action-menu-dropdown"
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          right: 0,
-                          backgroundColor: 'var(--card-bg, #fff)',
-                          border: '1px solid var(--border-color, #e0e0e0)',
-                          borderRadius: '8px',
-                          marginTop: '4px',
-                          zIndex: 1000,
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                          minWidth: '120px'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div
-                          style={{
-                            padding: '8px 12px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid var(--border-color, #e0e0e0)'
-                          }}
-                          onClick={() => {
-                            setOpenActionMenu(null);
-                            setEscrowToCancel(escrowId);
-                            setShowCancelReasonModal(true);
-                          }}
+                    {!isCompletedStatus && (
+                      <>
+                        <button 
+                          type="button" 
+                          className="action-menu-btn"
+                          onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
                         >
-                          Cancel
-                        </div>
-                      </div>
+                          <MoreVertical size={18} />
+                        </button>
+                        {openActionMenu === escrowId && (
+                          <div 
+                            className="action-menu-dropdown"
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              right: 0,
+                              backgroundColor: 'var(--card-bg, #fff)',
+                              border: '1px solid var(--border-color, #e0e0e0)',
+                              borderRadius: '8px',
+                              marginTop: '4px',
+                              zIndex: 1000,
+                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                              minWidth: '120px'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div
+                              style={{
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid var(--border-color, #e0e0e0)'
+                              }}
+                              onClick={() => {
+                                setOpenActionMenu(null);
+                                setEscrowToCancel(escrowId);
+                                setShowCancelReasonModal(true);
+                              }}
+                            >
+                              Cancel
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>
@@ -2175,45 +2179,49 @@ const MyEscrow = () => {
                               </button>
                             </>
                           )}
-                          <button 
-                            type="button" 
-                            className="action-menu-btn"
-                            onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-                          {openActionMenu === escrowId && (
-                            <div 
-                              className="action-menu-dropdown"
-                              style={{
-                                position: 'absolute',
-                                top: '100%',
-                                right: 0,
-                                backgroundColor: 'var(--card-bg, #fff)',
-                                border: '1px solid var(--border-color, #e0e0e0)',
-                                borderRadius: '8px',
-                                marginTop: '4px',
-                                zIndex: 1000,
-                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                minWidth: '120px'
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div
-                                style={{
-                                  padding: '8px 12px',
-                                  cursor: 'pointer',
-                                  borderBottom: '1px solid var(--border-color, #e0e0e0)'
-                                }}
-                                onClick={() => {
-                                  setOpenActionMenu(null);
-                                  setEscrowToCancel(escrowId);
-                                  setShowCancelReasonModal(true);
-                                }}
+                          {!isCompletedStatus && (
+                            <>
+                              <button 
+                                type="button" 
+                                className="action-menu-btn"
+                                onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
                               >
-                                Cancel
-                              </div>
-                            </div>
+                                <MoreVertical size={18} />
+                              </button>
+                              {openActionMenu === escrowId && (
+                                <div 
+                                  className="action-menu-dropdown"
+                                  style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    backgroundColor: 'var(--card-bg, #fff)',
+                                    border: '1px solid var(--border-color, #e0e0e0)',
+                                    borderRadius: '8px',
+                                    marginTop: '4px',
+                                    zIndex: 1000,
+                                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                    minWidth: '120px'
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div
+                                    style={{
+                                      padding: '8px 12px',
+                                      cursor: 'pointer',
+                                      borderBottom: '1px solid var(--border-color, #e0e0e0)'
+                                    }}
+                                    onClick={() => {
+                                      setOpenActionMenu(null);
+                                      setEscrowToCancel(escrowId);
+                                      setShowCancelReasonModal(true);
+                                    }}
+                                  >
+                                    Cancel
+                                  </div>
+                                </div>
+                              )}
+                            </>
                           )}
                         </td>
                       </tr>

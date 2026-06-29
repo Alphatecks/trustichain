@@ -2026,6 +2026,30 @@ const Transactions = () => {
     }
   };
 
+  const isIncomingTransaction = (transaction) => {
+    const direction = String(transaction?.direction || '').trim().toLowerCase();
+    if (['received', 'credit', 'deposit', 'incoming', 'in'].includes(direction)) return true;
+    if (['spent', 'sent', 'debit', 'withdrawal', 'withdraw', 'outgoing', 'out'].includes(direction)) {
+      return false;
+    }
+
+    const type = String(transaction?.type || transaction?.transactionType || '').trim().toLowerCase();
+    if (type.includes('withdraw') || type.includes('sent') || type === 'debit' || type.includes('spent')) {
+      return false;
+    }
+    if (
+      type.includes('deposit')
+      || type.includes('received')
+      || type === 'credit'
+      || type.includes('incoming')
+      || type.includes('fund')
+    ) {
+      return true;
+    }
+
+    return true;
+  };
+
   const renderTransactionDetailsModal = () => {
     if (!showTransactionDetailsModal || !selectedTransaction) return null;
     return (
@@ -4965,9 +4989,6 @@ const Transactions = () => {
                   <table className="desktop-savings-history-table">
                     <thead>
                       <tr>
-                        <th>
-                          <input type="checkbox" />
-                        </th>
                         <th>Transaction ID</th>
                         <th>Amount</th>
                         <th>Status</th>
@@ -4976,21 +4997,13 @@ const Transactions = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {savingHistoryForRender.map((transaction, index) => (
-                        <tr 
-                          key={index}
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setShowTransactionDetailsModal(true);
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td>
-                            <input type="checkbox" onClick={(e) => e.stopPropagation()} />
-                          </td>
+                      {savingHistoryForRender.map((transaction, index) => {
+                        const isIncoming = isIncomingTransaction(transaction);
+                        return (
+                        <tr key={index}>
                           <td>
                             <div className="desktop-savings-transaction-type">
-                              {transaction.direction === 'spent' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                              {isIncoming ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
                               <span>{transaction.type}</span>
                             </div>
                             <div className="desktop-savings-transaction-id">{transaction.id}</div>
@@ -5001,18 +5014,20 @@ const Transactions = () => {
                           </td>
                           <td className="desktop-savings-transaction-date">{transaction.date}</td>
                           <td>
-                            <button type="button" className="desktop-savings-transaction-arrow">
-                              <ArrowRight size={16} />
-                            </button>
+                            <div className="desktop-savings-transaction-arrow" aria-hidden>
+                              {isIncoming ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
+                            </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
                 {/* Mobile Transaction History Cards */}
                 <div className="mobile-savings-history-cards">
                   {savingHistoryForRender.map((transaction, index) => {
+                    const isIncoming = isIncomingTransaction(transaction);
                     // Extract amount value
                     const amountValue = typeof transaction.amount === 'string'
                       ? transaction.amount.replace('$', '').replace(',', '')
@@ -5027,20 +5042,15 @@ const Transactions = () => {
                       <div 
                         key={index} 
                         className="mobile-savings-history-card"
-                        onClick={() => {
-                          setSelectedTransaction(transaction);
-                          setShowTransactionDetailsModal(true);
-                        }}
-                        style={{ cursor: 'pointer' }}
                       >
                         <div className="mobile-savings-history-left">
                           <div className="mobile-savings-history-icon">
-                            {transaction.direction === 'spent' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                            {isIncoming ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
                           </div>
                           <div className="mobile-savings-history-details">
                             <div className="mobile-savings-history-type">{transaction.type}</div>
                             <div className="mobile-savings-history-description">
-                              You {transaction.direction === 'spent' ? 'spent' : 'received'} {xrpAmount} XRP, worth ${usdValue} USD.
+                              You {isIncoming ? 'received' : 'sent'} {xrpAmount} XRP, worth ${usdValue} USD.
                             </div>
                           </div>
                         </div>
@@ -6521,25 +6531,12 @@ const Transactions = () => {
                       const amountUsd = transaction.amount?.usd || transaction.amountUsd || (amountXrp * 0.5);
                       const status = transaction.status || 'Successful';
                       const date = transaction.date || transaction.createdAt || '2024-07-04';
-                      const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit';
+                      const isReceived = isIncomingTransaction(transaction);
 
                       return (
                         <div 
                           key={transaction.id || globalIndex} 
                           className="mobile-transaction-card"
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setShowTransactionDetailsModal(true);
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setSelectedTransaction(transaction);
-                              setShowTransactionDetailsModal(true);
-                            }
-                          }}
                         >
                           <div className="mobile-transaction-top">
                             <div className="mobile-transaction-left">
@@ -6568,9 +6565,6 @@ const Transactions = () => {
                     <table className="transaction-table">
                       <thead>
                         <tr>
-                          <th>
-                            <input type="checkbox" />
-                          </th>
                           <th>Transaction ID</th>
                           <th>Amount</th>
                           <th>Status</th>
@@ -6581,14 +6575,14 @@ const Transactions = () => {
                       <tbody>
                         {isLoadingTransactions && (
                           <tr>
-                            <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
                               <LoadingIndicator size="md" />
                             </td>
                           </tr>
                         )}
                         {!isLoadingTransactions && transactions.length === 0 && (
                           <tr>
-                            <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
                               No transactions found
                             </td>
                           </tr>
@@ -6601,20 +6595,10 @@ const Transactions = () => {
                           const amountUsd = transaction.amount?.usd || transaction.amountUsd || (amountXrp * 0.5);
                           const status = transaction.status || 'Successful';
                           const date = transaction.date || transaction.createdAt || '2024-07-04';
-                          const isReceived = type.toLowerCase().includes('received') || type.toLowerCase() === 'credit';
+                          const isReceived = isIncomingTransaction(transaction);
 
                           return (
-                            <tr 
-                              key={transaction.id || globalIndex}
-                              onClick={() => {
-                                setSelectedTransaction(transaction);
-                                setShowTransactionDetailsModal(true);
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <td>
-                                <input type="checkbox" onClick={(e) => e.stopPropagation()} />
-                              </td>
+                            <tr key={transaction.id || globalIndex}>
                               <td>
                                 <div className="transaction-id-with-type">
                                   <div className="transaction-type-indicator">
@@ -6641,8 +6625,8 @@ const Transactions = () => {
                                 <div className="transaction-date-cell">{formatDate(date)}</div>
                               </td>
                               <td>
-                                <div className="transaction-direction-icon">
-                                  {globalIndex % 2 === 0 ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+                                <div className="transaction-direction-icon" aria-hidden>
+                                  {isReceived ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
                                 </div>
                               </td>
                             </tr>
