@@ -11,11 +11,23 @@ export const STABLECOIN_DEPOSIT_PROVISIONS = [
   { asset: 'USDC', network: 'SOLANA' },
 ];
 
+export const DEPOSIT_ADDRESS_CURRENCIES = ['XRP', 'RLUSD', 'USDT', 'USDC'];
+
 export const DEPOSIT_ADDRESS_CURRENCY_ICON = {
   XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
   RLUSD: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
   USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
   USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
+};
+
+export const depositAddressCurrencyLabel = (code) => {
+  const mapping = {
+    XRP: 'XRP wallet',
+    RLUSD: 'RLUSD wallet',
+    USDT: 'USDT wallet',
+    USDC: 'USDC wallet',
+  };
+  return mapping[code] || code;
 };
 
 export const DEPOSIT_ADDRESS_NETWORK_KEYS = {

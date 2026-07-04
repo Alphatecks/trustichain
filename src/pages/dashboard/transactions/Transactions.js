@@ -62,9 +62,7 @@ import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import {
-  DEPOSIT_ADDRESS_CURRENCY_ICON,
   getDepositNetworksForCurrency,
-  depositAddressNetworkLabel,
   extractWalletAddresses,
   resolveDepositAddressFromBalance,
   splitDepositAddressLines,
@@ -74,6 +72,7 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import DepositAddressSelectors from '../../../components/DepositAddressSelectors';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
@@ -6793,52 +6792,16 @@ const Transactions = () => {
 
             {fundViaAddress ? (
               <div className="fund-wallet-transfer-modal-content deposit-address-modal-content">
-                <div className="fund-wallet-transfer-form-group">
-                  <span className="fund-wallet-transfer-label">Currency</span>
-                  <div className="deposit-currency-pill">
-                    <div className="fund-wallet-transfer-currency-badge">
-                      <img
-                        src={DEPOSIT_ADDRESS_CURRENCY_ICON[fundWalletForm.currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP}
-                        alt=""
-                      />
-                    </div>
-                    <select
-                      id="deposit-fund-currency"
-                      className="deposit-currency-native"
-                      value={fundWalletForm.currency}
-                      onChange={(e) =>
-                        setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
-                      }
-                      aria-label="Currency"
-                    >
-                      <option value="XRP">XRP wallet</option>
-                      <option value="RLUSD">RLUSD wallet</option>
-                      <option value="USDT">USDT wallet</option>
-                      <option value="USDC">USDC wallet</option>
-                    </select>
-                    <ChevronDown size={16} className="deposit-currency-chevron" aria-hidden />
-                  </div>
-                </div>
-
-                <div className="fund-wallet-transfer-form-group">
-                  <span className="fund-wallet-transfer-label">Network</span>
-                  <div className="deposit-network-pill">
-                    <select
-                      id="deposit-fund-network"
-                      className="deposit-network-native"
-                      value={depositAddressNetwork}
-                      onChange={(e) => setDepositAddressNetwork(e.target.value)}
-                      aria-label="Network"
-                    >
-                      {getDepositNetworksForCurrency(fundWalletForm.currency).map((key) => (
-                        <option key={key} value={key}>
-                          {depositAddressNetworkLabel(key)}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="deposit-network-chevron" aria-hidden />
-                  </div>
-                </div>
+                <DepositAddressSelectors
+                  currency={fundWalletForm.currency}
+                  network={depositAddressNetwork}
+                  onCurrencyChange={(code) =>
+                    setFundWalletForm((prev) => ({ ...prev, currency: code }))
+                  }
+                  onNetworkChange={setDepositAddressNetwork}
+                  currencySelectId="deposit-fund-currency"
+                  networkSelectId="deposit-fund-network"
+                />
 
                 <div className="fund-wallet-transfer-form-group">
                   <span className="fund-wallet-transfer-label">Scan</span>

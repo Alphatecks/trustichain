@@ -57,11 +57,10 @@ import chainsIllustration from '../../../assets/images/illustrations/chain.png';
 import rlusdLogo from '../../../assets/images/icons/rlusd-logo.svg';
 import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
+import googleLogo from '../../../assets/images/icons/google-logo.svg';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import {
-  DEPOSIT_ADDRESS_CURRENCY_ICON,
   getDepositNetworksForCurrency,
-  depositAddressNetworkLabel,
   extractWalletAddresses,
   buildWalletAddressRows,
   resolveDepositAddressFromBalance,
@@ -98,6 +97,7 @@ import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBad
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import PersonalWalletAddressesModal from '../../../components/PersonalWalletAddressesModal';
+import DepositAddressSelectors from '../../../components/DepositAddressSelectors';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
 const normalizeCompanyLogoUrl = (data) => {
@@ -163,6 +163,14 @@ const businessSuiteNav = [
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
+const CONVERT_CURRENCIES = ['XRP', 'USDT', 'USDC'];
+
+const CONVERT_CURRENCY_ICONS = {
+  XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+  USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
+  USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
+};
+
 const developersNav = [
   { label: 'Api Keys', icon: Code, badge: null },
   { label: 'Sand box enviroment', icon: Box, badge: null },
@@ -170,7 +178,6 @@ const developersNav = [
 ];
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
-const PORTFOLIO_Y_AXIS_MAX = 10000;
 const PORTFOLIO_WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function resolvePortfolioWeekdayIndex(label) {
@@ -666,6 +673,27 @@ const WALLET_DETAILS_NETWORK_KEYS = {
   USDT: ['ERC20', 'TRC20', 'BEP20'],
   USDC: ['BEP20', 'SOLANA'],
 };
+
+const DepositGooglePayMark = () => (
+  <span className="fund-method-payment-mark fund-method-payment-mark--google" aria-hidden>
+    <img src={googleLogo} alt="" className="fund-method-payment-logo" />
+    <span className="fund-method-payment-logo-text fund-method-payment-logo-text--google">Pay</span>
+  </span>
+);
+
+const DepositApplePayMark = () => (
+  <span className="fund-method-payment-mark fund-method-payment-mark--apple" aria-hidden>
+    <svg className="fund-method-payment-logo" viewBox="0 0 24 24" aria-hidden>
+      <path
+        d="M17.05 12.06c.01 2.56 2.24 3.41 2.26 3.42-.02.06-.36 1.23-1.19 2.43-.72 1.04-1.47 2.07-2.65 2.09-1.16.02-1.53-.69-2.86-.69-1.33 0-1.74.67-2.84.71-1.14.04-2.01-1.14-2.74-2.17-1.5-2.16-2.65-6.09-1.11-8.77.76-1.33 2.12-2.18 3.6-2.2 1.12-.02 2.18.75 2.86.75.68 0 1.95-.93 3.29-.79.56.02 2.14.23 3.16 1.72-.08.05-1.89 1.1-1.88 3.5zm-2.58-6.15c.6-.73 1.01-1.74.9-2.75-.86.03-1.91.57-2.53 1.3-.56.65-1.05 1.69-.92 2.68.96.08 1.95-.48 2.55-1.23z"
+        fill="currentColor"
+      />
+    </svg>
+    <span className="fund-method-payment-logo-text fund-method-payment-logo-text--apple">Pay</span>
+  </span>
+);
+
+const STRIPE_DEPOSIT_METHODS = new Set(['googlepay', 'applepay']);
 
 const Dashboard = () => {
       // Loading state for View Wallet button
@@ -1251,6 +1279,7 @@ const Dashboard = () => {
   const [businessSuiteWalletModalLoading, setBusinessSuiteWalletModalLoading] = useState(false);
   const [businessSuiteWalletModalData, setBusinessSuiteWalletModalData] = useState(null); // { address?, balances?, error? }
   const [fundViaAddress, setFundViaAddress] = useState(false);
+  const [fundDepositPaymentMethod, setFundDepositPaymentMethod] = useState(null);
   const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletBalanceRaw, setWalletBalanceRaw] = useState(null);
   const [fundWalletForm, setFundWalletForm] = useState({
@@ -1268,6 +1297,8 @@ const Dashboard = () => {
   });
   const [isWithdrawingWallet, setIsWithdrawingWallet] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showFromCurrencyDropdown, setShowFromCurrencyDropdown] = useState(false);
+  const [showToCurrencyDropdown, setShowToCurrencyDropdown] = useState(false);
   const [swapForm, setSwapForm] = useState({
     fromCurrency: 'XRP',
     toCurrency: 'USDT',
@@ -1711,6 +1742,7 @@ const Dashboard = () => {
         currency: code === 'RLUSD' ? 'RLUSD' : code,
       }));
       setFundViaAddress(false);
+      setFundDepositPaymentMethod(null);
       setDepositAddressNetwork('XRPL');
       setShowFundMethodModal(true);
       return;
@@ -1732,6 +1764,8 @@ const Dashboard = () => {
 
   const resetSwapModal = () => {
     setShowSwapModal(false);
+    setShowFromCurrencyDropdown(false);
+    setShowToCurrencyDropdown(false);
     setSwapForm({
       fromCurrency: 'XRP',
       toCurrency: 'USDT',
@@ -1739,6 +1773,18 @@ const Dashboard = () => {
       toAmount: '',
     });
   };
+
+  useEffect(() => {
+    if (!showFromCurrencyDropdown && !showToCurrencyDropdown) return undefined;
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.swap-currency-selector-wrapper')) {
+        setShowFromCurrencyDropdown(false);
+        setShowToCurrencyDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFromCurrencyDropdown, showToCurrencyDropdown]);
 
   const getCurrencyDisplayName = (currency) => {
     const mapping = {
@@ -1772,6 +1818,8 @@ const Dashboard = () => {
   };
 
   const handleSwapCurrencies = () => {
+    setShowFromCurrencyDropdown(false);
+    setShowToCurrencyDropdown(false);
     setSwapForm((prev) => {
       const swapped = {
         ...prev,
@@ -1786,6 +1834,55 @@ const Dashboard = () => {
       };
     });
   };
+
+  const renderConvertCurrencyBadge = (currency) => (
+    <div className={`swap-currency-badge ${currency === 'USDT' || currency === 'USDC' ? `${currency.toLowerCase()}-badge` : ''}`}>
+      {CONVERT_CURRENCY_ICONS[currency] ? (
+        <img src={CONVERT_CURRENCY_ICONS[currency]} alt={currency} />
+      ) : (
+        getCurrencyBadge(currency)
+      )}
+    </div>
+  );
+
+  const renderConvertCurrencySelector = (field, currency, isOpen, setIsOpen, closeOther) => (
+    <div className="swap-currency-selector-wrapper">
+      <button
+        type="button"
+        className={`swap-currency-selector${isOpen ? ' is-open' : ''}`}
+        onClick={() => {
+          closeOther();
+          setIsOpen((prev) => !prev);
+        }}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+      >
+        {renderConvertCurrencyBadge(currency)}
+        <span className="swap-currency-name">{getCurrencyDisplayName(currency)}</span>
+        <ChevronDown size={16} className="swap-currency-chevron" aria-hidden />
+      </button>
+      {isOpen && (
+        <div className="swap-currency-dropdown" role="listbox">
+          {CONVERT_CURRENCIES.map((code) => (
+            <button
+              key={code}
+              type="button"
+              role="option"
+              aria-selected={currency === code}
+              className={`swap-currency-option${currency === code ? ' is-active' : ''}`}
+              onClick={() => {
+                handleSwapCurrencyChange(field, code);
+                setIsOpen(false);
+              }}
+            >
+              {renderConvertCurrencyBadge(code)}
+              <span className="swap-currency-name">{getCurrencyDisplayName(code)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const handleSwapCurrencyChange = (field, value) => {
     setSwapForm((prev) => {
@@ -2676,13 +2773,22 @@ const Dashboard = () => {
       (max, point) => Math.max(max, Number(point?.value ?? 0)),
       0
     );
-    if (!Number.isFinite(maxValue) || maxValue <= 0) return PORTFOLIO_Y_AXIS_MAX;
-    return Math.max(PORTFOLIO_Y_AXIS_MAX, Math.ceil(maxValue / 2000) * 2000);
+    if (!Number.isFinite(maxValue) || maxValue <= 0) return 1000;
+
+    const padded = maxValue * 1.08;
+    if (padded <= 2000) {
+      return Math.max(500, Math.ceil(padded / 500) * 500);
+    }
+    if (padded <= 10000) {
+      return Math.ceil(padded / 1000) * 1000;
+    }
+    return Math.ceil(padded / 2000) * 2000;
   }, [portfolioChartPoints]);
 
   const portfolioYAxisTicks = useMemo(() => {
-    const step = portfolioChartScaleMax / 5;
-    return Array.from({ length: 6 }, (_, index) => Math.round(portfolioChartScaleMax - step * index));
+    const tickCount = 4;
+    const step = portfolioChartScaleMax / (tickCount - 1);
+    return Array.from({ length: tickCount }, (_, index) => Math.round(portfolioChartScaleMax - step * index));
   }, [portfolioChartScaleMax]);
 
   const formatPortfolioYAxisTick = useCallback((value) => {
@@ -2694,6 +2800,11 @@ const Dashboard = () => {
     const value = Number(rawValue ?? 0);
     if (!Number.isFinite(value) || value <= 0) return 0;
     return Math.min(100, (value / portfolioChartScaleMax) * 100);
+  }, [portfolioChartScaleMax]);
+
+  const getPortfolioYAxisTickFraction = useCallback((val) => {
+    if (!portfolioChartScaleMax || portfolioChartScaleMax <= 0) return 0;
+    return val / portfolioChartScaleMax;
   }, [portfolioChartScaleMax]);
 
   // Close dropdowns when clicking outside
@@ -3231,6 +3342,14 @@ const Dashboard = () => {
     fetchTotalSavingsWallet();
   }, [accountType, isSessionExpired]);
 
+  const openStripeDeposit = (method) => {
+    setShowFundMethodModal(false);
+    setFundViaAddress(false);
+    setFundDepositPaymentMethod(method);
+    setFundWalletForm({ amount: '', currency: 'USD' });
+    setShowFundWalletModal(true);
+  };
+
   const handleFundWallet = async (e) => {
     e.preventDefault();
     console.log('handleFundWallet submitted with form:', fundWalletForm);
@@ -3247,6 +3366,77 @@ const Dashboard = () => {
     if (!token) {
       console.warn('No auth token found while funding wallet');
       toast.error('Please login to fund your wallet');
+      return;
+    }
+
+    if (STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)) {
+      const amountUsd = Number(parseFloat(fundWalletForm.amount).toFixed(2));
+      const methodLabel = fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay';
+      setIsFundingWallet(true);
+      setFundingStep('preparing');
+      try {
+        toast.loading(`Preparing ${methodLabel}…`, { id: 'fund-wallet' });
+        const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amountUsd,
+            currency: 'usd',
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-pi-${Date.now()}`,
+          }),
+        });
+        const piData = await piResponse.json().catch(() => ({}));
+        if (!piResponse.ok) {
+          throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
+        }
+
+        const customerEmail =
+          dashboardData?.user?.email?.trim() ||
+          dashboardData?.email?.trim() ||
+          'unknown@trustichain.app';
+        const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerEmail,
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-si-${Date.now()}`,
+          }),
+        });
+        const siData = await siResponse.json().catch(() => ({}));
+        if (!siResponse.ok) {
+          throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
+        }
+
+        toast.success(
+          `${methodLabel} initialized. Continue payment using the returned Stripe client secret.`,
+          { id: 'fund-wallet' },
+        );
+        setShowFundWalletModal(false);
+        setFundWalletForm({ amount: '', currency: 'XRP' });
+        setFundDepositPaymentMethod(null);
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+        await fetchDashboardSummary();
+        setWalletBalancesRefreshTrigger((n) => n + 1);
+      } catch (stripeError) {
+        console.error('Stripe deposit error:', stripeError);
+        toast.error(
+          stripeError?.message || `Failed to initialize ${methodLabel}. Please try again.`,
+          { id: 'fund-wallet' },
+        );
+        setFundingStep('idle');
+        setIsFundingWallet(false);
+      }
       return;
     }
 
@@ -3324,6 +3514,7 @@ const Dashboard = () => {
         setFundingStep('idle');
         setIsFundingWallet(false);
         setFundViaAddress(false);
+        setFundDepositPaymentMethod(null);
         setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
         return;
@@ -3386,6 +3577,7 @@ const Dashboard = () => {
                 setFundingStep('idle');
                 setIsFundingWallet(false);
                 setFundViaAddress(false);
+                setFundDepositPaymentMethod(null);
                 setDepositAddressNetwork('XRPL');
                 // Refresh dashboard data
                 await fetchDashboardSummary();
@@ -4185,6 +4377,7 @@ const Dashboard = () => {
         setFundingStep('idle');
         setIsFundingWallet(false);
         setFundViaAddress(false);
+        setFundDepositPaymentMethod(null);
         setDepositAddressNetwork('XRPL');
         await fetchDashboardSummary();
       } else {
@@ -5136,44 +5329,73 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="mobile-chart-container">
-              <div className="mobile-chart-y-axis">
-                {portfolioYAxisTicks.map((val) => (
-                  <span key={val}>{formatPortfolioYAxisTick(val)}</span>
-                ))}
-              </div>
-              <div className={`mobile-bar-chart${portfolioTimeframe === 'daily' ? ' mobile-bar-chart--daily' : ''}`}>
-                {isLoadingPortfolio && (
-                  <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
-                )}
-
-                {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
-                  return portfolioChartPoints.map((point, index) => {
-                    const value = Number(point.value ?? 0);
-                    const hasBar = value !== 0;
-                    const height = hasBar ? toPortfolioBarHeight(value) : 0;
-                    const label = point.label ?? '';
-                    const isLastBar = index === portfolioChartPoints.length - 1;
-                    const isNegative = value < 0;
-
-                    return (
-                      <div key={`${label}-${index}`} className="mobile-bar-wrapper">
-                        <div className="mobile-bar-inner">
-                          {hasBar && (
-                            <div
-                              className={`mobile-bar ${isLastBar && !isNegative ? 'mobile-bar-last' : ''} ${isNegative ? 'mobile-bar-negative' : ''}`}
-                              style={{ height: `${height}%` }}
-                            />
-                          )}
-                        </div>
-                        <span className="mobile-bar-label">{label}</span>
+              <div className={`mobile-chart-body${!isLoadingPortfolio && portfolioChartPoints?.length > 0 ? ' mobile-chart-body--with-labels' : ''}`}>
+                <div className="mobile-chart-y-axis">
+                  {portfolioYAxisTicks.map((val) => (
+                    <span
+                      key={val}
+                      className={`mobile-chart-y-axis-tick${val === 0 ? ' mobile-chart-y-axis-tick--zero' : ''}`}
+                      style={{ '--tick-fraction': getPortfolioYAxisTickFraction(val) }}
+                    >
+                      {formatPortfolioYAxisTick(val)}
+                    </span>
+                  ))}
+                </div>
+                <div className="mobile-chart-main">
+                  <div className="mobile-chart-plot-area">
+                    <div className="mobile-chart-plot-content">
+                      <div className="mobile-chart-grid-lines" aria-hidden="true">
+                        {portfolioYAxisTicks.map((val) => (
+                          <div
+                            key={`mobile-grid-${val}`}
+                            className="mobile-chart-grid-line"
+                            style={{ bottom: `${(val / portfolioChartScaleMax) * 100}%` }}
+                          />
+                        ))}
                       </div>
-                    );
-                  });
-                })()}
+                      <div className={`mobile-bar-chart${portfolioTimeframe === 'daily' ? ' mobile-bar-chart--daily' : ''}`}>
+                        {isLoadingPortfolio && (
+                          <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
+                        )}
 
-                {!isLoadingPortfolio && (!portfolioChartPoints || portfolioChartPoints.length === 0) && (
-                  <span className="mobile-rate-currency">No portfolio data</span>
-                )}
+                        {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
+                          return portfolioChartPoints.map((point, index) => {
+                            const value = Number(point.value ?? 0);
+                            const hasBar = value !== 0;
+                            const height = hasBar ? toPortfolioBarHeight(value) : 0;
+                            const label = point.label ?? '';
+                            const isLastBar = index === portfolioChartPoints.length - 1;
+                            const isNegative = value < 0;
+
+                            return (
+                              <div key={`${label}-${index}`} className="mobile-bar-wrapper">
+                                {hasBar && (
+                                  <div
+                                    className={`mobile-bar ${isLastBar && !isNegative ? 'mobile-bar-last' : ''} ${isNegative ? 'mobile-bar-negative' : ''}`}
+                                    style={{ height: `${height}%` }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          });
+                        })()}
+
+                        {!isLoadingPortfolio && (!portfolioChartPoints || portfolioChartPoints.length === 0) && (
+                          <span className="mobile-rate-currency">No portfolio data</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (
+                    <div className={`mobile-chart-x-labels${portfolioTimeframe === 'daily' ? ' mobile-chart-x-labels--daily' : ''}`}>
+                      {portfolioChartPoints.map((point, index) => (
+                        <span key={`${point.label ?? ''}-${index}`} className="mobile-bar-label">
+                          {point.label ?? ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -5859,42 +6081,73 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="chart-container">
-              <div className="chart-y-axis">
-                {portfolioYAxisTicks.map((val) => (
-                  <span key={val}>{formatPortfolioYAxisTick(val)}</span>
-                ))}
-              </div>
-              <div className={`bar-chart${portfolioTimeframe === 'daily' ? ' bar-chart--daily' : ''}`}>
-                {isLoadingPortfolio && (
-                  <span className="rate-currency"><LoadingIndicator size="md" /></span>
-                )}
-
-                {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
-                  return portfolioChartPoints.map((point, index) => {
-                    const value = Number(point.value ?? 0);
-                    const hasBar = value !== 0;
-                    const height = hasBar ? toPortfolioBarHeight(value) : 0;
-                    const label = point.label ?? '';
-                    const isLast = index === portfolioChartPoints.length - 1;
-                    const isNegative = value < 0;
-
-                    return (
-                      <div key={`${label}-${index}`} className="bar-wrapper">
-                        {hasBar && (
+              <div className={`chart-body${!isLoadingPortfolio && portfolioChartPoints?.length > 0 ? ' chart-body--with-labels' : ''}`}>
+                <div className="chart-y-axis">
+                  {portfolioYAxisTicks.map((val) => (
+                    <span
+                      key={val}
+                      className={`chart-y-axis-tick${val === 0 ? ' chart-y-axis-tick--zero' : ''}`}
+                      style={{ '--tick-fraction': getPortfolioYAxisTickFraction(val) }}
+                    >
+                      {formatPortfolioYAxisTick(val)}
+                    </span>
+                  ))}
+                </div>
+                <div className="chart-main">
+                  <div className="chart-plot-area">
+                    <div className="chart-plot-content">
+                      <div className="chart-grid-lines" aria-hidden="true">
+                        {portfolioYAxisTicks.map((val) => (
                           <div
-                            className={`bar ${isLast && !isNegative ? 'bar-purple' : ''} ${isNegative ? 'bar-negative' : ''}`}
-                            style={{ height: `${height}%` }}
+                            key={`grid-${val}`}
+                            className="chart-grid-line"
+                            style={{ bottom: `${(val / portfolioChartScaleMax) * 100}%` }}
                           />
-                        )}
-                        <span className="bar-label">{label}</span>
+                        ))}
                       </div>
-                    );
-                  });
-                })()}
+                      <div className={`bar-chart${portfolioTimeframe === 'daily' ? ' bar-chart--daily' : ''}`}>
+                        {isLoadingPortfolio && (
+                          <span className="rate-currency"><LoadingIndicator size="md" /></span>
+                        )}
 
-                {!isLoadingPortfolio && (!portfolioChartPoints || portfolioChartPoints.length === 0) && (
-                  <span className="rate-currency">No portfolio data</span>
-                )}
+                        {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
+                          return portfolioChartPoints.map((point, index) => {
+                            const value = Number(point.value ?? 0);
+                            const hasBar = value !== 0;
+                            const height = hasBar ? toPortfolioBarHeight(value) : 0;
+                            const label = point.label ?? '';
+                            const isLast = index === portfolioChartPoints.length - 1;
+                            const isNegative = value < 0;
+
+                            return (
+                              <div key={`${label}-${index}`} className="bar-wrapper">
+                                {hasBar && (
+                                  <div
+                                    className={`bar ${isLast && !isNegative ? 'bar-purple' : ''} ${isNegative ? 'bar-negative' : ''}`}
+                                    style={{ height: `${height}%` }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          });
+                        })()}
+
+                        {!isLoadingPortfolio && (!portfolioChartPoints || portfolioChartPoints.length === 0) && (
+                          <span className="rate-currency">No portfolio data</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (
+                    <div className={`chart-x-labels${portfolioTimeframe === 'daily' ? ' chart-x-labels--daily' : ''}`}>
+                      {portfolioChartPoints.map((point, index) => (
+                        <span key={`${point.label ?? ''}-${index}`} className="bar-label">
+                          {point.label ?? ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -7436,124 +7689,84 @@ const Dashboard = () => {
       {/* Fund Method Selection Modal */}
       {showFundMethodModal && (
         <div className="notification-modal-overlay" onClick={() => setShowFundMethodModal(false)}>
-          <div className="notification-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+          <div className="notification-modal fund-method-modal" onClick={(e) => e.stopPropagation()}>
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
                 <h2>Deposit</h2>
               </div>
-              <button 
-                type="button" 
-                className="notification-close-btn" 
+              <button
+                type="button"
+                className="notification-close-btn"
                 onClick={() => setShowFundMethodModal(false)}
               >
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '2rem' }}>
-              <p style={{ marginBottom: '1.5rem', color: '#666', fontSize: '0.95rem' }}>
+            <div className="fund-method-modal-body">
+              <p className="fund-method-modal-intro">
                 Choose how you want to fund your wallet
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="fund-method-options">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowFundMethodModal(false);
-                    setShowConnectWalletModal(true);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '1rem 1.25rem',
-                    background: '#ffffff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '0.75rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'Satoshi, Inter, sans-serif',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#0066ff';
-                    e.target.style.background = '#f0f7ff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.borderColor = '#e0e0e0';
-                    e.target.style.background = '#ffffff';
-                  }}
+                  className="fund-method-option"
+                  onClick={() => openStripeDeposit('googlepay')}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#f9fafb',
-                    borderRadius: '0.5rem',
-                    flexShrink: 0
-                  }}>
-                    <Wallet size={24} color="#0066ff" />
+                  <div className="fund-method-option-icon fund-method-option-icon--payment">
+                    <DepositGooglePayMark />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
-                      Fund with Wallet
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                      Connect your crypto wallet to fund
-                    </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Google Pay</div>
+                    <div className="fund-method-option-desc">Deposit USD instantly with Google Pay</div>
                   </div>
                 </button>
                 <button
                   type="button"
+                  className="fund-method-option"
+                  onClick={() => openStripeDeposit('applepay')}
+                >
+                  <div className="fund-method-option-icon fund-method-option-icon--payment">
+                    <DepositApplePayMark />
+                  </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Apple Pay</div>
+                    <div className="fund-method-option-desc">Deposit USD instantly with Apple Pay</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="fund-method-option"
                   onClick={() => {
                     setShowFundMethodModal(false);
+                    setFundDepositPaymentMethod(null);
+                    setShowConnectWalletModal(true);
+                  }}
+                >
+                  <div className="fund-method-option-icon">
+                    <Wallet size={24} color="#0066ff" />
+                  </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Wallet</div>
+                    <div className="fund-method-option-desc">Connect your crypto wallet to fund</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="fund-method-option"
+                  onClick={() => {
+                    setShowFundMethodModal(false);
+                    setFundDepositPaymentMethod(null);
                     setFundViaAddress(true);
                     setShowFundWalletModal(true);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '1rem 1.25rem',
-                    background: '#ffffff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '0.75rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'Satoshi, Inter, sans-serif',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#0066ff';
-                    e.target.style.background = '#f0f7ff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.borderColor = '#e0e0e0';
-                    e.target.style.background = '#ffffff';
-                  }}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#f9fafb',
-                    borderRadius: '0.5rem',
-                    flexShrink: 0
-                  }}>
+                  <div className="fund-method-option-icon">
                     <QrCode size={24} color="#0066ff" />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#000', marginBottom: '0.25rem' }}>
-                      Fund with Address
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                      Send funds to your wallet address
-                    </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fund with Address</div>
+                    <div className="fund-method-option-desc">Send funds to your wallet address</div>
                   </div>
                 </button>
               </div>
@@ -7805,6 +8018,7 @@ const Dashboard = () => {
               setFundingStep('idle');
               setIsFundingWallet(false);
               setFundViaAddress(false);
+              setFundDepositPaymentMethod(null);
               setDepositAddressNetwork('XRPL');
             }
           }}
@@ -7828,6 +8042,7 @@ const Dashboard = () => {
                   setFundingStep('idle');
                   setIsFundingWallet(false);
                   setFundViaAddress(false);
+                  setFundDepositPaymentMethod(null);
                   setDepositAddressNetwork('XRPL');
                 }}
                 disabled={isFundingWallet && fundingStep !== 'idle'}
@@ -7838,52 +8053,16 @@ const Dashboard = () => {
 
             {fundViaAddress ? (
               <div className="fund-wallet-transfer-modal-content deposit-address-modal-content">
-                <div className="fund-wallet-transfer-form-group">
-                  <span className="fund-wallet-transfer-label">Currency</span>
-                  <div className="deposit-currency-pill">
-                    <div className="fund-wallet-transfer-currency-badge">
-                      <img
-                        src={DEPOSIT_ADDRESS_CURRENCY_ICON[fundWalletForm.currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP}
-                        alt=""
-                      />
-                    </div>
-                    <select
-                      id="dashboard-deposit-fund-currency"
-                      className="deposit-currency-native"
-                      value={fundWalletForm.currency}
-                      onChange={(e) =>
-                        setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
-                      }
-                      aria-label="Currency"
-                    >
-                      <option value="XRP">XRP wallet</option>
-                      <option value="RLUSD">RLUSD wallet</option>
-                      <option value="USDT">USDT wallet</option>
-                      <option value="USDC">USDC wallet</option>
-                    </select>
-                    <ChevronDown size={16} className="deposit-currency-chevron" aria-hidden />
-                  </div>
-                </div>
-
-                <div className="fund-wallet-transfer-form-group">
-                  <span className="fund-wallet-transfer-label">Network</span>
-                  <div className="deposit-network-pill">
-                    <select
-                      id="dashboard-deposit-fund-network"
-                      className="deposit-network-native"
-                      value={depositAddressNetwork}
-                      onChange={(e) => setDepositAddressNetwork(e.target.value)}
-                      aria-label="Network"
-                    >
-                      {getDepositNetworksForCurrency(fundWalletForm.currency).map((key) => (
-                        <option key={key} value={key}>
-                          {depositAddressNetworkLabel(key)}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="deposit-network-chevron" aria-hidden />
-                  </div>
-                </div>
+                <DepositAddressSelectors
+                  currency={fundWalletForm.currency}
+                  network={depositAddressNetwork}
+                  onCurrencyChange={(code) =>
+                    setFundWalletForm((prev) => ({ ...prev, currency: code }))
+                  }
+                  onNetworkChange={setDepositAddressNetwork}
+                  currencySelectId="dashboard-deposit-fund-currency"
+                  networkSelectId="dashboard-deposit-fund-network"
+                />
 
                 <div className="fund-wallet-transfer-form-group">
                   <span className="fund-wallet-transfer-label">Scan</span>
@@ -7944,6 +8123,7 @@ const Dashboard = () => {
                       setFundingStep('idle');
                       setIsFundingWallet(false);
                       setFundViaAddress(false);
+                      setFundDepositPaymentMethod(null);
                       setDepositAddressNetwork('XRPL');
                     }}
                   >
@@ -8029,8 +8209,22 @@ const Dashboard = () => {
                 })()}
 
                 <form onSubmit={handleFundWallet} className="fund-wallet-form">
+                  {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
+                    <div className="fund-wallet-stripe-method">
+                      {fundDepositPaymentMethod === 'googlepay' ? (
+                        <DepositGooglePayMark />
+                      ) : (
+                        <DepositApplePayMark />
+                      )}
+                      <span>
+                        {fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'} deposit
+                      </span>
+                    </div>
+                  )}
                   <div className="form-group">
-                    <label htmlFor="fund-amount">Amount</label>
+                    <label htmlFor="fund-amount">
+                      {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? 'Amount (USD)' : 'Amount'}
+                    </label>
                     <input
                       id="fund-amount"
                       type="number"
@@ -8044,25 +8238,33 @@ const Dashboard = () => {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="fund-currency">Wallets</label>
-                    <select
-                      id="fund-currency"
-                      value={fundWalletForm.currency}
-                      onChange={(e) => {
-                        const selectedValue = e.target.value;
-                        setFundWalletForm(prev => ({ ...prev, currency: selectedValue }));
-                      }}
-                      disabled={isFundingWallet}
-                    >
-                      <option value="XRP">XRP</option>
-                      <option value="RLUSD">Ripple (RLUSD)</option>
-                      <option value="USDT">USDT</option>
-                      <option value="USDC">USDC</option>
-                    </select>
-                  </div>
+                  {!STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
+                    <div className="form-group">
+                      <label htmlFor="fund-currency">Wallets</label>
+                      <select
+                        id="fund-currency"
+                        value={fundWalletForm.currency}
+                        onChange={(e) => {
+                          const selectedValue = e.target.value;
+                          setFundWalletForm(prev => ({ ...prev, currency: selectedValue }));
+                        }}
+                        disabled={isFundingWallet}
+                      >
+                        <option value="XRP">XRP</option>
+                        <option value="RLUSD">Ripple (RLUSD)</option>
+                        <option value="USDT">USDT</option>
+                        <option value="USDC">USDC</option>
+                      </select>
+                    </div>
+                  )}
 
-                  <div className="fund-wallet-actions">
+                  <div
+                    className={`fund-wallet-actions${
+                      STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)
+                        ? ' fund-wallet-actions--stripe'
+                        : ''
+                    }`}
+                  >
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
@@ -8073,6 +8275,7 @@ const Dashboard = () => {
                         setFundingStep('idle');
                         setIsFundingWallet(false);
                         setFundViaAddress(false);
+                        setFundDepositPaymentMethod(null);
                         setDepositAddressNetwork('XRPL');
                       }}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
@@ -8081,13 +8284,22 @@ const Dashboard = () => {
                     </button>
                     <button
                       type="submit"
-                      className="fund-wallet-btn primary"
+                      className={`fund-wallet-btn primary${
+                        STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)
+                          ? ' fund-wallet-btn--stripe-pay'
+                          : ''
+                      }`}
                       disabled={isFundingWallet}
                     >
                       {fundingStep === 'preparing' && 'Preparing...'}
                       {fundingStep === 'signing' && 'Waiting for signature...'}
                       {fundingStep === 'completing' && 'Completing...'}
-                      {!isFundingWallet && 'Fund Wallet'}
+                      {!isFundingWallet &&
+                        (fundDepositPaymentMethod === 'googlepay'
+                          ? 'Continue with Google Pay'
+                          : fundDepositPaymentMethod === 'applepay'
+                            ? 'Continue with Apple Pay'
+                            : 'Fund Wallet')}
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
                   </div>
@@ -8330,45 +8542,13 @@ const Dashboard = () => {
                 <div className="swap-section">
                   <div className="swap-section-header">
                     <label className="swap-section-label">From</label>
-                    <div className="swap-currency-selector-wrapper">
-                      <select
-                        id="dashboard-swap-from-currency"
-                        className="swap-currency-select"
-                        value={swapForm.fromCurrency}
-                        onChange={(e) => handleSwapCurrencyChange('fromCurrency', e.target.value)}
-                      >
-                        <option value="XRP">XRP</option>
-                        <option value="USDT">USDT</option>
-                        <option value="USDC">USDC</option>
-                      </select>
-                      <div className="swap-currency-selector">
-                        <div className={`swap-currency-badge ${swapForm.fromCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
-                          {swapForm.fromCurrency === 'XRP' ? (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                              alt="XRP"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                            />
-                          ) : swapForm.fromCurrency === 'USDT' ? (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png"
-                              alt="USDT"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                            />
-                          ) : swapForm.fromCurrency === 'USDC' ? (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389"
-                              alt="USDC"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                            />
-                          ) : (
-                            getCurrencyBadge(swapForm.fromCurrency)
-                          )}
-                        </div>
-                        <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.fromCurrency)}</span>
-                        <ChevronDown size={16} />
-                      </div>
-                    </div>
+                    {renderConvertCurrencySelector(
+                      'fromCurrency',
+                      swapForm.fromCurrency,
+                      showFromCurrencyDropdown,
+                      setShowFromCurrencyDropdown,
+                      () => setShowToCurrencyDropdown(false),
+                    )}
                   </div>
                   <input
                     type="number"
@@ -8395,45 +8575,13 @@ const Dashboard = () => {
                 <div className="swap-section">
                   <div className="swap-section-header">
                     <label className="swap-section-label">To</label>
-                    <div className="swap-currency-selector-wrapper">
-                      <select
-                        id="dashboard-swap-to-currency"
-                        className="swap-currency-select"
-                        value={swapForm.toCurrency}
-                        onChange={(e) => handleSwapCurrencyChange('toCurrency', e.target.value)}
-                      >
-                        <option value="XRP">XRP</option>
-                        <option value="USDT">USDT</option>
-                        <option value="USDC">USDC</option>
-                      </select>
-                      <div className="swap-currency-selector">
-                        <div className={`swap-currency-badge ${swapForm.toCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
-                          {swapForm.toCurrency === 'XRP' ? (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731"
-                              alt="XRP"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                            />
-                          ) : swapForm.toCurrency === 'USDT' ? (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png"
-                              alt="USDT"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                            />
-                          ) : swapForm.toCurrency === 'USDC' ? (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389"
-                              alt="USDC"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                            />
-                          ) : (
-                            getCurrencyBadge(swapForm.toCurrency)
-                          )}
-                        </div>
-                        <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.toCurrency)}</span>
-                        <ChevronDown size={16} />
-                      </div>
-                    </div>
+                    {renderConvertCurrencySelector(
+                      'toCurrency',
+                      swapForm.toCurrency,
+                      showToCurrencyDropdown,
+                      setShowToCurrencyDropdown,
+                      () => setShowFromCurrencyDropdown(false),
+                    )}
                   </div>
                   <input
                     type="number"
