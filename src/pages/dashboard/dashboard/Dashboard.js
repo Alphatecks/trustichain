@@ -78,6 +78,14 @@ import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { getEscrowDisplayStatus } from '../../../utils/escrowDisplayStatus';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardBalanceSkeleton,
+  DashboardMetricValuesSkeleton,
+  DashboardExchangeRatesSkeleton,
+  DashboardWalletListSkeleton,
+  DashboardEscrowListSkeleton,
+  DashboardEscrowTableSkeleton,
+} from '../../../components/DashboardSkeletons';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
@@ -179,6 +187,8 @@ const developersNav = [
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
 const PORTFOLIO_WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const PORTFOLIO_SKELETON_BAR_HEIGHTS = [42, 68, 35, 82, 54, 61, 38, 76, 48, 58, 44, 72];
+const PORTFOLIO_SKELETON_X_LABEL_COUNT = 12;
 
 function resolvePortfolioWeekdayIndex(label) {
   const s = String(label ?? '').trim().toLowerCase();
@@ -1218,6 +1228,7 @@ const Dashboard = () => {
   const [fallbackFxRates, setFallbackFxRates] = useState({});
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [portfolioPoints, setPortfolioPoints] = useState([]);
+  const [portfolioPrevYearSum, setPortfolioPrevYearSum] = useState(null);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [portfolioTimeframe, setPortfolioTimeframe] = useState('monthly');
   const [portfolioYear, setPortfolioYear] = useState(() => new Date().getFullYear());
@@ -2652,6 +2663,7 @@ const Dashboard = () => {
         if (!token) {
           console.warn('No token found for portfolio performance');
           setPortfolioPoints([]);
+          setPortfolioPrevYearSum(null);
           setIsLoadingPortfolio(false);
           return;
         }
@@ -2688,6 +2700,36 @@ const Dashboard = () => {
           } else {
             setPortfolioPoints([]);
           }
+
+          if (portfolioTimeframe === 'monthly' && portfolioYear > 1) {
+            const prevParams = new URLSearchParams({
+              timeframe: 'monthly',
+              year: String(portfolioYear - 1),
+              _: String(Date.now()),
+            });
+            const prevResponse = await fetch(getApiUrl(`api/portfolio/performance?${prevParams.toString()}`), {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              cache: 'no-store',
+            });
+            if (prevResponse.ok) {
+              const prevResult = await prevResponse.json();
+              const prevData = prevResult?.data?.data;
+              if (prevResult?.success && Array.isArray(prevData)) {
+                const prevSum = prevData.reduce((sum, p) => sum + Number(p.value ?? 0), 0);
+                setPortfolioPrevYearSum(prevSum);
+              } else {
+                setPortfolioPrevYearSum(null);
+              }
+            } else {
+              setPortfolioPrevYearSum(null);
+            }
+          } else {
+            setPortfolioPrevYearSum(null);
+          }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
           console.error('PERSONAL_PORTFOLIO_API_RESPONSE_ERROR:', {
@@ -2697,6 +2739,7 @@ const Dashboard = () => {
           });
           console.log('Portfolio response (error):', { status: response.status, statusText: response.statusText, data: errorData });
           setPortfolioPoints([]);
+          setPortfolioPrevYearSum(null);
           if (!showUnderReviewModalIfApplicable(errorData?.message)) {
             toast.error(errorData?.message || 'Failed to load portfolio data');
           }
@@ -2704,6 +2747,7 @@ const Dashboard = () => {
       } catch (error) {
         console.error('Error fetching portfolio performance:', error);
         setPortfolioPoints([]);
+        setPortfolioPrevYearSum(null);
         toast.error('Failed to load portfolio data');
       } finally {
         setIsLoadingPortfolio(false);
@@ -2806,6 +2850,140 @@ const Dashboard = () => {
     if (!portfolioChartScaleMax || portfolioChartScaleMax <= 0) return 0;
     return val / portfolioChartScaleMax;
   }, [portfolioChartScaleMax]);
+
+  const formatPortfolioUsd = useCallback((value) => {
+    const num = Number(value ?? 0);
+    if (!Number.isFinite(num)) return '$0.00';
+    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }, []);
+
+  const formatPortfolioSignedPercent = useCallback((value) => {
+    const num = Number(value ?? 0);
+    if (!Number.isFinite(num)) return '0%';
+    const sign = num > 0 ? '+' : '';
+    return `${sign}${num.toFixed(num % 1 === 0 ? 0 : 1)}%`;
+  }, []);
+
+  const portfolioSummary = useMemo(() => {
+    const total = portfolioChartPoints.reduce((sum, point) => sum + Number(point.value ?? 0), 0);
+    let changePercent = null;
+    let comparisonLabel = 'compared to previous period';
+
+    if (portfolioTimeframe === 'monthly' && portfolioPrevYearSum != null) {
+      if (portfolioPrevYearSum > 0) {
+        changePercent = ((total - portfolioPrevYearSum) / portfolioPrevYearSum) * 100;
+      } else if (total > 0) {
+        changePercent = 100;
+      } else {
+        changePercent = 0;
+      }
+      comparisonLabel = 'compared to previous year';
+    } else if (portfolioTimeframe === 'yearly' && portfolioChartPoints.length >= 2) {
+      const values = portfolioChartPoints.map((point) => Number(point.value ?? 0));
+      const previous = values[values.length - 2];
+      const current = values[values.length - 1];
+      if (previous > 0) {
+        changePercent = ((current - previous) / previous) * 100;
+        comparisonLabel = 'compared to previous year';
+      }
+    } else if (portfolioTimeframe === 'daily' && portfolioChartPoints.length >= 2) {
+      const values = portfolioChartPoints.map((point) => Number(point.value ?? 0));
+      const midpoint = Math.floor(values.length / 2);
+      const firstHalf = values.slice(0, midpoint).reduce((sum, val) => sum + val, 0);
+      const secondHalf = values.slice(midpoint).reduce((sum, val) => sum + val, 0);
+      if (firstHalf > 0) {
+        changePercent = ((secondHalf - firstHalf) / firstHalf) * 100;
+        comparisonLabel = 'compared to previous week';
+      }
+    }
+
+    return { total, changePercent, comparisonLabel };
+  }, [portfolioChartPoints, portfolioPrevYearSum, portfolioTimeframe]);
+
+  const closePortfolioDropdowns = useCallback(() => {
+    setShowPortfolioDropdown(false);
+    setShowPortfolioYearDropdown(false);
+    setShowMobilePortfolioDropdown(false);
+    setShowMobilePortfolioYearDropdown(false);
+  }, []);
+
+  const handlePortfolioTimeframeChange = useCallback((timeframe) => {
+    closePortfolioDropdowns();
+    if (timeframe === portfolioTimeframe) return;
+    setIsLoadingPortfolio(true);
+    setPortfolioTimeframe(timeframe);
+  }, [closePortfolioDropdowns, portfolioTimeframe]);
+
+  const handlePortfolioYearChange = useCallback((year) => {
+    closePortfolioDropdowns();
+    if (year === portfolioYear && portfolioTimeframe === 'monthly') return;
+    setIsLoadingPortfolio(true);
+    setPortfolioYear(year);
+    setPortfolioTimeframe('monthly');
+  }, [closePortfolioDropdowns, portfolioYear, portfolioTimeframe]);
+
+  const renderPortfolioChartSkeleton = (mobile = false) => (
+    <div
+      className={`portfolio-chart-skeleton${mobile ? ' portfolio-chart-skeleton--mobile' : ''}`}
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="portfolio-chart-skeleton-y-axis">
+        {Array.from({ length: 4 }, (_, index) => (
+          <span
+            key={`portfolio-y-skeleton-${index}`}
+            className="portfolio-skeleton-block portfolio-skeleton-block--y-tick"
+            style={{ animationDelay: `${index * 0.08}s` }}
+          />
+        ))}
+      </div>
+      <div className="portfolio-chart-skeleton-main">
+        <div className="portfolio-chart-skeleton-plot">
+          {PORTFOLIO_SKELETON_BAR_HEIGHTS.map((heightPct, index) => (
+            <span
+              key={`portfolio-bar-skeleton-${index}`}
+              className="portfolio-skeleton-block portfolio-skeleton-block--bar"
+              style={{ height: `${heightPct}%`, animationDelay: `${index * 0.05}s` }}
+            />
+          ))}
+        </div>
+        <div className="portfolio-chart-skeleton-x-labels">
+          {Array.from({ length: PORTFOLIO_SKELETON_X_LABEL_COUNT }, (_, index) => (
+            <span
+              key={`portfolio-x-skeleton-${index}`}
+              className="portfolio-skeleton-block portfolio-skeleton-block--x-label"
+              style={{ animationDelay: `${index * 0.04}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPortfolioSummary = () => (
+    <div className={`chart-portfolio-summary${isLoadingPortfolio ? ' chart-portfolio-summary--loading' : ''}`} aria-busy={isLoadingPortfolio || undefined}>
+      {isLoadingPortfolio ? (
+        <>
+          <span className="portfolio-skeleton-block portfolio-skeleton-block--total" />
+          <span className="portfolio-skeleton-block portfolio-skeleton-block--change" />
+        </>
+      ) : (
+        <>
+          <div className="chart-portfolio-total">{formatPortfolioUsd(portfolioSummary.total)}</div>
+          {portfolioSummary.changePercent != null && Number.isFinite(portfolioSummary.changePercent) ? (
+            <div className="chart-portfolio-change">
+              <span
+                className={`chart-portfolio-change-value${portfolioSummary.changePercent >= 0 ? ' is-positive' : ' is-negative'}`}
+              >
+                {formatPortfolioSignedPercent(portfolioSummary.changePercent)}
+              </span>
+              <span className="chart-portfolio-change-label">{portfolioSummary.comparisonLabel}</span>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -5049,11 +5227,13 @@ const Dashboard = () => {
                 onOpen={() => setBalanceCurrencyModalOpen(true)}
               />
             </div>
+            {showBalance && isLoadingDashboard ? (
+              <DashboardBalanceSkeleton mobile />
+            ) : (
+              <>
             <div className="mobile-balance-amount">
               {showBalance ? (
-                isLoadingDashboard ? (
-                  <LoadingIndicator size="sm" />
-                ) : balancePrimaryCurrency === 'USD' ? (
+                balancePrimaryCurrency === 'USD' ? (
                   computeDashboardTotalUsdDisplay()
                 ) : balancePrimaryCurrency === 'XRP' ? (
                   `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
@@ -5070,9 +5250,6 @@ const Dashboard = () => {
                 <>
                   {(() => {
                     const xrpBalance = getBalanceValue(dashboardData, 'xrp');
-                    if (isLoadingDashboard) {
-                      return <LoadingIndicator size="sm" />;
-                    }
                     if (xrpBalance !== null && xrpBalance !== undefined) {
                       return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
@@ -5080,12 +5257,12 @@ const Dashboard = () => {
                   })()}{' '}
                   XRP
                 </>
-              ) : isLoadingDashboard ? (
-                <LoadingIndicator size="sm" />
               ) : (
                 computeDashboardTotalUsdDisplay()
               )}
             </div>
+              </>
+            )}
             <div className="mobile-balance-actions">
               <button 
                 type="button" 
@@ -5121,16 +5298,22 @@ const Dashboard = () => {
                 <FileCheck size={16} />
                 <span>Active Escrow</span>
               </div>
+              {isLoadingDashboard ? (
+                <DashboardMetricValuesSkeleton mobile wideSubvalue />
+              ) : (
+                <>
               <div className="mobile-metric-value">
                 {dashboardData?.activeEscrows?.count !== undefined 
                   ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
+                  : 23}
               </div>
               <div className="mobile-metric-subvalue">
                 ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
                     ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
+                    : '156,789'} locked
               </div>
+                </>
+              )}
             <button
               type="button"
               className="mobile-metric-btn"
@@ -5146,9 +5329,13 @@ const Dashboard = () => {
                 <span>Total Escrowed</span>
               </div>
               <div className="mobile-metric-value">
-                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                {isLoadingTotalEscrowed ? (
+                  <DashboardMetricValuesSkeleton mobile withSubvalue={false} />
+                ) : (
+                  <>${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                   ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '0.00')}
+                  : '0.00'}</>
+                )}
               </div>
               <button type="button" className="mobile-metric-btn" onClick={() => navigate('/my-escrow')}>
                 View Escrow
@@ -5161,7 +5348,7 @@ const Dashboard = () => {
               </div>
               <div className="mobile-metric-value">
                 {isLoadingTotalSavingsWallet ? (
-                  <LoadingIndicator size="sm" />
+                  <DashboardMetricValuesSkeleton mobile withSubvalue={false} />
                 ) : (
                   Number(totalSavingsWalletCount || 0).toLocaleString('en-US')
                 )}
@@ -5174,10 +5361,15 @@ const Dashboard = () => {
 
           {/* Portfolio Section */}
           <div className="mobile-portfolio-section">
-            <div className="mobile-section-header">
-              <div className="mobile-section-indicator"></div>
-              <h3 className="mobile-section-title">Portfolio</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="mobile-portfolio-header">
+              <div className="mobile-section-header">
+                <div className="mobile-section-indicator"></div>
+                <div className="mobile-portfolio-heading">
+                  <h3 className="mobile-section-title">Portfolio</h3>
+                  {renderPortfolioSummary()}
+                </div>
+              </div>
+              <div className="mobile-portfolio-header-actions">
                 <div className="mobile-section-dropdown" style={{ position: 'relative' }}>
                   <button
                     type="button"
@@ -5222,11 +5414,7 @@ const Dashboard = () => {
                         <button
                           key={timeframe}
                           type="button"
-                          onClick={() => {
-                            setPortfolioTimeframe(timeframe);
-                            setShowMobilePortfolioDropdown(false);
-                            setShowMobilePortfolioYearDropdown(false);
-                          }}
+                          onClick={() => handlePortfolioTimeframeChange(timeframe)}
                           style={{
                             width: '100%',
                             padding: '0.75rem 1rem',
@@ -5292,9 +5480,7 @@ const Dashboard = () => {
                         borderRadius: '0.5rem',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                         zIndex: 1000,
-                        minWidth: '100px',
-                        maxHeight: '200px',
-                        overflowY: 'auto'
+                        minWidth: '100px'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -5302,11 +5488,7 @@ const Dashboard = () => {
                         <button
                           key={y}
                           type="button"
-                          onClick={() => {
-                            setPortfolioYear(y);
-                            setPortfolioTimeframe('monthly');
-                            setShowMobilePortfolioYearDropdown(false);
-                          }}
+                          onClick={() => handlePortfolioYearChange(y)}
                           style={{
                             width: '100%',
                             padding: '0.75rem 1rem',
@@ -5328,6 +5510,9 @@ const Dashboard = () => {
                 ) : null}
               </div>
             </div>
+            {isLoadingPortfolio ? (
+              renderPortfolioChartSkeleton(true)
+            ) : (
             <div className="mobile-chart-container">
               <div className={`mobile-chart-body${!isLoadingPortfolio && portfolioChartPoints?.length > 0 ? ' mobile-chart-body--with-labels' : ''}`}>
                 <div className="mobile-chart-y-axis">
@@ -5354,10 +5539,6 @@ const Dashboard = () => {
                         ))}
                       </div>
                       <div className={`mobile-bar-chart${portfolioTimeframe === 'daily' ? ' mobile-bar-chart--daily' : ''}`}>
-                        {isLoadingPortfolio && (
-                          <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
-                        )}
-
                         {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
                           return portfolioChartPoints.map((point, index) => {
                             const value = Number(point.value ?? 0);
@@ -5398,6 +5579,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* Live Exchange Rate Section */}
@@ -5407,13 +5589,9 @@ const Dashboard = () => {
               <h3 className="mobile-section-title">Live Exchange Rate</h3>
             </div>
             <div className="mobile-rate-list">
-              {isLoadingRates && (
-                <div className="mobile-rate-item">
-                  <div className="mobile-rate-info">
-                    <span className="mobile-rate-currency"><LoadingIndicator size="sm" /></span>
-                  </div>
-                </div>
-              )}
+              {isLoadingRates ? (
+                <DashboardExchangeRatesSkeleton count={5} mobile />
+              ) : null}
 
               {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
                 const code = (rate.currency || rate.code || '').toUpperCase();
@@ -5479,6 +5657,10 @@ const Dashboard = () => {
               <h3 className="mobile-section-title">Wallet Balance</h3>
             </div>
             <div className="mobile-wallet-list">
+              {isLoadingWalletBalances ? (
+                <DashboardWalletListSkeleton count={4} />
+              ) : (
+              <>
               <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('XRP')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('XRP')}>
                 <div className="mobile-wallet-icon-group">
                   <div className="mobile-wallet-icon">
@@ -5634,6 +5816,8 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+              </>
+              )}
             </div>
           </div>
 
@@ -5647,9 +5831,7 @@ const Dashboard = () => {
             </div>
             <div className="mobile-escrow-list">
               {isLoadingEscrows ? (
-                <div className="mobile-escrow-item">
-                  <div className="mobile-escrow-loading"><LoadingIndicator size="md" /></div>
-                </div>
+                <DashboardEscrowListSkeleton count={3} mobile />
               ) : escrows && escrows.length > 0 ? (
                 escrows.map((escrow, index) => {
                   const escrowId = escrow.id || escrow.escrowId || escrow._id || `#ESC-2024-${String(index + 1).padStart(3, '0')}`;
@@ -5797,11 +5979,13 @@ const Dashboard = () => {
               />
             </div>
             <div className="summary-card-value-row">
+              {showBalance && isLoadingDashboard ? (
+                <DashboardBalanceSkeleton />
+              ) : (
+                <>
               <div className="summary-card-value">
                 {showBalance ? (
-                  isLoadingDashboard ? (
-                    <LoadingIndicator size="sm" />
-                  ) : balancePrimaryCurrency === 'USD' ? (
+                  balancePrimaryCurrency === 'USD' ? (
                     computeDashboardTotalUsdDisplay()
                   ) : balancePrimaryCurrency === 'XRP' ? (
                     `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
@@ -5815,17 +5999,13 @@ const Dashboard = () => {
               <div className="summary-card-subvalue">
                 ≈{' '}
                 {balancePrimaryCurrency === 'USD' ? (
-                  isLoadingDashboard ? (
-                    <LoadingIndicator size="sm" />
-                  ) : (
-                    `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
-                  )
-                ) : isLoadingDashboard ? (
-                  <LoadingIndicator size="sm" />
+                  `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
                 ) : (
                   computeDashboardTotalUsdDisplay()
                 )}
               </div>
+                </>
+              )}
             </div>
             <div className="summary-card-actions">
               <button 
@@ -5861,16 +6041,22 @@ const Dashboard = () => {
               <h3>Active Escrow</h3>
             </div>
             <div className="summary-card-value-row active-escrow-metrics">
+              {isLoadingDashboard ? (
+                <DashboardMetricValuesSkeleton inline wideSubvalue />
+              ) : (
+                <>
               <div className="summary-card-value">
                 {dashboardData?.activeEscrows?.count !== undefined 
                   ? dashboardData.activeEscrows.count 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : 23)}
+                  : 23}
               </div>
               <div className="summary-card-subvalue active-escrow-locked">
                 ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
                     ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '156,789')} locked
+                    : '156,789'} locked
               </div>
+                </>
+              )}
             </div>
             <button
               type="button"
@@ -5888,9 +6074,13 @@ const Dashboard = () => {
             </div>
             <div className="summary-card-value-row">
               <div className="summary-card-value">
-                ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                {isLoadingTotalEscrowed ? (
+                  <DashboardMetricValuesSkeleton withSubvalue={false} />
+                ) : (
+                  <>${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                     ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '0.00')}
+                    : '0.00'}</>
+                )}
               </div>
             </div>
             <button type="button" className="summary-card-btn secondary">View Escrow</button>
@@ -5904,7 +6094,7 @@ const Dashboard = () => {
             <div className="summary-card-value-row">
               <div className="summary-card-value">
                 {isLoadingTotalSavingsWallet ? (
-                  <LoadingIndicator size="sm" />
+                  <DashboardMetricValuesSkeleton withSubvalue={false} />
                 ) : (
                   Number(totalSavingsWalletCount || 0).toLocaleString('en-US')
                 )}
@@ -5922,8 +6112,13 @@ const Dashboard = () => {
           {/* Portfolio Chart */}
           <div className="dashboard-chart-card">
             <div className="chart-header">
-              <h3>Portfolio</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="chart-header-left">
+                <div className="chart-portfolio-heading">
+                  <h3>Portfolio</h3>
+                  {renderPortfolioSummary()}
+                </div>
+              </div>
+              <div className="chart-header-actions">
                 <div className="chart-dropdown" style={{ position: 'relative' }}>
                   <button
                     type="button"
@@ -5968,11 +6163,7 @@ const Dashboard = () => {
                         <button
                           key={timeframe}
                           type="button"
-                          onClick={() => {
-                            setPortfolioTimeframe(timeframe);
-                            setShowPortfolioDropdown(false);
-                            setShowPortfolioYearDropdown(false);
-                          }}
+                          onClick={() => handlePortfolioTimeframeChange(timeframe)}
                           style={{
                             width: '100%',
                             padding: '0.75rem 1rem',
@@ -6038,9 +6229,7 @@ const Dashboard = () => {
                         borderRadius: '0.5rem',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                         zIndex: 1000,
-                        minWidth: '100px',
-                        maxHeight: '240px',
-                        overflowY: 'auto'
+                        minWidth: '100px'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -6048,11 +6237,7 @@ const Dashboard = () => {
                         <button
                           key={y}
                           type="button"
-                          onClick={() => {
-                            setPortfolioYear(y);
-                            setPortfolioTimeframe('monthly');
-                            setShowPortfolioYearDropdown(false);
-                          }}
+                          onClick={() => handlePortfolioYearChange(y)}
                           style={{
                             width: '100%',
                             padding: '0.75rem 1rem',
@@ -6080,6 +6265,9 @@ const Dashboard = () => {
                 ) : null}
               </div>
             </div>
+            {isLoadingPortfolio ? (
+              renderPortfolioChartSkeleton()
+            ) : (
             <div className="chart-container">
               <div className={`chart-body${!isLoadingPortfolio && portfolioChartPoints?.length > 0 ? ' chart-body--with-labels' : ''}`}>
                 <div className="chart-y-axis">
@@ -6106,10 +6294,6 @@ const Dashboard = () => {
                         ))}
                       </div>
                       <div className={`bar-chart${portfolioTimeframe === 'daily' ? ' bar-chart--daily' : ''}`}>
-                        {isLoadingPortfolio && (
-                          <span className="rate-currency"><LoadingIndicator size="md" /></span>
-                        )}
-
                         {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (() => {
                           return portfolioChartPoints.map((point, index) => {
                             const value = Number(point.value ?? 0);
@@ -6150,6 +6334,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
             {/* Live Escrow Table */}
@@ -6169,13 +6354,13 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {isLoadingEscrows && (
+                    {isLoadingEscrows ? (
                       <tr>
-                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                          <LoadingIndicator size="md" />
+                        <td colSpan="4">
+                          <DashboardEscrowTableSkeleton rows={3} />
                         </td>
                       </tr>
-                    )}
+                    ) : null}
                     {!isLoadingEscrows && escrows.length === 0 && (
                       <tr>
                         <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
@@ -6312,13 +6497,9 @@ const Dashboard = () => {
             <div className="exchange-rate-card">
               <h3>Live Exchange Rate</h3>
               <div className="rate-list">
-                {isLoadingRates && (
-                  <div className="rate-item">
-                    <div className="rate-info">
-                      <span className="rate-currency"><LoadingIndicator size="sm" /></span>
-                    </div>
-                  </div>
-                )}
+                {isLoadingRates ? (
+                  <DashboardExchangeRatesSkeleton count={5} />
+                ) : null}
 
                 {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
                   const code = (rate.currency || rate.code || '').toUpperCase();
@@ -6380,6 +6561,10 @@ const Dashboard = () => {
             <div className="wallet-balance-card">
               <h3>Wallet Balance</h3>
               <div className="wallet-list">
+                {isLoadingWalletBalances ? (
+                  <DashboardWalletListSkeleton count={4} />
+                ) : (
+                <>
                 <div className="wallet-item" onClick={() => openWalletDetailsModal('XRP')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('XRP')}>
                   <div className="wallet-icon-group">
                     <div className="wallet-icon">
@@ -6525,6 +6710,8 @@ const Dashboard = () => {
                   </div>
                 </div>
                 </div>
+                </>
+                )}
               </div>
             </div>
 
