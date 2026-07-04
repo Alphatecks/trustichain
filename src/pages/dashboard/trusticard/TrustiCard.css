@@ -593,12 +593,6 @@
   background: #1d4ed8;
 }
 
-.tc-v2-tx-mobile-loading {
-  display: flex;
-  justify-content: center;
-  padding: 2rem 1rem;
-}
-
 .tc-v2-tx-mobile-empty {
   margin: 0;
   text-align: center;
@@ -1054,12 +1048,6 @@
   font-size: 0.95rem;
 }
 
-.tc-v2-loading-inline {
-  display: flex;
-  justify-content: center;
-  padding: 2rem;
-}
-
 /* Modals — reuse legacy class names from earlier screens where needed */
 .trusticard-modal-overlay {
   position: fixed;
@@ -1174,12 +1162,6 @@
 
 .trusticard-card-info-sheet {
   padding: 1rem 1.25rem 1.35rem;
-}
-
-.trusticard-card-info-loading {
-  display: flex;
-  justify-content: center;
-  padding: 2rem 0;
 }
 
 .trusticard-card-info-tabs {

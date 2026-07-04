@@ -205,6 +205,71 @@ export function buildWalletAddressRows(apiResult) {
   return rows;
 }
 
+const isRlusdCurrencyKey = (currency) => {
+  const normalized = String(currency || '').trim().toLowerCase();
+  return normalized === 'rlusd' || normalized === 'rippleusd';
+};
+
+/** Normalize custodial wallet balances from balance/create-wallet API payloads. */
+export function parseWalletBalancesFromApi(apiResult) {
+  const empty = { xrp: 0, usdt: 0, usdc: 0, rlusd: 0 };
+  if (!apiResult || typeof apiResult !== 'object') return empty;
+
+  let balances = null;
+
+  if (apiResult?.success && apiResult?.data?.balance) {
+    balances = apiResult.data.balance;
+  } else if (apiResult?.success && apiResult?.data) {
+    const data = apiResult.data;
+    if (
+      data.xrp !== undefined ||
+      data.usdt !== undefined ||
+      data.usdc !== undefined ||
+      data.rlusd !== undefined ||
+      data.RLUSD !== undefined ||
+      data.rippleUsd !== undefined ||
+      data.ripple_usd !== undefined
+    ) {
+      balances = {
+        xrp: data.xrp || data.XRP || 0,
+        usdt: data.usdt || data.USDT || 0,
+        usdc: data.usdc || data.USDC || 0,
+        rlusd: data.rlusd ?? data.RLUSD ?? data.rippleUsd ?? data.ripple_usd ?? 0,
+      };
+    }
+  } else if (apiResult?.success && Array.isArray(apiResult?.data?.wallets)) {
+    balances = {};
+    apiResult.data.wallets.forEach((wallet) => {
+      const currency = (wallet.currency || wallet.code || '').toLowerCase();
+      const balance = wallet.balance ?? wallet.amount ?? 0;
+      if (currency === 'xrp') balances.xrp = Number(balance);
+      if (currency === 'usdt') balances.usdt = Number(balance);
+      if (currency === 'usdc') balances.usdc = Number(balance);
+      if (isRlusdCurrencyKey(currency)) balances.rlusd = Number(balance);
+    });
+  } else if (apiResult?.balance) {
+    balances = apiResult.balance;
+  }
+
+  if (!balances) return empty;
+
+  return {
+    xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
+    usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
+    usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0,
+    rlusd:
+      balances.rlusd !== undefined && balances.rlusd !== null
+        ? Number(balances.rlusd)
+        : balances.RLUSD !== undefined && balances.RLUSD !== null
+          ? Number(balances.RLUSD)
+          : balances.rippleUsd !== undefined && balances.rippleUsd !== null
+            ? Number(balances.rippleUsd)
+            : balances.ripple_usd !== undefined && balances.ripple_usd !== null
+              ? Number(balances.ripple_usd)
+              : 0,
+  };
+}
+
 export const splitDepositAddressLines = (addr) => {
   if (!addr || typeof addr !== 'string') return [];
   if (addr.length <= 18) return [addr];

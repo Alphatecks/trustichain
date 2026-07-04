@@ -72,6 +72,13 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardBalanceSkeleton,
+  DashboardExchangeRatesSkeleton,
+  WalletOverviewCardsSkeleton,
+  TransactionHistoryCardsSkeleton,
+  DashboardEscrowTableSkeleton,
+} from '../../../components/DashboardSkeletons';
 import DepositAddressSelectors from '../../../components/DepositAddressSelectors';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
@@ -6044,11 +6051,13 @@ const Transactions = () => {
                 </div>
               </div>
               <div className="summary-card-value-row transactions-tbc-value-row">
+                {showBalance && isLoadingDashboard ? (
+                  <DashboardBalanceSkeleton />
+                ) : (
+                  <>
                 <div className="summary-card-value transactions-tbc-usd">
                   {showBalance 
-                    ? (isLoadingDashboard 
-                        ? <LoadingIndicator size="sm" />
-                        : (() => {
+                    ? (() => {
                             // Calculate USD value from XRP using exchange rate from API
                             if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
                               // Try to find XRP to USD rate
@@ -6072,16 +6081,14 @@ const Transactions = () => {
                               return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                             }
                             return '$0.00';
-                          })())
+                          })()
                     : '••••••'}
                 </div>
                 <div className="summary-card-subvalue transactions-tbc-xrp">
                   {showBalance ? (
                     <>
                       ≈{' '}
-                      {isLoadingDashboard ? (
-                        <LoadingIndicator size="sm" />
-                      ) : dashboardData?.balance?.xrp !== undefined &&
+                      {dashboardData?.balance?.xrp !== undefined &&
                         dashboardData?.balance?.xrp !== null ? (
                         Number(dashboardData.balance.xrp).toLocaleString('en-US', {
                           minimumFractionDigits: 2,
@@ -6096,6 +6103,8 @@ const Transactions = () => {
                     <>≈ •••••• XRP</>
                   )}
                 </div>
+                  </>
+                )}
               </div>
               <div className="summary-card-actions transactions-tbc-actions">
                 <button 
@@ -6127,6 +6136,10 @@ const Transactions = () => {
 
             {/* Wallet Summary Cards */}
             <div className="wallet-cards-grid">
+              {isLoadingWalletBalances ? (
+                <WalletOverviewCardsSkeleton count={3} />
+              ) : (
+              <>
               <div className="wallet-overview-card">
                 <div className="wallet-overview-header">
                   <div className="wallet-overview-icon">
@@ -6255,6 +6268,8 @@ const Transactions = () => {
                   <span>+2.4%</span>
                 </div>
               </div>
+              </>
+              )}
             </div>
           </div>
 
@@ -6398,13 +6413,9 @@ const Transactions = () => {
                 <div className="section-content">
                   <h3 className="section-title">Live Exchange Rate</h3>
                   <div className="rate-list">
-                    {isLoadingRates && (
-                      <div className="rate-item">
-                        <div className="rate-info">
-                          <span className="rate-currency"><LoadingIndicator size="sm" /></span>
-                        </div>
-                      </div>
-                    )}
+                    {isLoadingRates ? (
+                      <DashboardExchangeRatesSkeleton count={5} />
+                    ) : null}
 
                     {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
                       const code = (rate.currency || rate.code || '').toUpperCase();
@@ -6508,21 +6519,16 @@ const Transactions = () => {
                   </div>
                   {/* Mobile Transaction Cards */}
                   <div className="mobile-transaction-cards">
-                    {isLoadingTransactions && (
-                      <div className="mobile-transaction-card">
-                        <div className="mobile-transaction-content">
-                          <span><LoadingIndicator size="md" /></span>
-                        </div>
-                      </div>
-                    )}
-                    {!isLoadingTransactions && transactions.length === 0 && (
+                    {isLoadingTransactions ? (
+                      <TransactionHistoryCardsSkeleton count={4} />
+                    ) : transactions.length === 0 ? (
                       <div className="mobile-transaction-card">
                         <div className="mobile-transaction-content">
                           <span>No transactions found</span>
                         </div>
                       </div>
-                    )}
-                    {!isLoadingTransactions && transactions.length > 0 && paginatedTransactions.length > 0 && paginatedTransactions.map((transaction, index) => {
+                    ) : (
+                    paginatedTransactions.map((transaction, index) => {
                       const globalIndex = (currentPage - 1) * itemsPerPage + index;
                       const transactionId = formatTransactionId(transaction.id || transaction.transactionId || `TXN-${globalIndex}`);
                       const type = transaction.type || transaction.transactionType || 'Received';
@@ -6558,7 +6564,8 @@ const Transactions = () => {
                           </p>
                         </div>
                       );
-                    })}
+                    })
+                    )}
                   </div>
                   <div className="transaction-table-wrapper">
                     <table className="transaction-table">
@@ -6572,13 +6579,13 @@ const Transactions = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {isLoadingTransactions && (
+                        {isLoadingTransactions ? (
                           <tr>
-                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
-                              <LoadingIndicator size="md" />
+                            <td colSpan="5">
+                              <DashboardEscrowTableSkeleton rows={5} columns={5} />
                             </td>
                           </tr>
-                        )}
+                        ) : null}
                         {!isLoadingTransactions && transactions.length === 0 && (
                           <tr>
                             <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>

@@ -51,9 +51,8 @@ export function PersonalSidebarWalletModal({ wallet }) {
       isOpen={wallet.showWalletModal}
       onClose={() => wallet.setShowWalletModal(false)}
       walletAddress={wallet.walletAddress}
-      rlusdWalletAddress={wallet.rlusdWalletAddress}
-      addressRows={wallet.walletAddressRows}
       walletBalanceRaw={wallet.walletBalanceRaw}
+      isLoadingWalletAddress={wallet.isLoadingWalletAddress}
       isProvisioningWallets={wallet.isProvisioningWallets}
       onCreateInitialWallet={async () => {
         const ok = await wallet.handleCreateInitialWallet();

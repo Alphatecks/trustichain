@@ -38,7 +38,12 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
-import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardMetricValuesSkeleton,
+  DashboardEscrowTableSkeleton,
+  EscrowHistoryCardsSkeleton,
+  DashboardSkeletonBlock,
+} from '../../../components/DashboardSkeletons';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
@@ -1156,12 +1161,14 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Total Escrowed Amount</h3>
           </div>
           <div className="metric-content">
+            {isLoadingEscrowMetrics ? (
+              <DashboardMetricValuesSkeleton wideSubvalue />
+            ) : (
+              <>
             <div className="metric-value">
-              {isLoadingEscrowMetrics 
-                ? <LoadingIndicator size="sm" />
-                : `$${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+              ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                     ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    : '0.00'}`}
+                    : '0.00'}
             </div>
             <div className="metric-subtitle-row">
               <div className="metric-subtitle">
@@ -1174,6 +1181,8 @@ const MyEscrow = () => {
                 <span>+3.1%</span>
               </div>
             </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1185,10 +1194,12 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Total Escrow</h3>
           </div>
           <div className="metric-content">
+            {isLoadingEscrowMetrics ? (
+              <DashboardMetricValuesSkeleton />
+            ) : (
+              <>
             <div className="metric-value">
-              {isLoadingEscrowMetrics 
-                ? <LoadingIndicator size="sm" />
-                : (totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0)}
+              {totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0}
             </div>
             <div className="metric-subtitle-row">
               <div className="metric-subtitle">This month</div>
@@ -1197,6 +1208,8 @@ const MyEscrow = () => {
                 <span>+3.1%</span>
               </div>
             </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1208,14 +1221,18 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Active Escrow</h3>
           </div>
           <div className="metric-content">
+            {isLoadingEscrowMetrics ? (
+              <DashboardMetricValuesSkeleton withSubvalue={false} />
+            ) : (
+              <>
             <div className="metric-value">
-              {isLoadingEscrowMetrics 
-                ? <LoadingIndicator size="sm" />
-                : (activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0)}
+              {activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0}
             </div>
             <div className="metric-subtitle-row">
               <div className="metric-subtitle">This month</div>
             </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1227,14 +1244,18 @@ const MyEscrow = () => {
             <h3 className="metric-label metric-label-small metric-label-blue">Completed Escrow</h3>
           </div>
           <div className="metric-content">
+            {isLoadingCompletedEscrow ? (
+              <DashboardMetricValuesSkeleton withSubvalue={false} />
+            ) : (
+              <>
             <div className="metric-value">
-              {isLoadingCompletedEscrow 
-                ? <LoadingIndicator size="sm" />
-                : (completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0)}
+              {completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0}
             </div>
             <div className="metric-subtitle-row">
               <div className="metric-subtitle">This month</div>
             </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1294,7 +1315,7 @@ const MyEscrow = () => {
                   All industries
                 </div>
                 {isLoadingIndustries ? (
-                  <div style={{ padding: '8px 12px', textAlign: 'center' }}><LoadingIndicator size="sm" /></div>
+                  <div style={{ padding: '8px 12px' }}><DashboardSkeletonBlock className="dashboard-skeleton-industry-option" /></div>
                 ) : industries.length > 0 ? (
                   industries.map((industry, idx) => (
                     <div
@@ -1345,17 +1366,14 @@ const MyEscrow = () => {
 
       {/* Escrow History Card List - Mobile */}
       <div className="escrow-history-list">
-        {isLoadingEscrows && (
-          <div className="escrow-history-card" style={{ textAlign: 'center', padding: '2rem' }}>
-            <LoadingIndicator size="md" />
-          </div>
-        )}
-        {!isLoadingEscrows && escrows.length === 0 && (
+        {isLoadingEscrows ? (
+          <EscrowHistoryCardsSkeleton count={4} />
+        ) : escrows.length === 0 ? (
           <div className="escrow-history-card" style={{ textAlign: 'center', padding: '2rem' }}>
             No escrows found
           </div>
-        )}
-        {!isLoadingEscrows && escrows.length > 0 && escrows.map((escrow, index) => {
+        ) : (
+        escrows.map((escrow, index) => {
           // Use id from API response (UUID), fallback to escrowId or xrplEscrowId
           const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
           const formattedId = escrowId || '#ESC-N/A';
@@ -1423,7 +1441,8 @@ const MyEscrow = () => {
               </div>
             </div>
           );
-        })}
+        })
+        )}
       </div>
 
       {/* Escrow Table - Desktop */}
@@ -1441,13 +1460,13 @@ const MyEscrow = () => {
             </tr>
           </thead>
           <tbody>
-            {isLoadingEscrows && (
+            {isLoadingEscrows ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
-                  <LoadingIndicator size="md" />
+                <td colSpan="7">
+                  <DashboardEscrowTableSkeleton rows={5} columns={7} />
                 </td>
               </tr>
-            )}
+            ) : null}
             {!isLoadingEscrows && escrows.length === 0 && (
               <tr>
                 <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
@@ -1851,18 +1870,22 @@ const MyEscrow = () => {
                   <h3 className="metric-label metric-label-small metric-label-blue">Total Escrowed Amount</h3>
                 </div>
                 <div className="metric-content">
+                  {isLoadingEscrowMetrics ? (
+                    <DashboardMetricValuesSkeleton wideSubvalue />
+                  ) : (
+                    <>
                   <div className="metric-value">
-                    {isLoadingEscrowMetrics 
-                      ? <LoadingIndicator size="sm" />
-                      : `$${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
+                    ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
                           ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '0.00'}`}
+                          : '0.00'}
                   </div>
                   <div className="metric-subtitle">
                     ${lockedAmount !== null && lockedAmount !== undefined
                       ? lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       : '0.00'} locked
                   </div>
+                    </>
+                  )}
                 </div>
                 <div className="metric-trend positive">
                   <TrendingUp size={14} />
@@ -1878,12 +1901,16 @@ const MyEscrow = () => {
                   <h3 className="metric-label metric-label-small metric-label-blue">Total Escrow</h3>
                 </div>
                 <div className="metric-content">
+                  {isLoadingEscrowMetrics ? (
+                    <DashboardMetricValuesSkeleton />
+                  ) : (
+                    <>
                   <div className="metric-value">
-                    {isLoadingEscrowMetrics 
-                      ? <LoadingIndicator size="sm" />
-                      : (totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0)}
+                    {totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0}
                   </div>
                   <div className="metric-subtitle">This month</div>
+                    </>
+                  )}
                 </div>
                 <div className="metric-trend positive">
                   <TrendingUp size={14} />
@@ -1899,12 +1926,16 @@ const MyEscrow = () => {
                   <h3 className="metric-label metric-label-small metric-label-blue">Active Escrow</h3>
                 </div>
                 <div className="metric-content">
+                  {isLoadingEscrowMetrics ? (
+                    <DashboardMetricValuesSkeleton withSubvalue={false} />
+                  ) : (
+                    <>
                   <div className="metric-value">
-                    {isLoadingEscrowMetrics 
-                      ? <LoadingIndicator size="sm" />
-                      : (activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0)}
+                    {activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0}
                   </div>
                   <div className="metric-subtitle">This month</div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1916,12 +1947,16 @@ const MyEscrow = () => {
                   <h3 className="metric-label metric-label-small metric-label-blue">Completed Escrow</h3>
                 </div>
                 <div className="metric-content">
+                  {isLoadingCompletedEscrow ? (
+                    <DashboardMetricValuesSkeleton withSubvalue={false} />
+                  ) : (
+                    <>
                   <div className="metric-value">
-                    {isLoadingCompletedEscrow 
-                      ? <LoadingIndicator size="sm" />
-                      : (completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0)}
+                    {completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0}
                   </div>
                   <div className="metric-subtitle">This month</div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1981,7 +2016,7 @@ const MyEscrow = () => {
                         All industries
                       </div>
                       {isLoadingIndustries ? (
-                        <div style={{ padding: '8px 12px', textAlign: 'center' }}><LoadingIndicator size="sm" /></div>
+                        <div style={{ padding: '8px 12px' }}><DashboardSkeletonBlock className="dashboard-skeleton-industry-option" /></div>
                       ) : industries.length > 0 ? (
                         industries.map((industry, idx) => (
                           <div
@@ -2029,13 +2064,13 @@ const MyEscrow = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {isLoadingEscrows && (
+                  {isLoadingEscrows ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
-                        <LoadingIndicator size="md" />
+                      <td colSpan="7">
+                        <DashboardEscrowTableSkeleton rows={5} columns={7} />
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                   {!isLoadingEscrows && escrows.length === 0 && (
                     <tr>
                       <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>

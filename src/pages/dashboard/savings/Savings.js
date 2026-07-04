@@ -48,7 +48,12 @@ import NotificationCenterModal from '../../../components/NotificationCenterModal
 import SavingsWithdrawWalletModal from '../../../components/SavingsWithdrawWalletModal';
 import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
 import AddSavingsPlanModal, { planRequiresGoalAmount, planIsAutoSavings } from '../../../components/AddSavingsPlanModal';
-import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardEscrowTableSkeleton,
+  SavingsAllocationSkeleton,
+  SavingsHistoryMobileFeedSkeleton,
+  SavingsPlanCardsSkeleton,
+} from '../../../components/DashboardSkeletons';
 import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const sidebarNav = [
@@ -920,10 +925,7 @@ const Savings = () => {
 
               <div className="savings-wallet-track" role="list">
                 {showSavingsLazyLoader ? (
-                  <div className="savings-lazy-loader">
-                    <LoadingIndicator size="md" />
-                    <span>Loading savings wallets…</span>
-                  </div>
+                  <SavingsPlanCardsSkeleton count={3} />
                 ) : savingsPlans.length === 0 ? (
                   <div className="savings-empty-state">No savings wallet yet.</div>
                 ) : (
@@ -994,18 +996,18 @@ const Savings = () => {
                 </div>
               </div>
 
+              {showSavingsLazyLoader ? (
+                <SavingsAllocationSkeleton legendCount={effectiveSavingsAllocationBuckets.length || 4} />
+              ) : (
+                <>
               <div className="savings-allocation-summary" role="group" aria-label="Total savings summary">
                 <span className="savings-allocation-total">
-                  {showSavingsLazyLoader ? <LoadingIndicator size="sm" /> : fmtUsdDecimals(savingsTotalUsd)}
+                  {fmtUsdDecimals(savingsTotalUsd)}
                 </span>
                 <span className="savings-allocation-growth">
-                  {showSavingsLazyLoader ? null : (
-                    <>
-                      <TrendingUp size={14} strokeWidth={2.25} aria-hidden />
-                      {savingsGrowthPct >= 0 ? '+' : ''}
-                      {Number(savingsGrowthPct).toFixed(1)}%
-                    </>
-                  )}
+                  <TrendingUp size={14} strokeWidth={2.25} aria-hidden />
+                  {savingsGrowthPct >= 0 ? '+' : ''}
+                  {Number(savingsGrowthPct).toFixed(1)}%
                 </span>
                 <span className="savings-allocation-period">This Month</span>
               </div>
@@ -1032,6 +1034,8 @@ const Savings = () => {
                   </li>
                 ))}
               </ul>
+                </>
+              )}
             </section>
 
             <section className="savings-history-panel" aria-labelledby="savings-history-heading">
@@ -1142,10 +1146,7 @@ const Savings = () => {
 
               <div className="savings-history-table-scroll savings-history-desktop-only">
                 {showSavingsLazyLoader ? (
-                  <div className="savings-lazy-loader savings-lazy-loader--history">
-                    <LoadingIndicator size="md" />
-                    <span>Loading transactions…</span>
-                  </div>
+                  <DashboardEscrowTableSkeleton rows={5} columns={8} />
                 ) : savingHistoryRows.length === 0 ? (
                   <div className="savings-empty-state savings-empty-state--history">No savings transactions yet.</div>
                 ) : (
@@ -1273,10 +1274,7 @@ const Savings = () => {
 
               <ul className="savings-history-mobile-feed savings-history-mobile-only" aria-label="Recent transactions">
                 {showSavingsLazyLoader ? (
-                  <li className="savings-lazy-loader savings-lazy-loader--mobile">
-                    <LoadingIndicator size="sm" />
-                    <span>Loading transactions…</span>
-                  </li>
+                  <SavingsHistoryMobileFeedSkeleton count={3} />
                 ) : savingsMobileTxFeed.length === 0 ? (
                   <li className="savings-empty-state">No recent transactions yet.</li>
                 ) : (

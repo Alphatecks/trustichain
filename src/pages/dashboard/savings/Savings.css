@@ -100,25 +100,6 @@
   display: none;
 }
 
-.savings-lazy-loader {
-  width: 100%;
-  min-height: 8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  color: #64748b;
-  font-size: 0.92rem;
-}
-
-.savings-lazy-loader--history {
-  min-height: 10rem;
-}
-
-.savings-lazy-loader--mobile {
-  min-height: 4rem;
-}
-
 .savings-empty-state {
   width: 100%;
   min-height: 6rem;

@@ -45,7 +45,12 @@ import logo from '../../../assets/images/icons/logo.png';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
-import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardEscrowTableSkeleton,
+  TrustiCardDetailsSkeleton,
+  TrustiCardMyCardsSkeleton,
+  TrustiCardTxMobileSkeleton,
+} from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
@@ -2258,7 +2263,7 @@ const TrustiCard = () => {
             </div>
 
               {isLoadingCards ? (
-                <div className="tc-v2-loading-inline"><LoadingIndicator size="md" /></div>
+                <TrustiCardMyCardsSkeleton />
               ) : nCards === 0 ? (
                 <div className="tc-v2-empty-cards">
                   <p>No cards yet. Create your first TrustiCard to get started.</p>
@@ -2501,8 +2506,8 @@ const TrustiCard = () => {
                   <tbody>
                     {isLoadingCardTransactions ? (
                       <tr>
-                        <td colSpan={6} className="tc-v2-loading-inline">
-                          <LoadingIndicator size="md" />
+                        <td colSpan={6}>
+                          <DashboardEscrowTableSkeleton rows={5} columns={6} />
                         </td>
                       </tr>
                     ) : filteredTransactions.length === 0 ? (
@@ -2552,9 +2557,9 @@ const TrustiCard = () => {
 
               <div className="tc-v2-tx-mobile-only">
                 {isLoadingCardTransactions ? (
-                  <div className="tc-v2-tx-mobile-loading">
-                    <LoadingIndicator size="md" />
-                  </div>
+                  <ul className="tc-v2-tx-mobile-list" aria-label="Transaction history">
+                    <TrustiCardTxMobileSkeleton count={4} />
+                  </ul>
                 ) : filteredTransactions.length === 0 ? (
                   <p className="tc-v2-tx-mobile-empty">No transactions for this card</p>
                 ) : (
@@ -3708,9 +3713,7 @@ const TrustiCard = () => {
                 </button>
               </div>
               {isLoadingCardDetails ? (
-                <div className="trusticard-card-info-loading">
-                  <LoadingIndicator size="sm" />
-                </div>
+                <TrustiCardDetailsSkeleton fieldCount={4} />
               ) : cardDetailsModalTab === 'info' ? (
                 <div className="trusticard-card-info-panel" role="tabpanel" aria-labelledby="trusticard-card-info-tab-info">
                   {(selectedCardDetails?.real_pan || selectedCardDetails?.cvv) ? (
@@ -3985,9 +3988,8 @@ const TrustiCard = () => {
         isOpen={showSidebarWalletModal}
         onClose={() => setShowSidebarWalletModal(false)}
         walletAddress={sidebarWalletAddress}
-        rlusdWalletAddress={sidebarRlusdWalletAddress}
-        addressRows={sidebarWalletAddressRows}
         walletBalanceRaw={sidebarWalletBalanceRaw}
+        isLoadingWalletAddress={isLoadingSidebarWallet}
         isProvisioningWallets={isProvisioningSidebarWallets}
         onCreateInitialWallet={async () => {
           const ok = await handleSidebarCreateInitialWallet();

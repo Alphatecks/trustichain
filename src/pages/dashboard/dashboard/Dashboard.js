@@ -8501,9 +8501,8 @@ const Dashboard = () => {
         isOpen={showWalletModal && (accountType === 'Personal' || (hasWallet && walletAddress))}
         onClose={() => setShowWalletModal(false)}
         walletAddress={walletAddress}
-        rlusdWalletAddress={rlusdWalletAddress}
-        addressRows={walletAddressRows}
         walletBalanceRaw={walletBalanceRaw}
+        isLoadingWalletAddress={isLoadingWalletAddress}
         isProvisioningWallets={isProvisioningMultichainWallets}
         showProvisionButton={accountType === 'Personal'}
         onCreateInitialWallet={handleCreateWallet}
