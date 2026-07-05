@@ -268,10 +268,94 @@
   font-weight: 600;
   color: var(--text-dark);
 }
+.bs-dashboard .bs-portfolio-legend--mobile {
+  margin: -0.4rem 0 0.65rem;
+}
+
+.mobile-dashboard .bs-portfolio-legend {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  align-items: center;
+  margin: -0.4rem 0 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.mobile-dashboard .bs-portfolio-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mobile-dashboard .bs-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mobile-dashboard .bs-legend-dot-sub { background: var(--blue-600); }
+.mobile-dashboard .bs-legend-dot-pay { background: var(--blue-400); }
+
+.bs-dashboard .bar-wrapper--dual {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+}
+
+.bs-dashboard .bs-dual-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+}
+
+.bs-dashboard .bs-dual-bars .bar {
+  flex: 1;
+  max-width: 14px;
+  min-width: 6px;
+  border-radius: 4px 4px 0 0;
+}
+
+.bs-dashboard .bs-dual-bars .bs-chart-bar-sub {
+  background: #2563eb;
+}
+
+.bs-dashboard .bs-dual-bars .bs-chart-bar-pay {
+  background: #22c55e;
+}
+
+.bs-dashboard .mobile-bar-wrapper.bar-wrapper--dual .bs-dual-bars .mobile-bar {
+  flex: 1;
+  max-width: 10px;
+  min-width: 5px;
+  border-radius: 3px 3px 0 0;
+}
+
+.bs-dashboard .bs-portfolio-card.dashboard-chart-card {
+  padding: 1.15rem 1.15rem 1rem;
+}
+
+.bs-dashboard .bs-portfolio-card .chart-header {
+  margin-bottom: 0.15rem;
+}
+
+.bs-dashboard .bs-portfolio-card .bs-portfolio-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .bs-dashboard .bs-portfolio-legend {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
+  justify-content: flex-end;
+  align-items: center;
+  margin: -0.35rem 0 0.75rem;
   font-size: 0.85rem;
   color: var(--text-muted);
 }

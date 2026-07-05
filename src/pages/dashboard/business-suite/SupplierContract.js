@@ -45,6 +45,16 @@ import '../dashboard/Dashboard.css';
 import './SupplierContract.css';
 import logo from '../../../assets/images/icons/logo.png';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardBalanceSkeleton,
+  DashboardSkeletonBlock,
+  SupplierMetricCardsSkeleton,
+  SupplierDetailCardsSkeleton,
+  SupplierModalListSkeleton,
+  SupplierContractDetailSkeleton,
+  PayrollTableRowsSkeleton,
+  TransactionHistoryCardsSkeleton,
+} from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import { getApiUrl } from '../../../utils/config';
@@ -98,7 +108,7 @@ const SupplierIdPanel = ({ supplierId, isLoading }) => {
       </div>
       <div className="supplier-id-field">
         <span className="supplier-id-value">
-          {isLoading ? <LoadingIndicator size="sm" /> : displayId}
+          {isLoading ? <DashboardSkeletonBlock className="supplier-id-value-skeleton" /> : displayId}
         </span>
         <button
           type="button"
@@ -619,7 +629,7 @@ const SupplierContract = ({
                 businessCompanyLogoUrl ? (
                   <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
                 ) : isLoadingBusinessKyc ? (
-                  <LoadingIndicator size="sm" />
+                  <DashboardSkeletonBlock className="dashboard-skeleton-header-avatar" />
                 ) : (
                   businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
                 )
@@ -866,10 +876,10 @@ const SupplierContract = ({
               </button>
             </div>
             <div className="supplier-total-supply-amount-mobile">
-              {showBalance 
-                ? (isLoadingDashboard 
-                    ? <LoadingIndicator size="sm" />
-                    : (() => {
+              {showBalance && isLoadingDashboard ? (
+                <DashboardBalanceSkeleton mobile />
+              ) : showBalance ? (
+                      (() => {
                         if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
                           const xrpToUsdRate = getExchangeRate('XRP', 'USD');
                           if (xrpToUsdRate) {
@@ -881,15 +891,19 @@ const SupplierContract = ({
                         if (usdBalance !== null && usdBalance !== undefined) {
                           return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         }
-                        return isLoadingDashboard ? null : '$0.00';
-                      })())
-                : '••••••'}
+                        return '$0.00';
+                      })()
+              ) : (
+                '••••••'
+              )}
             </div>
+            {!isLoadingDashboard && (
             <div className="supplier-total-supply-xrp-mobile">
               ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
                   ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                  : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.00')} XRP
+                  : '0.00'} XRP
             </div>
+            )}
             <div className="supplier-total-supply-actions-mobile">
               <button 
                 type="button" 
@@ -917,6 +931,10 @@ const SupplierContract = ({
 
           {/* Supplier Cards - Horizontally Scrollable */}
           <div className="supplier-cards-scrollable-mobile">
+            {isLoadingSupplyContractOverview ? (
+              <SupplierMetricCardsSkeleton mobile count={3} />
+            ) : (
+            <>
             {/* Total Supplier Card - Mobile */}
             <div className="supplier-total-supplier-card-mobile">
               <div className="supplier-card-header-mobile">
@@ -982,6 +1000,8 @@ const SupplierContract = ({
                     : (isLoadingSupplyContractOverview || isLoadingTotalEscrowed ? <LoadingIndicator size="sm" /> : '45,280'))}
               </div>
             </div>
+            </>
+            )}
           </div>
 
           {/* Upcoming Supply Section - Mobile */}
@@ -996,10 +1016,7 @@ const SupplierContract = ({
 
             <div className="upcoming-supply-grid-mobile">
               {isLoadingSupplierDetails ? (
-                <div className="upcoming-supply-loading-mobile" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center' }}>
-                  <LoadingIndicator size="sm" />
-                  <span style={{ marginLeft: '0.5rem' }}>Loading suppliers…</span>
-                </div>
+                <SupplierDetailCardsSkeleton count={4} />
               ) : supplierDetails.length === 0 ? (
                 <div className="upcoming-supply-empty-mobile" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No supplier details yet
@@ -1083,9 +1100,7 @@ const SupplierContract = ({
 
             <div className="supplier-transaction-history-list-mobile">
               {isLoadingSupplierTransactions ? (
-                <div className="supplier-transaction-loading-mobile">
-                  <LoadingIndicator size="sm" />
-                </div>
+                <TransactionHistoryCardsSkeleton count={4} />
               ) : transactions.length === 0 ? (
                 <div className="supplier-transaction-empty-mobile">No transactions yet</div>
               ) : (
@@ -1501,11 +1516,13 @@ const SupplierContract = ({
               </button>
             </div>
             <div className="total-supply-amount-row">
+              {showBalance && isLoadingDashboard ? (
+                <DashboardBalanceSkeleton />
+              ) : (
+                <>
               <div className="total-supply-main-amount">
                 {showBalance 
-                  ? (isLoadingDashboard 
-                      ? <LoadingIndicator size="sm" />
-                      : (() => {
+                  ? (() => {
                           if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
                             const xrpToUsdRate = getExchangeRate('XRP', 'USD');
                             if (xrpToUsdRate) {
@@ -1517,15 +1534,17 @@ const SupplierContract = ({
                           if (usdBalance !== null && usdBalance !== undefined) {
                             return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                           }
-                          return isLoadingDashboard ? null : '$0.00';
-                        })())
+                          return '$0.00';
+                        })()
                   : '••••••'}
               </div>
               <div className="total-supply-xrp-amount">
                 ≈ {dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null 
                     ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : (isLoadingDashboard ? <LoadingIndicator size="sm" /> : '0.00')} XRP
+                    : '0.00'} XRP
               </div>
+                </>
+              )}
             </div>
             <div className="total-supply-actions">
               <button
@@ -1556,6 +1575,10 @@ const SupplierContract = ({
           </div>
 
           {/* Total Supplier Card */}
+          {isLoadingSupplyContractOverview ? (
+            <SupplierMetricCardsSkeleton count={3} />
+          ) : (
+          <>
           <div className="summary-card total-supplier-card overview-card">
             <div className="overview-card-icon">
               <Users />
@@ -1620,6 +1643,8 @@ const SupplierContract = ({
               </span>
             </div>
           </div>
+          </>
+          )}
         </div>
 
         {/* Middle Section */}
@@ -1632,10 +1657,7 @@ const SupplierContract = ({
             </div>
             <div className="supplier-details-grid">
               {isLoadingSupplierDetails ? (
-                <div className="supplier-details-loading" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center' }}>
-                  <LoadingIndicator size="sm" />
-                  <span style={{ marginLeft: '0.5rem' }}>Loading suppliers…</span>
-                </div>
+                <SupplierDetailCardsSkeleton count={4} />
               ) : supplierDetails.length === 0 ? (
                 <div className="supplier-details-empty" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No supplier details yet
@@ -1747,11 +1769,7 @@ const SupplierContract = ({
                 </thead>
                 <tbody>
                   {isLoadingSupplierTransactions ? (
-                    <tr>
-                      <td colSpan={7} className="transaction-loading-cell">
-                        <LoadingIndicator size="sm" />
-                      </td>
-                    </tr>
+                    <PayrollTableRowsSkeleton rows={5} columns={7} />
                   ) : transactions.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="transaction-empty-cell">No transactions yet</td>
@@ -1866,10 +1884,7 @@ const SupplierContract = ({
               {supplierDetailModalSource === 'escrowed-to-you' && (
                 <>
                   {escrowedToMeDetailLoading && (
-                    <div className="escrow-contract-detail-loading">
-                      <LoadingIndicator size="md" />
-                      <span>Loading contract details…</span>
-                    </div>
+                    <SupplierContractDetailSkeleton fieldCount={5} />
                   )}
                   {!escrowedToMeDetailLoading && escrowedToMeDetailError && (
                     <div className="escrow-contract-detail-error">
@@ -1882,10 +1897,7 @@ const SupplierContract = ({
               {supplierDetailModalSource === 'supplier-details' && (
                 <>
                   {createdByMeDetailLoading && (
-                    <div className="escrow-contract-detail-loading">
-                      <LoadingIndicator size="md" />
-                      <span>Loading contract details…</span>
-                    </div>
+                    <SupplierContractDetailSkeleton fieldCount={5} />
                   )}
                   {!createdByMeDetailLoading && createdByMeDetailError && (
                     <div className="escrow-contract-detail-error">
@@ -2296,10 +2308,7 @@ const SupplierContract = ({
             </div>
             <div className="view-supply-status-modal-content">
               {isLoadingSupplyContractsForContractor ? (
-                <div className="view-supply-status-loading">
-                  <LoadingIndicator size="sm" />
-                  <span>Loading…</span>
-                </div>
+                <SupplierModalListSkeleton count={4} />
               ) : supplyContractsForContractor.length === 0 ? (
                 <div className="view-supply-status-empty">
                   No supply contracts. Third-party supply will appear here as delivered or pending.
@@ -2393,10 +2402,7 @@ const SupplierContract = ({
             </div>
             <div className="view-supply-contract-modal-content">
               {isLoadingSupplyContractsForSupplier ? (
-                <div className="view-supply-contract-loading">
-                  <LoadingIndicator size="sm" />
-                  <span>Loading contracts…</span>
-                </div>
+                <SupplierModalListSkeleton count={4} />
               ) : supplyContractsForSupplier.length === 0 ? (
                 <div className="view-supply-contract-empty">
                   No supply contracts escrowed to you yet.

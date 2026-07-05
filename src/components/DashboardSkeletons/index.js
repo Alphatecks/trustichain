@@ -354,3 +354,288 @@ export function TransactionHistoryCardsSkeleton({ count = 4 }) {
     </div>
   );
 }
+
+export function BusinessSuiteListRowsSkeleton({ count = 3, mobile = false }) {
+  const rowClass = mobile ? 'business-suite-list-row-skeleton mobile' : 'business-suite-list-row-skeleton';
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`business-suite-list-skeleton-${index}`}
+          className={rowClass}
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <DashboardSkeletonBlock
+            className="business-suite-list-skeleton-avatar"
+            style={{ animationDelay: `${index * 0.05}s` }}
+          />
+          <div className="business-suite-list-skeleton-content">
+            <DashboardSkeletonBlock className="business-suite-list-skeleton-name" />
+            <DashboardSkeletonBlock className="business-suite-list-skeleton-email" />
+          </div>
+          <div className="business-suite-list-skeleton-right">
+            <DashboardSkeletonBlock className="business-suite-list-skeleton-amount" />
+            <DashboardSkeletonBlock className="business-suite-list-skeleton-date" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function BusinessSuiteTeamRowsSkeleton({ count = 2, mobile = false }) {
+  const rowClass = mobile ? 'business-suite-team-row-skeleton mobile' : 'business-suite-team-row-skeleton';
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`business-suite-team-skeleton-${index}`}
+          className={rowClass}
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div className="business-suite-team-skeleton-row1">
+            <DashboardSkeletonBlock className="business-suite-team-skeleton-name" />
+            <DashboardSkeletonBlock className="business-suite-team-skeleton-date" />
+          </div>
+          <div className="business-suite-team-skeleton-row2">
+            <DashboardSkeletonBlock className="business-suite-team-skeleton-members" />
+            <DashboardSkeletonBlock className="business-suite-team-skeleton-actions" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function BusinessSuiteDashboardSkeleton() {
+  return (
+    <div className="business-suite-page-skeleton" aria-busy="true" aria-live="polite">
+      <DashboardSkeletonBlock className="business-suite-page-skeleton-breadcrumb" />
+      <div className="business-suite-page-skeleton-cards">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={`business-suite-card-skeleton-${index}`} className="business-suite-page-skeleton-card">
+            <DashboardSkeletonBlock className="business-suite-page-skeleton-card-title" />
+            <DashboardSkeletonBlock className="business-suite-page-skeleton-card-value" />
+            <DashboardSkeletonBlock className="business-suite-page-skeleton-card-action" />
+          </div>
+        ))}
+      </div>
+      <div className="business-suite-page-skeleton-middle">
+        <div className="business-suite-page-skeleton-chart">
+          <DashboardSkeletonBlock className="business-suite-page-skeleton-chart-title" />
+          <DashboardSkeletonBlock className="business-suite-page-skeleton-chart-plot" />
+        </div>
+        <div className="business-suite-page-skeleton-aside">
+          <DashboardSkeletonBlock className="business-suite-page-skeleton-aside-title" />
+          <BusinessSuiteTeamRowsSkeleton count={2} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function PayrollSummaryCardsSkeleton({ mobile = false, count = 3 }) {
+  return (
+    <div
+      className={`payroll-summary-cards-skeleton${mobile ? ' payroll-summary-cards-skeleton--mobile' : ''}`}
+      aria-busy="true"
+      aria-live="polite"
+    >
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`payroll-summary-card-skeleton-${index}`}
+          className="payroll-summary-card-skeleton"
+          style={{ animationDelay: `${index * 0.05}s` }}
+        >
+          <DashboardSkeletonBlock className="payroll-summary-card-skeleton-icon" />
+          <div className="payroll-summary-card-skeleton-content">
+            <DashboardSkeletonBlock className="payroll-summary-card-skeleton-title" />
+            <DashboardSkeletonBlock className="payroll-summary-card-skeleton-value" />
+            <DashboardSkeletonBlock className="payroll-summary-card-skeleton-meta" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function PayrollCardsSkeleton({ count = 2 }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`payroll-card-skeleton-${index}`}
+          className="payroll-card-skeleton"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div className="payroll-card-skeleton-header">
+            <DashboardSkeletonBlock className="payroll-card-skeleton-title" />
+            <DashboardSkeletonBlock className="payroll-card-skeleton-actions" />
+          </div>
+          <DashboardSkeletonBlock className="payroll-card-skeleton-toggle" />
+          <DashboardSkeletonBlock className="payroll-card-skeleton-date" />
+          <DashboardSkeletonBlock className="payroll-card-skeleton-freeze" />
+          <DashboardSkeletonBlock className="payroll-card-skeleton-btn" />
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function PayrollListMobileSkeleton({ count = 3 }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`payroll-list-mobile-skeleton-${index}`}
+          className="payroll-list-item-skeleton"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div className="payroll-list-item-skeleton-text">
+            <DashboardSkeletonBlock className="payroll-list-item-skeleton-title" />
+            <DashboardSkeletonBlock className="payroll-list-item-skeleton-sub" />
+          </div>
+          <DashboardSkeletonBlock className="payroll-list-item-skeleton-icon" />
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function PayrollDetailGridMobileSkeleton({ count = 4 }) {
+  return (
+    <div className="payroll-details-grid-skeleton" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }, (_, index) => (
+        <div key={`payroll-detail-card-skeleton-${index}`} className="payroll-detail-card-skeleton">
+          <DashboardSkeletonBlock className="payroll-detail-card-skeleton-title" />
+          <DashboardSkeletonBlock className="payroll-detail-card-skeleton-value" />
+          <DashboardSkeletonBlock className="payroll-detail-card-skeleton-action" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function PayrollTableRowsSkeleton({ rows = 5, columns = 7 }) {
+  return (
+    <>
+      {Array.from({ length: rows }, (_, rowIndex) => (
+        <tr key={`payroll-table-row-skeleton-${rowIndex}`} className="payroll-table-row-skeleton">
+          {Array.from({ length: columns }, (_, colIndex) => (
+            <td key={`payroll-table-cell-skeleton-${rowIndex}-${colIndex}`}>
+              <DashboardSkeletonBlock
+                className="payroll-table-cell-skeleton"
+                style={{ animationDelay: `${(rowIndex * columns + colIndex) * 0.03}s` }}
+              />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+export function PayrollDetailsTransactionListSkeleton({ count = 4 }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`payroll-details-tx-skeleton-${index}`}
+          className="payroll-details-transaction-item-skeleton"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div className="payroll-details-transaction-item-skeleton-left">
+            <DashboardSkeletonBlock className="payroll-details-tx-skeleton-sender" />
+            <DashboardSkeletonBlock className="payroll-details-tx-skeleton-amount" />
+          </div>
+          <div className="payroll-details-transaction-item-skeleton-right">
+            <DashboardSkeletonBlock className="payroll-details-tx-skeleton-date" />
+            <DashboardSkeletonBlock className="payroll-details-tx-skeleton-arrow" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function SupplierMetricCardsSkeleton({ mobile = false, count = 3 }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`supplier-metric-card-skeleton-${index}`}
+          className={`supplier-metric-card-skeleton${mobile ? ' supplier-metric-card-skeleton--mobile' : ' summary-card overview-card'}`}
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <DashboardSkeletonBlock className="supplier-metric-card-skeleton-icon" />
+          <DashboardSkeletonBlock className="supplier-metric-card-skeleton-title" />
+          <DashboardSkeletonBlock className="supplier-metric-card-skeleton-value" />
+          <DashboardSkeletonBlock className="supplier-metric-card-skeleton-sub" />
+          {mobile ? <DashboardSkeletonBlock className="supplier-metric-card-skeleton-btn" /> : null}
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function SupplierDetailCardsSkeleton({ count = 4 }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={`supplier-detail-card-skeleton-${index}`}
+          className="supplier-detail-card-skeleton"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div className="supplier-detail-card-skeleton-top">
+            <DashboardSkeletonBlock className="supplier-detail-card-skeleton-ring" />
+            <div className="supplier-detail-card-skeleton-info">
+              <DashboardSkeletonBlock className="supplier-detail-card-skeleton-name" />
+              <DashboardSkeletonBlock className="supplier-detail-card-skeleton-date" />
+            </div>
+          </div>
+          <div className="supplier-detail-card-skeleton-amount-wrap">
+            <DashboardSkeletonBlock className="supplier-detail-card-skeleton-amount-label" />
+            <DashboardSkeletonBlock className="supplier-detail-card-skeleton-amount" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function SupplierModalListSkeleton({ count = 4 }) {
+  return (
+    <ul className="supplier-modal-list-skeleton" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }, (_, index) => (
+        <li key={`supplier-modal-list-skeleton-${index}`} className="supplier-modal-list-item-skeleton">
+          <DashboardSkeletonBlock className="supplier-modal-list-skeleton-id" />
+          <DashboardSkeletonBlock className="supplier-modal-list-skeleton-meta" />
+          <DashboardSkeletonBlock className="supplier-modal-list-skeleton-badge" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function SupplierContractDetailSkeleton({ fieldCount = 5 }) {
+  return (
+    <div className="supplier-contract-detail-skeleton" aria-busy="true" aria-live="polite">
+      {Array.from({ length: fieldCount }, (_, index) => (
+        <div key={`supplier-contract-detail-field-skeleton-${index}`} className="supplier-contract-detail-field-skeleton">
+          <DashboardSkeletonBlock className="supplier-contract-detail-label-skeleton" />
+          <DashboardSkeletonBlock className="supplier-contract-detail-value-skeleton" />
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -30,3 +30,172 @@
   color: var(--text-muted, #6b7280);
   line-height: 1.4;
 }
+
+.add-team-member-lookup-toggle {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 1.25rem;
+  border-radius: 0.625rem;
+  background: #dbeafe;
+}
+
+.add-team-member-lookup-btn {
+  flex: 0 1 auto;
+  border: none;
+  cursor: pointer;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.5rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--blue-600, #2563eb);
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.add-team-member-lookup-btn.active {
+  background: var(--blue-600, #2563eb);
+  color: var(--white, #ffffff);
+}
+
+.add-team-member-lookup-btn:not(.active):hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* Country dropdown */
+.add-team-member-country-select {
+  position: relative;
+  width: 100%;
+  min-width: 300px;
+  z-index: 1;
+}
+
+.add-team-member-country-select.is-open {
+  z-index: 20;
+}
+
+.add-team-member-country-trigger {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.75rem 2.75rem 0.75rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--surface, var(--white, #fff));
+  color: var(--text-dark, #1f2937);
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.add-team-member-country-select:not(.has-value) .add-team-member-country-value {
+  color: #9ca3af;
+}
+
+.add-team-member-country-trigger:hover {
+  border-color: var(--blue-200, #bfdbfe);
+  background: var(--blue-50, #eff6ff);
+}
+
+.add-team-member-country-select.is-open .add-team-member-country-trigger,
+.add-team-member-country-trigger:focus-visible {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background: var(--surface, var(--white, #fff));
+}
+
+.add-team-member-country-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-team-member-country-chevron {
+  color: var(--text-muted, #6b7280);
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.add-team-member-country-select.is-open .add-team-member-country-chevron {
+  transform: rotate(180deg);
+  color: var(--blue-600, #2563eb);
+}
+
+.add-team-member-country-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface, var(--white, #fff));
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.65rem;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  padding: 0.35rem;
+  animation: add-team-member-country-menu-in 0.16s ease-out;
+}
+
+@keyframes add-team-member-country-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-team-member-country-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-dark, #1f2937);
+  font-size: 0.9rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.add-team-member-country-option:hover {
+  background: var(--blue-50, #eff6ff);
+  color: var(--blue-600, #2563eb);
+}
+
+.add-team-member-country-option.is-active {
+  background: var(--blue-100, #dbeafe);
+  color: var(--blue-600, #2563eb);
+  font-weight: 600;
+}
+
+.add-team-member-country-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.add-team-member-country-menu::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+@media (max-width: 768px) {
+  .add-team-member-country-select {
+    min-width: 0;
+  }
+}

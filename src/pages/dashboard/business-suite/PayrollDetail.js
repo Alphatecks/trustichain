@@ -42,7 +42,11 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
-import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardSkeletonBlock,
+  PayrollDetailGridMobileSkeleton,
+  PayrollTableRowsSkeleton,
+} from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
@@ -116,7 +120,9 @@ const PayrollDetail = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [isLoadingBusinessKyc, setIsLoadingBusinessKyc] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('November');
-  const [currentPage, setCurrentPage] = useState(12);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [freezeAutoRelease, setFreezeAutoRelease] = useState(false);
+  const [releasingPayroll, setReleasingPayroll] = useState(false);
   const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
   const [showFundPayrollModal, setShowFundPayrollModal] = useState(false);
   const [showChangeReleaseDateModal, setShowChangeReleaseDateModal] = useState(false);
@@ -226,7 +232,102 @@ const PayrollDetail = () => {
       .finally(() => setIsLoadingUserProfile(false));
   }, [isSessionExpired]);
 
-  const formatUsd = (n) => (n == null || Number.isNaN(Number(n)) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(Number(n)));
+  const formatUsd = (n) => (n == null || Number.isNaN(Number(n)) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(n)));
+  const formatXrp = (n) => (n == null || Number.isNaN(Number(n)) ? null : new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n)));
+
+  const getItemPayFields = (item) => {
+    const netPayUsd = item?.netPayUsd ?? item?.netPay ?? item?.amountUsd;
+    const baseUsd = item?.baseUsd ?? item?.baseAmount ?? item?.baseSalary ?? item?.base ?? netPayUsd;
+    const allowanceUsd = item?.allowanceUsd ?? item?.allowance ?? item?.allowanceAmount ?? 0;
+    const deductUsd = item?.deductUsd ?? item?.deductionUsd ?? item?.deduct ?? item?.deduction ?? 0;
+    const totalUsd = Number(netPayUsd ?? item?.amountUsd);
+    const totalXrp = Number(item?.amountXrp);
+    const ratio = totalUsd > 0 && !Number.isNaN(totalXrp) ? totalXrp / totalUsd : null;
+    const toXrp = (usd) => (ratio != null && usd != null && !Number.isNaN(Number(usd)) ? Number(usd) * ratio : null);
+
+    return {
+      base: { usd: baseUsd, xrp: item?.baseXrp ?? item?.baseAmountXrp ?? toXrp(baseUsd) },
+      allowance: { usd: allowanceUsd, xrp: item?.allowanceXrp ?? toXrp(allowanceUsd) },
+      deduct: { usd: deductUsd, xrp: item?.deductXrp ?? item?.deductionXrp ?? toXrp(deductUsd) },
+      netPay: { usd: netPayUsd ?? item?.amountUsd, xrp: item?.netPayXrp ?? item?.amountXrp },
+    };
+  };
+
+  const renderPayCell = (usd, xrp) => (
+    <div className="pay-cell">
+      <span className="pay-cell-usd">{formatUsd(usd)}</span>
+      {formatXrp(xrp) && <span className="pay-cell-xrp">≈ {formatXrp(xrp)} XRP</span>}
+    </div>
+  );
+
+  useEffect(() => {
+    if (payrollDetail) {
+      setFreezeAutoRelease(!!payrollDetail.freezeAutoRelease);
+    }
+  }, [payrollDetail]);
+
+  const handleReleasePayroll = () => {
+    if (!payrollId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setReleasingPayroll(true);
+    fetch(getApiUrl(`api/business-suite/payrolls/${payrollId}/release`), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (result?.success) {
+          toast.success('Payroll released');
+          const newReleaseHashes = extractXrpHashes(result?.data);
+          setPayrollDetail((prev) => {
+            if (!prev) return prev;
+            const existingHashes = extractXrpHashes(prev);
+            const mergedHashes = Array.from(new Set([...existingHashes, ...newReleaseHashes]));
+            return { ...prev, ...result.data, xrpHashes: mergedHashes, xrpHashesCreated: mergedHashes };
+          });
+        } else {
+          toast.error(result?.message || 'Failed to release payroll');
+        }
+      })
+      .catch((err) => {
+        console.error('Payroll release error:', err);
+        toast.error('Failed to release payroll');
+      })
+      .finally(() => setReleasingPayroll(false));
+  };
+
+  const toggleFreezeAutoRelease = () => {
+    if (!payrollId) return;
+    const nextFreeze = !freezeAutoRelease;
+    setFreezeAutoRelease(nextFreeze);
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(getApiUrl(`api/business-suite/payrolls/${payrollId}`), {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ freezeAutoRelease: nextFreeze }),
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (!result?.success) {
+          setFreezeAutoRelease(!nextFreeze);
+          toast.error(result?.message || 'Failed to update auto release setting');
+        }
+      })
+      .catch((err) => {
+        console.error('Update payroll error:', err);
+        setFreezeAutoRelease(!nextFreeze);
+        toast.error('Failed to update auto release setting');
+      });
+  };
+
   const items = payrollDetail?.items ?? [];
   const payrollXrpHashes = useMemo(() => extractXrpHashes(payrollDetail), [payrollDetail]);
 
@@ -400,7 +501,7 @@ const PayrollDetail = () => {
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
                   ) : isLoadingBusinessKyc ? (
-                    <LoadingIndicator size="sm" />
+                    <DashboardSkeletonBlock className="dashboard-skeleton-header-avatar" />
                   ) : (
                     businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
                   )
@@ -428,7 +529,7 @@ const PayrollDetail = () => {
           {/* Summary Cards */}
           <div className="payroll-detail-summary">
             {isLoadingPayrollDetail ? (
-              <div className="payroll-detail-card" style={{ gridColumn: '1 / -1', padding: '2rem', color: 'var(--text-muted)' }}>Loading payroll...</div>
+              <PayrollDetailGridMobileSkeleton count={4} />
             ) : !payrollDetail ? (
               <div className="payroll-detail-card" style={{ gridColumn: '1 / -1', padding: '2rem', color: 'var(--text-muted)' }}>Payroll not found</div>
             ) : (
@@ -519,11 +620,37 @@ const PayrollDetail = () => {
           {/* Team Details Section */}
           <div className="team-details-section">
             <div className="team-details-header">
-              <div className="section-indicator"></div>
-              <h2 className="team-details-title">Team Details</h2>
-              <div className="month-selector">
-                <Calendar size={16} />
-                <span>{selectedMonth}</span>
+              <div className="team-details-header-left">
+                <div className="section-indicator"></div>
+                <h2 className="team-details-title">Team Details</h2>
+              </div>
+              <div className="team-details-header-actions">
+                <button
+                  type="button"
+                  className="team-details-release-btn"
+                  onClick={handleReleasePayroll}
+                  disabled={releasingPayroll || isLoadingPayrollDetail}
+                >
+                  {releasingPayroll ? 'Releasing...' : 'Release now'}
+                </button>
+                <button type="button" className="team-details-month-selector">
+                  <span>{selectedMonth}</span>
+                  <Calendar size={16} />
+                </button>
+                <div className="team-details-freeze-toggle">
+                  <span className="team-details-freeze-label">Freeze Auto release</span>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={freezeAutoRelease}
+                      onChange={toggleFreezeAutoRelease}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                <button type="button" className="team-details-filter-btn" aria-label="Filter team details">
+                  <Filter size={16} />
+                </button>
               </div>
             </div>
 
@@ -532,72 +659,74 @@ const PayrollDetail = () => {
                 <thead>
                   <tr>
                     <th>Employee</th>
-                    <th>Email</th>
-                    <th>Amount</th>
+                    <th>Base</th>
+                    <th>Allowance</th>
+                    <th>Deduct</th>
+                    <th>Net Pay</th>
                     <th>Status</th>
-                    <th>Due date</th>
-                    <th></th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoadingPayrollDetail ? (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>Loading...</td>
-                    </tr>
+                    <PayrollTableRowsSkeleton rows={5} columns={7} />
                   ) : items.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>No items</td>
+                      <td colSpan={7} className="team-details-empty">No items</td>
                     </tr>
                   ) : (
-                    items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="employee-name">{item.counterpartyName ?? '—'}</td>
-                        <td>{item.counterpartyEmail ?? '—'}</td>
-                        <td>
-                          <div className="amount-cell">
-                            <span className="amount-usd">{formatUsd(item.amountUsd)}</span>
-                            {item.amountXrp != null && !Number.isNaN(Number(item.amountXrp)) && (
-                              <span className="amount-xrp">≈ {Number(item.amountXrp)} XRP</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${(item.status || '').toLowerCase()}`}>{item.status ?? '—'}</span>
-                        </td>
-                        <td>{item.dueDate ?? '—'}</td>
-                        <td>
-                          <button type="button" className="action-btn">
-                            <ArrowRight size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    items.map((item) => {
+                      const pay = getItemPayFields(item);
+                      return (
+                        <tr key={item.id}>
+                          <td className="employee-name">{item.counterpartyName ?? '—'}</td>
+                          <td>{renderPayCell(pay.base.usd, pay.base.xrp)}</td>
+                          <td>{renderPayCell(pay.allowance.usd, pay.allowance.xrp)}</td>
+                          <td>{renderPayCell(pay.deduct.usd, pay.deduct.xrp)}</td>
+                          <td>{renderPayCell(pay.netPay.usd, pay.netPay.xrp)}</td>
+                          <td>
+                            <span className={`status-badge ${(item.status || 'pending').toLowerCase()}`}>
+                              {item.status ?? 'Pending'}
+                            </span>
+                          </td>
+                          <td>
+                            <button type="button" className="team-details-action-btn" aria-label="View employee details">
+                              <ChevronRight size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
 
             <div className="team-details-pagination">
-              <button className="pagination-btn" disabled={currentPage === 1}>
+              <button type="button" className="pagination-btn" disabled={currentPage === 1}>
                 ← Prev 10
               </button>
               <div className="pagination-numbers">
-                <span className="pagination-number">1</span>
-                <span className="pagination-ellipsis">...</span>
-                <span className="pagination-number">11</span>
-                <span className="pagination-number active">{currentPage}</span>
-                <span className="pagination-number">13</span>
-                <span className="pagination-number">14</span>
-                <span className="pagination-number">15</span>
-                <span className="pagination-number">16</span>
-                <span className="pagination-number">17</span>
-                <span className="pagination-number">18</span>
-                <span className="pagination-number">19</span>
-                <span className="pagination-number">20</span>
-                <span className="pagination-ellipsis">...</span>
+                <span className={`pagination-number ${currentPage === 1 ? 'active' : ''}`}>1</span>
+                {currentPage > 1 && (
+                  <>
+                    <span className="pagination-ellipsis">...</span>
+                    {currentPage > 2 && <span className="pagination-number">{currentPage - 1}</span>}
+                    <span className="pagination-number active">{currentPage}</span>
+                    {currentPage < 78 && <span className="pagination-number">{currentPage + 1}</span>}
+                    {currentPage < 77 && <span className="pagination-ellipsis">...</span>}
+                  </>
+                )}
+                {currentPage === 1 && (
+                  <>
+                    <span className="pagination-number">2</span>
+                    <span className="pagination-number">3</span>
+                    <span className="pagination-ellipsis">...</span>
+                  </>
+                )}
                 <span className="pagination-number">78</span>
               </div>
-              <button className="pagination-btn">
+              <button type="button" className="pagination-btn">
                 Next 10 →
               </button>
             </div>

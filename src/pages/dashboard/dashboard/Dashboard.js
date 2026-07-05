@@ -85,6 +85,7 @@ import {
   DashboardWalletListSkeleton,
   DashboardEscrowListSkeleton,
   DashboardEscrowTableSkeleton,
+  DashboardSkeletonBlock,
 } from '../../../components/DashboardSkeletons';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
@@ -187,8 +188,68 @@ const developersNav = [
 
 const supportNav = [{ label: 'Settings', icon: Settings }];
 const PORTFOLIO_WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const PORTFOLIO_MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PORTFOLIO_SKELETON_BAR_HEIGHTS = [42, 68, 35, 82, 54, 61, 38, 76, 48, 58, 44, 72];
 const PORTFOLIO_SKELETON_X_LABEL_COUNT = 12;
+const PORTFOLIO_TIMEFRAME_OPTIONS = ['daily', 'monthly', 'yearly'];
+
+const mapBusinessSuitePortfolioPoints = (raw, timeframe) => {
+  if (!Array.isArray(raw)) return [];
+  const toPoint = (p, label) => ({
+    label,
+    subscriptionUsd: p ? Number(p.subscriptionUsd ?? 0) : 0,
+    payrollUsd: p ? Number(p.payrollUsd ?? 0) : 0,
+  });
+
+  if (timeframe === 'monthly') {
+    const byPeriod = {};
+    raw.forEach((p) => {
+      const key = String(p.period ?? '').trim().toLowerCase().slice(0, 3);
+      byPeriod[key] = p;
+    });
+    return PORTFOLIO_MONTH_LABELS.map((label) => {
+      const key = label.toLowerCase().slice(0, 3);
+      const p =
+        byPeriod[key] ||
+        raw.find((r) => String(r.period ?? '').trim().toLowerCase().slice(0, 3) === key);
+      return toPoint(p, label);
+    });
+  }
+
+  if (timeframe === 'daily') {
+    return PORTFOLIO_WEEKDAY_LABELS.map((label) => {
+      const labelNorm = label.toLowerCase();
+      const p = raw.find((r) => {
+        const dLabel = String(r.period ?? r.label ?? '').trim().toLowerCase();
+        return dLabel === labelNorm || dLabel.startsWith(labelNorm.slice(0, 3));
+      });
+      return toPoint(p, label);
+    });
+  }
+
+  if (timeframe === 'yearly') {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => {
+      const y = String(currentYear - 4 + i);
+      const p = raw.find((r) => String(r.period ?? r.label ?? '').trim() === y);
+      return toPoint(p, y);
+    });
+  }
+
+  return raw.map((p) => toPoint(p, String(p.period ?? p.label ?? '')));
+};
+
+const computePortfolioScaleMax = (maxValue) => {
+  if (!Number.isFinite(maxValue) || maxValue <= 0) return 1000;
+  const padded = maxValue * 1.08;
+  if (padded <= 2000) {
+    return Math.max(500, Math.ceil(padded / 500) * 500);
+  }
+  if (padded <= 10000) {
+    return Math.ceil(padded / 1000) * 1000;
+  }
+  return Math.ceil(padded / 2000) * 2000;
+};
 
 function resolvePortfolioWeekdayIndex(label) {
   const s = String(label ?? '').trim().toLowerCase();
@@ -1223,7 +1284,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [businessSuiteDashboardData, setBusinessSuiteDashboardData] = useState(null);
-  const [isLoadingBusinessSuiteDashboard, setIsLoadingBusinessSuiteDashboard] = useState(false);
+  const [isLoadingBusinessSuiteDashboard, setIsLoadingBusinessSuiteDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
   const [fallbackFxRates, setFallbackFxRates] = useState({});
   const [isLoadingRates, setIsLoadingRates] = useState(true);
@@ -1233,17 +1294,18 @@ const Dashboard = () => {
   const [portfolioTimeframe, setPortfolioTimeframe] = useState('monthly');
   const [portfolioYear, setPortfolioYear] = useState(() => new Date().getFullYear());
   const [businessSuitePortfolioPoints, setBusinessSuitePortfolioPoints] = useState([]);
-  const [isLoadingBusinessSuitePortfolio, setIsLoadingBusinessSuitePortfolio] = useState(false);
+  const [businessSuitePortfolioPrevYearSum, setBusinessSuitePortfolioPrevYearSum] = useState(null);
+  const [isLoadingBusinessSuitePortfolio, setIsLoadingBusinessSuitePortfolio] = useState(true);
   const [businessSuiteTeams, setBusinessSuiteTeams] = useState([]);
-  const [isLoadingBusinessSuiteTeams, setIsLoadingBusinessSuiteTeams] = useState(false);
+  const [isLoadingBusinessSuiteTeams, setIsLoadingBusinessSuiteTeams] = useState(true);
   const [teamDetailOpen, setTeamDetailOpen] = useState(false);
   const [teamDetailData, setTeamDetailData] = useState(null);
   const [teamDetailTeamId, setTeamDetailTeamId] = useState(null);
   const [isLoadingTeamDetail, setIsLoadingTeamDetail] = useState(false);
   const [upcomingSupply, setUpcomingSupply] = useState([]);
-  const [isLoadingUpcomingSupply, setIsLoadingUpcomingSupply] = useState(false);
+  const [isLoadingUpcomingSupply, setIsLoadingUpcomingSupply] = useState(true);
   const [subscriptionList, setSubscriptionList] = useState([]);
-  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [showPortfolioDropdown, setShowPortfolioDropdown] = useState(false);
   const [showPortfolioYearDropdown, setShowPortfolioYearDropdown] = useState(false);
   const [showMobilePortfolioDropdown, setShowMobilePortfolioDropdown] = useState(false);
@@ -1571,12 +1633,18 @@ const Dashboard = () => {
 
     // Last resort: implied USD per XRP from dashboard totals (when rates array lacks XRP/USD pair)
     if (fromCurrency === 'XRP' && toCurrency === 'USD') {
-      const dXrp = getBalanceValue(dashboardData, 'xrp');
+      const dXrp =
+        accountType === 'Personal' && walletBalances?.xrp != null
+          ? Number(walletBalances.xrp)
+          : getBalanceValue(dashboardData, 'xrp');
       const dUsd = getBalanceValue(dashboardData, 'usd');
       if (dXrp > 0 && dUsd > 0) return dUsd / dXrp;
     }
     if (fromCurrency === 'USD' && toCurrency === 'XRP') {
-      const dXrp = getBalanceValue(dashboardData, 'xrp');
+      const dXrp =
+        accountType === 'Personal' && walletBalances?.xrp != null
+          ? Number(walletBalances.xrp)
+          : getBalanceValue(dashboardData, 'xrp');
       const dUsd = getBalanceValue(dashboardData, 'usd');
       if (dXrp > 0 && dUsd > 0) return dXrp / dUsd;
     }
@@ -1584,16 +1652,34 @@ const Dashboard = () => {
     return null;
   };
 
+  const getPersonalWalletXrpBalance = () => {
+    if (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null) {
+      return Number(walletBalances.xrp);
+    }
+    return null;
+  };
+
+  const getDashboardSummaryXrpBalance = () => {
+    if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null) {
+      return Number(dashboardData.balance.xrp);
+    }
+    const v = getBalanceValue(dashboardData, 'xrp');
+    return v !== null && v !== undefined ? Number(v) : null;
+  };
+
   const getTotalPortfolioUsdNumber = () => {
+    const xrpBalance =
+      accountType === 'Personal' ? getPersonalWalletXrpBalance() : getDashboardSummaryXrpBalance();
+
     if (
-      dashboardData?.balance?.xrp !== undefined &&
-      dashboardData?.balance?.xrp !== null &&
+      xrpBalance !== null &&
+      xrpBalance !== undefined &&
       exchangeRates &&
       exchangeRates.length > 0
     ) {
       const xrpToUsdRate = getExchangeRate('XRP', 'USD');
       if (xrpToUsdRate) {
-        return Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
+        return Number(xrpBalance) * Number(xrpToUsdRate);
       }
       const usdRate = exchangeRates.find(
         (r) =>
@@ -1602,9 +1688,14 @@ const Dashboard = () => {
           r.code === 'USD',
       );
       if (usdRate && usdRate.rate) {
-        return Number(dashboardData.balance.xrp) * Number(usdRate.rate);
+        return Number(xrpBalance) * Number(usdRate.rate);
       }
     }
+
+    if (accountType === 'Personal') {
+      return 0;
+    }
+
     const usdBalance = getBalanceValue(dashboardData, 'usd');
     if (usdBalance !== null && usdBalance !== undefined) {
       return Number(usdBalance);
@@ -1658,12 +1749,12 @@ const Dashboard = () => {
   };
 
   const computeDashboardXrpAmount = () => {
-    if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null) {
-      return Number(dashboardData.balance.xrp);
+    if (accountType === 'Personal') {
+      const walletXrp = getPersonalWalletXrpBalance();
+      return walletXrp !== null ? walletXrp : 0;
     }
-    const v = getBalanceValue(dashboardData, 'xrp');
-    if (v !== null && v !== undefined) return Number(v);
-    return 0;
+    const summaryXrp = getDashboardSummaryXrpBalance();
+    return summaryXrp !== null ? summaryXrp : 0;
   };
 
   const formatFiatPrimaryBalance = (code) => {
@@ -2014,6 +2105,7 @@ const Dashboard = () => {
   // Business Suite dashboard summary (when account type is Business Suite)
   useEffect(() => {
     if (accountType !== 'Business Suite') {
+      setIsLoadingBusinessSuiteDashboard(false);
       return;
     }
     const token = localStorage.getItem('token');
@@ -2064,55 +2156,92 @@ const Dashboard = () => {
       .finally(() => setIsLoadingBusinessSuiteDashboard(false));
   }, [accountType]);
 
-  // Business Suite portfolio (Subscription + Payroll per month)
+  // Business Suite portfolio (Subscription + Payroll)
   useEffect(() => {
-    if (accountType !== 'Business Suite') return;
+    if (accountType !== 'Business Suite') {
+      setIsLoadingBusinessSuitePortfolio(false);
+      return undefined;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
       setIsLoadingBusinessSuitePortfolio(false);
-      return;
+      return undefined;
     }
-    const year = portfolioYear;
-    setIsLoadingBusinessSuitePortfolio(true);
-    fetch(getApiUrl(`api/business-suite/dashboard/portfolio?period=monthly&year=${year}`), {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((res) => res.json().catch(() => ({})))
-      .then((result) => {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        if (result?.success && Array.isArray(result?.data?.data)) {
-          const raw = result.data.data;
-          const byPeriod = {};
-          raw.forEach((p) => {
-            const key = String(p.period ?? '').trim().slice(0, 3);
-            byPeriod[key] = p;
-          });
-          const points = months.map((label) => {
-            const key = label.toLowerCase().slice(0, 3);
-            const p = byPeriod[key] || raw.find((r) => String(r.period ?? '').trim().toLowerCase().slice(0, 3) === key);
-            return {
-              label,
-              subscriptionUsd: p ? Number(p.subscriptionUsd ?? 0) : 0,
-              payrollUsd: p ? Number(p.payrollUsd ?? 0) : 0,
-              subscriptionPercent: p ? Number(p.subscriptionPercent ?? 0) : 0,
-              payrollPercent: p ? Number(p.payrollPercent ?? 0) : 0,
-            };
-          });
-          setBusinessSuitePortfolioPoints(points);
+
+    let cancelled = false;
+
+    const fetchBusinessSuitePortfolio = async () => {
+      setIsLoadingBusinessSuitePortfolio(true);
+      try {
+        const params = new URLSearchParams({ period: portfolioTimeframe });
+        if (portfolioTimeframe === 'monthly') params.set('year', String(portfolioYear));
+        params.set('_', String(Date.now()));
+
+        const response = await fetch(getApiUrl(`api/business-suite/dashboard/portfolio?${params}`), {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store',
+        });
+
+        if (cancelled) return;
+
+        if (response.ok) {
+          const result = await response.json();
+          const raw = result?.success && Array.isArray(result?.data?.data) ? result.data.data : [];
+          setBusinessSuitePortfolioPoints(mapBusinessSuitePortfolioPoints(raw, portfolioTimeframe));
+
+          if (portfolioTimeframe === 'monthly' && portfolioYear > 1) {
+            const prevParams = new URLSearchParams({
+              period: 'monthly',
+              year: String(portfolioYear - 1),
+              _: String(Date.now()),
+            });
+            const prevResponse = await fetch(getApiUrl(`api/business-suite/dashboard/portfolio?${prevParams}`), {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              cache: 'no-store',
+            });
+            if (!cancelled && prevResponse.ok) {
+              const prevResult = await prevResponse.json();
+              const prevRaw = prevResult?.success && Array.isArray(prevResult?.data?.data) ? prevResult.data.data : [];
+              const prevPoints = mapBusinessSuitePortfolioPoints(prevRaw, 'monthly');
+              const prevSum = prevPoints.reduce(
+                (sum, p) => sum + Number(p.subscriptionUsd ?? 0) + Number(p.payrollUsd ?? 0),
+                0,
+              );
+              setBusinessSuitePortfolioPrevYearSum(prevSum);
+            } else if (!cancelled) {
+              setBusinessSuitePortfolioPrevYearSum(null);
+            }
+          } else if (!cancelled) {
+            setBusinessSuitePortfolioPrevYearSum(null);
+          }
         } else {
           setBusinessSuitePortfolioPoints([]);
+          setBusinessSuitePortfolioPrevYearSum(null);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Business Suite portfolio error:', err);
-        setBusinessSuitePortfolioPoints([]);
-      })
-      .finally(() => setIsLoadingBusinessSuitePortfolio(false));
-  }, [accountType, portfolioYear]);
+        if (!cancelled) {
+          setBusinessSuitePortfolioPoints([]);
+          setBusinessSuitePortfolioPrevYearSum(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingBusinessSuitePortfolio(false);
+      }
+    };
+
+    fetchBusinessSuitePortfolio();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountType, portfolioYear, portfolioTimeframe]);
 
   // Business Suite teams (My Teams) – refetchable for Add Team modal
   const refetchBusinessSuiteTeams = useCallback(() => {
@@ -2145,13 +2274,19 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (accountType !== 'Business Suite') return;
+    if (accountType !== 'Business Suite') {
+      setIsLoadingBusinessSuiteTeams(false);
+      return;
+    }
     refetchBusinessSuiteTeams();
   }, [accountType, refetchBusinessSuiteTeams]);
 
   // Business Suite upcoming supply (card: no query)
   useEffect(() => {
-    if (accountType !== 'Business Suite') return;
+    if (accountType !== 'Business Suite') {
+      setIsLoadingUpcomingSupply(false);
+      return;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
       setIsLoadingUpcomingSupply(false);
@@ -2182,7 +2317,10 @@ const Dashboard = () => {
 
   // Business Suite subscription
   useEffect(() => {
-    if (accountType !== 'Business Suite') return;
+    if (accountType !== 'Business Suite') {
+      setIsLoadingSubscription(false);
+      return;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
       setIsLoadingSubscription(false);
@@ -2757,9 +2895,6 @@ const Dashboard = () => {
     fetchPortfolioPerformance();
   }, [portfolioTimeframe, portfolioYear]);
 
-  const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const PORTFOLIO_TIMEFRAME_OPTIONS = ['daily', 'monthly', 'yearly'];
-
   const portfolioChartPoints = useMemo(() => {
     const data = portfolioPoints || [];
     const norm = (p) => String(p ?? '').trim().toLowerCase();
@@ -2800,7 +2935,7 @@ const Dashboard = () => {
       return PORTFOLIO_WEEKDAY_LABELS.map((label) => ({ label, value: findValue(label) }));
     }
     if (portfolioTimeframe === 'monthly') {
-      return MONTH_LABELS.map((label) => ({ label, value: findValue(label) }));
+      return PORTFOLIO_MONTH_LABELS.map((label) => ({ label, value: findValue(label) }));
     }
     if (portfolioTimeframe === 'yearly') {
       const currentYear = new Date().getFullYear();
@@ -2817,16 +2952,7 @@ const Dashboard = () => {
       (max, point) => Math.max(max, Number(point?.value ?? 0)),
       0
     );
-    if (!Number.isFinite(maxValue) || maxValue <= 0) return 1000;
-
-    const padded = maxValue * 1.08;
-    if (padded <= 2000) {
-      return Math.max(500, Math.ceil(padded / 500) * 500);
-    }
-    if (padded <= 10000) {
-      return Math.ceil(padded / 1000) * 1000;
-    }
-    return Math.ceil(padded / 2000) * 2000;
+    return computePortfolioScaleMax(maxValue);
   }, [portfolioChartPoints]);
 
   const portfolioYAxisTicks = useMemo(() => {
@@ -2900,6 +3026,83 @@ const Dashboard = () => {
     return { total, changePercent, comparisonLabel };
   }, [portfolioChartPoints, portfolioPrevYearSum, portfolioTimeframe]);
 
+  const businessSuitePortfolioScaleMax = useMemo(() => {
+    const maxValue = businessSuitePortfolioPoints.reduce(
+      (max, point) =>
+        Math.max(max, Number(point.subscriptionUsd ?? 0), Number(point.payrollUsd ?? 0)),
+      0,
+    );
+    return computePortfolioScaleMax(maxValue);
+  }, [businessSuitePortfolioPoints]);
+
+  const businessSuitePortfolioYAxisTicks = useMemo(() => {
+    const tickCount = 4;
+    const step = businessSuitePortfolioScaleMax / (tickCount - 1);
+    return Array.from({ length: tickCount }, (_, index) =>
+      Math.round(businessSuitePortfolioScaleMax - step * index),
+    );
+  }, [businessSuitePortfolioScaleMax]);
+
+  const toBusinessSuiteBarHeight = useCallback(
+    (rawValue) => {
+      const value = Number(rawValue ?? 0);
+      if (!Number.isFinite(value) || value <= 0) return 0;
+      return Math.min(100, (value / businessSuitePortfolioScaleMax) * 100);
+    },
+    [businessSuitePortfolioScaleMax],
+  );
+
+  const getBusinessSuiteYAxisTickFraction = useCallback(
+    (val) => {
+      if (!businessSuitePortfolioScaleMax || businessSuitePortfolioScaleMax <= 0) return 0;
+      return val / businessSuitePortfolioScaleMax;
+    },
+    [businessSuitePortfolioScaleMax],
+  );
+
+  const businessSuitePortfolioSummary = useMemo(() => {
+    const total = businessSuitePortfolioPoints.reduce(
+      (sum, point) => sum + Number(point.subscriptionUsd ?? 0) + Number(point.payrollUsd ?? 0),
+      0,
+    );
+    let changePercent = null;
+    let comparisonLabel = 'compared to previous period';
+
+    if (portfolioTimeframe === 'monthly' && businessSuitePortfolioPrevYearSum != null) {
+      if (businessSuitePortfolioPrevYearSum > 0) {
+        changePercent = ((total - businessSuitePortfolioPrevYearSum) / businessSuitePortfolioPrevYearSum) * 100;
+      } else if (total > 0) {
+        changePercent = 100;
+      } else {
+        changePercent = 0;
+      }
+      comparisonLabel = 'compared to previous year';
+    } else if (portfolioTimeframe === 'yearly' && businessSuitePortfolioPoints.length >= 2) {
+      const values = businessSuitePortfolioPoints.map(
+        (point) => Number(point.subscriptionUsd ?? 0) + Number(point.payrollUsd ?? 0),
+      );
+      const previous = values[values.length - 2];
+      const current = values[values.length - 1];
+      if (previous > 0) {
+        changePercent = ((current - previous) / previous) * 100;
+        comparisonLabel = 'compared to previous year';
+      }
+    } else if (portfolioTimeframe === 'daily' && businessSuitePortfolioPoints.length >= 2) {
+      const values = businessSuitePortfolioPoints.map(
+        (point) => Number(point.subscriptionUsd ?? 0) + Number(point.payrollUsd ?? 0),
+      );
+      const midpoint = Math.floor(values.length / 2);
+      const firstHalf = values.slice(0, midpoint).reduce((sum, val) => sum + val, 0);
+      const secondHalf = values.slice(midpoint).reduce((sum, val) => sum + val, 0);
+      if (firstHalf > 0) {
+        changePercent = ((secondHalf - firstHalf) / firstHalf) * 100;
+        comparisonLabel = 'compared to previous week';
+      }
+    }
+
+    return { total, changePercent, comparisonLabel };
+  }, [businessSuitePortfolioPoints, businessSuitePortfolioPrevYearSum, portfolioTimeframe]);
+
   const closePortfolioDropdowns = useCallback(() => {
     setShowPortfolioDropdown(false);
     setShowPortfolioYearDropdown(false);
@@ -2910,17 +3113,57 @@ const Dashboard = () => {
   const handlePortfolioTimeframeChange = useCallback((timeframe) => {
     closePortfolioDropdowns();
     if (timeframe === portfolioTimeframe) return;
-    setIsLoadingPortfolio(true);
+    if (accountType === 'Business Suite') {
+      setIsLoadingBusinessSuitePortfolio(true);
+    } else {
+      setIsLoadingPortfolio(true);
+    }
     setPortfolioTimeframe(timeframe);
-  }, [closePortfolioDropdowns, portfolioTimeframe]);
+  }, [accountType, closePortfolioDropdowns, portfolioTimeframe]);
 
   const handlePortfolioYearChange = useCallback((year) => {
     closePortfolioDropdowns();
     if (year === portfolioYear && portfolioTimeframe === 'monthly') return;
-    setIsLoadingPortfolio(true);
+    if (accountType === 'Business Suite') {
+      setIsLoadingBusinessSuitePortfolio(true);
+    } else {
+      setIsLoadingPortfolio(true);
+    }
     setPortfolioYear(year);
     setPortfolioTimeframe('monthly');
-  }, [closePortfolioDropdowns, portfolioYear, portfolioTimeframe]);
+  }, [accountType, closePortfolioDropdowns, portfolioYear, portfolioTimeframe]);
+
+  const renderBusinessPortfolioSummary = () => {
+    const portfolioSummaryLoading = isLoadingBusinessKyc || isLoadingBusinessSuitePortfolio;
+    return (
+    <div
+      className={`chart-portfolio-summary${portfolioSummaryLoading ? ' chart-portfolio-summary--loading' : ''}`}
+      aria-busy={portfolioSummaryLoading || undefined}
+    >
+      {portfolioSummaryLoading ? (
+        <>
+          <span className="portfolio-skeleton-block portfolio-skeleton-block--total" />
+          <span className="portfolio-skeleton-block portfolio-skeleton-block--change" />
+        </>
+      ) : (
+        <>
+          <div className="chart-portfolio-total">{formatPortfolioUsd(businessSuitePortfolioSummary.total)}</div>
+          {businessSuitePortfolioSummary.changePercent != null &&
+          Number.isFinite(businessSuitePortfolioSummary.changePercent) ? (
+            <div className="chart-portfolio-change">
+              <span
+                className={`chart-portfolio-change-value${businessSuitePortfolioSummary.changePercent >= 0 ? ' is-positive' : ' is-negative'}`}
+              >
+                {formatPortfolioSignedPercent(businessSuitePortfolioSummary.changePercent)}
+              </span>
+              <span className="chart-portfolio-change-label">{businessSuitePortfolioSummary.comparisonLabel}</span>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+  };
 
   const renderPortfolioChartSkeleton = (mobile = false) => (
     <div
@@ -2996,35 +3239,34 @@ const Dashboard = () => {
       }
     };
 
-    if (showPortfolioDropdown || showMobilePortfolioDropdown) {
+    if (showPortfolioDropdown || showMobilePortfolioDropdown || showPortfolioYearDropdown || showMobilePortfolioYearDropdown) {
       document.addEventListener('click', handleClickOutside);
       return () => {
         document.removeEventListener('click', handleClickOutside);
       };
     }
-  }, [showPortfolioDropdown, showMobilePortfolioDropdown]);
+  }, [showPortfolioDropdown, showMobilePortfolioDropdown, showPortfolioYearDropdown, showMobilePortfolioYearDropdown]);
 
   useEffect(() => {
+    const abortController = new AbortController();
+
     const fetchWalletBalances = async () => {
+      setWalletBalances(null);
+      setIsLoadingWalletBalances(true);
       try {
         // If session is expired, don't fetch
         if (isSessionExpired) {
           console.log('Session expired, skipping wallet balances fetch');
-          setIsLoadingWalletBalances(false);
           return;
         }
 
         const token = localStorage.getItem('token');
         if (!token) {
           console.warn('No token found for wallet balances');
-          setIsLoadingWalletBalances(false);
           return;
         }
 
         const isBusinessSuite = accountType === 'Business Suite';
-        if (isBusinessSuite) {
-          setWalletBalances(null);
-        }
         const apiUrl = isBusinessSuite
           ? getApiUrl('api/business-suite/wallet/balance')
           : getApiUrl('api/wallet/balance');
@@ -3036,6 +3278,7 @@ const Dashboard = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          signal: abortController.signal,
         });
 
         console.log('Wallet balances API response status:', response.status);
@@ -3153,6 +3396,7 @@ const Dashboard = () => {
           }
         }
       } catch (error) {
+        if (error?.name === 'AbortError') return;
         console.error('Error fetching wallet balances:', error);
         setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rlusd: 0 });
         if (accountType === 'Business Suite') {
@@ -3161,11 +3405,14 @@ const Dashboard = () => {
           setHasWallet(false);
         }
       } finally {
-        setIsLoadingWalletBalances(false);
+        if (!abortController.signal.aborted) {
+          setIsLoadingWalletBalances(false);
+        }
       }
     };
 
     fetchWalletBalances();
+    return () => abortController.abort();
   }, [isSessionExpired, accountType, walletBalancesRefreshTrigger]);
 
   // Fetch network-specific deposit address for USDT/USDC wallet details
@@ -5248,13 +5495,7 @@ const Dashboard = () => {
               ≈{' '}
               {balancePrimaryCurrency === 'USD' ? (
                 <>
-                  {(() => {
-                    const xrpBalance = getBalanceValue(dashboardData, 'xrp');
-                    if (xrpBalance !== null && xrpBalance !== undefined) {
-                      return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    }
-                    return '0.00';
-                  })()}{' '}
+                  {computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
                   XRP
                 </>
               ) : (
@@ -7168,7 +7409,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      {isSwitchingAccountType && <BusinessSuiteLoader message={switchMessage} />}
+      {isSwitchingAccountType && <BusinessSuiteLoader />}
       <aside className="dashboard-sidebar">
         <div className="sidebar-branding">
           <img src={logo} alt="TrustiChain" className="sidebar-logo" />
@@ -7451,7 +7692,7 @@ const Dashboard = () => {
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
                   ) : isLoadingBusinessKyc ? (
-                    <LoadingIndicator size="sm" />
+                    <DashboardSkeletonBlock className="dashboard-skeleton-header-avatar" />
                   ) : (
                     businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
                   )
@@ -7466,22 +7707,18 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {accountType === 'Business Suite' && isLoadingBusinessKyc ? (
-          <div className="dashboard-kyc-loading" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh', padding: '2rem' }}>
-            <LoadingIndicator size="md" />
-          </div>
-        ) : isKycCompleteForAccount ? (
+        {(isKycCompleteForAccount || (accountType === 'Business Suite' && isLoadingBusinessKyc)) ? (
           accountType === 'Business Suite' ? (
             location.pathname === '/supplier-contract' ? (
               <SupplierContractContent
                 dashboardData={businessSuiteDashboardData}
-                isLoadingDashboard={isLoadingBusinessSuiteDashboard}
+                isLoadingDashboard={isLoadingBusinessKyc || isLoadingBusinessSuiteDashboard}
                 exchangeRates={exchangeRates}
                 isLoadingRates={isLoadingRates}
                 walletBalances={walletBalances}
                 isLoadingWalletBalances={isLoadingWalletBalances}
                 totalEscrowedAmount={businessSuiteDashboardData?.totalEscrowed}
-                isLoadingTotalEscrowed={isLoadingBusinessSuiteDashboard}
+                isLoadingTotalEscrowed={isLoadingBusinessKyc || isLoadingBusinessSuiteDashboard}
                 userFullName={userFullName}
                 userInitials={userInitials}
                 userRole={userRole}
@@ -7516,25 +7753,45 @@ const Dashboard = () => {
             ) : (
             <BusinessDashboard
               dashboardData={businessSuiteDashboardData}
-              isLoadingDashboard={isLoadingBusinessSuiteDashboard}
+              isLoadingDashboard={isLoadingBusinessKyc || isLoadingBusinessSuiteDashboard}
               exchangeRates={exchangeRates}
               isLoadingRates={isLoadingRates}
-              portfolioPoints={accountType === 'Business Suite' ? businessSuitePortfolioPoints : portfolioChartPoints}
-              isLoadingPortfolio={accountType === 'Business Suite' ? isLoadingBusinessSuitePortfolio : isLoadingPortfolio}
+              portfolioPoints={businessSuitePortfolioPoints}
+              isLoadingPortfolio={isLoadingBusinessKyc || isLoadingBusinessSuitePortfolio}
+              portfolioTimeframe={portfolioTimeframe}
+              portfolioYear={portfolioYear}
+              portfolioYAxisTicks={businessSuitePortfolioYAxisTicks}
+              portfolioScaleMax={businessSuitePortfolioScaleMax}
+              formatPortfolioYAxisTick={formatPortfolioYAxisTick}
+              getPortfolioYAxisTickFraction={getBusinessSuiteYAxisTickFraction}
+              toPortfolioBarHeight={toBusinessSuiteBarHeight}
+              renderPortfolioSummary={renderBusinessPortfolioSummary}
+              renderPortfolioChartSkeleton={renderPortfolioChartSkeleton}
+              handlePortfolioTimeframeChange={handlePortfolioTimeframeChange}
+              handlePortfolioYearChange={handlePortfolioYearChange}
+              portfolioTimeframeOptions={PORTFOLIO_TIMEFRAME_OPTIONS}
+              showPortfolioDropdown={showPortfolioDropdown}
+              setShowPortfolioDropdown={setShowPortfolioDropdown}
+              showPortfolioYearDropdown={showPortfolioYearDropdown}
+              setShowPortfolioYearDropdown={setShowPortfolioYearDropdown}
+              showMobilePortfolioDropdown={showMobilePortfolioDropdown}
+              setShowMobilePortfolioDropdown={setShowMobilePortfolioDropdown}
+              showMobilePortfolioYearDropdown={showMobilePortfolioYearDropdown}
+              setShowMobilePortfolioYearDropdown={setShowMobilePortfolioYearDropdown}
               teams={businessSuiteTeams}
-              isLoadingTeams={isLoadingBusinessSuiteTeams}
+              isLoadingTeams={isLoadingBusinessKyc || isLoadingBusinessSuiteTeams}
               onViewTeam={handleViewTeam}
               onTeamCreated={refetchBusinessSuiteTeams}
               upcomingSupply={upcomingSupply}
-              isLoadingUpcomingSupply={isLoadingUpcomingSupply}
+              isLoadingUpcomingSupply={isLoadingBusinessKyc || isLoadingUpcomingSupply}
               subscriptionList={subscriptionList}
-              isLoadingSubscription={isLoadingSubscription}
+              isLoadingSubscription={isLoadingBusinessKyc || isLoadingSubscription}
               walletBalances={walletBalances}
               isLoadingWalletBalances={isLoadingWalletBalances}
               escrows={escrows}
               isLoadingEscrows={isLoadingEscrows}
               totalEscrowedAmount={businessSuiteDashboardData?.totalEscrowed}
-              isLoadingTotalEscrowed={isLoadingBusinessSuiteDashboard}
+              isLoadingTotalEscrowed={isLoadingBusinessKyc || isLoadingBusinessSuiteDashboard}
               userFullName={userFullName}
               userInitials={userInitials}
               userRole={userRole}

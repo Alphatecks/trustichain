@@ -445,7 +445,7 @@ const Invoice = () => {
         showInvoiceEditor ? ' invoice-dashboard--editor-open' : ''
       }`}
     >
-      {isSwitchingAccountType && <BusinessSuiteLoader message={switchMessage} />}
+      {isSwitchingAccountType && <BusinessSuiteLoader />}
 
       {isMobileMenuOpen && (
         <div className="mobile-sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true" />

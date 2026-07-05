@@ -29,7 +29,9 @@ import SupplierContract from './SupplierContract';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 import WithdrawModal from '../../../components/WithdrawModal';
 import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
-import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardSkeletonBlock,
+} from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
@@ -833,7 +835,7 @@ const SupplierContractPage = () => {
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
                   ) : isLoadingBusinessKyc ? (
-                    <LoadingIndicator size="sm" />
+                    <DashboardSkeletonBlock className="dashboard-skeleton-header-avatar" />
                   ) : (
                     businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
                   )

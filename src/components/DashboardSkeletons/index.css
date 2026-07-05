@@ -790,3 +790,659 @@
 .trusticard-card-info-skeleton .trusticard-card-info-field + .trusticard-card-info-field {
   margin-top: 1rem;
 }
+
+.business-suite-single-value-skeleton {
+  display: block;
+  width: 7rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+}
+
+.business-suite-card-holder-skeleton {
+  display: inline-block;
+  width: 8rem;
+  height: 1rem;
+  border-radius: 999px;
+}
+
+.dashboard-skeleton-header-avatar {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.business-suite-list-row-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.business-suite-list-row-skeleton:last-child {
+  border-bottom: none;
+}
+
+.business-suite-list-row-skeleton.mobile {
+  padding: 0.65rem 0;
+}
+
+.business-suite-list-skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.business-suite-list-skeleton-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.business-suite-list-skeleton-name {
+  width: 6.5rem;
+  height: 0.9rem;
+  border-radius: 999px;
+}
+
+.business-suite-list-skeleton-email {
+  width: 8rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+}
+
+.business-suite-list-skeleton-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.business-suite-list-skeleton-amount {
+  width: 4.5rem;
+  height: 0.9rem;
+  border-radius: 999px;
+}
+
+.business-suite-list-skeleton-date {
+  width: 5.5rem;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.business-suite-team-row-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.business-suite-team-row-skeleton:last-child {
+  border-bottom: none;
+}
+
+.business-suite-team-skeleton-row1,
+.business-suite-team-skeleton-row2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.business-suite-team-skeleton-name {
+  width: 7rem;
+  height: 1rem;
+  border-radius: 999px;
+}
+
+.business-suite-team-skeleton-date {
+  width: 6rem;
+  height: 0.8rem;
+  border-radius: 999px;
+}
+
+.business-suite-team-skeleton-members {
+  width: 8rem;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.business-suite-team-skeleton-actions {
+  width: 9rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+}
+
+.business-suite-page-skeleton {
+  width: min(100%, 1120px);
+  padding: 1.5rem;
+}
+
+.business-suite-page-skeleton-breadcrumb {
+  width: 10rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+
+.business-suite-page-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.business-suite-page-skeleton-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.business-suite-page-skeleton-card-title {
+  width: 55%;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.business-suite-page-skeleton-card-value {
+  width: 70%;
+  height: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.business-suite-page-skeleton-card-action {
+  width: 45%;
+  height: 2rem;
+  border-radius: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.business-suite-page-skeleton-middle {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.business-suite-page-skeleton-chart,
+.business-suite-page-skeleton-aside {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.business-suite-page-skeleton-chart-title,
+.business-suite-page-skeleton-aside-title {
+  width: 6rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+}
+
+.business-suite-page-skeleton-chart-plot {
+  width: 100%;
+  height: 220px;
+  border-radius: 0.65rem;
+}
+
+@media (max-width: 900px) {
+  .business-suite-page-skeleton-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .business-suite-page-skeleton-middle {
+    grid-template-columns: 1fr;
+  }
+}
+
+.payroll-summary-cards-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.payroll-summary-cards-skeleton--mobile {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0 1rem 0.25rem;
+  scrollbar-width: none;
+}
+
+.payroll-summary-cards-skeleton--mobile::-webkit-scrollbar {
+  display: none;
+}
+
+.payroll-summary-card-skeleton {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  min-width: 0;
+}
+
+.payroll-summary-cards-skeleton--mobile .payroll-summary-card-skeleton {
+  flex: 0 0 min(78vw, 280px);
+}
+
+.payroll-summary-card-skeleton-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.65rem;
+  flex-shrink: 0;
+}
+
+.payroll-summary-card-skeleton-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.payroll-summary-card-skeleton-title {
+  width: 55%;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.payroll-summary-card-skeleton-value {
+  width: 70%;
+  height: 1.35rem;
+  border-radius: 0.45rem;
+}
+
+.payroll-summary-card-skeleton-meta {
+  width: 45%;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.payroll-card-skeleton {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.payroll-card-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.payroll-card-skeleton-title {
+  width: 45%;
+  height: 1.1rem;
+  border-radius: 999px;
+}
+
+.payroll-card-skeleton-actions {
+  width: 5.5rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+}
+
+.payroll-card-skeleton-toggle {
+  width: 100%;
+  height: 2rem;
+  border-radius: 999px;
+}
+
+.payroll-card-skeleton-date {
+  width: 60%;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.payroll-card-skeleton-freeze {
+  width: 100%;
+  height: 1.5rem;
+  border-radius: 0.45rem;
+}
+
+.payroll-card-skeleton-btn {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+}
+
+.payroll-list-item-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.payroll-list-item-skeleton-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.payroll-list-item-skeleton-title {
+  width: 55%;
+  height: 1rem;
+  border-radius: 999px;
+}
+
+.payroll-list-item-skeleton-sub {
+  width: 40%;
+  height: 0.8rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+}
+
+.payroll-list-item-skeleton-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 0.35rem;
+  flex-shrink: 0;
+}
+
+.payroll-details-grid-skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.payroll-detail-card-skeleton {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.payroll-detail-card-skeleton-title {
+  width: 60%;
+  height: 0.8rem;
+  border-radius: 999px;
+}
+
+.payroll-detail-card-skeleton-value {
+  width: 45%;
+  height: 1.25rem;
+  border-radius: 0.45rem;
+}
+
+.payroll-detail-card-skeleton-action {
+  width: 55%;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+}
+
+.payroll-table-row-skeleton td {
+  padding: 0.85rem 0.75rem;
+  vertical-align: middle;
+}
+
+.payroll-table-cell-skeleton {
+  display: block;
+  width: 100%;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.payroll-table-row-skeleton td:first-child .payroll-table-cell-skeleton {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+}
+
+.payroll-details-transaction-item-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.payroll-details-transaction-item-skeleton:last-child {
+  border-bottom: none;
+}
+
+.payroll-details-transaction-item-skeleton-left,
+.payroll-details-transaction-item-skeleton-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.payroll-details-transaction-item-skeleton-right {
+  align-items: flex-end;
+}
+
+.payroll-details-tx-skeleton-sender {
+  width: 6.5rem;
+  height: 0.9rem;
+  border-radius: 999px;
+}
+
+.payroll-details-tx-skeleton-amount {
+  width: 4.5rem;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.payroll-details-tx-skeleton-date {
+  width: 4rem;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.payroll-details-tx-skeleton-arrow {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.45rem;
+}
+
+@media (max-width: 900px) {
+  .payroll-summary-cards-skeleton:not(.payroll-summary-cards-skeleton--mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.supplier-id-value-skeleton {
+  display: inline-block;
+  width: 10rem;
+  height: 1rem;
+  border-radius: 999px;
+}
+
+.supplier-metric-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.supplier-metric-card-skeleton--mobile {
+  flex: 0 0 min(78vw, 280px);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.supplier-metric-card-skeleton-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.65rem;
+}
+
+.supplier-metric-card-skeleton-title {
+  width: 70%;
+  height: 0.85rem;
+  border-radius: 999px;
+}
+
+.supplier-metric-card-skeleton-value {
+  width: 45%;
+  height: 1.5rem;
+  border-radius: 0.45rem;
+}
+
+.supplier-metric-card-skeleton-sub {
+  width: 55%;
+  height: 0.8rem;
+  border-radius: 999px;
+}
+
+.supplier-metric-card-skeleton-btn {
+  width: 100%;
+  height: 2.25rem;
+  border-radius: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.supplier-detail-card-skeleton {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.supplier-detail-card-skeleton-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.supplier-detail-card-skeleton-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.supplier-detail-card-skeleton-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+}
+
+.supplier-detail-card-skeleton-name {
+  width: 85%;
+  height: 0.9rem;
+  border-radius: 999px;
+}
+
+.supplier-detail-card-skeleton-date {
+  width: 60%;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.supplier-detail-card-skeleton-amount-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.supplier-detail-card-skeleton-amount-label {
+  width: 35%;
+  height: 0.7rem;
+  border-radius: 999px;
+}
+
+.supplier-detail-card-skeleton-amount {
+  width: 50%;
+  height: 1rem;
+  border-radius: 999px;
+}
+
+.supplier-modal-list-skeleton {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.supplier-modal-list-item-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.supplier-modal-list-item-skeleton:last-child {
+  border-bottom: none;
+}
+
+.supplier-modal-list-skeleton-id {
+  width: 55%;
+  height: 0.9rem;
+  border-radius: 999px;
+}
+
+.supplier-modal-list-skeleton-meta {
+  width: 75%;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.supplier-modal-list-skeleton-badge {
+  width: 4.5rem;
+  height: 1.35rem;
+  border-radius: 999px;
+}
+
+.supplier-contract-detail-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 0 1rem;
+}
+
+.supplier-contract-detail-field-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.supplier-contract-detail-label-skeleton {
+  width: 35%;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.supplier-contract-detail-value-skeleton {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 0.55rem;
+}

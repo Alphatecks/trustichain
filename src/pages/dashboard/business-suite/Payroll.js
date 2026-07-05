@@ -49,7 +49,16 @@ import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/Tru
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
-import LoadingIndicator from '../../../components/LoadingIndicator';
+import {
+  DashboardSkeletonBlock,
+  PayrollSummaryCardsSkeleton,
+  PayrollCardsSkeleton,
+  PayrollListMobileSkeleton,
+  PayrollDetailGridMobileSkeleton,
+  PayrollTableRowsSkeleton,
+  PayrollDetailsTransactionListSkeleton,
+  TransactionHistoryCardsSkeleton,
+} from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import AddPayrollModal from '../../../components/AddPayrollModal';
@@ -745,7 +754,7 @@ const Payroll = () => {
                 businessCompanyLogoUrl ? (
                   <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} />
                 ) : isLoadingBusinessKyc ? (
-                  <LoadingIndicator size="sm" />
+                  <DashboardSkeletonBlock className="dashboard-skeleton-header-avatar" />
                 ) : (
                   businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
                 )
@@ -960,6 +969,9 @@ const Payroll = () => {
           {/* Summary Cards - Horizontally Scrollable */}
           {!selectedPayrollDetail && (
             <div className="payroll-summary-cards-wrapper-mobile">
+              {isLoadingPayrollSummary ? (
+                <PayrollSummaryCardsSkeleton mobile />
+              ) : (
               <div className="payroll-summary-cards-mobile">
             <div className="payroll-summary-card-mobile payroll-summary-card-mobile--value-trend">
               <div className="summary-card-icon-mobile">
@@ -968,7 +980,7 @@ const Payroll = () => {
               <div className="summary-card-content-mobile">
                 <div className="summary-card-title-mobile">Total Payroll</div>
                 <div className="summary-card-value-row-mobile">
-                  <div className="summary-card-value-mobile">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalPayroll ?? '—')}</div>
+                  <div className="summary-card-value-mobile">{payrollSummary?.totalPayroll ?? '—'}</div>
                   <div className="summary-card-trend-mobile positive">
                     <TrendingUp size={14} />
                     <span>+3.1%</span>
@@ -984,7 +996,7 @@ const Payroll = () => {
               <div className="summary-card-content-mobile">
                 <div className="summary-card-title-mobile">Total Team members</div>
                 <div className="summary-card-value-row-mobile">
-                  <div className="summary-card-value-mobile">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalTeamMembers ?? '—')}</div>
+                  <div className="summary-card-value-mobile">{payrollSummary?.totalTeamMembers ?? '—'}</div>
                   <div className="summary-card-subtitle-mobile">Active members</div>
                 </div>
               </div>
@@ -997,11 +1009,12 @@ const Payroll = () => {
               <div className="summary-card-content-mobile">
                 <div className="summary-card-title-mobile">Total Payroll Escrowed</div>
                 <div className="summary-card-value-row-mobile">
-                  <div className="summary-card-value-mobile">{isLoadingPayrollSummary ? '...' : formatSummaryEscrowed(payrollSummary?.totalPayrollEscrowed)}</div>
+                  <div className="summary-card-value-mobile">{formatSummaryEscrowed(payrollSummary?.totalPayrollEscrowed)}</div>
                 </div>
               </div>
             </div>
           </div>
+              )}
           </div>
           )}
 
@@ -1019,7 +1032,7 @@ const Payroll = () => {
               {/* Payroll List - Simple Mobile View */}
               <div className="payroll-list-mobile">
                 {isLoadingPayrolls ? (
-                  <div className="payroll-list-item-mobile" style={{ color: 'var(--text-muted)' }}>Loading payrolls...</div>
+                  <PayrollListMobileSkeleton count={3} />
                 ) : payrolls.length === 0 ? (
                   <div className="payroll-list-item-mobile" style={{ color: 'var(--text-muted)' }}>No payrolls yet</div>
                 ) : (
@@ -1506,7 +1519,7 @@ const Payroll = () => {
               {/* Mobile Transaction History List */}
               <div className="transaction-history-list-mobile">
                 {isLoadingTransactionHistory ? (
-                  <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+                  <TransactionHistoryCardsSkeleton count={4} />
                 ) : transactionHistory.length === 0 ? (
                   <div className="transaction-item-mobile" style={{ color: 'var(--text-muted)' }}>No transactions</div>
                 ) : (
@@ -1549,12 +1562,11 @@ const Payroll = () => {
                 </button>
               </div>
 
+              {isLoadingMobilePayrollDetail ? (
+                <PayrollDetailGridMobileSkeleton count={4} />
+              ) : (
               <div className="payroll-details-grid-mobile">
-                {isLoadingMobilePayrollDetail ? (
-                  <div className="payroll-detail-card-mobile" style={{ gridColumn: '1 / -1', padding: '1.5rem', textAlign: 'center' }}>
-                    <LoadingIndicator size="sm" />
-                  </div>
-                ) : !mobilePayrollDetail ? (
+                {!mobilePayrollDetail ? (
                   <div className="payroll-detail-card-mobile" style={{ gridColumn: '1 / -1', padding: '1.5rem', color: 'var(--text-muted)' }}>
                     Failed to load payroll details
                   </div>
@@ -1639,6 +1651,7 @@ const Payroll = () => {
                   </>
                 )}
               </div>
+              )}
 
               {/* Transaction History Section */}
               <div className="payroll-details-transaction-header-mobile">
@@ -1655,9 +1668,7 @@ const Payroll = () => {
 
               <div className="payroll-details-transaction-list-mobile">
                 {isLoadingMobilePayrollTransactions ? (
-                  <div className="payroll-details-transaction-item-mobile" style={{ justifyContent: 'center', padding: '1.5rem' }}>
-                    <LoadingIndicator size="sm" />
-                  </div>
+                  <PayrollDetailsTransactionListSkeleton count={4} />
                 ) : mobilePayrollTransactions.length === 0 ? (
                   <div className="payroll-details-transaction-item-mobile" style={{ color: 'var(--text-muted)', padding: '1.5rem' }}>
                     No transactions yet
@@ -2435,7 +2446,7 @@ const Payroll = () => {
                   businessCompanyLogoUrl ? (
                     <img src={businessCompanyLogoUrl} alt={businessCompanyName || 'Business'} className="user-avatar-img" />
                   ) : isLoadingBusinessKyc ? (
-                    <LoadingIndicator size="sm" />
+                    <DashboardSkeletonBlock className="dashboard-skeleton-header-avatar" />
                   ) : (
                     businessCompanyName ? businessCompanyName.charAt(0).toUpperCase() : '—'
                   )
@@ -2462,7 +2473,7 @@ const Payroll = () => {
                 </button>
               </div>
               {isLoadingPayrolls ? (
-                <div className="payroll-card" style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>Loading payrolls...</div>
+                <PayrollCardsSkeleton count={2} />
               ) : payrolls.length === 0 ? (
                 <div className="payroll-card" style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>No payrolls yet</div>
               ) : (
@@ -2536,6 +2547,9 @@ const Payroll = () => {
             {/* Right Section: Summary & Transaction History */}
             <div className="payroll-summary-section">
               {/* Summary Cards */}
+              {isLoadingPayrollSummary ? (
+                <PayrollSummaryCardsSkeleton />
+              ) : (
               <div className="payroll-summary-cards">
                 <div className="payroll-summary-card payroll-summary-card--value-trend">
                   <div className="summary-card-icon">
@@ -2544,7 +2558,7 @@ const Payroll = () => {
                   <div className="summary-card-content">
                     <div className="summary-card-title">Total Payroll</div>
                     <div className="summary-card-value-row">
-                      <div className="summary-card-value">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalPayroll ?? '—')}</div>
+                      <div className="summary-card-value">{payrollSummary?.totalPayroll ?? '—'}</div>
                       <div className="summary-card-trend positive">
                         <TrendingUp size={14} />
                         <span>+3.1%</span>
@@ -2560,7 +2574,7 @@ const Payroll = () => {
                   <div className="summary-card-content">
                     <div className="summary-card-title">Total Team members</div>
                     <div className="summary-card-value-row">
-                      <div className="summary-card-value">{isLoadingPayrollSummary ? '...' : (payrollSummary?.totalTeamMembers ?? '—')}</div>
+                      <div className="summary-card-value">{payrollSummary?.totalTeamMembers ?? '—'}</div>
                       <div className="summary-card-subtitle">Active members</div>
                     </div>
                   </div>
@@ -2573,11 +2587,12 @@ const Payroll = () => {
                   <div className="summary-card-content">
                     <div className="summary-card-title">Total Payroll Escrowed</div>
                     <div className="summary-card-value-row">
-                      <div className="summary-card-value">{isLoadingPayrollSummary ? '...' : formatSummaryEscrowed(payrollSummary?.totalPayrollEscrowed)}</div>
+                      <div className="summary-card-value">{formatSummaryEscrowed(payrollSummary?.totalPayrollEscrowed)}</div>
                     </div>
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Transaction History */}
               <div className="transaction-history-section">
@@ -2616,9 +2631,7 @@ const Payroll = () => {
                     </thead>
                     <tbody>
                       {isLoadingTransactionHistory ? (
-                        <tr>
-                          <td colSpan={7} style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>Loading...</td>
-                        </tr>
+                        <PayrollTableRowsSkeleton rows={5} columns={7} />
                       ) : transactionHistory.length === 0 ? (
                         <tr>
                           <td colSpan={7} style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>No transactions</td>

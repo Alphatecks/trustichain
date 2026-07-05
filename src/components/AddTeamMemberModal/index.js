@@ -19,6 +19,21 @@ import './index.css';
 
 const CHECK_DEBOUNCE_MS = 500;
 
+const COUNTRY_OPTIONS = [
+  'Canada',
+  'France',
+  'Germany',
+  'Ghana',
+  'India',
+  'Kenya',
+  'Nigeria',
+  'Rwanda',
+  'South Africa',
+  'Uganda',
+  'United Kingdom',
+  'United States',
+];
+
 const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingMember, setIsCheckingMember] = useState(false);
@@ -30,13 +45,17 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const checkTimeoutRef = useRef(null);
   const checkAbortRef = useRef(null);
+  const countrySelectRef = useRef(null);
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
+  const [lookupMethod, setLookupMethod] = useState('personal');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phoneNumber: '',
     country: '',
     address: '',
-    gender: ''
+    gender: '',
+    trustitag: '',
   });
 
   const [jobData, setJobData] = useState({
@@ -71,11 +90,15 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
     }
   };
 
-  // When full name changes (step 1), debounced check if member has personal account and fill email/phone
+  // When name or trustitag changes (step 1), debounced check if member exists and fill fields
   useEffect(() => {
     if (!isOpen || currentStep !== 1) return;
+
     const fullName = (formData.name || '').trim();
-    if (fullName.length < 2) {
+    const trustitag = (formData.trustitag || '').trim();
+    const lookupValue = lookupMethod === 'trustitag' ? trustitag : fullName;
+
+    if (lookupValue.length < 2) {
       setMemberCheckResult(null);
       setMemberCheckMessage('');
       if (checkTimeoutRef.current) {
@@ -84,6 +107,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
       }
       return;
     }
+
     setMemberCheckResult(null);
     setMemberCheckMessage('');
     if (checkTimeoutRef.current) {
@@ -95,18 +119,23 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
       checkTimeoutRef.current = null;
       const token = localStorage.getItem('token');
       if (!token) return;
-      const requestedName = fullName;
+      const requestedValue = lookupValue;
+      const requestedMethod = lookupMethod;
       setIsCheckingMember(true);
       const controller = new AbortController();
       checkAbortRef.current = controller;
       const url = getApiUrl('api/business-suite/teams/members/check');
+      const body =
+        requestedMethod === 'trustitag'
+          ? { trustitag: requestedValue }
+          : { fullName: requestedValue };
       fetch(url, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ fullName: requestedName }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       })
         .then((res) => res.json().catch(() => ({})))
@@ -115,20 +144,30 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
           if (result?.success && result?.data?.exists === true) {
             const data = result.data;
             setFormData((prev) => {
-              if ((prev.name || '').trim() !== requestedName) return prev;
+              const currentValue =
+                requestedMethod === 'trustitag'
+                  ? (prev.trustitag || '').trim()
+                  : (prev.name || '').trim();
+              if (currentValue !== requestedValue) return prev;
               return {
                 ...prev,
+                ...(data.fullName != null && data.fullName !== '' && { name: String(data.fullName) }),
+                ...(data.name != null && data.name !== '' && { name: String(data.name) }),
                 ...(data.email != null && data.email !== '' && { email: String(data.email) }),
                 ...(data.phone != null && data.phone !== '' && { phoneNumber: String(data.phone) }),
                 ...(data.country != null && data.country !== '' && { country: String(data.country) }),
+                ...(data.trustitag != null && data.trustitag !== '' && { trustitag: String(data.trustitag) }),
               };
             });
             setMemberCheckResult('found');
-            setMemberCheckMessage(result?.message || 'User found – email and phone filled.');
+            setMemberCheckMessage(result?.message || 'User found – details filled.');
           } else {
             setMemberCheckResult('not_found');
             setMemberCheckMessage(
-              result?.message || 'No registered personal user found with this full name. Enter email and phone manually.'
+              result?.message ||
+                (requestedMethod === 'trustitag'
+                  ? 'No registered personal user found with this Trustitag. Enter details manually.'
+                  : 'No registered personal user found with this full name. Enter email and phone manually.')
             );
           }
         })
@@ -148,7 +187,24 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
       }
       checkAbortRef.current?.abort();
     };
-  }, [isOpen, currentStep, formData.name]);
+  }, [isOpen, currentStep, formData.name, formData.trustitag, lookupMethod]);
+
+  useEffect(() => {
+    if (!isOpen || currentStep !== 1) {
+      setCountryMenuOpen(false);
+    }
+  }, [isOpen, currentStep]);
+
+  useEffect(() => {
+    if (!countryMenuOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (countrySelectRef.current && !countrySelectRef.current.contains(event.target)) {
+        setCountryMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [countryMenuOpen]);
 
   const handleCloseModal = () => {
     if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
@@ -158,6 +214,8 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
     setSuccessData(null);
     setMemberCheckResult(null);
     setMemberCheckMessage('');
+    setCountryMenuOpen(false);
+    setLookupMethod('personal');
     setCurrentStep(1);
     setFormData({
       name: '',
@@ -165,7 +223,8 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
       phoneNumber: '',
       country: '',
       address: '',
-      gender: ''
+      gender: '',
+      trustitag: '',
     });
     setJobData({
       jobTitle: '',
@@ -209,6 +268,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
       country: formData.country || '',
       address: formData.address || '',
       gender: formData.gender || '',
+      trustitag: formData.trustitag || '',
       jobTitle: jobData.jobTitle || '',
       employmentType: jobData.employmentType || 'Full time',
       status: jobData.status || '',
@@ -238,6 +298,7 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
           country: formData.country || '',
           address: formData.address || '',
           gender: formData.gender || '',
+          trustitag: formData.trustitag || '',
           jobTitle: jobData.jobTitle || '',
           employmentType: jobData.employmentType || 'Full time',
           status: jobData.status || '',
@@ -426,9 +487,76 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
           {currentStep === 1 && (
             <>
               <div className="escrow-form-section">
+                <div
+                  className="add-team-member-lookup-toggle"
+                  role="tablist"
+                  aria-label="Member lookup method"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={lookupMethod === 'personal'}
+                    className={`add-team-member-lookup-btn ${lookupMethod === 'personal' ? 'active' : ''}`}
+                    onClick={() => {
+                      setLookupMethod('personal');
+                      setMemberCheckResult(null);
+                      setMemberCheckMessage('');
+                    }}
+                  >
+                    Personal Details
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={lookupMethod === 'trustitag'}
+                    className={`add-team-member-lookup-btn ${lookupMethod === 'trustitag' ? 'active' : ''}`}
+                    onClick={() => {
+                      setLookupMethod('trustitag');
+                      setMemberCheckResult(null);
+                      setMemberCheckMessage('');
+                    }}
+                  >
+                    Trustitag
+                  </button>
+                </div>
+
+                {lookupMethod === 'trustitag' ? (
+                  <>
+                    <h3 className="section-title" style={{ color: 'var(--blue-600)' }}>Trustitag</h3>
+                    <div className="form-group form-group-wide">
+                      <label htmlFor="add-team-member-trustitag">Trustitag</label>
+                      <input
+                        id="add-team-member-trustitag"
+                        type="text"
+                        placeholder="Enter Trustitag"
+                        autoComplete="off"
+                        value={formData.trustitag}
+                        onChange={(e) => handleInputChange('trustitag', e.target.value.trimStart())}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
+                      {isCheckingMember && (
+                        <span className="add-team-member-check-hint" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                          Checking if user exists…
+                        </span>
+                      )}
+                      {!isCheckingMember && memberCheckResult === 'found' && (
+                        <span className="add-team-member-check-found" style={{ fontSize: '0.8rem', color: 'var(--green-600, #059669)', marginTop: '0.25rem', display: 'block' }}>
+                          {memberCheckMessage}
+                        </span>
+                      )}
+                      {!isCheckingMember && memberCheckResult === 'not_found' && (
+                        <span className="add-team-member-check-not-found" style={{ fontSize: '0.8rem', color: 'var(--orange-600, #ea580c)', marginTop: '0.25rem', display: 'block' }}>
+                          {memberCheckMessage}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+
                 <h3 className="section-title" style={{ color: 'var(--blue-600)' }}>Personal details</h3>
                 <div className="counterparty-form-grid">
                   <div className="form-column">
+                    {lookupMethod === 'personal' ? (
                     <div className="form-group">
                       <label>Name</label>
                       <input
@@ -454,6 +582,18 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
                         </span>
                       )}
                     </div>
+                    ) : (
+                    <div className="form-group">
+                      <label>Name</label>
+                      <input
+                        type="text"
+                        placeholder="Enter full name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    )}
                     <div className="form-group">
                       <label>Phone Number:</label>
                       <input
@@ -486,13 +626,54 @@ const AddTeamMemberModal = ({ isOpen, onCancel, onSuccess, teamId }) => {
                     </div>
                     <div className="form-group form-group-wide">
                       <label>Country:</label>
-                      <input
-                        type="text"
-                        placeholder="Enter country"
-                        value={formData.country}
-                        onChange={(e) => handleInputChange('country', e.target.value)}
-                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                      />
+                      <div
+                        ref={countrySelectRef}
+                        className={`add-team-member-country-select ${countryMenuOpen ? 'is-open' : ''} ${formData.country ? 'has-value' : ''}`}
+                      >
+                        <button
+                          type="button"
+                          className="add-team-member-country-trigger"
+                          onClick={() => setCountryMenuOpen((open) => !open)}
+                          aria-expanded={countryMenuOpen}
+                          aria-haspopup="listbox"
+                          aria-label="Select country"
+                        >
+                          <span className="add-team-member-country-value">
+                            {formData.country || 'Select country'}
+                          </span>
+                          <ChevronDown size={18} className="add-team-member-country-chevron" aria-hidden />
+                        </button>
+                        {countryMenuOpen ? (
+                          <div className="add-team-member-country-menu" role="listbox" aria-label="Country">
+                            {COUNTRY_OPTIONS.map((country) => (
+                              <button
+                                key={country}
+                                type="button"
+                                role="option"
+                                aria-selected={formData.country === country}
+                                className={`add-team-member-country-option ${formData.country === country ? 'is-active' : ''}`}
+                                onClick={() => {
+                                  handleInputChange('country', country);
+                                  setCountryMenuOpen(false);
+                                }}
+                              >
+                                {country}
+                              </button>
+                            ))}
+                            {formData.country && !COUNTRY_OPTIONS.includes(formData.country) ? (
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected
+                                className="add-team-member-country-option is-active"
+                                onClick={() => setCountryMenuOpen(false)}
+                              >
+                                {formData.country}
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Gender:</label>
