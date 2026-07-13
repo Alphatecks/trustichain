@@ -78,6 +78,7 @@ import {
   WalletOverviewCardsSkeleton,
   TransactionHistoryCardsSkeleton,
   DashboardEscrowTableSkeleton,
+  NotificationListSkeleton,
 } from '../../../components/DashboardSkeletons';
 import DepositAddressSelectors from '../../../components/DepositAddressSelectors';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
@@ -5134,14 +5135,18 @@ const Transactions = () => {
             </div>
 
             <div className="notification-list">
-              <NotificationListItems
-                notifications={notifications}
-                expandedNotificationId={expandedNotificationId}
-                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-                onMarkRead={handleMarkNotificationRead}
-                formatTimeAgo={formatTimeAgo}
-                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
-              />
+              {isLoadingNotifications ? (
+                <NotificationListSkeleton count={6} />
+              ) : (
+                <NotificationListItems
+                  notifications={notifications}
+                  expandedNotificationId={expandedNotificationId}
+                  onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                  onMarkRead={handleMarkNotificationRead}
+                  formatTimeAgo={formatTimeAgo}
+                  onBeforeCtaNavigate={() => setShowNotificationModal(false)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -6740,14 +6745,18 @@ const Transactions = () => {
             </div>
 
             <div className="notification-list">
-              <NotificationListItems
-                notifications={notifications}
-                expandedNotificationId={expandedNotificationId}
-                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-                onMarkRead={handleMarkNotificationRead}
-                formatTimeAgo={formatTimeAgo}
-                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
-              />
+              {isLoadingNotifications ? (
+                <NotificationListSkeleton count={6} />
+              ) : (
+                <NotificationListItems
+                  notifications={notifications}
+                  expandedNotificationId={expandedNotificationId}
+                  onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                  onMarkRead={handleMarkNotificationRead}
+                  formatTimeAgo={formatTimeAgo}
+                  onBeforeCtaNavigate={() => setShowNotificationModal(false)}
+                />
+              )}
             </div>
           </div>
         </div>

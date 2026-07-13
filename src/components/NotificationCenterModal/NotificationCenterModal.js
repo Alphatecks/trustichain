@@ -3,6 +3,7 @@ import { X, Filter } from 'lucide-react';
 import { useSession } from '../../context/SessionContext';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../utils/notificationsApi';
 import NotificationListItems from '../NotificationListItems/NotificationListItems';
+import { NotificationListSkeleton } from '../DashboardSkeletons';
 import '../../pages/dashboard/dashboard/Dashboard.css';
 
 const formatTimeAgo = (isoString) => {
@@ -176,15 +177,19 @@ function NotificationCenterModal({ open, onClose, titleId = 'notification-center
         </div>
 
         <div className="notification-list">
-          <NotificationListItems
-            notifications={notifications}
-            expandedNotificationId={expandedNotificationId}
-            onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-            onMarkRead={handleMarkNotificationRead}
-            formatTimeAgo={formatTimeAgo}
-            emptyText={"You're all caught up."}
-            onBeforeCtaNavigate={onClose}
-          />
+          {isLoadingNotifications ? (
+            <NotificationListSkeleton count={6} />
+          ) : (
+            <NotificationListItems
+              notifications={notifications}
+              expandedNotificationId={expandedNotificationId}
+              onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+              onMarkRead={handleMarkNotificationRead}
+              formatTimeAgo={formatTimeAgo}
+              emptyText={"You're all caught up."}
+              onBeforeCtaNavigate={onClose}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -86,6 +86,7 @@ import {
   DashboardEscrowListSkeleton,
   DashboardEscrowTableSkeleton,
   DashboardSkeletonBlock,
+  NotificationListSkeleton,
 } from '../../../components/DashboardSkeletons';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
@@ -290,6 +291,147 @@ function getCurrentWeekCalendarDays() {
     const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
     return d.getDate();
   });
+}
+
+function formatOrdinalDay(day) {
+  const n = Number(day);
+  if (!Number.isFinite(n)) return String(day);
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const mod10 = n % 10;
+  if (mod10 === 1) return `${n}st`;
+  if (mod10 === 2) return `${n}nd`;
+  if (mod10 === 3) return `${n}rd`;
+  return `${n}th`;
+}
+
+function getPortfolioBarTooltipContent(timeframe, index, label, value, portfolioYear, formatUsd) {
+  const amount = formatUsd(value);
+  const title = 'You earned';
+
+  if (timeframe === 'monthly') {
+    const monthIndex = PORTFOLIO_MONTH_LABELS.findIndex(
+      (month) => month === label || month.toLowerCase().startsWith(String(label).toLowerCase().slice(0, 3)),
+    );
+    const monthIdx = monthIndex >= 0 ? monthIndex : index;
+    const year = portfolioYear;
+    const monthName = PORTFOLIO_MONTH_LABELS[monthIdx] ?? label;
+    const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+    return {
+      title,
+      line2: `${amount} from ${formatOrdinalDay(1)}`,
+      line3: `${monthName} ${year} to ${formatOrdinalDay(lastDay)}`,
+      line4: `${monthName} ${year}`,
+    };
+  }
+
+  if (timeframe === 'daily') {
+    const now = new Date();
+    const dow = now.getDay();
+    const mondayDelta = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayDelta);
+    const dayDate = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index);
+    const monthName = PORTFOLIO_MONTH_LABELS[dayDate.getMonth()];
+    const year = dayDate.getFullYear();
+    const dayOrdinal = formatOrdinalDay(dayDate.getDate());
+    return {
+      title,
+      line2: `${amount} from ${dayOrdinal}`,
+      line3: `${monthName} ${year} to ${dayOrdinal}`,
+      line4: `${monthName} ${year}`,
+    };
+  }
+
+  if (timeframe === 'yearly') {
+    const year = parseInt(String(label), 10) || portfolioYear;
+    return {
+      title,
+      line2: `${amount} from ${formatOrdinalDay(1)}`,
+      line3: `Jan ${year} to ${formatOrdinalDay(31)}`,
+      line4: `Dec ${year}`,
+    };
+  }
+
+  return {
+    title,
+    line2: amount,
+    line3: String(label),
+    line4: '',
+  };
+}
+
+function getPortfolioBarMobileDetailContent(timeframe, index, label, value, portfolioYear, formatUsd) {
+  const amount = formatUsd(value);
+
+  if (timeframe === 'monthly') {
+    const monthIndex = PORTFOLIO_MONTH_LABELS.findIndex(
+      (month) => month === label || month.toLowerCase().startsWith(String(label).toLowerCase().slice(0, 3)),
+    );
+    const monthIdx = monthIndex >= 0 ? monthIndex : index;
+    const year = portfolioYear;
+    const monthName = PORTFOLIO_MONTH_LABELS[monthIdx] ?? label;
+    const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+    return {
+      title: 'You earned',
+      amount,
+      period: `${monthName} ${formatOrdinalDay(1)} – ${formatOrdinalDay(lastDay)}, ${year}`,
+    };
+  }
+
+  if (timeframe === 'daily') {
+    const now = new Date();
+    const dow = now.getDay();
+    const mondayDelta = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayDelta);
+    const dayDate = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index);
+    const monthName = PORTFOLIO_MONTH_LABELS[dayDate.getMonth()];
+    const year = dayDate.getFullYear();
+    const dayOrdinal = formatOrdinalDay(dayDate.getDate());
+    const weekday = PORTFOLIO_WEEKDAY_LABELS[index] ?? label;
+    return {
+      title: 'You earned',
+      amount,
+      period: `${weekday}, ${monthName} ${dayOrdinal}, ${year}`,
+    };
+  }
+
+  if (timeframe === 'yearly') {
+    const year = parseInt(String(label), 10) || portfolioYear;
+    return {
+      title: 'You earned',
+      amount,
+      period: `Jan 1 – Dec 31, ${year}`,
+    };
+  }
+
+  return {
+    title: 'You earned',
+    amount,
+    period: String(label),
+  };
+}
+
+function PortfolioBarTooltip({ content }) {
+  if (!content) return null;
+  return (
+    <div className="portfolio-bar-tooltip" role="tooltip">
+      <span className="portfolio-bar-tooltip-title">{content.title}</span>
+      <span className="portfolio-bar-tooltip-line">{content.line2}</span>
+      <span className="portfolio-bar-tooltip-line">{content.line3}</span>
+      {content.line4 ? <span className="portfolio-bar-tooltip-line">{content.line4}</span> : null}
+    </div>
+  );
+}
+
+function PortfolioBarMobileDetail({ content }) {
+  if (!content) return null;
+  return (
+    <div className="portfolio-bar-mobile-detail" role="status" aria-live="polite">
+      <span className="portfolio-bar-mobile-detail-label">{content.title}</span>
+      <span className="portfolio-bar-mobile-detail-amount">{content.amount}</span>
+      <span className="portfolio-bar-mobile-detail-period">{content.period}</span>
+    </div>
+  );
 }
 const isRlusdCurrency = (currency) => {
   const normalized = String(currency || '')
@@ -1293,6 +1435,7 @@ const Dashboard = () => {
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [portfolioTimeframe, setPortfolioTimeframe] = useState('monthly');
   const [portfolioYear, setPortfolioYear] = useState(() => new Date().getFullYear());
+  const [activeMobilePortfolioBarIndex, setActiveMobilePortfolioBarIndex] = useState(null);
   const [businessSuitePortfolioPoints, setBusinessSuitePortfolioPoints] = useState([]);
   const [businessSuitePortfolioPrevYearSum, setBusinessSuitePortfolioPrevYearSum] = useState(null);
   const [isLoadingBusinessSuitePortfolio, setIsLoadingBusinessSuitePortfolio] = useState(true);
@@ -2990,6 +3133,42 @@ const Dashboard = () => {
     return `${sign}${num.toFixed(num % 1 === 0 ? 0 : 1)}%`;
   }, []);
 
+  const getPortfolioBarTooltip = useCallback(
+    (point, index) =>
+      getPortfolioBarTooltipContent(
+        portfolioTimeframe,
+        index,
+        point?.label ?? '',
+        Number(point?.value ?? 0),
+        portfolioYear,
+        formatPortfolioUsd,
+      ),
+    [portfolioTimeframe, portfolioYear, formatPortfolioUsd],
+  );
+
+  const renderPortfolioBarTooltip = useCallback(
+    (point, index) => <PortfolioBarTooltip content={getPortfolioBarTooltip(point, index)} />,
+    [getPortfolioBarTooltip],
+  );
+
+  const getPortfolioBarMobileDetail = useCallback(
+    (point, index) =>
+      getPortfolioBarMobileDetailContent(
+        portfolioTimeframe,
+        index,
+        point?.label ?? '',
+        Number(point?.value ?? 0),
+        portfolioYear,
+        formatPortfolioUsd,
+      ),
+    [portfolioTimeframe, portfolioYear, formatPortfolioUsd],
+  );
+
+  const renderPortfolioBarMobileDetail = useCallback(
+    (point, index) => <PortfolioBarMobileDetail content={getPortfolioBarMobileDetail(point, index)} />,
+    [getPortfolioBarMobileDetail],
+  );
+
   const portfolioSummary = useMemo(() => {
     const total = portfolioChartPoints.reduce((sum, point) => sum + Number(point.value ?? 0), 0);
     let changePercent = null;
@@ -3119,6 +3298,7 @@ const Dashboard = () => {
       setIsLoadingPortfolio(true);
     }
     setPortfolioTimeframe(timeframe);
+    setActiveMobilePortfolioBarIndex(null);
   }, [accountType, closePortfolioDropdowns, portfolioTimeframe]);
 
   const handlePortfolioYearChange = useCallback((year) => {
@@ -3131,6 +3311,7 @@ const Dashboard = () => {
     }
     setPortfolioYear(year);
     setPortfolioTimeframe('monthly');
+    setActiveMobilePortfolioBarIndex(null);
   }, [accountType, closePortfolioDropdowns, portfolioYear, portfolioTimeframe]);
 
   const renderBusinessPortfolioSummary = () => {
@@ -5790,7 +5971,21 @@ const Dashboard = () => {
                             const isNegative = value < 0;
 
                             return (
-                              <div key={`${label}-${index}`} className="mobile-bar-wrapper">
+                              <div
+                                key={`${label}-${index}`}
+                                className={`mobile-bar-wrapper${activeMobilePortfolioBarIndex === index ? ' is-active' : ''}`}
+                                onClick={() => setActiveMobilePortfolioBarIndex(index)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setActiveMobilePortfolioBarIndex(index);
+                                  }
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                aria-pressed={activeMobilePortfolioBarIndex === index}
+                                aria-label={`${label} portfolio earnings`}
+                              >
                                 {hasBar && (
                                   <div
                                     className={`mobile-bar ${isLastBar && !isNegative ? 'mobile-bar-last' : ''} ${isNegative ? 'mobile-bar-negative' : ''}`}
@@ -5808,6 +6003,12 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
+                  {activeMobilePortfolioBarIndex !== null &&
+                    portfolioChartPoints[activeMobilePortfolioBarIndex] &&
+                    renderPortfolioBarMobileDetail(
+                      portfolioChartPoints[activeMobilePortfolioBarIndex],
+                      activeMobilePortfolioBarIndex,
+                    )}
                   {!isLoadingPortfolio && portfolioChartPoints && portfolioChartPoints.length > 0 && (
                     <div className={`mobile-chart-x-labels${portfolioTimeframe === 'daily' ? ' mobile-chart-x-labels--daily' : ''}`}>
                       {portfolioChartPoints.map((point, index) => (
@@ -6546,6 +6747,7 @@ const Dashboard = () => {
 
                             return (
                               <div key={`${label}-${index}`} className="bar-wrapper">
+                                {renderPortfolioBarTooltip(point, index)}
                                 {hasBar && (
                                   <div
                                     className={`bar ${isLast && !isNegative ? 'bar-purple' : ''} ${isNegative ? 'bar-negative' : ''}`}
@@ -7767,6 +7969,10 @@ const Dashboard = () => {
               toPortfolioBarHeight={toBusinessSuiteBarHeight}
               renderPortfolioSummary={renderBusinessPortfolioSummary}
               renderPortfolioChartSkeleton={renderPortfolioChartSkeleton}
+              renderPortfolioBarTooltip={renderPortfolioBarTooltip}
+              renderPortfolioBarMobileDetail={renderPortfolioBarMobileDetail}
+              activeMobilePortfolioBarIndex={activeMobilePortfolioBarIndex}
+              setActiveMobilePortfolioBarIndex={setActiveMobilePortfolioBarIndex}
               handlePortfolioTimeframeChange={handlePortfolioTimeframeChange}
               handlePortfolioYearChange={handlePortfolioYearChange}
               portfolioTimeframeOptions={PORTFOLIO_TIMEFRAME_OPTIONS}
@@ -7921,14 +8127,18 @@ const Dashboard = () => {
             </div>
 
             <div className="notification-list">
-              <NotificationListItems
-                notifications={notifications}
-                expandedNotificationId={expandedNotificationId}
-                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-                onMarkRead={handleMarkNotificationRead}
-                formatTimeAgo={formatTimeAgo}
-                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
-              />
+              {isLoadingNotifications ? (
+                <NotificationListSkeleton count={6} />
+              ) : (
+                <NotificationListItems
+                  notifications={notifications}
+                  expandedNotificationId={expandedNotificationId}
+                  onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                  onMarkRead={handleMarkNotificationRead}
+                  formatTimeAgo={formatTimeAgo}
+                  onBeforeCtaNavigate={() => setShowNotificationModal(false)}
+                />
+              )}
             </div>
           </div>
         </div>

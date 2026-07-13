@@ -639,3 +639,32 @@ export function SupplierContractDetailSkeleton({ fieldCount = 5 }) {
     </div>
   );
 }
+
+export function NotificationListSkeleton({ count = 6 }) {
+  return (
+    <div className="notification-list-skeleton" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }, (_, index) => (
+        <div key={`notification-skeleton-${index}`} className="notification-item-skeleton">
+          <DashboardSkeletonBlock
+            className="notification-skeleton-icon"
+            style={{ animationDelay: `${index * 0.05}s` }}
+          />
+          <div className="notification-skeleton-content">
+            <DashboardSkeletonBlock
+              className="notification-skeleton-title"
+              style={{ animationDelay: `${index * 0.05 + 0.04}s` }}
+            />
+            <DashboardSkeletonBlock
+              className="notification-skeleton-subtitle"
+              style={{ animationDelay: `${index * 0.05 + 0.06}s` }}
+            />
+            <DashboardSkeletonBlock
+              className="notification-skeleton-time"
+              style={{ animationDelay: `${index * 0.05 + 0.08}s` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

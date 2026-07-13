@@ -43,6 +43,7 @@ import {
   DashboardEscrowTableSkeleton,
   EscrowHistoryCardsSkeleton,
   DashboardSkeletonBlock,
+  NotificationListSkeleton,
 } from '../../../components/DashboardSkeletons';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
@@ -2503,14 +2504,18 @@ const MyEscrow = () => {
             </div>
 
             <div className="notification-list">
-              <NotificationListItems
-                notifications={notifications}
-                expandedNotificationId={expandedNotificationId}
-                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-                onMarkRead={handleMarkNotificationRead}
-                formatTimeAgo={formatTimeAgo}
-                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
-              />
+              {isLoadingNotifications ? (
+                <NotificationListSkeleton count={6} />
+              ) : (
+                <NotificationListItems
+                  notifications={notifications}
+                  expandedNotificationId={expandedNotificationId}
+                  onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                  onMarkRead={handleMarkNotificationRead}
+                  formatTimeAgo={formatTimeAgo}
+                  onBeforeCtaNavigate={() => setShowNotificationModal(false)}
+                />
+              )}
             </div>
           </div>
         </div>

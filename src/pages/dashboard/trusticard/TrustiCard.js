@@ -50,6 +50,7 @@ import {
   TrustiCardDetailsSkeleton,
   TrustiCardMyCardsSkeleton,
   TrustiCardTxMobileSkeleton,
+  NotificationListSkeleton,
 } from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
@@ -3971,14 +3972,18 @@ const TrustiCard = () => {
               <button type="button" className="notification-filter-icon" onClick={handleMarkAllNotificationsRead} disabled={isLoadingNotifications}><Filter size={18} /></button>
             </div>
             <div className="notification-list">
-              <NotificationListItems
-                notifications={notifications}
-                expandedNotificationId={expandedNotificationId}
-                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-                onMarkRead={handleMarkNotificationRead}
-                formatTimeAgo={formatTimeAgo}
-                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
-              />
+              {isLoadingNotifications ? (
+                <NotificationListSkeleton count={6} />
+              ) : (
+                <NotificationListItems
+                  notifications={notifications}
+                  expandedNotificationId={expandedNotificationId}
+                  onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                  onMarkRead={handleMarkNotificationRead}
+                  formatTimeAgo={formatTimeAgo}
+                  onBeforeCtaNavigate={() => setShowNotificationModal(false)}
+                />
+              )}
             </div>
           </div>
         </div>

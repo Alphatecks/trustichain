@@ -39,6 +39,7 @@ import LoadingIndicator from '../../../components/LoadingIndicator';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationListItems from '../../../components/NotificationListItems/NotificationListItems';
+import { NotificationListSkeleton } from '../../../components/DashboardSkeletons';
 import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const formatTimeAgo = (isoString) => {
@@ -536,14 +537,18 @@ const MyEscrowLayout = ({ children }) => {
             </div>
 
             <div className="notification-list">
-              <NotificationListItems
-                notifications={notifications}
-                expandedNotificationId={expandedNotificationId}
-                onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
-                onMarkRead={handleMarkNotificationRead}
-                formatTimeAgo={formatTimeAgo}
-                onBeforeCtaNavigate={() => setShowNotificationModal(false)}
-              />
+              {isLoadingNotifications ? (
+                <NotificationListSkeleton count={6} />
+              ) : (
+                <NotificationListItems
+                  notifications={notifications}
+                  expandedNotificationId={expandedNotificationId}
+                  onToggleExpand={(nid) => setExpandedNotificationId((p) => (p === nid ? null : nid))}
+                  onMarkRead={handleMarkNotificationRead}
+                  formatTimeAgo={formatTimeAgo}
+                  onBeforeCtaNavigate={() => setShowNotificationModal(false)}
+                />
+              )}
             </div>
           </div>
         </div>

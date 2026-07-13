@@ -90,6 +90,10 @@ const BusinessDashboard = ({
   toPortfolioBarHeight,
   renderPortfolioSummary,
   renderPortfolioChartSkeleton,
+  renderPortfolioBarTooltip,
+  renderPortfolioBarMobileDetail,
+  activeMobilePortfolioBarIndex,
+  setActiveMobilePortfolioBarIndex,
   handlePortfolioTimeframeChange,
   handlePortfolioYearChange,
   portfolioTimeframeOptions = ['daily', 'monthly', 'yearly'],
@@ -367,7 +371,21 @@ const BusinessDashboard = ({
                         const label = point.label ?? '';
 
                         return (
-                          <div key={`${label}-${index}`} className="mobile-bar-wrapper bar-wrapper--dual">
+                          <div
+                            key={`${label}-${index}`}
+                            className={`mobile-bar-wrapper bar-wrapper--dual${activeMobilePortfolioBarIndex === index ? ' is-active' : ''}`}
+                            onClick={() => setActiveMobilePortfolioBarIndex?.(index)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setActiveMobilePortfolioBarIndex?.(index);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={activeMobilePortfolioBarIndex === index}
+                            aria-label={`${label} portfolio earnings`}
+                          >
                             {(hSub > 0 || hPay > 0) && (
                               <div className="bs-dual-bars">
                                 {hSub > 0 && <div className="mobile-bar bs-chart-bar-sub" style={{ height: `${hSub}%` }} />}
@@ -381,6 +399,17 @@ const BusinessDashboard = ({
                   </div>
                 </div>
               </div>
+              {activeMobilePortfolioBarIndex !== null &&
+                portfolioPoints[activeMobilePortfolioBarIndex] &&
+                renderPortfolioBarMobileDetail?.(
+                  {
+                    label: portfolioPoints[activeMobilePortfolioBarIndex].label ?? '',
+                    value:
+                      Number(portfolioPoints[activeMobilePortfolioBarIndex].subscriptionUsd ?? 0) +
+                      Number(portfolioPoints[activeMobilePortfolioBarIndex].payrollUsd ?? 0),
+                  },
+                  activeMobilePortfolioBarIndex,
+                )}
               {hasPoints && (
                 <div className={`mobile-chart-x-labels${portfolioTimeframe === 'daily' ? ' mobile-chart-x-labels--daily' : ''}`}>
                   {portfolioPoints.map((point, index) => (
@@ -433,6 +462,10 @@ const BusinessDashboard = ({
 
                       return (
                         <div key={`${label}-${index}`} className="bar-wrapper bar-wrapper--dual">
+                          {renderPortfolioBarTooltip?.(
+                            { label, value: sub + pay },
+                            index,
+                          )}
                           {(hSub > 0 || hPay > 0) && (
                             <div className="bs-dual-bars">
                               {hSub > 0 && <div className="bar bs-chart-bar-sub" style={{ height: `${hSub}%` }} />}
