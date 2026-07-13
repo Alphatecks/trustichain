@@ -48,8 +48,15 @@ const FundPayrollModal = ({ isOpen, onCancel, onSuccess }) => {
           {/* Wallet Connection Status */}
           {isWalletConnectedViaAPI && isConnected && account && (() => {
             const isXamanConnected = localStorage.getItem('xamanWalletConnected') === 'true';
+            const isWalletConnectConnected = localStorage.getItem('walletconnectWalletConnected') === 'true';
             const isMetamaskConnected = localStorage.getItem('metamaskWalletConnected') === 'true';
-            const walletName = isXamanConnected ? 'XAMAN' : isMetamaskConnected ? 'MetaMask' : 'Wallet';
+            const walletName = isXamanConnected
+              ? 'XAMAN'
+              : isWalletConnectConnected
+                ? 'WalletConnect'
+                : isMetamaskConnected
+                  ? 'MetaMask'
+                  : 'Wallet';
             
             return (
               <div style={{

@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../utils/config';
+import {
+  connectWalletConnect,
+  disconnectWalletConnect,
+  isWalletConnectUserRejected,
+} from '../utils/walletConnectProvider';
 
 const Web3Context = createContext();
 
@@ -184,6 +189,10 @@ export const Web3Provider = ({ children }) => {
           localStorage.setItem('metamaskWalletConnected', 'true');
           localStorage.setItem('metamaskWalletAddress', walletAddress);
           toast.success('MetaMask wallet connected successfully');
+        } else if (walletType === 'walletconnect') {
+          localStorage.setItem('walletconnectWalletConnected', 'true');
+          localStorage.setItem('walletconnectWalletAddress', walletAddress);
+          toast.success('WalletConnect connected successfully');
         } else if (walletType === 'xaman') {
           localStorage.setItem('xamanWalletConnected', 'true');
           localStorage.setItem('xamanWalletAddress', walletAddress);
@@ -195,6 +204,9 @@ export const Web3Provider = ({ children }) => {
         if (walletType === 'metamask') {
           localStorage.removeItem('metamaskWalletConnected');
           localStorage.removeItem('metamaskWalletAddress');
+        } else if (walletType === 'walletconnect') {
+          localStorage.removeItem('walletconnectWalletConnected');
+          localStorage.removeItem('walletconnectWalletAddress');
         } else if (walletType === 'xaman') {
           localStorage.removeItem('xamanWalletConnected');
           localStorage.removeItem('xamanWalletAddress');
@@ -213,6 +225,9 @@ export const Web3Provider = ({ children }) => {
       if (walletType === 'metamask') {
         localStorage.removeItem('metamaskWalletConnected');
         localStorage.removeItem('metamaskWalletAddress');
+      } else if (walletType === 'walletconnect') {
+        localStorage.removeItem('walletconnectWalletConnected');
+        localStorage.removeItem('walletconnectWalletAddress');
       } else if (walletType === 'xaman') {
         localStorage.removeItem('xamanWalletConnected');
         localStorage.removeItem('xamanWalletAddress');
@@ -246,18 +261,37 @@ export const Web3Provider = ({ children }) => {
         return null;
       }
 
-      // Determine which provider to use based on wallet type
       if (walletType === 'walletconnect') {
-        // WalletConnect would require additional setup
-        // For now, fall back to injected if available
-        if (window.ethereum) {
-          ethereumProvider = window.ethereum;
-          walletName = 'WalletConnect';
-        } else {
-          toast.error('WalletConnect requires a browser wallet. Please install a wallet extension.');
-          return;
+        try {
+          const { provider: wcProvider, account: wcAccount } = await connectWalletConnect();
+          const ethersProvider = new ethers.providers.Web3Provider(wcProvider);
+          const wcSigner = ethersProvider.getSigner();
+          const network = await ethersProvider.getNetwork();
+
+          setAccount(wcAccount);
+          setProvider(ethersProvider);
+          setSigner(wcSigner);
+          setIsConnected(true);
+          setChainId(network.chainId);
+
+          await connectWalletToAPI(wcAccount, 'walletconnect');
+          return { type: 'walletconnect', account: wcAccount };
+        } catch (error) {
+          if (isWalletConnectUserRejected(error)) {
+            return null;
+          }
+          console.error('Error connecting WalletConnect:', error);
+          if (error?.message?.includes('project ID')) {
+            toast.error('WalletConnect is not configured. Add REACT_APP_WALLETCONNECT_PROJECT_ID to your environment.');
+          } else {
+            toast.error(error?.message || 'Failed to connect with WalletConnect');
+          }
+          return null;
         }
-      } else if (walletType === 'coinbase') {
+      }
+
+      // Determine which provider to use based on wallet type
+      if (walletType === 'coinbase') {
         if (window.ethereum && window.ethereum.isCoinbaseWallet) {
           ethereumProvider = window.ethereum;
           walletName = 'Coinbase Wallet';
@@ -550,6 +584,10 @@ export const Web3Provider = ({ children }) => {
     // Clear MetaMask data
     localStorage.removeItem('metamaskWalletConnected');
     localStorage.removeItem('metamaskWalletAddress');
+
+    // Clear WalletConnect data
+    localStorage.removeItem('walletconnectWalletConnected');
+    localStorage.removeItem('walletconnectWalletAddress');
     
     // Clear XAMAN data
     localStorage.removeItem('xamanWalletConnected');
@@ -558,6 +596,10 @@ export const Web3Provider = ({ children }) => {
     
     // Stop any active polling
     stopXamanPolling();
+
+    disconnectWalletConnect().catch((error) => {
+      console.error('Error disconnecting WalletConnect session:', error);
+    });
     
     if (!suppressToast) {
       toast.success('Wallet disconnected');
@@ -588,6 +630,14 @@ export const Web3Provider = ({ children }) => {
       setIsWalletConnectedViaAPI(true);
       // Note: We don't automatically reconnect the wallet extension here
       // User needs to manually connect via the UI
+    }
+
+    // Check for WalletConnect connection
+    const isWalletConnectConnected = localStorage.getItem('walletconnectWalletConnected') === 'true';
+    const walletConnectAddress = localStorage.getItem('walletconnectWalletAddress');
+
+    if (token && isWalletConnectConnected && walletConnectAddress) {
+      setIsWalletConnectedViaAPI(true);
     }
     
     // Check for XAMAN connection
