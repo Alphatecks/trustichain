@@ -140,8 +140,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e5e7eb;
-  color: #6b7280;
+  background: #dbeafe;
+  color: #2563eb;
   flex-shrink: 0;
   margin-right: 1.25rem;
 }
@@ -153,8 +153,8 @@
 }
 
 .add-supplier-modal .step-indicator:not(.active):not(.completed) .step-icon {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 .add-supplier-modal .step-content {
@@ -177,9 +177,13 @@
 }
 
 .add-supplier-modal .step-title {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #1f2937;
+}
+
+.add-supplier-modal .step-indicator:not(.active) .step-number {
+  display: none;
 }
 
 /* Modal content & form */
@@ -198,6 +202,204 @@
   font-weight: 600;
   color: var(--blue-600, #2563eb);
   margin: 0 0 2rem 0;
+}
+
+/* Step 1 — Supplier Contract Details (redesign) */
+.add-supplier-step1-section {
+  margin-bottom: 0;
+}
+
+.add-supplier-step1-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2rem;
+}
+
+.add-supplier-step1-full {
+  grid-column: 1 / -1;
+}
+
+.add-supplier-optional-label {
+  font-weight: 400;
+  color: var(--text-muted, #6b7280);
+}
+
+.add-supplier-soft-input,
+.add-supplier-modal .add-supplier-step1-grid .form-group input.add-supplier-soft-input,
+.add-supplier-modal .add-supplier-step1-grid .form-group textarea.add-supplier-soft-input {
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: #eef2f7;
+  font-size: 0.9rem;
+  color: var(--text-dark, #111827);
+  width: 100%;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  box-sizing: border-box;
+}
+
+.add-supplier-soft-input::placeholder {
+  color: #9ca3af;
+}
+
+.add-supplier-soft-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22);
+}
+
+.add-supplier-dropdown-btn--soft {
+  border: none !important;
+  background: #eef2f7 !important;
+}
+
+/* Step 2 — Escrow Payment Details (redesign) */
+.add-supplier-step2-section {
+  margin-bottom: 0;
+}
+
+.add-supplier-step2-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2rem;
+}
+
+.add-supplier-step2-span-full {
+  grid-column: 1 / -1;
+}
+
+.add-supplier-step2-textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.add-supplier-step2-fee-box {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+  background: #eef2f7;
+  box-sizing: border-box;
+}
+
+.add-supplier-step2-fee-value {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2563eb;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.add-supplier-step2-radio-group {
+  padding-top: 0.15rem;
+  gap: 0.65rem;
+}
+
+.add-supplier-step2-upload {
+  min-height: 148px;
+  border: 1px solid #c7ddff !important;
+  background: #f8fbff !important;
+  border-radius: 0.75rem;
+}
+
+.add-supplier-step2-upload:hover {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+}
+
+.add-supplier-step2-upload svg {
+  color: #64748b;
+}
+
+.add-supplier-modal .create-escrow-modal-footer--step-forward {
+  justify-content: flex-start;
+}
+
+/* Step 3 — Supply Summary (redesign) */
+.add-supplier-step3-section {
+  margin-bottom: 0;
+}
+
+.add-supplier-step3-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.add-supplier-step3-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.add-supplier-step3-column .section-title {
+  margin-bottom: 0.75rem;
+}
+
+.add-supplier-review-field {
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.add-supplier-review-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark, #111827);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.add-supplier-review-value {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+  background: #eef2f7;
+  font-size: 0.9rem;
+  color: var(--text-dark, #111827);
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  word-break: break-word;
+}
+
+.add-supplier-step3-trust-text {
+  margin-top: 1.75rem;
+  margin-bottom: 0;
+}
+
+.add-supplier-step3-footer {
+  gap: 0.85rem;
+}
+
+.add-supplier-step3-previous-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: #ffffff;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.add-supplier-step3-previous-btn:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.add-supplier-step3-previous-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.add-supplier-modal .submit-btn-icon-circle--inverse {
+  background: #2563eb;
+}
+
+.add-supplier-modal .submit-btn-icon-circle--inverse svg {
+  color: #ffffff;
 }
 
 .add-supplier-modal .counterparty-form-grid {
@@ -1222,6 +1424,21 @@
     gap: 1.5rem;
   }
 
+  .add-supplier-step1-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .add-supplier-step2-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .add-supplier-step3-grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+
   .add-supplier-modal .payment-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -1307,11 +1524,19 @@
   background: var(--blue-100) !important;
 }
 
-.add-supplier-modal .step-divider,
-.add-supplier-modal .step-icon,
+.add-supplier-modal .step-divider {
+  background: #e5e7eb !important;
+}
+
 .add-supplier-modal .step-indicator:not(.active):not(.completed) .step-icon {
-  background: var(--border) !important;
-  color: var(--text-muted) !important;
+  background: #dbeafe !important;
+  color: #2563eb !important;
+}
+
+.add-supplier-modal .step-indicator.active .step-icon,
+.add-supplier-modal .step-indicator.completed .step-icon {
+  background: var(--blue-600, #2563eb) !important;
+  color: #fff !important;
 }
 
 .add-supplier-modal .step-number,

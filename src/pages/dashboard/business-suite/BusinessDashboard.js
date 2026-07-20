@@ -45,8 +45,6 @@ import {
 } from '../../../components/DashboardSkeletons';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
-import AddTeamMemberModal from '../../../components/AddTeamMemberModal';
-import AddTeamModal from '../../../components/AddTeamModal';
 import AddPayrollModal from '../../../components/AddPayrollModal';
 import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
 import { handleLogout } from '../../../utils/logout';
@@ -151,9 +149,6 @@ const BusinessDashboard = ({
   getExchangeRate,
   onTeamCreated
 }) => {
-  const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
-  const [addTeamMemberTeamId, setAddTeamMemberTeamId] = useState(null);
-  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
   const [showAddPayrollModal, setShowAddPayrollModal] = useState(false);
   const [showCreateNewSupplierModal, setShowCreateNewSupplierModal] = useState(false);
 
@@ -880,7 +875,7 @@ const BusinessDashboard = ({
           <div className="mobile-section-header">
             <div className="mobile-section-indicator"></div>
             <h3 className="mobile-section-title">My Payroll</h3>
-            <button type="button" className="mobile-see-all-link" onClick={() => setShowAddTeamModal(true)}>Add a team</button>
+            <button type="button" className="mobile-see-all-link" onClick={() => navigate('/payroll')}>See all</button>
           </div>
           <div className="mobile-teams-list">
             {isLoadingTeams ? (
@@ -900,7 +895,6 @@ const BusinessDashboard = ({
                       <span className="mobile-team-badge">{team.memberCount ?? team.members ?? 0}</span>
                     </span>
                     <div className="mobile-team-actions">
-                      <button type="button" className="mobile-team-add-members" onClick={() => { setAddTeamMemberTeamId(team.id); setShowAddTeamMemberModal(true); }}>Add team members</button>
                       <button type="button" className="mobile-team-view-btn" onClick={() => onViewTeam?.(team.id)}>View</button>
                     </div>
                   </div>
@@ -1226,7 +1220,7 @@ const BusinessDashboard = ({
             <div className="bs-teams-card">
               <div className="bs-teams-header">
                 <h3 className="bs-teams-title">My Payroll</h3>
-                <button type="button" className="bs-teams-see-all" onClick={() => setShowAddTeamModal(true)}>Add a team</button>
+                <button type="button" className="bs-teams-see-all" onClick={() => navigate('/payroll')}>See all</button>
               </div>
               <div className="bs-teams-list">
                 {isLoadingTeams ? (
@@ -1246,7 +1240,6 @@ const BusinessDashboard = ({
                           <span className="bs-team-badge">{team.memberCount ?? team.members ?? 0}</span>
                         </span>
                         <div className="bs-team-actions">
-                          <button type="button" className="bs-team-add-members" onClick={() => { setAddTeamMemberTeamId(team.id); setShowAddTeamMemberModal(true); }}>Add team members</button>
                           <button type="button" className="bs-team-view" onClick={() => onViewTeam?.(team.id)}>View</button>
                         </div>
                       </div>
@@ -1274,20 +1267,6 @@ const BusinessDashboard = ({
 
       </div>
 
-      <AddTeamMemberModal
-        isOpen={showAddTeamMemberModal}
-        onCancel={() => { setShowAddTeamMemberModal(false); setAddTeamMemberTeamId(null); }}
-        onSuccess={() => { setShowAddTeamMemberModal(false); setAddTeamMemberTeamId(null); }}
-        teamId={addTeamMemberTeamId}
-      />
-      <AddTeamModal
-        isOpen={showAddTeamModal}
-        onCancel={() => setShowAddTeamModal(false)}
-        onSuccess={() => {
-          setShowAddTeamModal(false);
-          onTeamCreated?.();
-        }}
-      />
       <AddPayrollModal
         isOpen={showAddPayrollModal}
         onCancel={() => setShowAddPayrollModal(false)}

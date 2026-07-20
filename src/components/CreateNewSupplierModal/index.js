@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, ChevronDown, Upload, CheckCircle, FileText, DollarSign, ArrowLeft, ArrowRight } from 'lucide-react';
+import { X, ChevronDown, Upload, CheckCircle, FileText, ArrowLeft, ArrowRight, Contact2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../utils/config';
 import '../LoadingIndicator/index.css';
 import './index.css';
 
 const STEPS = [
-  { key: 1, label: 'Contract Info' },
-  { key: 2, label: 'Payment Terms' },
-  { key: 3, label: 'Escrow Summary' },
+  { key: 1, number: 'Step 1/3', title: 'Type/ Counterparty', icon: Contact2 },
+  { key: 2, number: 'Step 2/3', title: 'Terms', icon: FileText },
+  { key: 3, number: 'Step 3/3', title: 'Supply Summary', icon: CheckCircle },
 ];
 
 const DELIVERY_METHODS = [
@@ -26,6 +26,13 @@ const RELEASE_CONDITIONS = [
 ];
 
 const DISPUTE_WINDOW_DAYS = [3, 5, 7];
+
+const ReviewSummaryField = ({ label, value }) => (
+  <div className="form-group add-supplier-review-field">
+    <span className="add-supplier-review-label">{label}</span>
+    <div className="add-supplier-review-value">{value || '—'}</div>
+  </div>
+);
 
 const PLATFORM_FEE_PERCENT = 0.5;
 const NETWORK_FEE_USD = 1;
@@ -53,7 +60,8 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [statusAfterCreate, setStatusAfterCreate] = useState(null); // 'fund_escrow' | 'created'
 
-  // Step 1 — Contract Info
+  // Step 1 — Counterparty
+  const [supplierId, setSupplierId] = useState('');
   const [supplierName, setSupplierName] = useState('');
   const [supplierWalletAddress, setSupplierWalletAddress] = useState('');
   const [contractTitle, setContractTitle] = useState('');
@@ -88,7 +96,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
 
   // Fetch business email when supplier name is entered (debounced)
   useEffect(() => {
-    const name = supplierName.trim();
+    const name = (supplierId || supplierName).trim();
     if (!name || name.length < 2) {
       setLookupEmailError('');
       setLookupMatchedBusinessName('');
@@ -134,11 +142,11 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     return () => {
       if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
     };
-  }, [supplierName]);
+  }, [supplierId, supplierName]);
 
   // Fetch supplier name suggestions (debounced) as user types initials/name
   useEffect(() => {
-    const query = supplierName.trim();
+    const query = supplierId.trim();
     if (query.length < 1) {
       setSupplierSuggestions([]);
       setIsLoadingSupplierSuggestions(false);
@@ -177,7 +185,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     return () => {
       if (supplierAutocompleteTimeoutRef.current) clearTimeout(supplierAutocompleteTimeoutRef.current);
     };
-  }, [supplierName]);
+  }, [supplierId]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -199,6 +207,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     setStep(1);
     setShowSuccess(false);
     setStatusAfterCreate(null);
+    setSupplierId('');
     setSupplierName('');
     setSupplierWalletAddress('');
     setContractTitle('');
@@ -226,8 +235,8 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
     onCancel();
   };
 
-  const canProceedStep1 = supplierName.trim() && supplierWalletAddress.trim() && contractTitle.trim();
-  const canProceedStep2 = amountNum > 0 && currency;
+  const canProceedStep1 = supplierId.trim() && supplierWalletAddress.trim();
+  const canProceedStep2 = contractTitle.trim() && amountNum > 0 && currency;
 
   const handleNextFromStep1 = (e) => {
     e.preventDefault();
@@ -271,7 +280,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
       const escrowTypeLabel = escrowType === 'milestone' ? 'Milestone Payment' : 'Full Payment';
 
       const body = {
-        supplierName: supplierName.trim(),
+        supplierName: supplierName.trim() || supplierId.trim(),
         supplierWalletAddress: supplierWalletAddress.trim(),
         supplierEmail: supplierEmail.trim() || undefined,
         contractTitle: contractTitle.trim(),
@@ -384,215 +393,141 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
 
         {/* Step indicator - mobile */}
         <div className="create-escrow-steps-mobile">
-          {step === 1 && (
-            <div className="step-indicator-mobile active">
-              <div className="step-icon-mobile"><FileText size={20} /></div>
-              <div className="step-content-mobile">
-                <span className="step-number-mobile">Step 1/3</span>
-                <span className="step-title-mobile">Contract Info</span>
+          {STEPS.filter((item) => item.key === step).map((item) => {
+            const StepIcon = item.icon;
+            return (
+              <div key={item.key} className="step-indicator-mobile active">
+                <div className="step-icon-mobile">
+                  <StepIcon size={20} />
+                </div>
+                <div className="step-content-mobile">
+                  <span className="step-number-mobile">{item.number}</span>
+                  <span className="step-title-mobile">{item.title}</span>
+                </div>
               </div>
-            </div>
-          )}
-          {step === 2 && (
-            <div className="step-indicator-mobile active">
-              <div className="step-icon-mobile"><DollarSign size={20} /></div>
-              <div className="step-content-mobile">
-                <span className="step-number-mobile">Step 2/3</span>
-                <span className="step-title-mobile">Payment Terms</span>
-              </div>
-            </div>
-          )}
-          {step === 3 && (
-            <div className="step-indicator-mobile active">
-              <div className="step-icon-mobile"><CheckCircle size={20} /></div>
-              <div className="step-content-mobile">
-                <span className="step-number-mobile">Step 3/3</span>
-                <span className="step-title-mobile">Escrow Summary</span>
-              </div>
-            </div>
-          )}
+            );
+          })}
         </div>
 
         {/* Step indicator - desktop */}
         <div className="create-escrow-steps">
-          <div className={`step-indicator ${step === 1 ? 'active' : step > 1 ? 'completed' : ''}`}>
-            <div className="step-icon">{step > 1 ? <CheckCircle size={20} /> : <FileText size={20} />}</div>
-            <div className="step-content">
-              <span className="step-number">Step 1/3</span>
-              <span className="step-title">Contract Info</span>
-            </div>
-          </div>
-          <div className="step-divider" />
-          <div className={`step-indicator ${step === 2 ? 'active' : step > 2 ? 'completed' : ''}`}>
-            <div className="step-icon">{step > 2 ? <CheckCircle size={20} /> : <DollarSign size={20} />}</div>
-            <div className="step-content">
-              <span className="step-number">Step 2/3</span>
-              <span className="step-title">Payment Terms</span>
-            </div>
-          </div>
-          <div className="step-divider" />
-          <div className={`step-indicator ${step === 3 ? 'active' : ''}`}>
-            <div className="step-icon"><CheckCircle size={20} /></div>
-            <div className="step-content">
-              <span className="step-number">Step 3/3</span>
-              <span className="step-title">Escrow Summary</span>
-            </div>
-          </div>
+          {STEPS.map((item, index) => {
+            const StepIcon = item.icon;
+            const isActive = step === item.key;
+            const isCompleted = step > item.key;
+            return (
+              <React.Fragment key={item.key}>
+                {index > 0 && <div className="step-divider" aria-hidden />}
+                <div className={`step-indicator ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
+                  <div className="step-icon">
+                    {isCompleted ? <CheckCircle size={20} /> : <StepIcon size={20} />}
+                  </div>
+                  <div className="step-content">
+                    {isActive && <span className="step-number">{item.number}</span>}
+                    <span className="step-title">{item.title}</span>
+                  </div>
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         <div className="create-escrow-modal-content">
           {step === 1 && (
             <>
               <form id="create-supplier-step1-form" onSubmit={handleNextFromStep1}>
-                <div className="escrow-form-section">
-                  <h3 className="section-title">Supplier Contract Detail</h3>
-                  <div className="counterparty-form-grid">
-                    <div className="form-column">
-                      <div className="form-group">
-                        <label>
-                          Supplier name <span className="add-supplier-label-hint">(Must be a Registered business on Trustichain)</span>
-                        </label>
-                        <div className="add-supplier-dropdown-wrapper" ref={supplierNameFieldRef}>
-                          <input
-                            type="text"
-                            value={supplierName}
-                            onChange={(e) => {
-                              setSupplierName(e.target.value);
-                              setShowSupplierSuggestions(true);
-                            }}
-                            onFocus={() => {
-                              if (supplierName.trim().length >= 1) setShowSupplierSuggestions(true);
-                            }}
-                            placeholder="e.g. Nova Electronics Ltd"
-                          />
-                          {showSupplierSuggestions && supplierName.trim().length >= 1 && (
-                            <div className="add-supplier-dropdown">
-                              {isLoadingSupplierSuggestions ? (
-                                <div className="add-supplier-autocomplete-meta">Loading supplier suggestions...</div>
-                              ) : supplierSuggestions.length === 0 ? (
-                                lookupMatchedBusinessName ? (
-                                  <button
-                                    type="button"
-                                    className="add-supplier-dropdown-item"
-                                    onClick={() => {
-                                      setSupplierName(lookupMatchedBusinessName);
-                                      setShowSupplierSuggestions(false);
-                                    }}
-                                  >
-                                    {lookupMatchedBusinessName}
-                                  </button>
-                                ) : (
-                                  <div className="add-supplier-autocomplete-meta">No matching businesses found</div>
-                                )
+                <div className="escrow-form-section add-supplier-step1-section">
+                  <h3 className="section-title">Supplier Contract Details</h3>
+                  <div className="add-supplier-step1-grid">
+                    <div className="form-group">
+                      <label htmlFor="create-supplier-id">Supplier ID</label>
+                      <div className="add-supplier-dropdown-wrapper" ref={supplierNameFieldRef}>
+                        <input
+                          id="create-supplier-id"
+                          type="text"
+                          className="add-supplier-soft-input"
+                          value={supplierId}
+                          onChange={(e) => {
+                            setSupplierId(e.target.value);
+                            setSupplierName(e.target.value);
+                            setShowSupplierSuggestions(true);
+                          }}
+                          onFocus={() => {
+                            if (supplierId.trim().length >= 1) setShowSupplierSuggestions(true);
+                          }}
+                          placeholder="•••••••••••••••"
+                          autoComplete="off"
+                        />
+                        {showSupplierSuggestions && supplierId.trim().length >= 1 && (
+                          <div className="add-supplier-dropdown">
+                            {isLoadingSupplierSuggestions ? (
+                              <div className="add-supplier-autocomplete-meta">Loading supplier suggestions...</div>
+                            ) : supplierSuggestions.length === 0 ? (
+                              lookupMatchedBusinessName ? (
+                                <button
+                                  type="button"
+                                  className="add-supplier-dropdown-item"
+                                  onClick={() => {
+                                    setSupplierId(lookupMatchedBusinessName);
+                                    setSupplierName(lookupMatchedBusinessName);
+                                    setShowSupplierSuggestions(false);
+                                  }}
+                                >
+                                  {lookupMatchedBusinessName}
+                                </button>
                               ) : (
-                                supplierSuggestions.map((item) => (
-                                  <button
-                                    key={item.businessId || item.companyName || item.businessName}
-                                    type="button"
-                                    className="add-supplier-dropdown-item"
-                                    onClick={() => {
-                                      setSupplierName(item.companyName || item.businessName || '');
-                                      setShowSupplierSuggestions(false);
-                                    }}
-                                  >
-                                    {item.companyName || item.businessName || 'Unnamed business'}
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label>Supplier wallet address</label>
-                        <input
-                          type="text"
-                          value={supplierWalletAddress}
-                          onChange={(e) => setSupplierWalletAddress(e.target.value)}
-                          placeholder="XRPL wallet address"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Contract title</label>
-                        <input
-                          type="text"
-                          value={contractTitle}
-                          onChange={(e) => setContractTitle(e.target.value)}
-                          placeholder="e.g. Smartphone Parts Shipment"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Delivery method</label>
-                        <div className="radio-group">
-                          {DELIVERY_METHODS.map((opt) => (
-                            <label key={opt.value} className="radio-option">
-                              <input
-                                type="radio"
-                                name="deliveryMethod"
-                                checked={deliveryMethod === opt.value}
-                                onChange={() => setDeliveryMethod(opt.value)}
-                              />
-                              <span>{opt.label}</span>
-                            </label>
-                          ))}
-                        </div>
+                                <div className="add-supplier-autocomplete-meta">No matching businesses found</div>
+                              )
+                            ) : (
+                              supplierSuggestions.map((item) => (
+                                <button
+                                  key={item.businessId || item.companyName || item.businessName}
+                                  type="button"
+                                  className="add-supplier-dropdown-item"
+                                  onClick={() => {
+                                    const selectedName = item.companyName || item.businessName || '';
+                                    setSupplierId(item.businessId || selectedName);
+                                    setSupplierName(selectedName);
+                                    setShowSupplierSuggestions(false);
+                                  }}
+                                >
+                                  {item.companyName || item.businessName || 'Unnamed business'}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="form-column">
-                      <div className="form-group">
-                        <label>Supplier email <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                        <input
-                          type="email"
-                          value={supplierEmail}
-                          onChange={(e) => setSupplierEmail(e.target.value)}
-                          placeholder="supplier@email.com"
-                        />
-                        {isLookingUpEmail && (
-                          <span className="add-supplier-email-lookup-hint">Looking up business email…</span>
-                        )}
-                        {lookupEmailError && !isLookingUpEmail && (
-                          <span className="add-supplier-email-lookup-error">{lookupEmailError}</span>
-                        )}
-                      </div>
-                      <div className="form-group date-input-wrapper">
-                        <label>Delivery deadline</label>
-                        <input
-                          type="date"
-                          value={deliveryDeadline}
-                          onChange={(e) => setDeliveryDeadline(e.target.value)}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Contract description</label>
-                        <textarea
-                          value={contractDescription}
-                          onChange={(e) => setContractDescription(e.target.value)}
-                          placeholder="Supply of 2,000 smartphone camera modules."
-                          rows={3}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Dispute window</label>
-                        <div className="add-supplier-dropdown-wrapper">
-                          <button
-                            type="button"
-                            className="add-supplier-dropdown-btn"
-                            onClick={() => { setShowDisputeDropdown(!showDisputeDropdown); setShowCurrencyDropdown(false); setShowReleaseDropdown(false); }}
-                          >
-                            <span>{disputeWindow} days</span>
-                            <ChevronDown size={16} />
-                          </button>
-                          {showDisputeDropdown && (
-                            <div className="add-supplier-dropdown">
-                              {DISPUTE_WINDOW_DAYS.map((d) => (
-                                <button key={d} type="button" className="add-supplier-dropdown-item" onClick={() => { setDisputeWindow(d); setShowDisputeDropdown(false); }}>
-                                  {d} days
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="create-supplier-email">
+                        Supplier email <span className="add-supplier-optional-label">(optional)</span>
+                      </label>
+                      <input
+                        id="create-supplier-email"
+                        type="email"
+                        className="add-supplier-soft-input"
+                        value={supplierEmail}
+                        onChange={(e) => setSupplierEmail(e.target.value)}
+                        placeholder="Enter supplier email"
+                      />
+                      {isLookingUpEmail && (
+                        <span className="add-supplier-email-lookup-hint">Looking up business email…</span>
+                      )}
+                      {lookupEmailError && !isLookingUpEmail && (
+                        <span className="add-supplier-email-lookup-error">{lookupEmailError}</span>
+                      )}
+                    </div>
+                    <div className="form-group add-supplier-step1-full">
+                      <label htmlFor="create-supplier-wallet">Supplier wallet address</label>
+                      <input
+                        id="create-supplier-wallet"
+                        type="text"
+                        className="add-supplier-soft-input"
+                        value={supplierWalletAddress}
+                        onChange={(e) => setSupplierWalletAddress(e.target.value)}
+                        placeholder="Enter supplier wallet address"
+                      />
                     </div>
                   </div>
                 </div>
@@ -616,137 +551,178 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
           {step === 2 && (
             <>
               <form id="create-supplier-step2-form" onSubmit={handleNextFromStep2}>
-                <div className="escrow-form-section">
+                <div className="escrow-form-section add-supplier-step2-section">
                   <h3 className="section-title">Escrow Payment Details</h3>
-                  <div className="counterparty-form-grid">
-                    <div className="form-column">
-                      <div className="form-group">
-                        <label>Payment amount</label>
-                        <input
-                          type="text"
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value.replace(/[^0-9.,]/g, ''))}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Currency</label>
-                        <div className="add-supplier-dropdown-wrapper">
-                          <button
-                            type="button"
-                            className="add-supplier-dropdown-btn"
-                            onClick={() => { setShowCurrencyDropdown(!showCurrencyDropdown); setShowReleaseDropdown(false); setShowDisputeDropdown(false); }}
-                          >
-                            <span>{currency}</span>
-                            <ChevronDown size={16} />
-                          </button>
-                          {showCurrencyDropdown && (
-                            <div className="add-supplier-dropdown">
-                              {CURRENCY_OPTIONS.map((c) => (
-                                <button key={c} type="button" className="add-supplier-dropdown-item" onClick={() => { setCurrency(c); setShowCurrencyDropdown(false); }}>
-                                  {c}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label>Escrow type</label>
-                        <div className="radio-group">
-                          <label className="radio-option">
-                            <input type="radio" name="escrowType" checked={escrowType === 'full'} onChange={() => setEscrowType('full')} />
-                            <span>Full Payment</span>
-                          </label>
-                          <label className="radio-option">
-                            <input type="radio" name="escrowType" checked={escrowType === 'milestone'} onChange={() => setEscrowType('milestone')} />
-                            <span>Milestone Payment</span>
-                          </label>
-                        </div>
-                      </div>
-                      {escrowType === 'milestone' && (
-                        <div className="add-supplier-milestones">
-                          {[0, 1, 2].map((i) => (
-                            <div key={i} className="form-group">
-                              <label>Milestone {i + 1}</label>
-                              <input
-                                type="text"
-                                value={milestones[i] || ''}
-                                onChange={(e) => {
-                                  const next = [...milestones];
-                                  next[i] = e.target.value;
-                                  setMilestones(next);
-                                }}
-                                placeholder="Amount or description"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                  <div className="add-supplier-step2-grid">
+                    <div className="form-group">
+                      <label htmlFor="create-supplier-contract-title">Contract title</label>
+                      <input
+                        id="create-supplier-contract-title"
+                        type="text"
+                        className="add-supplier-soft-input"
+                        value={contractTitle}
+                        onChange={(e) => setContractTitle(e.target.value)}
+                        placeholder="Enter contract title"
+                      />
                     </div>
-                    <div className="form-column">
-                      <div className="form-group">
-                        <label>Release condition</label>
-                        <div className="add-supplier-dropdown-wrapper">
-                          <button
-                            type="button"
-                            className="add-supplier-dropdown-btn"
-                            onClick={() => { setShowReleaseDropdown(!showReleaseDropdown); setShowCurrencyDropdown(false); setShowDisputeDropdown(false); }}
-                          >
-                            <span>{releaseCondition}</span>
-                            <ChevronDown size={16} />
-                          </button>
-                          {showReleaseDropdown && (
-                            <div className="add-supplier-dropdown">
-                              {RELEASE_CONDITIONS.map((r) => (
-                                <button key={r} type="button" className="add-supplier-dropdown-item" onClick={() => { setReleaseCondition(r); setShowReleaseDropdown(false); }}>
-                                  {r}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label>Platform fee preview</label>
-                        <p className="add-supplier-fee-preview">{PLATFORM_FEE_PERCENT}% fee = ${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      </div>
-                      <div className="form-group">
-                        <label>Upload contract documents</label>
-                        <div className="add-supplier-upload-zone">
-                          <Upload size={20} />
-                          <span>Drag and drop or click to upload</span>
-                          <span className="add-supplier-upload-hint">Invoice · Agreement · Delivery Terms</span>
-                          <input
-                            type="file"
-                            multiple
-                            className="add-supplier-file-input"
-                            onChange={(e) => {
-                              const files = e.target.files;
-                              if (files?.[0]) handleFileUpload('invoice', files[0]);
-                              if (files?.[1]) handleFileUpload('agreement', files[1]);
-                              if (files?.[2]) handleFileUpload('deliveryTerms', files[2]);
-                              e.target.value = '';
-                            }}
-                          />
-                        </div>
-                        {(uploadedFiles.invoice || uploadedFiles.agreement || uploadedFiles.deliveryTerms) && (
-                          <div className="add-supplier-uploaded-names">
-                            {uploadedFiles.invoice?.name && <span>Invoice: {uploadedFiles.invoice.name}</span>}
-                            {uploadedFiles.agreement?.name && <span>Agreement: {uploadedFiles.agreement.name}</span>}
-                            {uploadedFiles.deliveryTerms?.name && <span>Delivery: {uploadedFiles.deliveryTerms.name}</span>}
+                    <div className="form-group">
+                      <label>Dispute window</label>
+                      <div className="add-supplier-dropdown-wrapper">
+                        <button
+                          type="button"
+                          className="add-supplier-dropdown-btn add-supplier-soft-input add-supplier-dropdown-btn--soft"
+                          onClick={() => {
+                            setShowDisputeDropdown(!showDisputeDropdown);
+                            setShowCurrencyDropdown(false);
+                            setShowReleaseDropdown(false);
+                          }}
+                        >
+                          <span>{disputeWindow} days</span>
+                          <ChevronDown size={16} />
+                        </button>
+                        {showDisputeDropdown && (
+                          <div className="add-supplier-dropdown">
+                            {DISPUTE_WINDOW_DAYS.map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                className="add-supplier-dropdown-item"
+                                onClick={() => {
+                                  setDisputeWindow(d);
+                                  setShowDisputeDropdown(false);
+                                }}
+                              >
+                                {d} days
+                              </button>
+                            ))}
                           </div>
                         )}
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label htmlFor="create-supplier-payment-amount">Payment Amount</label>
+                      <input
+                        id="create-supplier-payment-amount"
+                        type="text"
+                        className="add-supplier-soft-input"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value.replace(/[^0-9.,]/g, ''))}
+                        placeholder="••••••••••••"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    <div className="form-group date-input-wrapper">
+                      <label htmlFor="create-supplier-delivery-deadline">Delivery Deadline</label>
+                      <input
+                        id="create-supplier-delivery-deadline"
+                        type="date"
+                        className="add-supplier-soft-input"
+                        value={deliveryDeadline}
+                        onChange={(e) => setDeliveryDeadline(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group add-supplier-step2-span-full">
+                      <label htmlFor="create-supplier-description">Contract description</label>
+                      <textarea
+                        id="create-supplier-description"
+                        className="add-supplier-soft-input add-supplier-step2-textarea"
+                        value={contractDescription}
+                        onChange={(e) => setContractDescription(e.target.value)}
+                        placeholder="Enter contract description"
+                        rows={4}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Currency</label>
+                      <div className="add-supplier-dropdown-wrapper">
+                        <button
+                          type="button"
+                          className="add-supplier-dropdown-btn add-supplier-soft-input add-supplier-dropdown-btn--soft"
+                          onClick={() => {
+                            setShowCurrencyDropdown(!showCurrencyDropdown);
+                            setShowReleaseDropdown(false);
+                            setShowDisputeDropdown(false);
+                          }}
+                        >
+                          <span>{currency}</span>
+                          <ChevronDown size={16} />
+                        </button>
+                        {showCurrencyDropdown && (
+                          <div className="add-supplier-dropdown">
+                            {CURRENCY_OPTIONS.map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                className="add-supplier-dropdown-item"
+                                onClick={() => {
+                                  setCurrency(c);
+                                  setShowCurrencyDropdown(false);
+                                }}
+                              >
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Platform Fee review</label>
+                      <div className="add-supplier-step2-fee-box">
+                        <p className="add-supplier-step2-fee-value">
+                          {PLATFORM_FEE_PERCENT}% fee = ${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="form-group add-supplier-step2-delivery">
+                      <label>Delivery Method</label>
+                      <div className="radio-group add-supplier-step2-radio-group">
+                        {DELIVERY_METHODS.map((opt) => (
+                          <label key={opt.value} className="radio-option">
+                            <input
+                              type="radio"
+                              name="deliveryMethod"
+                              checked={deliveryMethod === opt.value}
+                              onChange={() => setDeliveryMethod(opt.value)}
+                            />
+                            <span>{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="form-group add-supplier-step2-upload-field">
+                      <label>
+                        Dispute Evidence <span className="add-supplier-optional-label">(optional)</span>
+                      </label>
+                      <div className="add-supplier-upload-zone add-supplier-step2-upload">
+                        <Upload size={20} />
+                        <span>Drag and drop or click to upload</span>
+                        <span className="add-supplier-upload-hint">Invoice · Agreement · Delivery Terms</span>
+                        <input
+                          type="file"
+                          multiple
+                          className="add-supplier-file-input"
+                          onChange={(e) => {
+                            const files = e.target.files;
+                            if (files?.[0]) handleFileUpload('invoice', files[0]);
+                            if (files?.[1]) handleFileUpload('agreement', files[1]);
+                            if (files?.[2]) handleFileUpload('deliveryTerms', files[2]);
+                            e.target.value = '';
+                          }}
+                        />
+                      </div>
+                      {(uploadedFiles.invoice || uploadedFiles.agreement || uploadedFiles.deliveryTerms) && (
+                        <div className="add-supplier-uploaded-names">
+                          {uploadedFiles.invoice?.name && <span>Invoice: {uploadedFiles.invoice.name}</span>}
+                          {uploadedFiles.agreement?.name && <span>Agreement: {uploadedFiles.agreement.name}</span>}
+                          {uploadedFiles.deliveryTerms?.name && <span>Delivery: {uploadedFiles.deliveryTerms.name}</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </form>
-              <div className="create-escrow-modal-footer">
-                <button type="button" className="previous-btn" onClick={handleBack}>
-                  <ArrowLeft size={16} />
-                  <span>Previous</span>
-                </button>
+              <div className="create-escrow-modal-footer create-escrow-modal-footer--step-forward">
                 <button
                   type="button"
                   className="submit-next-btn"
@@ -765,63 +741,44 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
           {step === 3 && (
             <>
               <form id="create-supplier-step3-form" onSubmit={handleCreateEscrow}>
-                <div className="escrow-form-section">
-                  <h3 className="section-title">Review Contract</h3>
-                  <div className="payment-summary-grid">
-                    <div className="payment-summary-block">
-                      <h4 className="payment-summary-block-title">Contract & Payment</h4>
-                      <div className="payment-summary-rows">
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Supplier</span>
-                          <span className="payment-summary-value">{supplierName || '—'}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Contract</span>
-                          <span className="payment-summary-value">{contractTitle || '—'}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Amount</span>
-                          <span className="payment-summary-value">${amountNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Currency</span>
-                          <span className="payment-summary-value">{currency}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Delivery Deadline</span>
-                          <span className="payment-summary-value">{deliveryDeadline || '—'}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Release Condition</span>
-                          <span className="payment-summary-value">{releaseCondition}</span>
-                        </div>
-                      </div>
+                <div className="escrow-form-section add-supplier-step3-section">
+                  <div className="add-supplier-step3-grid">
+                    <div className="add-supplier-step3-column">
+                      <h3 className="section-title">Review Contract</h3>
+                      <ReviewSummaryField label="Supplier ID" value={supplierId || supplierName} />
+                      <ReviewSummaryField label="Contract" value={contractTitle} />
+                      <ReviewSummaryField
+                        label="Amount"
+                        value={`$${amountNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      />
+                      <ReviewSummaryField label="Currency" value={currency} />
+                      <ReviewSummaryField label="Delivery Deadline" value={deliveryDeadline} />
+                      <ReviewSummaryField label="Release Condition" value={releaseCondition} />
                     </div>
-                    <div className="payment-summary-block">
-                      <h4 className="payment-summary-block-title">Fees & Total</h4>
-                      <div className="payment-summary-rows">
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Platform Fee</span>
-                          <span className="payment-summary-value">${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Network Fee</span>
-                          <span className="payment-summary-value">${NETWORK_FEE_USD.toFixed(2)}</span>
-                        </div>
-                        <div className="payment-summary-row">
-                          <span className="payment-summary-label">Total Escrow Deposit</span>
-                          <span className="payment-summary-value">${totalDeposit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                      </div>
+                    <div className="add-supplier-step3-column">
+                      <h3 className="section-title">Review Contract</h3>
+                      <ReviewSummaryField label="Supplier" value={supplierName || supplierId} />
+                      <ReviewSummaryField label="Contract" value={contractTitle} />
+                      <ReviewSummaryField
+                        label="Amount"
+                        value={`$${amountNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      />
+                      <ReviewSummaryField label="Currency" value={currency} />
+                      <ReviewSummaryField label="Delivery Deadline" value={deliveryDeadline} />
+                      <ReviewSummaryField label="Release Condition" value={releaseCondition} />
                     </div>
                   </div>
-                  <p className="add-supplier-trust-text">Funds will be locked on XRP Ledger escrow. Supplier will only receive funds after conditions are met.</p>
+                  <p className="add-supplier-trust-text add-supplier-step3-trust-text">
+                    Funds will be locked on XRP Ledger escrow. Supplier will only receive funds after conditions are met.
+                  </p>
                 </div>
                 {submitError && <div className="add-supplier-error" role="alert">{submitError}</div>}
               </form>
-              <div className="create-escrow-modal-footer">
-                <button type="button" className="previous-btn" onClick={handleBack} disabled={isSubmitting}>
-                  <ArrowLeft size={16} />
+              <div className="create-escrow-modal-footer add-supplier-step3-footer">
+                <button type="button" className="add-supplier-step3-previous-btn" onClick={handleBack} disabled={isSubmitting}>
+                  <div className="submit-btn-icon-circle submit-btn-icon-circle--inverse">
+                    <ArrowLeft size={16} />
+                  </div>
                   <span>Previous</span>
                 </button>
                 <button
@@ -833,7 +790,7 @@ const CreateNewSupplierModal = ({ isOpen, onCancel, onSuccess }) => {
                   <div className="submit-btn-icon-circle">
                     <ArrowRight size={16} />
                   </div>
-                  <span>{isSubmitting ? 'Creating…' : 'Create Escrow Contract'}</span>
+                  <span>{isSubmitting ? 'Submitting…' : 'Submit'}</span>
                 </button>
               </div>
             </>
