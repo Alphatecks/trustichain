@@ -1,4 +1,20 @@
 /* Connect Wallet Modal Styles */
+.connect-wallet-modal-overlay {
+  z-index: 1000;
+}
+
+.connect-wallet-modal-overlay--walletconnect-pending {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* WalletConnect picker defaults to z-index 89 — keep it above this modal */
+wcm-modal,
+w3m-modal {
+  --wcm-z-index: 15000;
+}
+
 .create-escrow-modal.connect-wallet-modal {
   max-width: 420px !important;
 }

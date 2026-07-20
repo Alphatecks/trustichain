@@ -121,12 +121,68 @@ const DepositApplePayMark = () => (
 
 const STRIPE_DEPOSIT_METHODS = new Set(['googlepay', 'applepay']);
 
-/** Placeholder avatars for “Send to Trustichain Users” row (UI reference). */
-const TRUSTICHAIN_USER_SAMPLE_AVATARS = [
-  'https://i.pravatar.cc/128?img=12',
-  'https://i.pravatar.cc/128?img=33',
-  'https://i.pravatar.cc/128?img=47',
-];
+const getBeneficiaryTrustitag = (beneficiary) =>
+  beneficiary?.trustitag || beneficiary?.tag || beneficiary?.handle || beneficiary?.username || '';
+
+const getBeneficiaryDisplayName = (beneficiary) => {
+  const tag = getBeneficiaryTrustitag(beneficiary);
+  const name = typeof beneficiary?.name === 'string' ? beneficiary.name.trim() : '';
+  if (name && name !== tag) return name;
+  return tag ? tag.replace(/^@/, '') : 'Trustitag';
+};
+
+const getBeneficiaryTrustitagId = (beneficiary) => {
+  const explicit =
+    beneficiary?.trustitagId ||
+    beneficiary?.tagId ||
+    beneficiary?.trustitagCode ||
+    beneficiary?.code;
+  if (explicit) return String(explicit).replace(/^@/, '');
+
+  const tag = getBeneficiaryTrustitag(beneficiary);
+  if (/^TG/i.test(tag)) return tag.replace(/^@/, '');
+
+  const numericId = String(beneficiary?.id ?? '').replace(/\D/g, '');
+  if (numericId) return `TG${numericId.padStart(10, '0').slice(-10)}`;
+
+  return tag ? tag.replace(/^@/, '') : '—';
+};
+
+const getBeneficiaryInitials = (beneficiary) => {
+  if (typeof beneficiary?.initials === 'string' && beneficiary.initials.trim()) {
+    return beneficiary.initials.trim().slice(0, 2).toUpperCase();
+  }
+  const tag = getBeneficiaryTrustitag(beneficiary) || beneficiary?.name || '';
+  return (
+    tag
+      .replace(/^@/, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(0, 2)
+      .toUpperCase() || '??'
+  );
+};
+
+const getBeneficiaryAvatarUrl = (beneficiary) =>
+  getProfileAvatarUrl(beneficiary) ||
+  (typeof beneficiary?.avatar === 'string' ? beneficiary.avatar.trim() : null) ||
+  null;
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const getBeneficiaryDeleteKey = (beneficiary) => {
+  const id = beneficiary?.id != null ? String(beneficiary.id) : '';
+  if (id && UUID_PATTERN.test(id)) return id;
+
+  const trustitagId = getBeneficiaryTrustitagId(beneficiary);
+  if (trustitagId && trustitagId !== '—') return trustitagId.replace(/^@/, '');
+
+  if (id && !id.startsWith('local-')) return id;
+
+  const trustitag = getBeneficiaryTrustitag(beneficiary);
+  if (trustitag) return trustitag.replace(/^@/, '');
+
+  return null;
+};
 
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
@@ -564,6 +620,9 @@ const Transactions = () => {
   const [showAddBeneficiaryModal, setShowAddBeneficiaryModal] = useState(false);
   const [addBeneficiaryTrustitag, setAddBeneficiaryTrustitag] = useState('');
   const [isAddingBeneficiary, setIsAddingBeneficiary] = useState(false);
+  const [showRemoveBeneficiaryModal, setShowRemoveBeneficiaryModal] = useState(false);
+  const [beneficiaryToRemove, setBeneficiaryToRemove] = useState(null);
+  const [isRemovingBeneficiary, setIsRemovingBeneficiary] = useState(false);
 
   useEffect(() => {
     if (!showAddBeneficiaryModal) {
@@ -1839,17 +1898,13 @@ const Transactions = () => {
   const loadBeneficiaries = useCallback(async () => {
     try {
       if (isSessionExpired) {
-        setBeneficiaries([
-          { id: 1, name: 'John Doe', initials: 'JD' },
-          { id: 2, name: 'Jane Smith', initials: 'JS' },
-          { id: 3, name: 'Bob Wilson', initials: 'BW' },
-          { id: 4, name: 'Alice Brown', initials: 'AB' },
-        ]);
+        setBeneficiaries([]);
         return;
       }
 
       const token = localStorage.getItem('token');
       if (!token) {
+        setBeneficiaries([]);
         return;
       }
 
@@ -1869,17 +1924,17 @@ const Transactions = () => {
             setBeneficiaries(result.data);
           } else if (Array.isArray(result.data?.beneficiaries)) {
             setBeneficiaries(result.data.beneficiaries);
+          } else {
+            setBeneficiaries([]);
           }
+          return;
         }
       }
+
+      setBeneficiaries([]);
     } catch (error) {
       console.error('Error fetching beneficiaries:', error);
-      setBeneficiaries([
-        { id: 1, name: 'John Doe', initials: 'JD' },
-        { id: 2, name: 'Jane Smith', initials: 'JS' },
-        { id: 3, name: 'Bob Wilson', initials: 'BW' },
-        { id: 4, name: 'Alice Brown', initials: 'AB' },
-      ]);
+      setBeneficiaries([]);
     } finally {
       setIsLoadingBeneficiaries(false);
     }
@@ -1953,6 +2008,64 @@ const Transactions = () => {
       setIsAddingBeneficiary(false);
     }
   }, [addBeneficiaryTrustitag, isSessionExpired, loadBeneficiaries]);
+
+  const handleConfirmRemoveBeneficiary = useCallback(async () => {
+    if (!beneficiaryToRemove || isRemovingBeneficiary) return;
+
+    if (isSessionExpired || String(beneficiaryToRemove.id ?? '').startsWith('local-')) {
+      setBeneficiaries((prev) => prev.filter((item) => item.id !== beneficiaryToRemove.id));
+      toast.success('Beneficiary removed');
+      setShowRemoveBeneficiaryModal(false);
+      setBeneficiaryToRemove(null);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please sign in to remove beneficiaries');
+      return;
+    }
+
+    setIsRemovingBeneficiary(true);
+    try {
+      const deleteKey = getBeneficiaryDeleteKey(beneficiaryToRemove);
+      if (!deleteKey) {
+        toast.error('Could not identify beneficiary to remove');
+        return;
+      }
+
+      const apiUrl = getApiUrl(
+        `api/user/beneficiaries/${encodeURIComponent(deleteKey)}`,
+      );
+
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result?.success !== false) {
+        toast.success(typeof result?.message === 'string' ? result.message : 'Beneficiary removed');
+        setShowRemoveBeneficiaryModal(false);
+        setBeneficiaryToRemove(null);
+        setIsLoadingBeneficiaries(true);
+        await loadBeneficiaries();
+      } else {
+        const msg =
+          (typeof result?.message === 'string' && result.message) ||
+          (typeof result?.error === 'string' && result.error) ||
+          'Could not remove beneficiary';
+        toast.error(msg);
+      }
+    } catch (error) {
+      console.error('Remove beneficiary failed:', error);
+      toast.error('Could not remove beneficiary');
+    } finally {
+      setIsRemovingBeneficiary(false);
+    }
+  }, [beneficiaryToRemove, isRemovingBeneficiary, isSessionExpired, loadBeneficiaries]);
 
   // Fetch linked accounts
   useEffect(() => {
@@ -2230,6 +2343,99 @@ const Transactions = () => {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRemoveBeneficiaryModal = () => {
+    if (!showRemoveBeneficiaryModal || !beneficiaryToRemove) return null;
+
+    const close = () => {
+      if (isRemovingBeneficiary) return;
+      setShowRemoveBeneficiaryModal(false);
+      setBeneficiaryToRemove(null);
+    };
+
+    const avatarUrl = getBeneficiaryAvatarUrl(beneficiaryToRemove);
+    const trustitagId = getBeneficiaryTrustitagId(beneficiaryToRemove);
+    const initials = getBeneficiaryInitials(beneficiaryToRemove);
+
+    return (
+      <div
+        className="remove-beneficiary-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="remove-beneficiary-title"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) close();
+        }}
+      >
+        <div className="remove-beneficiary-modal-shell">
+          <div className="remove-beneficiary-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="remove-beneficiary-modal-close"
+              onClick={close}
+              aria-label="Close"
+              disabled={isRemovingBeneficiary}
+            >
+              <X size={20} strokeWidth={1.75} />
+            </button>
+            <div className="remove-beneficiary-modal-header" aria-hidden />
+            <div className="remove-beneficiary-modal-body">
+              <div className="remove-beneficiary-modal-hero" aria-hidden>
+                <div className="remove-beneficiary-modal-hero-inner">
+                  <Trash2 size={44} strokeWidth={2} aria-hidden />
+                </div>
+              </div>
+              <h2 id="remove-beneficiary-title" className="remove-beneficiary-modal-title">
+                Are you sure you want to remove trustitag?
+              </h2>
+              <p className="remove-beneficiary-modal-lead">
+                This will permanently remove your Trustitag. This action cannot be undone.
+              </p>
+              <div className="remove-beneficiary-preview">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="remove-beneficiary-preview-avatar"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div
+                    className="remove-beneficiary-preview-avatar remove-beneficiary-preview-avatar--initials"
+                    aria-hidden
+                  >
+                    {initials}
+                  </div>
+                )}
+                <div className="remove-beneficiary-preview-details">
+                  <p className="remove-beneficiary-preview-name">Trustitag</p>
+                  <span className="remove-beneficiary-preview-id">{trustitagId}</span>
+                </div>
+              </div>
+              <div className="remove-beneficiary-modal-actions">
+                <button
+                  type="button"
+                  className="remove-beneficiary-modal-btn remove-beneficiary-modal-btn--danger"
+                  onClick={handleConfirmRemoveBeneficiary}
+                  disabled={isRemovingBeneficiary}
+                >
+                  {isRemovingBeneficiary ? 'Removing…' : 'Remove Trustitag'}
+                </button>
+                <button
+                  type="button"
+                  className="remove-beneficiary-modal-btn remove-beneficiary-modal-btn--muted"
+                  onClick={close}
+                  disabled={isRemovingBeneficiary}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -6389,15 +6595,37 @@ const Transactions = () => {
                         <Plus size={22} strokeWidth={2.75} aria-hidden />
                       </button>
                       <div className="beneficiary-avatar-stack">
-                        {TRUSTICHAIN_USER_SAMPLE_AVATARS.map((src) => (
-                          <img
-                            key={src}
-                            src={src}
-                            alt=""
-                            className="beneficiary-avatar-img"
-                            loading="lazy"
-                          />
-                        ))}
+                        {!isLoadingBeneficiaries &&
+                          beneficiaries.map((beneficiary) => {
+                            const avatarUrl = getBeneficiaryAvatarUrl(beneficiary);
+                            const label = getBeneficiaryDisplayName(beneficiary);
+                            const initials = getBeneficiaryInitials(beneficiary);
+                            return (
+                              <button
+                                key={beneficiary.id ?? label}
+                                type="button"
+                                className="beneficiary-avatar-btn"
+                                aria-label={`Remove ${label}`}
+                                onClick={() => {
+                                  setBeneficiaryToRemove(beneficiary);
+                                  setShowRemoveBeneficiaryModal(true);
+                                }}
+                              >
+                                {avatarUrl ? (
+                                  <img
+                                    src={avatarUrl}
+                                    alt=""
+                                    className="beneficiary-avatar-img"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <span className="beneficiary-avatar-img beneficiary-avatar-img--initials" aria-hidden>
+                                    {initials}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                       </div>
                     </div>
                     <button
@@ -8287,6 +8515,7 @@ const Transactions = () => {
 
       {renderTransactionDetailsModal()}
       {renderAddBeneficiaryModal()}
+      {renderRemoveBeneficiaryModal()}
 
       {/* Connect Wallet Modal */}
       <ConnectWalletModal 

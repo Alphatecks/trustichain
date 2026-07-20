@@ -27,6 +27,12 @@
   z-index: 11000 !important;
 }
 
+/* WalletConnect picker must render above app modals (default z-index is 89) */
+wcm-modal,
+w3m-modal {
+  --wcm-z-index: 15000;
+}
+
 .trusti-toast {
   -webkit-font-smoothing: antialiased;
 }

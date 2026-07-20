@@ -29,6 +29,11 @@ export async function initWalletConnectProvider() {
     projectId: WALLETCONNECT_PROJECT_ID,
     optionalChains: [1, 137, 56, 42161, 10, 8453],
     showQrModal: true,
+    qrModalOptions: {
+      themeVariables: {
+        '--wcm-z-index': '15000',
+      },
+    },
     metadata: {
       name: 'TrustiChain',
       description: 'TrustiChain Escrow Platform',

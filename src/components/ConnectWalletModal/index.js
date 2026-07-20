@@ -170,7 +170,10 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
   }
 
   return (
-    <div className="create-escrow-modal-overlay connect-wallet-modal-overlay" onClick={handleCloseModal}>
+    <div
+      className={`create-escrow-modal-overlay connect-wallet-modal-overlay${connectingWallet === 'walletconnect' ? ' connect-wallet-modal-overlay--walletconnect-pending' : ''}`}
+      onClick={handleCloseModal}
+    >
       <div className="create-escrow-modal connect-wallet-modal" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="create-escrow-modal-header">
