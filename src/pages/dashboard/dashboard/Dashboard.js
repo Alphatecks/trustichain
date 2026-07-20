@@ -59,6 +59,7 @@ import cardIllustration from '../../../assets/images/illustrations/card.png';
 import complianceIllustration from '../../../assets/images/illustrations/compliance.png';
 import googleLogo from '../../../assets/images/icons/google-logo.svg';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { fetchMySupplierId } from '../../../utils/businessSuiteSupplierId';
 import {
   getDepositNetworksForCurrency,
   extractWalletAddresses,
@@ -118,20 +119,6 @@ const normalizeCompanyLogoUrl = (data) => {
   const base = API_BASE_URL.replace(/\/$/, '');
   const path = s.startsWith('/') ? s : `/${s}`;
   return `${base}${path}`;
-};
-
-const extractBusinessSupplierId = (kycData) => {
-  if (!kycData || typeof kycData !== 'object') return '';
-  const candidates = [
-    kycData.supplierId,
-    kycData.supplier_id,
-    kycData.supplierReferenceId,
-    kycData.supplierReference,
-    kycData.referenceId,
-    kycData.businessSupplierId,
-  ];
-  const found = candidates.find((value) => typeof value === 'string' && value.trim());
-  return found ? found.trim() : '';
 };
 
 // Check if business email is set from GET api/business-suite/business-email/status (accept any response shape)
@@ -1048,26 +1035,32 @@ const Dashboard = () => {
 
   // Fetch business KYC status when on Business Suite (source of truth for show KYC vs dashboard)
   useEffect(() => {
-    if (accountType !== 'Business Suite') return;
+    const onSupplierContractRoute = location.pathname === '/supplier-contract';
+    if (accountType !== 'Business Suite' && !onSupplierContractRoute) return;
     const token = localStorage.getItem('token');
     if (!token) {
+      console.warn('[TrustiChain Supplier ID] Dashboard fetch skipped — missing auth token');
       setBusinessKycComplete(false);
       localStorage.removeItem('businessKycComplete');
       return;
     }
     let cancelled = false;
     setIsLoadingBusinessKyc(true);
-    fetch(getApiUrl('api/business-suite/kyc'), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((res) => res.json().catch(() => ({})))
-      .then((result) => {
+    Promise.all([
+      fetch(getApiUrl('api/business-suite/kyc'), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }).then((res) => res.json().catch(() => ({}))),
+      fetchMySupplierId(token),
+    ])
+      .then(([result, supplierId]) => {
         if (cancelled) return;
+        console.warn('[TrustiChain Supplier ID] Dashboard state update', { supplierId: supplierId || '(empty)' });
         console.log('KYC response (Business Suite load):', result);
+        setBusinessSupplierId(supplierId);
         if (result?.success && result?.data) {
           const kycData = result.data;
           console.log('Business Suite KYC response (company logo):', {
@@ -1078,25 +1071,21 @@ const Dashboard = () => {
           const status = statusRaw.replace(/_/g, ' ').toLowerCase();
           const verifiedStatuses = ['verified', 'approved', 'complete'];
           const isKycVerified = verifiedStatuses.includes(status);
-          const supplierId = extractBusinessSupplierId(kycData);
           if (isKycVerified) {
             setBusinessKycComplete(true);
             setBusinessCompanyName(kycData.companyName || '');
             setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
-            setBusinessSupplierId(supplierId);
             localStorage.setItem('businessKycComplete', 'true');
           } else {
             setBusinessKycComplete(false);
             setBusinessCompanyName(kycData?.companyName || '');
             setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
-            setBusinessSupplierId(supplierId);
             localStorage.removeItem('businessKycComplete');
           }
         } else {
           setBusinessKycComplete(false);
           setBusinessCompanyName('');
           setBusinessCompanyLogoUrl('');
-          setBusinessSupplierId('');
           localStorage.removeItem('businessKycComplete');
         }
       })
@@ -1113,7 +1102,7 @@ const Dashboard = () => {
         if (!cancelled) setIsLoadingBusinessKyc(false);
       });
     return () => { cancelled = true; };
-  }, [accountType]);
+  }, [accountType, location.pathname]);
 
   useEffect(() => {
     if (accountType === 'Business Suite') {

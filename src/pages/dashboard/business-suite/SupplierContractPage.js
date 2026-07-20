@@ -23,6 +23,7 @@ import {
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
+import { fetchMySupplierId } from '../../../utils/businessSuiteSupplierId';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { handleLogout } from '../../../utils/logout';
 import SupplierContract from './SupplierContract';
@@ -67,20 +68,6 @@ const normalizeCompanyLogoUrl = (data) => {
   const base = API_BASE_URL.replace(/\/$/, '');
   const path = s.startsWith('/') ? s : `/${s}`;
   return `${base}${path}`;
-};
-
-const extractBusinessSupplierId = (kycData) => {
-  if (!kycData || typeof kycData !== 'object') return '';
-  const candidates = [
-    kycData.supplierId,
-    kycData.supplier_id,
-    kycData.supplierReferenceId,
-    kycData.supplierReference,
-    kycData.referenceId,
-    kycData.businessSupplierId,
-  ];
-  const found = candidates.find((value) => typeof value === 'string' && value.trim());
-  return found ? found.trim() : '';
 };
 
 const SupplierContractPage = () => {
@@ -158,18 +145,20 @@ const SupplierContractPage = () => {
     if (!token) return;
     let cancelled = false;
     setIsLoadingBusinessKyc(true);
-    fetch(getApiUrl('api/business-suite/kyc'), {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    })
-      .then((res) => res.json().catch(() => ({})))
-      .then((result) => {
+    Promise.all([
+      fetch(getApiUrl('api/business-suite/kyc'), {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      }).then((res) => res.json().catch(() => ({}))),
+      fetchMySupplierId(token),
+    ])
+      .then(([result, supplierId]) => {
         if (cancelled) return;
+        setBusinessSupplierId(supplierId);
         if (result?.success && result?.data) {
           const kycData = result.data;
           setBusinessCompanyName(kycData.companyName || kycData?.companyName || '');
           setBusinessCompanyLogoUrl(normalizeCompanyLogoUrl(kycData) || '');
-          setBusinessSupplierId(extractBusinessSupplierId(kycData));
           const statusRaw = String(kycData?.status ?? kycData?.verification?.status ?? '').trim();
           const status = statusRaw.replace(/_/g, ' ').toLowerCase();
           const verifiedStatuses = ['verified', 'approved', 'complete'];

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../../context/SessionContext';
 import { getApiUrl } from '../../../utils/config';
+import { fetchMySupplierId } from '../../../utils/businessSuiteSupplierId';
 import SupplierContract from './SupplierContract';
 import FundSupplyAccountModal from '../../../components/FundSupplyAccountModal';
 import WithdrawModal from '../../../components/WithdrawModal';
@@ -75,6 +76,32 @@ const SupplierContractContent = ({
   const [transactionHistoryStatus, setTransactionHistoryStatus] = useState('');
   const [supplyContractOverview, setSupplyContractOverview] = useState(null);
   const [isLoadingSupplyContractOverview, setIsLoadingSupplyContractOverview] = useState(true);
+  const [resolvedSupplierId, setResolvedSupplierId] = useState(businessSupplierId);
+
+  useEffect(() => {
+    setResolvedSupplierId(businessSupplierId);
+  }, [businessSupplierId]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      console.warn('[TrustiChain Supplier ID] SupplierContractContent fetch skipped — no token or session expired');
+      return undefined;
+    }
+
+    let cancelled = false;
+    fetchMySupplierId(token).then((supplierId) => {
+      if (cancelled) return;
+      console.warn('[TrustiChain Supplier ID] SupplierContractContent resolved', {
+        supplierId: supplierId || '(empty)',
+      });
+      setResolvedSupplierId(supplierId);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSessionExpired]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -378,7 +405,7 @@ const SupplierContractContent = ({
         businessKycComplete={businessKycComplete}
         businessCompanyName={businessCompanyName}
         businessCompanyLogoUrl={businessCompanyLogoUrl}
-        businessSupplierId={businessSupplierId}
+        businessSupplierId={resolvedSupplierId}
         isLoadingBusinessKyc={isLoadingBusinessKyc}
         navigate={navigate}
         location={location}
