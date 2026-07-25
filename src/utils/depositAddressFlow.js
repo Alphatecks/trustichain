@@ -88,13 +88,29 @@ export const resolveDepositAddressFromBalance = (apiResult, currency, networkKey
   if (!apiResult || typeof apiResult !== 'object') return '';
   const d = apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : {};
 
-  const map = d.depositAddresses || d.deposit_addresses || d.receiveAddresses || d.chainAddresses;
+  const map =
+    d.stablecoinAddresses ||
+    d.stablecoin_addresses ||
+    apiResult.stablecoinAddresses ||
+    apiResult.stablecoin_addresses ||
+    d.depositAddresses ||
+    d.deposit_addresses ||
+    d.receiveAddresses ||
+    d.chainAddresses;
   if (map && typeof map === 'object') {
-    const byCur = map[currency] ?? map[String(currency).toLowerCase()];
+    const byCur = map[currency] ?? map[String(currency).toLowerCase()] ?? map[String(currency).toUpperCase()];
     if (typeof byCur === 'string' && byCur.trim()) return byCur.trim();
     if (byCur && typeof byCur === 'object' && networkKey) {
-      const n = byCur[networkKey] ?? byCur[String(networkKey).toLowerCase()];
+      const n =
+        byCur[networkKey] ??
+        byCur[String(networkKey).toLowerCase()] ??
+        byCur[String(networkKey).toUpperCase()];
       if (typeof n === 'string' && n.trim()) return n.trim();
+      if (n && typeof n === 'object') {
+        const nested =
+          n.address || n.depositAddress || n.deposit_address || n.walletAddress;
+        if (typeof nested === 'string' && nested.trim()) return nested.trim();
+      }
     }
   }
 
@@ -180,7 +196,13 @@ export function buildWalletAddressRows(apiResult) {
   }
 
   const d = apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : apiResult;
-  const map = d.depositAddresses || d.deposit_addresses || d.receiveAddresses || d.chainAddresses;
+  const map =
+    d.stablecoinAddresses ||
+    d.stablecoin_addresses ||
+    d.depositAddresses ||
+    d.deposit_addresses ||
+    d.receiveAddresses ||
+    d.chainAddresses;
   if (map && typeof map === 'object' && !Array.isArray(map)) {
     for (const [curRaw, val] of Object.entries(map)) {
       const curUpper = String(curRaw).trim().toUpperCase();

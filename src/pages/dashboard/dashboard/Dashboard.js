@@ -95,7 +95,7 @@ import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
 import SupplierContractContent from '../business-suite/SupplierContractContent';
 import TeamDetailModal from '../business-suite/TeamDetailModal';
-import ConnectWalletModal from '../../../components/ConnectWalletModal';
+import ReownFundModal from '../../../components/ReownFundModal';
 import TrustitagWelcomeModal from '../../../components/TrustitagWelcomeModal/TrustitagWelcomeModal';
 import {
   peekTrustitagWelcomePending,
@@ -1476,7 +1476,7 @@ const Dashboard = () => {
   const [showFundMethodModal, setShowFundMethodModal] = useState(false);
   const [showFundingAssetModal, setShowFundingAssetModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
-  const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
+  const [showReownFundModal, setShowReownFundModal] = useState(false);
   const [showConnectBusinessWalletModal, setShowConnectBusinessWalletModal] = useState(false);
   const [connectBusinessWalletAddress, setConnectBusinessWalletAddress] = useState('');
   const [isConnectingBusinessWallet, setIsConnectingBusinessWallet] = useState(false);
@@ -8383,7 +8383,7 @@ const Dashboard = () => {
                   onClick={() => {
                     setShowFundMethodModal(false);
                     setFundDepositPaymentMethod(null);
-                    setShowConnectWalletModal(true);
+                    setShowReownFundModal(true);
                   }}
                 >
                   <div className="fund-method-option-icon">
@@ -8391,7 +8391,9 @@ const Dashboard = () => {
                   </div>
                   <div className="fund-method-option-text">
                     <div className="fund-method-option-title">Fund with Wallet</div>
-                    <div className="fund-method-option-desc">Connect your crypto wallet to fund</div>
+                    <div className="fund-method-option-desc">
+                      Send USDT/USDC via WalletConnect (ERC-20 / BEP-20)
+                    </div>
                   </div>
                 </button>
                 <button
@@ -8418,10 +8420,12 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Connect Wallet Modal */}
-      <ConnectWalletModal 
-        isOpen={showConnectWalletModal && !isWalletConnectedViaAPI} 
-        onClose={() => setShowConnectWalletModal(false)} 
+      <ReownFundModal
+        isOpen={showReownFundModal}
+        onClose={() => setShowReownFundModal(false)}
+        onCredited={() => {
+          setWalletBalancesRefreshTrigger((n) => n + 1);
+        }}
       />
 
       {/* Business Suite Wallet Modal (fetch & show balance) */}

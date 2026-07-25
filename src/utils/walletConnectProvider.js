@@ -3,8 +3,17 @@ import { WALLETCONNECT_PROJECT_ID } from './config';
 
 let walletConnectProvider = null;
 
+/** Ethereum + BSC required for Reown USDT/USDC EVM deposits; others optional. */
 const REQUIRED_CHAIN = 1;
-const OPTIONAL_CHAINS = [137, 56, 42161, 10, 8453];
+const OPTIONAL_CHAINS = [56, 137, 42161, 10, 8453];
+
+const toHexChainId = (chainId) => {
+  const n = Number(chainId);
+  if (!Number.isFinite(n)) {
+    throw new Error('Invalid chain id');
+  }
+  return `0x${n.toString(16)}`;
+};
 
 const getAppOrigin = () => {
   if (typeof window !== 'undefined' && window.location?.origin) {
@@ -85,6 +94,12 @@ export async function initWalletConnectProvider() {
       themeVariables: {
         '--wcm-z-index': '15000',
       },
+      // Desktop MetaMask uses the injected extension button in ReownFundModal.
+      // Keep mobile MetaMask featured; do not put Trust first (it steals focus).
+      explorerRecommendedWalletIds: [
+        'c57ca17b541851d341bb23445af5ef4bb6beb82acf4bd3476d8304cea4aaa', // MetaMask
+        '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369', // Rainbow
+      ],
     },
     metadata: {
       name: 'TrustiChain',
@@ -157,4 +172,76 @@ export function isWalletConnectUserRejected(error) {
     message.includes('user rejected') ||
     message.includes('connection request reset')
   );
+}
+
+/**
+ * Switch the active WalletConnect chain; add the chain when the wallet doesn't know it.
+ */
+export async function switchWalletConnectChain(
+  provider,
+  { chainId, chainName, rpcUrl, nativeCurrency, blockExplorerUrl } = {},
+) {
+  const wc = provider || walletConnectProvider;
+  if (!wc) {
+    throw new Error('WalletConnect provider is not initialized');
+  }
+  if (!chainId) {
+    throw new Error('Target chain id is required');
+  }
+
+  const hexChainId = toHexChainId(chainId);
+
+  try {
+    await wc.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: hexChainId }],
+    });
+    return;
+  } catch (switchError) {
+    if (isWalletConnectUserRejected(switchError)) throw switchError;
+
+    const needsAdd =
+      switchError?.code === 4902 ||
+      String(switchError?.message || '')
+        .toLowerCase()
+        .includes('unrecognized chain');
+
+    if (!needsAdd) throw switchError;
+  }
+
+  if (!rpcUrl) {
+    throw new Error(
+      `Wallet does not support chain ${chainId} and no RPC URL was provided to add it.`,
+    );
+  }
+
+  const currency =
+    nativeCurrency && typeof nativeCurrency === 'object'
+      ? {
+          name: nativeCurrency.name || 'Ether',
+          symbol: nativeCurrency.symbol || 'ETH',
+          decimals:
+            nativeCurrency.decimals != null ? Number(nativeCurrency.decimals) : 18,
+        }
+      : Number(chainId) === 56
+        ? { name: 'BNB', symbol: 'BNB', decimals: 18 }
+        : { name: 'Ether', symbol: 'ETH', decimals: 18 };
+
+  await wc.request({
+    method: 'wallet_addEthereumChain',
+    params: [
+      {
+        chainId: hexChainId,
+        chainName: chainName || `Chain ${chainId}`,
+        nativeCurrency: currency,
+        rpcUrls: [rpcUrl],
+        blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
+      },
+    ],
+  });
+
+  await wc.request({
+    method: 'wallet_switchEthereumChain',
+    params: [{ chainId: hexChainId }],
+  });
 }

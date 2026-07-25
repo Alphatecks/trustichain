@@ -5,7 +5,9 @@ import { getApiUrl } from '../utils/config';
 import {
   connectWalletConnect,
   disconnectWalletConnect,
+  getWalletConnectProvider,
   isWalletConnectUserRejected,
+  switchWalletConnectChain,
 } from '../utils/walletConnectProvider';
 
 const Web3Context = createContext();
@@ -263,6 +265,8 @@ export const Web3Provider = ({ children }) => {
 
       if (walletType === 'walletconnect') {
         try {
+          // Reown/WalletConnect is frontend-session only for EVM funding.
+          // Do NOT POST 0x addresses to /api/wallet/connect (XRPL r… only).
           const { provider: wcProvider, account: wcAccount } = await connectWalletConnect();
           const ethersProvider = new ethers.providers.Web3Provider(wcProvider);
           const wcSigner = ethersProvider.getSigner();
@@ -273,8 +277,9 @@ export const Web3Provider = ({ children }) => {
           setSigner(wcSigner);
           setIsConnected(true);
           setChainId(network.chainId);
-
-          await connectWalletToAPI(wcAccount, 'walletconnect');
+          localStorage.setItem('walletconnectWalletConnected', 'true');
+          localStorage.setItem('walletconnectWalletAddress', wcAccount);
+          toast.success('WalletConnect connected');
           return { type: 'walletconnect', account: wcAccount };
         } catch (error) {
           if (isWalletConnectUserRejected(error)) {
@@ -606,11 +611,26 @@ export const Web3Provider = ({ children }) => {
     }
   };
 
-  const switchNetwork = async (targetChainId) => {
+  const switchNetwork = async (targetChainId, chainMeta = {}) => {
     try {
+      const wcProvider = getWalletConnectProvider();
+      if (wcProvider) {
+        await switchWalletConnectChain(wcProvider, {
+          chainId: targetChainId,
+          ...chainMeta,
+        });
+        setChainId(Number(targetChainId));
+        return;
+      }
+
+      if (!window.ethereum) {
+        toast.error('No wallet provider available');
+        return;
+      }
+
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+        params: [{ chainId: `0x${Number(targetChainId).toString(16)}` }],
       });
     } catch (error) {
       console.error('Error switching network:', error);
@@ -632,14 +652,8 @@ export const Web3Provider = ({ children }) => {
       // User needs to manually connect via the UI
     }
 
-    // Check for WalletConnect connection
-    const isWalletConnectConnected = localStorage.getItem('walletconnectWalletConnected') === 'true';
-    const walletConnectAddress = localStorage.getItem('walletconnectWalletAddress');
+    // WalletConnect is session-only (not via /api/wallet/connect); do not set API flag.
 
-    if (token && isWalletConnectConnected && walletConnectAddress) {
-      setIsWalletConnectedViaAPI(true);
-    }
-    
     // Check for XAMAN connection
     const isXamanConnected = localStorage.getItem('xamanWalletConnected') === 'true';
     const xamanAddress = localStorage.getItem('xamanWalletAddress');
