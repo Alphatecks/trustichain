@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   CreditCard,
   FileText,
@@ -19,12 +19,22 @@ import {
   parseCustodialWalletBalances as parseEscrowCurrencyBalancesMap,
   readStoredDashboardAccountType as readDashboardAccountType,
 } from '../../utils/custodialWalletBalances';
+import { extractWalletAddresses } from '../../utils/depositAddressFlow';
 import { useWeb3 } from '../../context/Web3Context';
 import toast from 'react-hot-toast';
 import googleLogo from '../../assets/images/icons/google-logo.svg';
 import '../LoadingIndicator/index.css';
 import '../../pages/dashboard/my-escrow/MyEscrow.css';
+import EscrowFundingCurrencyDropdown from './EscrowFundingCurrencyDropdown';
 import './index.css';
+
+const PAYER_WALLET_ICONS = {
+  custodial: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+  xaman:
+    'https://cdn.prod.website-files.com/66ffb9c73bc7e83a1e0e1006/67028cc20682f3c6f7ec6161_Xaman%20Logo.svg',
+  metamask: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
+  connected: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+};
 
 /** Matches MyEscrow.css desktop breakpoint (`min-width: 769px`). */
 const CREATE_ESCROW_DESKTOP_MODAL_MQ = '(min-width: 769px)';
@@ -37,12 +47,6 @@ const toDateInputValue = (raw) => {
   if (s.includes('T')) return s.slice(0, 10);
   return s;
 };
-
-const formatEscrowBalance = (value) =>
-  Number(value ?? 0).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
 const COUNTERPARTY_METHOD_META = {
   wallet: {
@@ -100,6 +104,28 @@ const resolvePayerWalletFromContext = (account) => {
   }
 };
 
+/** Custodial TrustiChain XRP address from wallet balance API. */
+const fetchCustodialPayerWallet = async (signal) => {
+  const token = localStorage.getItem('token');
+  if (!token) return '';
+  const accountType = readDashboardAccountType();
+  const balanceUrl =
+    accountType === 'Business Suite'
+      ? getApiUrl('api/business-suite/wallet/balance')
+      : getApiUrl('api/wallet/balance');
+  const response = await fetch(balanceUrl, {
+    method: 'GET',
+    signal,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) return '';
+  const result = await response.json();
+  return extractWalletAddresses(result).xrp || '';
+};
+
 /** Time-based escrow funding assets shown in the balance dropdown (API-driven balances). */
 const ESCROW_FUNDING_CURRENCIES = ['RLUSD', 'XRP', 'USDT', 'USDC'];
 
@@ -120,7 +146,8 @@ const formatConfirmationDisplayDate = (raw) => {
 const maskCounterpartyWalletForConfirmation = (addr) => {
   const s = String(addr || '').trim();
   if (!s) return '—';
-  return '*'.repeat(15);
+  if (s.length <= 10) return s;
+  return `${s.slice(0, 6)}…${s.slice(-4)}`;
 };
 
 const estimateUsdForConfirmationAmount = (amountNum, currency, xrpToUsdRate) => {
@@ -133,6 +160,104 @@ const estimateUsdForConfirmationAmount = (amountNum, currency, xrpToUsdRate) => 
     return amountNum * 1;
   }
   return null;
+};
+
+/** Short hint under amount inputs — e.g. `≈ $125.50 USD` or `≈ 45.23 XRP`. */
+const formatAmountExchangeHint = (amountStr, currency, xrpToUsdRate) => {
+  const raw = String(amountStr || '').trim().replace(/,/g, '');
+  if (!raw) return null;
+  const amountNum = parseFloat(raw);
+  if (!Number.isFinite(amountNum) || amountNum <= 0) return null;
+
+  const cur = normalizeEscrowPayloadCurrency(currency);
+  const usd = estimateUsdForConfirmationAmount(amountNum, cur, xrpToUsdRate);
+
+  if (cur === 'XRP' && usd != null && Number.isFinite(usd)) {
+    return `≈ $${usd.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} USD`;
+  }
+
+  if (['RLUSD', 'USDT', 'USDC'].includes(cur) && usd != null && Number.isFinite(usd)) {
+    const xrpRate = Number(xrpToUsdRate);
+    if (Number.isFinite(xrpRate) && xrpRate > 0) {
+      const xrpEquivalent = usd / xrpRate;
+      return `≈ $${usd.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} USD · ${xrpEquivalent.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })} XRP`;
+    }
+    return `≈ $${usd.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} USD`;
+  }
+
+  if (usd != null && Number.isFinite(usd)) {
+    return `≈ $${usd.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} USD`;
+  }
+
+  return null;
+};
+
+const maskWalletAddressShort = (addr) => {
+  const s = String(addr || '').trim();
+  if (!s) return '—';
+  if (s.length <= 14) return s;
+  return `${s.slice(0, 8)}…${s.slice(-4)}`;
+};
+
+/** Payer wallets available when paying with TrustiChain. */
+const buildPayerWalletOptions = ({ custodialAddress, account, isConnected }) => {
+  const options = [];
+  const hasWindow = typeof window !== 'undefined';
+
+  if (custodialAddress?.trim()) {
+    options.push({
+      id: 'custodial',
+      label: 'TrustiChain Wallet',
+      network: 'XRPL',
+      address: custodialAddress.trim(),
+    });
+  }
+
+  const xamanConnected = hasWindow && localStorage.getItem('xamanWalletConnected') === 'true';
+  const xamanAddress = hasWindow ? localStorage.getItem('xamanWalletAddress') : '';
+  if (xamanConnected && xamanAddress?.trim()) {
+    options.push({
+      id: 'xaman',
+      label: 'XAMAN',
+      network: 'XRPL',
+      address: xamanAddress.trim(),
+    });
+  }
+
+  const metamaskConnected =
+    hasWindow && localStorage.getItem('metamaskWalletConnected') === 'true';
+  if (metamaskConnected && isConnected && account?.trim()) {
+    options.push({
+      id: 'metamask',
+      label: 'MetaMask',
+      network: 'Connected',
+      address: account.trim(),
+    });
+  } else if (isConnected && account?.trim() && !xamanConnected) {
+    options.push({
+      id: 'connected',
+      label: 'Connected Wallet',
+      network: 'Connected',
+      address: account.trim(),
+    });
+  }
+
+  return options;
 };
 
 /** e.g. `0.50 RLUSD ($0.50 USD)` */
@@ -160,7 +285,7 @@ const formatConfirmationMoneyLine = (amountNum, currency, xrpToUsdRate) => {
  * - onSuccess: (data) => void – called after successful escrow creation
  */
 const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
-  const { account } = useWeb3();
+  const { account, isConnected } = useWeb3();
   const [desktopModalLayout, setDesktopModalLayout] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia(CREATE_ESCROW_DESKTOP_MODAL_MQ).matches,
   );
@@ -201,6 +326,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   });
 
   const [exchangeRate, setExchangeRate] = useState(null); // XRP to USD rate
+  const [custodialWalletAddress, setCustodialWalletAddress] = useState('');
+  const [selectedPayerWalletId, setSelectedPayerWalletId] = useState('');
   const [escrowCurrencyBalances, setEscrowCurrencyBalances] = useState(() =>
     emptyEscrowCurrencyBalances(),
   );
@@ -208,6 +335,31 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
   const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
   const [stripePaymentStatus, setStripePaymentStatus] = useState(null);
+  const counterpartyWalletRef = useRef('');
+  const counterpartyTrustitagRef = useRef('');
+  const wasOpenRef = useRef(false);
+
+  const getCounterpartyWalletValue = () =>
+    (counterpartyWalletRef.current || formData.counterpartyWallet || '').trim();
+
+  const getCounterpartyTrustitagValue = () =>
+    (counterpartyTrustitagRef.current || formData.counterpartyTrustitag || '').trim();
+
+  const payerWalletOptions = useMemo(
+    () =>
+      buildPayerWalletOptions({
+        custodialAddress: custodialWalletAddress,
+        account,
+        isConnected,
+      }),
+    [custodialWalletAddress, account, isConnected],
+  );
+
+  const amountExchangeHint = formatAmountExchangeHint(
+    termsData.totalAmount,
+    termsData.escrowCurrency,
+    exchangeRate,
+  );
 
   // Fetch exchange rate for XRP to USD conversion (copied from MyEscrow)
   useEffect(() => {
@@ -326,6 +478,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     setSelectedConfirmationPaymentMethod('');
     setStripePaymentStatus(null);
     setCounterpartyMethod('wallet');
+    counterpartyWalletRef.current = '';
+    counterpartyTrustitagRef.current = '';
     setFormData({
       payerWallet: '',
       payerEmail: '',
@@ -352,10 +506,16 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       escrowCurrency: 'RLUSD',
     });
     setEscrowCurrencyBalances(emptyEscrowCurrencyBalances());
+    setCustodialWalletAddress('');
+    setSelectedPayerWalletId('');
   };
 
-  // Cleanup when modal closes or component unmounts
+  // Fresh form each time the modal opens; clear in-flight state when it closes.
   useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      resetFormState();
+    }
+    wasOpenRef.current = isOpen;
     if (!isOpen) {
       setEscrowCreationStep('idle');
       setIsCreatingEscrow(false);
@@ -422,15 +582,54 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     return () => ac.abort();
   }, [isOpen, currentStep]);
 
-  // Prefer connected / saved wallet as payer so Wallet Address mode matches minimal Step 1 UI.
+  // Load custodial wallet address and default payer wallet for escrow creation.
   useEffect(() => {
-    if (!isOpen) return;
-    const resolved = resolvePayerWalletFromContext(account);
-    if (!resolved) return;
-    setFormData((prev) =>
-      prev.payerWallet.trim() ? prev : { ...prev, payerWallet: resolved },
-    );
+    if (!isOpen) return undefined;
+    const ac = new AbortController();
+    const loadPayerWallet = async () => {
+      let custodial = '';
+      try {
+        custodial = await fetchCustodialPayerWallet(ac.signal);
+        if (custodial) {
+          setCustodialWalletAddress(custodial);
+        }
+      } catch (e) {
+        if (e?.name !== 'AbortError') {
+          /* ignore — validation will surface a clear message later */
+        }
+      }
+
+      const fromContext = resolvePayerWalletFromContext(account);
+      const defaultWallet = fromContext || custodial || '';
+      if (defaultWallet) {
+        setFormData((prev) =>
+          prev.payerWallet.trim() ? prev : { ...prev, payerWallet: defaultWallet },
+        );
+      }
+    };
+    loadPayerWallet();
+    return () => ac.abort();
   }, [isOpen, account]);
+
+  // Default TrustiChain payer wallet when options load or payment method changes.
+  useEffect(() => {
+    if (selectedConfirmationPaymentMethod !== 'trustichain') return;
+    if (payerWalletOptions.length === 0) {
+      setSelectedPayerWalletId('');
+      return;
+    }
+    setSelectedPayerWalletId((prev) =>
+      prev && payerWalletOptions.some((w) => w.id === prev) ? prev : payerWalletOptions[0].id,
+    );
+  }, [selectedConfirmationPaymentMethod, payerWalletOptions]);
+
+  useEffect(() => {
+    if (selectedConfirmationPaymentMethod !== 'trustichain' || !selectedPayerWalletId) return;
+    const selected = payerWalletOptions.find((w) => w.id === selectedPayerWalletId);
+    if (selected?.address) {
+      setFormData((prev) => ({ ...prev, payerWallet: selected.address }));
+    }
+  }, [selectedConfirmationPaymentMethod, selectedPayerWalletId, payerWalletOptions]);
 
   // Handle create escrow (adapted from MyEscrow, extended with XUMM/Xaman flow)
   const handleCreateEscrow = async () => {
@@ -439,28 +638,54 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       setEscrowCreationStep('creating');
       setStripePaymentStatus(null);
 
-      const payerWalletResolved =
+      let payerWalletResolved =
         formData.payerWallet?.trim() || resolvePayerWalletFromContext(account) || '';
 
-      const escrowCurrencyResolved = normalizeEscrowPayloadCurrency(termsData.escrowCurrency);
-
-      const counterpartyWalletTrimmed = formData.counterpartyWallet?.trim() || '';
-      const counterpartyTrustitagTrimmed = formData.counterpartyTrustitag?.trim() || '';
+      if (selectedConfirmationPaymentMethod === 'trustichain') {
+        if (!selectedPayerWalletId) {
+          toast.error('Please select which wallet to pay from');
+          setIsCreatingEscrow(false);
+          return;
+        }
+        const selectedWallet = payerWalletOptions.find((w) => w.id === selectedPayerWalletId);
+        if (!selectedWallet?.address) {
+          toast.error('Please select a valid payer wallet');
+          setIsCreatingEscrow(false);
+          return;
+        }
+        payerWalletResolved = selectedWallet.address;
+      } else if (!payerWalletResolved) {
+        try {
+          payerWalletResolved = await fetchCustodialPayerWallet();
+          if (payerWalletResolved) {
+            setFormData((prev) => ({ ...prev, payerWallet: payerWalletResolved }));
+          }
+        } catch (_) {
+          /* ignore */
+        }
+      }
 
       if (!payerWalletResolved) {
-        toast.error('Please fill in all required fields');
+        toast.error(
+          'Create your TrustiChain wallet or connect Xaman/MetaMask before creating an escrow.',
+        );
         setIsCreatingEscrow(false);
         return;
       }
 
+      const escrowCurrencyResolved = normalizeEscrowPayloadCurrency(termsData.escrowCurrency);
+
+      const counterpartyWalletTrimmed = getCounterpartyWalletValue();
+      const counterpartyTrustitagTrimmed = getCounterpartyTrustitagValue();
+
       if (counterpartyMethod === 'wallet' && !counterpartyWalletTrimmed) {
-        toast.error('Please fill in all required fields');
+        toast.error('Please enter the counterparty XRP wallet address');
         setIsCreatingEscrow(false);
         return;
       }
 
       if (counterpartyMethod === 'trustitag' && !counterpartyTrustitagTrimmed) {
-        toast.error('Please fill in all required fields');
+        toast.error("Please enter the counterparty's Trustitag");
         setIsCreatingEscrow(false);
         return;
       }
@@ -781,13 +1006,19 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
   const handleContinueFromStep1 = () => {
     if (counterpartyMethod === 'wallet') {
-      if (!formData.counterpartyWallet?.trim()) {
+      const counterpartyWallet = getCounterpartyWalletValue();
+      if (!counterpartyWallet) {
         toast.error('Please enter the counterparty XRP wallet address');
         return;
       }
-    } else if (!formData.counterpartyTrustitag?.trim()) {
-      toast.error("Please enter the counterparty's Trustitag");
-      return;
+      setFormData((prev) => ({ ...prev, counterpartyWallet }));
+    } else {
+      const counterpartyTrustitag = getCounterpartyTrustitagValue();
+      if (!counterpartyTrustitag) {
+        toast.error("Please enter the counterparty's Trustitag");
+        return;
+      }
+      setFormData((prev) => ({ ...prev, counterpartyTrustitag }));
     }
     setCurrentStep(2);
   };
@@ -799,7 +1030,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       );
       return;
     }
-    if (termsData.releaseType === 'Time based' && escrowFundingWalletsLoading) {
+    if (!termsData.totalAmount?.trim()) {
+      toast.error('Please enter the total amount');
+      return;
+    }
+    if (escrowFundingWalletsLoading) {
       toast.error('Still loading your balances. Please wait a moment.');
       return;
     }
@@ -809,6 +1044,61 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   if (!isOpen) {
     return null;
   }
+
+  const renderEscrowAmountField = ({
+    label = 'Total Amount',
+    formGroupClass = '',
+    showCurrencySelector = true,
+  }) => (
+    <div className={`form-group ${formGroupClass}`.trim()}>
+      <label>{label}</label>
+      <div className="create-escrow-amount-row">
+        <input
+          type="text"
+          className="create-escrow-amount-row-input"
+          placeholder={desktopModalLayout ? 'Add amount' : 'Enter amount'}
+          value={termsData.totalAmount}
+          onChange={(e) => setTermsData({ ...termsData, totalAmount: e.target.value })}
+          inputMode="decimal"
+          autoComplete="off"
+        />
+        {showCurrencySelector && (
+          <div className="create-escrow-amount-row-meta">
+            <EscrowFundingCurrencyDropdown
+              currencies={ESCROW_FUNDING_CURRENCIES}
+              currency={normalizeEscrowPayloadCurrency(termsData.escrowCurrency)}
+              balances={escrowCurrencyBalances}
+              loading={escrowFundingWalletsLoading}
+              disabled={escrowFundingWalletsLoading}
+              onChange={(cur) =>
+                setTermsData({
+                  ...termsData,
+                  escrowCurrency: normalizeEscrowPayloadCurrency(cur),
+                })
+              }
+            />
+          </div>
+        )}
+      </div>
+      {amountExchangeHint ? (
+        <p className="create-escrow-amount-exchange-hint" aria-live="polite">
+          {amountExchangeHint}
+        </p>
+      ) : null}
+      {Number.isFinite(exchangeRate) &&
+      exchangeRate > 0 &&
+      normalizeEscrowPayloadCurrency(termsData.escrowCurrency) === 'XRP' ? (
+        <p className="create-escrow-amount-exchange-rate">
+          1 XRP = $
+          {Number(exchangeRate).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          })}{' '}
+          USD
+        </p>
+      ) : null}
+    </div>
+  );
 
   return (
     <div
@@ -1011,17 +1301,25 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                 {counterpartyMethod === 'wallet' ? (
                   <div className="create-escrow-step1-wallet-fields">
                     <div className="form-group">
-                      <label>
+                      <label htmlFor="create-escrow-counterparty-wallet">
                         Counterparty XRP Wallet Address <span className="required">*</span>
                       </label>
                       <input
+                        id="create-escrow-counterparty-wallet"
                         type="text"
                         className="create-escrow-step1-input"
-                        placeholder="••••••••••••••••"
+                        placeholder="rXXXXXXXXXXXXXXXXXXXXXXXX"
+                        autoComplete="off"
+                        spellCheck={false}
                         value={formData.counterpartyWallet}
-                        onChange={(e) =>
-                          setFormData({ ...formData, counterpartyWallet: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          counterpartyWalletRef.current = value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            counterpartyWallet: value,
+                          }));
+                        }}
                       />
                     </div>
                   </div>
@@ -1038,12 +1336,14 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         placeholder={selectedCounterpartyMethodMeta.placeholder}
                         autoComplete="off"
                         value={formData.counterpartyTrustitag}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            counterpartyTrustitag: e.target.value.trimStart(),
-                          })
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.trimStart();
+                          counterpartyTrustitagRef.current = value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            counterpartyTrustitag: value,
+                          }));
+                        }}
                       />
                     </div>
                   </div>
@@ -1135,17 +1435,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       </div>
                     </div>
 
-                    <div className="form-group">
-                      <label>Total Amount</label>
-                      <input
-                        type="text"
-                        placeholder="Enter amount"
-                        value={termsData.totalAmount}
-                        onChange={(e) =>
-                          setTermsData({ ...termsData, totalAmount: e.target.value })
-                        }
-                      />
-                    </div>
+                    {renderEscrowAmountField({ label: 'Total Amount' })}
 
                     <div className="form-group form-group-full">
                       <label>Release Conditions</label>
@@ -1267,74 +1557,10 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         </div>
                       </div>
 
-                      <div className="form-group create-escrow-order-amount">
-                        <label>Escrow Amount</label>
-                        <div className="create-escrow-amount-row">
-                          <input
-                            type="text"
-                            className="create-escrow-amount-row-input"
-                            placeholder={desktopModalLayout ? 'Add amount' : 'Enter amount'}
-                            value={termsData.totalAmount}
-                            onChange={(e) =>
-                              setTermsData({ ...termsData, totalAmount: e.target.value })
-                            }
-                            inputMode="decimal"
-                            autoComplete="off"
-                          />
-                          <div className="create-escrow-amount-row-meta">
-                            <div
-                              className="create-escrow-balance-dropdown"
-                              aria-live="polite"
-                            >
-                              <div className="create-escrow-balance-dropdown-inner create-escrow-funding-wallet-trigger">
-                                <span className="create-escrow-balance-dropdown-currency-badge">
-                                  {normalizeEscrowPayloadCurrency(termsData.escrowCurrency)}
-                                </span>
-                                <div className="create-escrow-balance-dropdown-info">
-                                  <span className="create-escrow-balance-dropdown-label">
-                                    Balance
-                                  </span>
-                                  <span className="create-escrow-balance-dropdown-value">
-                                    {escrowFundingWalletsLoading
-                                      ? '—'
-                                      : formatEscrowBalance(
-                                          escrowCurrencyBalances[
-                                            normalizeEscrowPayloadCurrency(
-                                              termsData.escrowCurrency,
-                                            )
-                                          ] ?? 0,
-                                        )}
-                                  </span>
-                                </div>
-                                <ChevronDown
-                                  size={18}
-                                  className="create-escrow-balance-dropdown-chevron"
-                                  aria-hidden
-                                />
-                                <select
-                                  className="create-escrow-funding-wallet-select"
-                                  value={normalizeEscrowPayloadCurrency(termsData.escrowCurrency)}
-                                  onChange={(e) => {
-                                    const cur = normalizeEscrowPayloadCurrency(e.target.value);
-                                    setTermsData({
-                                      ...termsData,
-                                      escrowCurrency: cur,
-                                    });
-                                  }}
-                                  aria-label="Escrow funding currency"
-                                  disabled={escrowFundingWalletsLoading}
-                                >
-                                  {ESCROW_FUNDING_CURRENCIES.map((cur) => (
-                                    <option key={cur} value={cur}>
-                                      {cur} · Bal {formatEscrowBalance(escrowCurrencyBalances[cur] ?? 0)}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      {renderEscrowAmountField({
+                        label: 'Escrow Amount',
+                        formGroupClass: 'create-escrow-order-amount',
+                      })}
 
                       <div className="form-group form-group-full">
                         <label>Release Conditions</label>
@@ -1358,17 +1584,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                 {/* Form Fields - Milestones */}
                 {termsData.releaseType === 'Milestones' && (
                   <div className="terms-form-grid">
-                    <div className="form-group">
-                      <label>Total Amount</label>
-                      <input
-                        type="text"
-                        placeholder="Enter amount"
-                        value={termsData.totalAmount}
-                        onChange={(e) =>
-                          setTermsData({ ...termsData, totalAmount: e.target.value })
-                        }
-                      />
-                    </div>
+                    {renderEscrowAmountField({ label: 'Total Amount' })}
 
                     <div className="form-group">
                       <label>Milestone amount</label>
@@ -1546,6 +1762,67 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     <TrustichainPayBadge />
                   </button>
                 </div>
+                {selectedConfirmationPaymentMethod === 'trustichain' && (
+                  <div className="create-escrow-step3-payer-wallet">
+                    <span className="create-escrow-step3-payer-wallet-label">
+                      Pay from wallet <span className="required">*</span>
+                    </span>
+                    {payerWalletOptions.length === 0 ? (
+                      <p className="create-escrow-step3-payer-wallet-empty">
+                        Create your TrustiChain wallet or connect Xaman/MetaMask to pay with
+                        TrustiChain.
+                      </p>
+                    ) : (
+                      <div
+                        className="create-escrow-step3-payer-wallet-list"
+                        role="radiogroup"
+                        aria-label="Payer wallet"
+                      >
+                        {payerWalletOptions.map((wallet) => (
+                          <label
+                            key={wallet.id}
+                            className={`create-escrow-step3-payer-wallet-option${
+                              selectedPayerWalletId === wallet.id ? ' is-selected' : ''
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="create-escrow-payer-wallet"
+                              value={wallet.id}
+                              checked={selectedPayerWalletId === wallet.id}
+                              onChange={() => setSelectedPayerWalletId(wallet.id)}
+                            />
+                            <span
+                              className={`create-escrow-step3-payer-wallet-icon${
+                                wallet.id === 'metamask' ? ' is-metamask' : ''
+                              }`}
+                            >
+                              <img
+                                src={PAYER_WALLET_ICONS[wallet.id] || PAYER_WALLET_ICONS.connected}
+                                alt=""
+                              />
+                            </span>
+                            <span className="create-escrow-step3-payer-wallet-option-body">
+                              <span className="create-escrow-step3-payer-wallet-option-title">
+                                {wallet.label}
+                              </span>
+                              <span className="create-escrow-step3-payer-wallet-option-meta">
+                                {wallet.network} · {maskWalletAddressShort(wallet.address)}
+                              </span>
+                            </span>
+                            {selectedPayerWalletId === wallet.id ? (
+                              <CheckCircle
+                                size={18}
+                                className="create-escrow-step3-payer-wallet-check"
+                                aria-hidden
+                              />
+                            ) : null}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {stripePaymentStatus && (
                   <p className="create-escrow-step3-payment-status">
                     Payment status: {stripePaymentStatus?.status || 'initialized'}
@@ -1561,7 +1838,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       {selectedCounterpartyMethodMeta.inputLabel} <span className="required">*</span>
                     </span>
                     <div className="confirmation-masked-input confirmation-masked-input--plain">
-                      {formData.counterpartyTrustitag.trim() || '—'}
+                      {getCounterpartyTrustitagValue() || '—'}
                     </div>
                   </div>
                 ) : (
@@ -1571,7 +1848,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         Counterparty XRP Wallet Address <span className="required">*</span>
                       </span>
                       <div className="confirmation-masked-input">
-                        {maskCounterpartyWalletForConfirmation(formData.counterpartyWallet)}
+                        {maskCounterpartyWalletForConfirmation(getCounterpartyWalletValue())}
                       </div>
                     </div>
                     <div className="create-escrow-step3-counterparty-extra counterparty-form-grid">
@@ -1739,7 +2016,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
               type="button"
               className="submit-next-btn"
               onClick={handleCreateEscrow}
-              disabled={isCreatingEscrow || !selectedConfirmationPaymentMethod}
+              disabled={
+                isCreatingEscrow ||
+                !selectedConfirmationPaymentMethod ||
+                (selectedConfirmationPaymentMethod === 'trustichain' &&
+                  (!selectedPayerWalletId || payerWalletOptions.length === 0))
+              }
             >
               <div className="submit-btn-icon-circle">
                 {isCreatingEscrow ? (

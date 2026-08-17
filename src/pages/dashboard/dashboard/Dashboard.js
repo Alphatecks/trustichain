@@ -96,7 +96,13 @@ import BusinessDashboard from '../business-suite/BusinessDashboard';
 import SupplierContractContent from '../business-suite/SupplierContractContent';
 import TeamDetailModal from '../business-suite/TeamDetailModal';
 import ReownFundModal from '../../../components/ReownFundModal';
+import StripeWalletFundCheckout from '../../../components/StripeWalletFundCheckout';
 import TrustitagWelcomeModal from '../../../components/TrustitagWelcomeModal/TrustitagWelcomeModal';
+import {
+  assertStripePublishableKey,
+  createStripeFundingIntent,
+  resolveStripeSuiteContext,
+} from '../../../utils/stripeWalletFunding';
 import {
   peekTrustitagWelcomePending,
   clearTrustitagWelcomePending,
@@ -1485,6 +1491,7 @@ const Dashboard = () => {
   const [businessSuiteWalletModalData, setBusinessSuiteWalletModalData] = useState(null); // { address?, balances?, error? }
   const [fundViaAddress, setFundViaAddress] = useState(false);
   const [fundDepositPaymentMethod, setFundDepositPaymentMethod] = useState(null);
+  const [stripeFundSession, setStripeFundSession] = useState(null);
   const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletBalanceRaw, setWalletBalanceRaw] = useState(null);
   const [fundWalletForm, setFundWalletForm] = useState({
@@ -3941,8 +3948,27 @@ const Dashboard = () => {
     setShowFundMethodModal(false);
     setFundViaAddress(false);
     setFundDepositPaymentMethod(method);
-    setFundWalletForm({ amount: '', currency: 'USD' });
+    setStripeFundSession(null);
+    setFundWalletForm({ amount: '', currency: 'USDC' });
     setShowFundWalletModal(true);
+  };
+
+  const resetStripeFundModal = () => {
+    setShowFundWalletModal(false);
+    setFundWalletForm({ amount: '', currency: 'XRP' });
+    setTransactionData(null);
+    setFundingStep('idle');
+    setIsFundingWallet(false);
+    setFundViaAddress(false);
+    setFundDepositPaymentMethod(null);
+    setStripeFundSession(null);
+    setDepositAddressNetwork('XRPL');
+  };
+
+  const handleStripeFundSuccess = async () => {
+    resetStripeFundModal();
+    await fetchDashboardSummary();
+    setWalletBalancesRefreshTrigger((n) => n + 1);
   };
 
   const handleFundWallet = async (e) => {
@@ -3967,62 +3993,28 @@ const Dashboard = () => {
     if (STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)) {
       const amountUsd = Number(parseFloat(fundWalletForm.amount).toFixed(2));
       const methodLabel = fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay';
+      const asset = fundWalletForm.currency === 'USDT' ? 'USDT' : 'USDC';
       setIsFundingWallet(true);
       setFundingStep('preparing');
       try {
+        assertStripePublishableKey();
         toast.loading(`Preparing ${methodLabel}…`, { id: 'fund-wallet' });
-        const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amountUsd,
-            currency: 'usd',
-            paymentMethod: fundDepositPaymentMethod,
-            purpose: 'wallet_fund',
-            idempotencyKey: `wallet-pi-${Date.now()}`,
-          }),
+        const intentData = await createStripeFundingIntent({
+          token,
+          amountUsd,
+          asset,
+          suiteContext: resolveStripeSuiteContext(accountType),
         });
-        const piData = await piResponse.json().catch(() => ({}));
-        if (!piResponse.ok) {
-          throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
-        }
-
-        const customerEmail =
-          dashboardData?.user?.email?.trim() ||
-          dashboardData?.email?.trim() ||
-          'unknown@trustichain.app';
-        const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customerEmail,
-            paymentMethod: fundDepositPaymentMethod,
-            purpose: 'wallet_fund',
-            idempotencyKey: `wallet-si-${Date.now()}`,
-          }),
+        setStripeFundSession({
+          clientSecret: intentData.clientSecret,
+          fundingAttemptId: intentData.fundingAttemptId,
+          intentId: intentData.intentId,
+          amountUsd,
+          asset,
         });
-        const siData = await siResponse.json().catch(() => ({}));
-        if (!siResponse.ok) {
-          throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
-        }
-
-        toast.success(
-          `${methodLabel} initialized. Continue payment using the returned Stripe client secret.`,
-          { id: 'fund-wallet' },
-        );
-        setShowFundWalletModal(false);
-        setFundWalletForm({ amount: '', currency: 'XRP' });
-        setFundDepositPaymentMethod(null);
+        toast.success(`Complete payment with ${methodLabel} below`, { id: 'fund-wallet' });
         setFundingStep('idle');
         setIsFundingWallet(false);
-        await fetchDashboardSummary();
-        setWalletBalancesRefreshTrigger((n) => n + 1);
       } catch (stripeError) {
         console.error('Stripe deposit error:', stripeError);
         toast.error(
@@ -8875,6 +8867,8 @@ const Dashboard = () => {
                       </span>
                     </div>
                   )}
+                  {!stripeFundSession && (
+                    <>
                   <div className="form-group">
                     <label htmlFor="fund-amount">
                       {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? 'Amount (USD)' : 'Amount'}
@@ -8892,7 +8886,22 @@ const Dashboard = () => {
                     />
                   </div>
 
-                  {!STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
+                  {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? (
+                    <div className="form-group">
+                      <label htmlFor="fund-stripe-asset">Receive as</label>
+                      <select
+                        id="fund-stripe-asset"
+                        value={fundWalletForm.currency}
+                        onChange={(e) =>
+                          setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
+                        }
+                        disabled={isFundingWallet}
+                      >
+                        <option value="USDC">USDC</option>
+                        <option value="USDT">USDT</option>
+                      </select>
+                    </div>
+                  ) : (
                     <div className="form-group">
                       <label htmlFor="fund-currency">Wallets</label>
                       <select
@@ -8922,16 +8931,7 @@ const Dashboard = () => {
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
-                      onClick={() => {
-                        setShowFundWalletModal(false);
-                        setFundWalletForm({ amount: '', currency: 'XRP' });
-                        setTransactionData(null);
-                        setFundingStep('idle');
-                        setIsFundingWallet(false);
-                        setFundViaAddress(false);
-                        setFundDepositPaymentMethod(null);
-                        setDepositAddressNetwork('XRPL');
-                      }}
+                      onClick={resetStripeFundModal}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
                     >
                       Cancel
@@ -8957,6 +8957,21 @@ const Dashboard = () => {
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
                   </div>
+                    </>
+                  )}
+
+                  {stripeFundSession && STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
+                    <StripeWalletFundCheckout
+                      clientSecret={stripeFundSession.clientSecret}
+                      fundingAttemptId={stripeFundSession.fundingAttemptId}
+                      intentId={stripeFundSession.intentId}
+                      methodLabel={
+                        fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'
+                      }
+                      onSuccess={handleStripeFundSuccess}
+                      onCancel={resetStripeFundModal}
+                    />
+                  )}
                 </form>
               </>
             )}
