@@ -39,6 +39,7 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
@@ -87,17 +88,6 @@ const getSavingHistoryPaginationStrip = (totalPages) => {
   for (let p = tailStart; p <= totalPages; p += 1) strip.push(p);
   return strip;
 };
-
-const fmtUsdWhole = (n) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
-
-const fmtUsdDecimals = (n) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-
-const fmtUsdNoCents = (n) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
-    Number.isFinite(Number(n)) ? Number(n) : 0,
-  );
 
 const toNumeric = (value, fallback = 0) => {
   const n = typeof value === 'number' ? value : Number(value);
@@ -185,6 +175,11 @@ const Savings = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { formatFromUsd } = useDisplayCurrency();
+  const fmtUsdWhole = (n) =>
+    formatFromUsd(n, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const fmtUsdDecimals = (n) => formatFromUsd(n);
+  const fmtUsdNoCents = fmtUsdWhole;
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
@@ -1395,7 +1390,7 @@ const Savings = () => {
         onSelectAccount={setAddMoneyAccountId}
         onTransfer={submitSavingsTransfer}
         isSubmitting={isSubmittingSavingsTransfer}
-        balanceLine={isLoadingSavingsData ? 'Loading…' : `${Number(savingsTotalUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`}
+        balanceLine={isLoadingSavingsData ? 'Loading…' : formatFromUsd(savingsTotalUsd || 0)}
         amountPrefix=""
         amountSuffix="XRP"
       />

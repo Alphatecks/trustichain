@@ -16,8 +16,3 @@ export const getApiUrl = (endpoint) => {
   return `${API_BASE_URL}/${cleanEndpoint}`;
 };
 
-// Stripe publishable key — required for Google Pay / Apple Pay wallet funding
-export const STRIPE_PUBLISHABLE_KEY = String(
-  process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '',
-).trim();
-

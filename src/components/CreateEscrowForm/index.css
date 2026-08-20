@@ -296,9 +296,26 @@
 .create-escrow-step2 .terms-form-grid .form-group input[type='text'],
 .create-escrow-step2 .terms-form-grid .form-group input[type='email'],
 .create-escrow-step2 .terms-form-grid .form-group input[type='tel'],
-.create-escrow-step2 .terms-form-grid .form-group textarea,
-.create-escrow-step2 .terms-form-grid .form-group select:not(.create-escrow-funding-wallet-select) {
+.create-escrow-step2 .terms-form-grid .form-group textarea {
   background: #f3f4f6;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+
+.create-escrow-step2 .terms-form-grid .form-group textarea:focus,
+.create-escrow-step2 .terms-form-grid .form-group input[type='text']:focus,
+.create-escrow-step2 .terms-form-grid .form-group input[type='email']:focus,
+.create-escrow-step2 .terms-form-grid .form-group input[type='tel']:focus {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.create-escrow-step2 .terms-form-grid .form-group select.create-escrow-step2-select {
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .create-escrow-step2-terms-grid {
@@ -407,12 +424,57 @@
 }
 
 .create-escrow-step2-select-wrap {
-  background: #f3f4f6;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border, #e5e7eb);
   border-radius: 0.5rem;
+  background: #f3f4f6;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-escrow-step2-select-wrap:focus-within {
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .create-escrow-step2-select-wrap select.create-escrow-step2-select {
-  background: #f3f4f6;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  color: var(--text-dark, #1f2937);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.create-escrow-step2-select-wrap select.create-escrow-step2-select:focus {
+  outline: none;
+}
+
+.create-escrow-step2-select-wrap select.create-escrow-step2-select.is-placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.create-escrow-step2-select-wrap .input-icon {
+  position: absolute;
+  right: 1rem;
+  color: var(--blue-600, #2563eb);
+  pointer-events: none;
 }
 
 .create-escrow-step2-textarea {
@@ -467,7 +529,7 @@
   align-items: stretch;
   padding: 0.375rem 0.375rem 0.375rem 0;
   flex-shrink: 0;
-  min-width: 11.5rem;
+  min-width: 8.5rem;
 }
 
 .create-escrow-amount-exchange-hint {
@@ -485,7 +547,6 @@
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
-/* Custom currency / wallet picker on amount row */
 .create-escrow-funding-currency-dropdown {
   position: relative;
   flex: 1;
@@ -505,10 +566,10 @@
 .create-escrow-funding-currency-trigger {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   width: 100%;
   min-height: 2.75rem;
-  padding: 0.45rem 0.65rem 0.45rem 0.5rem;
+  padding: 0.45rem 0.65rem;
   border: 1px solid #dbeafe;
   border-radius: 0.625rem;
   background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
@@ -553,31 +614,31 @@
   object-fit: cover;
 }
 
-.create-escrow-funding-currency-trigger-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.05rem;
-  min-width: 0;
-  flex: 1;
+.create-escrow-funding-currency-flag {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.create-escrow-funding-currency-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .create-escrow-funding-currency-trigger-label {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--blue-700, #1d4ed8);
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.create-escrow-funding-currency-trigger-balance {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--text-muted, #6b7280);
-  line-height: 1.2;
+  flex: 1;
+  min-width: 0;
 }
 
 .create-escrow-funding-currency-chevron {
@@ -627,29 +688,17 @@
   background: rgba(37, 99, 235, 0.08);
 }
 
-.create-escrow-funding-currency-option-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-  flex: 1;
-}
-
 .create-escrow-funding-currency-option-label {
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--text-dark, #111827);
   line-height: 1.2;
+  flex: 1;
+  min-width: 0;
 }
 
 .create-escrow-funding-currency-option.is-active .create-escrow-funding-currency-option-label {
   color: var(--blue-700, #1d4ed8);
-}
-
-.create-escrow-funding-currency-option-meta {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted, #6b7280);
 }
 
 .create-escrow-funding-currency-option-check {
@@ -657,110 +706,780 @@
   color: var(--blue-600, #2563eb);
 }
 
-/* Legacy balance dropdown — kept for MyEscrow.css overrides compatibility */
-.create-escrow-balance-dropdown {
+/* Currency picker modal (Step 2 amount field) */
+.create-escrow-currency-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
-  align-items: center;
-}
-
-.create-escrow-balance-dropdown-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.45rem 0.65rem 0.45rem 0.5rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  box-sizing: border-box;
-  min-height: 2.625rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.create-escrow-funding-wallet-trigger {
-  position: relative;
-}
-
-.create-escrow-funding-wallet-trigger:focus-within {
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
-}
-
-.create-escrow-funding-wallet-trigger > :not(select) {
-  pointer-events: none;
-}
-
-.create-escrow-balance-dropdown-currency-badge {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  background-color: var(--blue-600, #2563eb);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.6875rem;
-  letter-spacing: 0.04em;
-  padding: 0.45rem 0.6rem;
-  border-radius: 0.3125rem;
-  font-family: 'Satoshi', 'Inter', sans-serif;
-  text-transform: uppercase;
-  line-height: 1;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.create-escrow-funding-wallet-select {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
+.create-escrow-currency-modal-overlay.is-visible {
+  opacity: 1;
+}
+
+.create-escrow-currency-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(90vh, 640px);
+  background: var(--surface, #ffffff);
+  border-radius: 1rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  opacity: 0;
+  transform: scale(0.93) translateY(22px);
+  transition:
+    opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.34, 1.18, 0.64, 1),
+    box-shadow 0.45s ease;
+}
+
+.create-escrow-currency-modal.is-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.22);
+}
+
+.create-escrow-currency-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  flex-shrink: 0;
+}
+
+.create-escrow-currency-modal-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.create-escrow-currency-modal-accent {
+  width: 4px;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+
+.create-escrow-currency-modal-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.create-escrow-currency-modal-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.create-escrow-currency-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.create-escrow-currency-modal-search {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1rem;
+  flex-shrink: 0;
+}
+
+.create-escrow-currency-modal-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.create-escrow-currency-modal-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.create-escrow-currency-modal-search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.create-escrow-currency-modal-search-btn {
+  flex-shrink: 0;
+  width: 48px;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--blue-600, #2563eb);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-escrow-currency-modal-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-escrow-currency-modal-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  background: #f1f5f9;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.22s ease, transform 0.22s ease;
+}
+
+.create-escrow-currency-modal-row:hover {
+  background: #e8eef5;
+}
+
+.create-escrow-currency-modal-row.is-selected {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.create-escrow-currency-modal-row-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.create-escrow-currency-modal-flag {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.create-escrow-currency-modal-flag img {
   width: 100%;
   height: 100%;
-  margin: 0;
-  border: none;
-  border-radius: inherit;
-  opacity: 0;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  font-size: 1rem;
-  background: transparent;
+  object-fit: cover;
 }
 
-.create-escrow-funding-wallet-select:disabled {
+.create-escrow-currency-modal-code {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.create-escrow-currency-modal-row.is-selected .create-escrow-currency-modal-code {
+  color: var(--blue-700, #1d4ed8);
+}
+
+.create-escrow-currency-modal-footer {
+  padding: 1rem 1.25rem 1.25rem;
+  flex-shrink: 0;
+}
+
+.create-escrow-currency-modal-select-btn {
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--blue-600, #2563eb);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.create-escrow-currency-modal-select-btn:hover {
+  filter: brightness(1.05);
+}
+
+/* Dispute period custom picker (Step 2) */
+.create-escrow-dispute-period-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: #f3f4f6;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.create-escrow-dispute-period-trigger:hover:not(.is-disabled) {
+  background: #eef2f7;
+}
+
+.create-escrow-dispute-period-trigger.is-open,
+.create-escrow-dispute-period-trigger:focus-visible {
+  outline: none;
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.create-escrow-dispute-period-trigger.is-disabled {
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
-.create-escrow-funding-wallet-select option {
-  color: #1f2937;
-  font-weight: 600;
+.create-escrow-dispute-period-trigger-icon {
+  color: var(--blue-600, #2563eb);
+  flex-shrink: 0;
 }
 
-.create-escrow-balance-dropdown-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.1rem;
+.create-escrow-dispute-period-trigger-label {
+  flex: 1;
   min-width: 0;
-  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dark, #1f2937);
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
-.create-escrow-balance-dropdown-label {
-  font-size: 0.6875rem;
+.create-escrow-dispute-period-trigger-label.is-placeholder {
+  color: #9ca3af;
   font-weight: 500;
-  color: var(--text-muted, #6b7280);
-  line-height: 1.2;
 }
 
-.create-escrow-balance-dropdown-value {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--blue-600, #2563eb);
-  line-height: 1.15;
-  letter-spacing: 0.01em;
-}
-
-.create-escrow-balance-dropdown-chevron {
+.create-escrow-dispute-period-trigger-chevron {
   flex-shrink: 0;
-  margin-left: auto;
   color: var(--blue-600, #2563eb);
+  transition: transform 0.2s ease;
+}
+
+.create-escrow-dispute-period-trigger.is-open .create-escrow-dispute-period-trigger-chevron {
+  transform: rotate(180deg);
+}
+
+.create-escrow-dispute-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.create-escrow-dispute-modal-overlay.is-visible {
+  opacity: 1;
+}
+
+.create-escrow-dispute-modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface, #ffffff);
+  border-radius: 1rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  opacity: 0;
+  transform: scale(0.93) translateY(22px);
+  transition:
+    opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.34, 1.18, 0.64, 1);
+}
+
+.create-escrow-dispute-modal.is-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.create-escrow-dispute-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 0.5rem;
+}
+
+.create-escrow-dispute-modal-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.create-escrow-dispute-modal-accent {
+  width: 4px;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+
+.create-escrow-dispute-modal-header h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.create-escrow-dispute-modal-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-escrow-dispute-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.create-escrow-dispute-modal-subtitle {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.create-escrow-dispute-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1rem;
+}
+
+.create-escrow-dispute-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f1f5f9;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: background 0.2s ease;
+}
+
+.create-escrow-dispute-modal-row:hover {
+  background: #e8eef5;
+}
+
+.create-escrow-dispute-modal-row.is-selected {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.create-escrow-dispute-modal-row-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.create-escrow-dispute-modal-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--blue-600, #2563eb);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+  flex-shrink: 0;
+}
+
+.create-escrow-dispute-modal-row-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.create-escrow-dispute-modal-row.is-selected .create-escrow-dispute-modal-row-label {
+  color: var(--blue-700, #1d4ed8);
+}
+
+.create-escrow-dispute-modal-row-check {
+  flex-shrink: 0;
+  color: var(--blue-600, #2563eb);
+}
+
+.create-escrow-dispute-modal-footer {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.create-escrow-dispute-modal-select-btn {
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--blue-600, #2563eb);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.create-escrow-dispute-modal-select-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.create-escrow-dispute-modal-select-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Step 3 — payer wallet summary + selection modal */
+.create-escrow-step3-payer-wallet {
+  margin-top: 1rem;
+}
+
+.create-escrow-step3-payer-wallet-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-dark, #374151);
+  margin-bottom: 0.625rem;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.create-escrow-payer-wallet-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.create-escrow-payer-wallet-summary:hover {
+  border-color: #bfdbfe;
+  background: #f8fafc;
+}
+
+.create-escrow-payer-wallet-summary--empty {
+  justify-content: space-between;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.create-escrow-payer-wallet-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.create-escrow-step3-payer-wallet-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-600, #2563eb);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.create-escrow-step3-payer-wallet-icon.is-metamask {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.create-escrow-step3-payer-wallet-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.create-escrow-step3-payer-wallet-option-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-dark, #111827);
+}
+
+.create-escrow-step3-payer-wallet-option-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.create-escrow-payer-wallet-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.create-escrow-payer-wallet-modal-overlay.is-visible {
+  opacity: 1;
+}
+
+.create-escrow-payer-wallet-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(85vh, 560px);
+  background: var(--surface, #ffffff);
+  border-radius: 1rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  opacity: 0;
+  transform: scale(0.93) translateY(22px);
+  transition:
+    opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.34, 1.18, 0.64, 1);
+}
+
+.create-escrow-payer-wallet-modal.is-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.create-escrow-payer-wallet-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.create-escrow-payer-wallet-modal-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.create-escrow-payer-wallet-modal-accent {
+  width: 4px;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--blue-600, #2563eb);
+  flex-shrink: 0;
+}
+
+.create-escrow-payer-wallet-modal-header h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.create-escrow-payer-wallet-modal-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-escrow-payer-wallet-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.create-escrow-payer-wallet-modal-subtitle {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.create-escrow-payer-wallet-modal-empty {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.create-escrow-payer-wallet-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.create-escrow-payer-wallet-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.create-escrow-payer-wallet-modal-row:hover {
+  border-color: #bfdbfe;
+  background: #f8fafc;
+}
+
+.create-escrow-payer-wallet-modal-row.is-selected {
+  border-color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+.create-escrow-payer-wallet-modal-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-600, #2563eb);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.create-escrow-payer-wallet-modal-icon.is-metamask {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.create-escrow-payer-wallet-modal-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.create-escrow-payer-wallet-modal-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.create-escrow-payer-wallet-modal-row-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.create-escrow-payer-wallet-modal-row-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.create-escrow-payer-wallet-modal-row-check {
+  flex-shrink: 0;
+  color: var(--blue-600, #2563eb);
+}
+
+.create-escrow-payer-wallet-modal-footer {
+  padding: 0 1.25rem 1.25rem;
+  flex-shrink: 0;
+}
+
+.create-escrow-payer-wallet-modal-select-btn {
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--blue-600, #2563eb);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.create-escrow-payer-wallet-modal-select-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.create-escrow-payer-wallet-modal-select-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* Step 3 confirmation — layout aligned with desktop reference */
@@ -884,114 +1603,6 @@
   font-family: 'Satoshi', 'Inter', sans-serif;
 }
 
-.create-escrow-step3-payer-wallet {
-  margin-top: 1rem;
-}
-
-.create-escrow-step3-payer-wallet-label {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-dark, #374151);
-  margin-bottom: 0.625rem;
-  font-family: 'Satoshi', 'Inter', sans-serif;
-}
-
-.create-escrow-step3-payer-wallet-empty {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--text-muted, #6b7280);
-  line-height: 1.45;
-}
-
-.create-escrow-step3-payer-wallet-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.create-escrow-step3-payer-wallet-option {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.create-escrow-step3-payer-wallet-option:hover {
-  border-color: #bfdbfe;
-  background: #f8fafc;
-}
-
-.create-escrow-step3-payer-wallet-option.is-selected {
-  border-color: var(--blue-600, #2563eb);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
-  background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%);
-}
-
-.create-escrow-step3-payer-wallet-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 0;
-  height: 0;
-}
-
-.create-escrow-step3-payer-wallet-icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--blue-600, #2563eb);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
-}
-
-.create-escrow-step3-payer-wallet-icon.is-metamask {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  box-shadow: none;
-}
-
-.create-escrow-step3-payer-wallet-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.create-escrow-step3-payer-wallet-option-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.create-escrow-step3-payer-wallet-option-title {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text-dark, #111827);
-}
-
-.create-escrow-step3-payer-wallet-option-meta {
-  font-size: 0.75rem;
-  color: var(--text-muted, #6b7280);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  word-break: break-all;
-}
-
-.create-escrow-step3-payer-wallet-check {
-  flex-shrink: 0;
-  color: var(--blue-600, #2563eb);
-}
-
 .create-escrow-step3-amount-fee-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1107,13 +1718,36 @@
   }
 
   .create-escrow-step2 .select-input-wrapper .input-icon {
-    color: #9ca3af;
+    color: var(--blue-600, #2563eb);
+  }
+
+  .create-escrow-step2 .create-escrow-step2-select-wrap {
+    border: 1px solid var(--border, #e5e7eb) !important;
+    background: #f3f4f6 !important;
+    border-radius: 0.5rem !important;
+    min-height: 2.75rem;
+  }
+
+  .create-escrow-step2 .create-escrow-step2-select-wrap select.create-escrow-step2-select {
+    border: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    padding: 0.75rem 2.5rem 0.75rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--text-dark, #1f2937) !important;
+  }
+
+  .create-escrow-step2 .terms-form-grid .form-group textarea {
+    border: 1px solid var(--border, #e5e7eb) !important;
+    background: #f3f4f6 !important;
   }
 
   .create-escrow-amount-row {
     flex-direction: column;
     align-items: stretch;
-    overflow: visible;
   }
 
   .create-escrow-amount-row-meta {
@@ -1131,16 +1765,6 @@
     left: 0;
     right: 0;
     min-width: 0;
-  }
-
-  .create-escrow-balance-dropdown {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .create-escrow-balance-dropdown-inner {
-    width: 100%;
-    justify-content: flex-start;
   }
 
   .create-escrow-step3-type-grid {
@@ -1168,5 +1792,59 @@
   .create-escrow-step3-amount-fee-grid .create-escrow-step3-amount-fee-item:last-child {
     border-bottom: none !important;
     padding-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-escrow-currency-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .create-escrow-currency-modal {
+    max-width: none;
+    max-height: 85vh;
+    border-radius: 1.25rem 1.25rem 0 0;
+    transform: translateY(110%);
+    opacity: 1;
+    transition: transform 0.42s cubic-bezier(0.32, 1.08, 0.32, 1);
+  }
+
+  .create-escrow-currency-modal.is-visible {
+    transform: translateY(0);
+  }
+
+  .create-escrow-dispute-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .create-escrow-dispute-modal {
+    max-width: none;
+    border-radius: 1.25rem 1.25rem 0 0;
+    transform: translateY(110%);
+    opacity: 1;
+    transition: transform 0.42s cubic-bezier(0.32, 1.08, 0.32, 1);
+  }
+
+  .create-escrow-dispute-modal.is-visible {
+    transform: translateY(0);
+  }
+
+  .create-escrow-payer-wallet-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .create-escrow-payer-wallet-modal {
+    max-width: none;
+    border-radius: 1.25rem 1.25rem 0 0;
+    transform: translateY(110%);
+    opacity: 1;
+    transition: transform 0.42s cubic-bezier(0.32, 1.08, 0.32, 1);
+  }
+
+  .create-escrow-payer-wallet-modal.is-visible {
+    transform: translateY(0);
   }
 }

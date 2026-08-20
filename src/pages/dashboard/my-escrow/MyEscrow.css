@@ -984,6 +984,12 @@
   cursor: pointer;
 }
 
+.create-escrow-step2 .select-input-wrapper.create-escrow-step2-select-wrap select.create-escrow-step2-select {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .form-group textarea {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
@@ -2120,7 +2126,7 @@
 
   .form-group input,
   .form-group textarea,
-  .form-group select:not(.create-escrow-funding-wallet-select) {
+  .form-group select:not(.create-escrow-funding-wallet-select):not(.create-escrow-step2-select) {
     padding: 0.75rem !important;
     font-size: 0.875rem !important;
     border-radius: 0.5rem !important;

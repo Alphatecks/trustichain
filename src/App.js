@@ -7,6 +7,7 @@ import { SessionProvider } from './context/SessionContext';
 import { EscrowMetricsProvider } from './context/EscrowMetricsContext';
 import { DisputeMetricsProvider } from './context/DisputeMetricsContext';
 import { TrustiscoreProvider } from './context/TrustiscoreContext';
+import { DisplayCurrencyProvider } from './context/DisplayCurrencyContext';
 import LandingNavbar from './components/LandingNavbar';
 import Navbar from './components/Navbar';
 import Home from './pages/home/Home';
@@ -258,7 +259,9 @@ function App() {
             <EscrowMetricsProvider>
               <DisputeMetricsProvider>
                 <TrustiscoreProvider>
-                  <AppContent />
+                  <DisplayCurrencyProvider>
+                    <AppContent />
+                  </DisplayCurrencyProvider>
                 </TrustiscoreProvider>
               </DisputeMetricsProvider>
             </EscrowMetricsProvider>

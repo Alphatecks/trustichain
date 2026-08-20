@@ -51,6 +51,7 @@ import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHe
 import CancelReasonModal from '../../../components/CancelReasonModal';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
 import { useSession } from '../../../context/SessionContext';
+import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import toast from 'react-hot-toast';
@@ -107,10 +108,17 @@ const formatTimeAgo = (isoString) => {
   return `${diffDays}d ago`;
 };
 
+const getFirstNameOnly = (name, fallback = 'Unknown') => {
+  const str = typeof name === 'string' ? name.trim() : '';
+  if (!str) return fallback;
+  return str.split(/\s+/)[0] || fallback;
+};
+
 const MyEscrow = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { formatFromUsd } = useDisplayCurrency();
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
@@ -1167,15 +1175,11 @@ const MyEscrow = () => {
             ) : (
               <>
             <div className="metric-value">
-              ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    : '0.00'}
+              {formatFromUsd(totalEscrowedAmount ?? 0)}
             </div>
             <div className="metric-subtitle-row">
               <div className="metric-subtitle">
-                ${lockedAmount !== null && lockedAmount !== undefined
-                  ? lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  : '0.00'} locked
+                {formatFromUsd(lockedAmount ?? 0)} locked
               </div>
               <div className="metric-trend positive">
                 <TrendingUp size={14} />
@@ -1379,9 +1383,20 @@ const MyEscrow = () => {
           const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
           const formattedId = escrowId || '#ESC-N/A';
           
-          // Get parties
-          const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-          const userFullName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+          // Get parties (first name only in list)
+          const counterpartyName = getFirstNameOnly(
+            escrow.counterparty?.firstName ||
+              escrow.counterpartyName ||
+              escrow.counterparty?.name,
+            'Unknown'
+          );
+          const initiatorName = getFirstNameOnly(
+            escrow.user?.firstName ||
+              escrow.initiatorName ||
+              escrow.userName ||
+              escrow.user?.name,
+            'You'
+          );
           const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
           const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
           
@@ -1432,8 +1447,8 @@ const MyEscrow = () => {
                   <span className="escrow-party-with-avatar">
                     {initiatorAvatar
                       ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
-                      : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userFullName || '?').charAt(0).toUpperCase()}</span>}
-                    <span className="escrow-card-party-to">{userFullName}</span>
+                      : <span className="escrow-party-avatar escrow-party-avatar--initials">{(initiatorName || '?').charAt(0).toUpperCase()}</span>}
+                    <span className="escrow-card-party-to">{initiatorName}</span>
                   </span>
                 </div>
                 <button type="button" className={`escrow-card-status ${displayStatus.className}`}>
@@ -1480,9 +1495,20 @@ const MyEscrow = () => {
               const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
               const formattedId = escrowId || '#ESC-N/A';
               
-              // Get parties
-              const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-              const userFullName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+              // Get parties (first name only in list)
+              const counterpartyName = getFirstNameOnly(
+                escrow.counterparty?.firstName ||
+                  escrow.counterpartyName ||
+                  escrow.counterparty?.name,
+                'Unknown'
+              );
+              const initiatorName = getFirstNameOnly(
+                escrow.user?.firstName ||
+                  escrow.initiatorName ||
+                  escrow.userName ||
+                  escrow.user?.name,
+                'You'
+              );
               const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
               const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
               
@@ -1562,8 +1588,8 @@ const MyEscrow = () => {
                     <span className="escrow-party-with-avatar">
                       {initiatorAvatar
                         ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
-                        : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userFullName || '?').charAt(0).toUpperCase()}</span>}
-                      <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                        : <span className="escrow-party-avatar escrow-party-avatar--initials">{(initiatorName || '?').charAt(0).toUpperCase()}</span>}
+                      <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{initiatorName}</span>
                     </span>
                   </td>
                   <td className="escrow-amount">
@@ -1876,14 +1902,10 @@ const MyEscrow = () => {
                   ) : (
                     <>
                   <div className="metric-value">
-                    ${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                          ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '0.00'}
+                    {formatFromUsd(totalEscrowedAmount ?? 0)}
                   </div>
                   <div className="metric-subtitle">
-                    ${lockedAmount !== null && lockedAmount !== undefined
-                      ? lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : '0.00'} locked
+                    {formatFromUsd(lockedAmount ?? 0)} locked
                   </div>
                     </>
                   )}
@@ -2084,9 +2106,20 @@ const MyEscrow = () => {
                     const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
                     const formattedId = escrowId || '#ESC-N/A';
                     
-                    // Get parties
-                    const counterpartyName = escrow.counterpartyName || escrow.counterparty?.name || 'Unknown';
-                    const userFullName = escrow.initiatorName || escrow.userName || escrow.user?.name || 'You';
+                    // Get parties (first name only in list)
+                    const counterpartyName = getFirstNameOnly(
+                      escrow.counterparty?.firstName ||
+                        escrow.counterpartyName ||
+                        escrow.counterparty?.name,
+                      'Unknown'
+                    );
+                    const initiatorName = getFirstNameOnly(
+                      escrow.user?.firstName ||
+                        escrow.initiatorName ||
+                        escrow.userName ||
+                        escrow.user?.name,
+                      'You'
+                    );
                     const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
                     const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                     
@@ -2165,8 +2198,8 @@ const MyEscrow = () => {
                           <span className="escrow-party-with-avatar">
                             {initiatorAvatar
                               ? <img src={initiatorAvatar} alt="" className="escrow-party-avatar" />
-                              : <span className="escrow-party-avatar escrow-party-avatar--initials">{(userFullName || '?').charAt(0).toUpperCase()}</span>}
-                            <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{userFullName}</span>
+                              : <span className="escrow-party-avatar escrow-party-avatar--initials">{(initiatorName || '?').charAt(0).toUpperCase()}</span>}
+                            <span className="party-to" style={{ color: 'var(--blue-600)', fontWeight: 500 }}>{initiatorName}</span>
                           </span>
                         </td>
                         <td className="escrow-amount">

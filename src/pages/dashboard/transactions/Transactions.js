@@ -68,7 +68,16 @@ import {
   splitDepositAddressLines,
 } from '../../../utils/depositAddressFlow';
 import { useSession } from '../../../context/SessionContext';
+import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
+import { filterSidebarExchangeRates } from '../../../utils/exchangeRatesDisplay';
+import {
+  computePortfolioUsdTotalFromSummary,
+  formatPortfolioPrimaryDisplay,
+  formatPortfolioSecondaryDisplay,
+  resolveSummaryXrpBalance,
+  normalizeExchangeQuoteDirection,
+} from '../../../utils/displayCurrencyFormat';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -81,7 +90,6 @@ import {
   NotificationListSkeleton,
 } from '../../../components/DashboardSkeletons';
 import DepositAddressSelectors from '../../../components/DepositAddressSelectors';
-import StripeWalletFundCheckout from '../../../components/StripeWalletFundCheckout';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
@@ -100,11 +108,6 @@ import {
   transactionRecordMatchesId,
 } from '../../../utils/transactionDeepLink';
 import { getNotificationId } from '../../../utils/notificationItemHelpers';
-import {
-  assertStripePublishableKey,
-  createStripeFundingIntent,
-  resolveStripeSuiteContext,
-} from '../../../utils/stripeWalletFunding';
 
 const DepositGooglePayMark = () => (
   <span className="fund-method-payment-mark fund-method-payment-mark--google" aria-hidden>
@@ -386,6 +389,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
+  const { displayCurrency } = useDisplayCurrency();
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
@@ -504,6 +508,7 @@ const Transactions = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
+  const [exchangeQuoteDirection, setExchangeQuoteDirection] = useState('unitsPerUsd');
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [walletBalances, setWalletBalances] = useState(null);
   /** Custodial wallet UUIDs from GET api/wallet/balance when provided (for savings transfer sourceWalletId). */
@@ -547,7 +552,6 @@ const Transactions = () => {
   const [transactionData, setTransactionData] = useState(null);
   const [fundViaAddress, setFundViaAddress] = useState(false);
   const [fundDepositPaymentMethod, setFundDepositPaymentMethod] = useState(null);
-  const [stripeFundSession, setStripeFundSession] = useState(null);
   const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletAddress, setWalletAddress] = useState('');
   /** Last successful GET wallet/balance JSON (used to resolve deposit address by currency/network). */
@@ -1366,6 +1370,9 @@ const Transactions = () => {
           const result = await response.json();
           if (result?.success && Array.isArray(result?.data?.rates)) {
             setExchangeRates(result.data.rates);
+            setExchangeQuoteDirection(
+              normalizeExchangeQuoteDirection(result?.data?.quoteDirection),
+            );
           }
         }
       } catch (error) {
@@ -2632,27 +2639,8 @@ const Transactions = () => {
     setShowFundMethodModal(false);
     setFundViaAddress(false);
     setFundDepositPaymentMethod(method);
-    setStripeFundSession(null);
-    setFundWalletForm({ amount: '', currency: 'USDC' });
+    setFundWalletForm({ amount: '', currency: 'USD' });
     setShowFundWalletModal(true);
-  };
-
-  const resetStripeFundModal = () => {
-    setShowFundWalletModal(false);
-    setFundWalletForm({ amount: '', currency: 'XRP' });
-    setTransactionData(null);
-    setFundingStep('idle');
-    setIsFundingWallet(false);
-    setFundViaAddress(false);
-    setFundDepositPaymentMethod(null);
-    setStripeFundSession(null);
-    setDepositAddressNetwork('XRPL');
-  };
-
-  const handleStripeFundSuccess = async () => {
-    resetStripeFundModal();
-    await fetchDashboardSummary();
-    await fetchWalletBalances();
   };
 
   const handleFundWallet = async (e) => {
@@ -2672,28 +2660,62 @@ const Transactions = () => {
     if (STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)) {
       const amountUsd = Number(parseFloat(fundWalletForm.amount).toFixed(2));
       const methodLabel = fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay';
-      const asset = fundWalletForm.currency === 'USDT' ? 'USDT' : 'USDC';
       setIsFundingWallet(true);
       setFundingStep('preparing');
       try {
-        assertStripePublishableKey();
         toast.loading(`Preparing ${methodLabel}…`, { id: 'fund-wallet' });
-        const intentData = await createStripeFundingIntent({
-          token,
-          amountUsd,
-          asset,
-          suiteContext: resolveStripeSuiteContext(accountType),
+        const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amountUsd,
+            currency: 'usd',
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-pi-${Date.now()}`,
+          }),
         });
-        setStripeFundSession({
-          clientSecret: intentData.clientSecret,
-          fundingAttemptId: intentData.fundingAttemptId,
-          intentId: intentData.intentId,
-          amountUsd,
-          asset,
+        const piData = await piResponse.json().catch(() => ({}));
+        if (!piResponse.ok) {
+          throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
+        }
+
+        const customerEmail =
+          dashboardData?.user?.email?.trim() ||
+          dashboardData?.email?.trim() ||
+          'unknown@trustichain.app';
+        const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerEmail,
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-si-${Date.now()}`,
+          }),
         });
-        toast.success(`Complete payment with ${methodLabel} below`, { id: 'fund-wallet' });
+        const siData = await siResponse.json().catch(() => ({}));
+        if (!siResponse.ok) {
+          throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
+        }
+
+        toast.success(
+          `${methodLabel} initialized. Continue payment using the returned Stripe client secret.`,
+          { id: 'fund-wallet' },
+        );
+        setShowFundWalletModal(false);
+        setFundWalletForm({ amount: '', currency: 'XRP' });
+        setFundDepositPaymentMethod(null);
         setFundingStep('idle');
         setIsFundingWallet(false);
+        await fetchDashboardSummary();
+        await fetchWalletBalances();
       } catch (stripeError) {
         console.error('Stripe deposit error:', stripeError);
         toast.error(
@@ -3541,6 +3563,21 @@ const Transactions = () => {
 
     return null;
   };
+
+  const portfolioUsdTotal = useMemo(
+    () =>
+      computePortfolioUsdTotalFromSummary({
+        dashboardData,
+        exchangeRates,
+        getExchangeRate,
+      }),
+    [dashboardData, exchangeRates],
+  );
+
+  const portfolioXrpAmount = useMemo(
+    () => resolveSummaryXrpBalance(dashboardData),
+    [dashboardData],
+  );
 
   // Calculate toAmount based on fromAmount and exchange rate
   const calculateToAmount = (fromAmount, fromCurrency, toCurrency) => {
@@ -6260,47 +6297,24 @@ const Transactions = () => {
                   <>
                 <div className="summary-card-value transactions-tbc-usd">
                   {showBalance 
-                    ? (() => {
-                            // Calculate USD value from XRP using exchange rate from API
-                            if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
-                              // Try to find XRP to USD rate
-                              const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                              if (xrpToUsdRate) {
-                                const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-                                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                              }
-                              // Fallback: try to find USD rate from exchange rates array
-                              const usdRate = exchangeRates.find(r => 
-                                (r.from === 'XRP' && r.to === 'USD') || 
-                                (r.currency === 'USD' || r.code === 'USD')
-                              );
-                              if (usdRate && usdRate.rate) {
-                                const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-                                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                              }
-                            }
-                            // Fallback to dashboard USD if available
-                            if (dashboardData?.balance?.usd !== undefined && dashboardData?.balance?.usd !== null) {
-                              return `$${Number(dashboardData.balance.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            }
-                            return '$0.00';
-                          })()
+                    ? formatPortfolioPrimaryDisplay(
+                        displayCurrency,
+                        portfolioUsdTotal,
+                        portfolioXrpAmount,
+                        exchangeRates,
+                        exchangeQuoteDirection,
+                      )
                     : '••••••'}
                 </div>
                 <div className="summary-card-subvalue transactions-tbc-xrp">
                   {showBalance ? (
                     <>
                       ≈{' '}
-                      {dashboardData?.balance?.xrp !== undefined &&
-                        dashboardData?.balance?.xrp !== null ? (
-                        Number(dashboardData.balance.xrp).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })
-                      ) : (
-                        '0.00'
-                      )}{' '}
-                      XRP
+                      {formatPortfolioSecondaryDisplay(
+                        displayCurrency,
+                        portfolioUsdTotal,
+                        portfolioXrpAmount,
+                      )}
                     </>
                   ) : (
                     <>≈ •••••• XRP</>
@@ -6642,7 +6656,7 @@ const Transactions = () => {
                       <DashboardExchangeRatesSkeleton count={5} />
                     ) : null}
 
-                    {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
+                    {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && filterSidebarExchangeRates(exchangeRates).map((rate, index) => {
                       const code = (rate.currency || rate.code || '').toUpperCase();
                       const change = Number(rate.changePercent ?? rate.change ?? 0);
                       const isPositive = change > 0;
@@ -7167,8 +7181,6 @@ const Transactions = () => {
                       </span>
                     </div>
                   )}
-                  {!stripeFundSession && (
-                    <>
                   <div className="form-group">
                     <label htmlFor="fund-amount">
                       {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? 'Amount (USD)' : 'Amount'}
@@ -7186,22 +7198,7 @@ const Transactions = () => {
                     />
                   </div>
 
-                  {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? (
-                    <div className="form-group">
-                      <label htmlFor="fund-stripe-asset">Receive as</label>
-                      <select
-                        id="fund-stripe-asset"
-                        value={fundWalletForm.currency}
-                        onChange={(e) =>
-                          setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
-                        }
-                        disabled={isFundingWallet}
-                      >
-                        <option value="USDC">USDC</option>
-                        <option value="USDT">USDT</option>
-                      </select>
-                    </div>
-                  ) : (
+                  {!STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
                     <div className="form-group">
                       <label htmlFor="fund-currency">Wallets</label>
                       <select
@@ -7228,7 +7225,16 @@ const Transactions = () => {
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
-                      onClick={resetStripeFundModal}
+                      onClick={() => {
+                        setShowFundWalletModal(false);
+                        setFundWalletForm({ amount: '', currency: 'XRP' });
+                        setTransactionData(null);
+                        setFundingStep('idle');
+                        setIsFundingWallet(false);
+                        setFundViaAddress(false);
+                        setFundDepositPaymentMethod(null);
+                        setDepositAddressNetwork('XRPL');
+                      }}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
                     >
                       Cancel
@@ -7254,21 +7260,6 @@ const Transactions = () => {
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
                   </div>
-                    </>
-                  )}
-
-                  {stripeFundSession && STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
-                    <StripeWalletFundCheckout
-                      clientSecret={stripeFundSession.clientSecret}
-                      fundingAttemptId={stripeFundSession.fundingAttemptId}
-                      intentId={stripeFundSession.intentId}
-                      methodLabel={
-                        fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'
-                      }
-                      onSuccess={handleStripeFundSuccess}
-                      onCancel={resetStripeFundModal}
-                    />
-                  )}
                 </form>
               </>
             )}

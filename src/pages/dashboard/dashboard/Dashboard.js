@@ -74,6 +74,7 @@ import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
+import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { getEscrowDisplayStatus } from '../../../utils/escrowDisplayStatus';
@@ -96,13 +97,7 @@ import BusinessDashboard from '../business-suite/BusinessDashboard';
 import SupplierContractContent from '../business-suite/SupplierContractContent';
 import TeamDetailModal from '../business-suite/TeamDetailModal';
 import ReownFundModal from '../../../components/ReownFundModal';
-import StripeWalletFundCheckout from '../../../components/StripeWalletFundCheckout';
 import TrustitagWelcomeModal from '../../../components/TrustitagWelcomeModal/TrustitagWelcomeModal';
-import {
-  assertStripePublishableKey,
-  createStripeFundingIntent,
-  resolveStripeSuiteContext,
-} from '../../../utils/stripeWalletFunding';
 import {
   peekTrustitagWelcomePending,
   clearTrustitagWelcomePending,
@@ -115,6 +110,11 @@ import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import PersonalWalletAddressesModal from '../../../components/PersonalWalletAddressesModal';
 import DepositAddressSelectors from '../../../components/DepositAddressSelectors';
+import { filterSidebarExchangeRates } from '../../../utils/exchangeRatesDisplay';
+import {
+  convertUsdTotalToFiatDisplayAmount,
+  normalizeExchangeQuoteDirection,
+} from '../../../utils/displayCurrencyFormat';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
 const normalizeCompanyLogoUrl = (data) => {
@@ -925,7 +925,7 @@ const Dashboard = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [businessSupplierId, setBusinessSupplierId] = useState('');
   const [showBalance, setShowBalance] = useState(true);
-  const [balancePrimaryCurrency, setBalancePrimaryCurrency] = useState('USD');
+  const { displayCurrency, setDisplayCurrency, formatFromUsd } = useDisplayCurrency();
   const [balanceCurrencyModalOpen, setBalanceCurrencyModalOpen] = useState(false);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
@@ -1423,7 +1423,7 @@ const Dashboard = () => {
   const [businessSuiteDashboardData, setBusinessSuiteDashboardData] = useState(null);
   const [isLoadingBusinessSuiteDashboard, setIsLoadingBusinessSuiteDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
-  const [fallbackFxRates, setFallbackFxRates] = useState({});
+  const [exchangeQuoteDirection, setExchangeQuoteDirection] = useState('unitsPerUsd');
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [portfolioPoints, setPortfolioPoints] = useState([]);
   const [portfolioPrevYearSum, setPortfolioPrevYearSum] = useState(null);
@@ -1491,7 +1491,6 @@ const Dashboard = () => {
   const [businessSuiteWalletModalData, setBusinessSuiteWalletModalData] = useState(null); // { address?, balances?, error? }
   const [fundViaAddress, setFundViaAddress] = useState(false);
   const [fundDepositPaymentMethod, setFundDepositPaymentMethod] = useState(null);
-  const [stripeFundSession, setStripeFundSession] = useState(null);
   const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletBalanceRaw, setWalletBalanceRaw] = useState(null);
   const [fundWalletForm, setFundWalletForm] = useState({
@@ -1768,6 +1767,17 @@ const Dashboard = () => {
         const n = Number(xrpRow?.rate ?? xrpRow?.value);
         if (Number.isFinite(n) && n > 0) return 1 / n;
       }
+
+      // RLUSD is pegged 1:1 to USD in api/exchange/rates ({ currency: 'RLUSD', rate: 1 }).
+      if (fromCurrency === 'RLUSD' && toCurrency === 'USD') return 1;
+      if (fromCurrency === 'USD' && toCurrency === 'RLUSD') return 1;
+      if (fromCurrency === 'XRP' && toCurrency === 'RLUSD') {
+        const xrpRow = rates.find(
+          (r) => (r.currency || r.code || '').toUpperCase() === 'XRP',
+        );
+        const n = Number(xrpRow?.rate ?? xrpRow?.value);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
     }
 
     // Last resort: implied USD per XRP from dashboard totals (when rates array lacks XRP/USD pair)
@@ -1792,10 +1802,14 @@ const Dashboard = () => {
   };
 
   const getPersonalWalletXrpBalance = () => {
-    if (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null) {
-      return Number(walletBalances.xrp);
+    if (isLoadingWalletBalances && walletBalances === null) {
+      return null;
     }
-    return null;
+    if (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null) {
+      const walletXrp = Number(walletBalances.xrp);
+      if (walletXrp > 0) return walletXrp;
+    }
+    return getDashboardSummaryXrpBalance();
   };
 
   const getDashboardSummaryXrpBalance = () => {
@@ -1813,6 +1827,7 @@ const Dashboard = () => {
     if (
       xrpBalance !== null &&
       xrpBalance !== undefined &&
+      Number(xrpBalance) > 0 &&
       exchangeRates &&
       exchangeRates.length > 0
     ) {
@@ -1832,6 +1847,10 @@ const Dashboard = () => {
     }
 
     if (accountType === 'Personal') {
+      const usdFromSummary = getBalanceValue(dashboardData, 'usd');
+      if (usdFromSummary !== null && usdFromSummary !== undefined) {
+        return Number(usdFromSummary);
+      }
       return 0;
     }
 
@@ -1845,25 +1864,45 @@ const Dashboard = () => {
     return 0;
   };
 
-  /** Interpret Live Exchange Rate row quotes vs total USD (JPY quoted as yen per USD). */
-  const convertUsdTotalToFiatDisplayAmount = (code, usdTotal) => {
-    const row = exchangeRates.find((r) => (r.currency || r.code || '').toUpperCase() === code);
-    const quote = Number(row?.rate ?? row?.value ?? 0);
-    if (Number.isFinite(quote) && quote > 0) {
-      // Higher quote values are typically "fiat per 1 USD" (e.g. JPY, NGN, KRW),
-      // while smaller values are usually "USD per 1 fiat" (e.g. EUR, GBP).
-      if (quote >= 20) return usdTotal * quote;
-      return usdTotal / quote;
+  const getPersonalWalletRlusdBalance = () => {
+    if (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null) {
+      return Number(walletBalances.rlusd);
     }
-
-    // Fallback source uses USD as base: 1 USD = rate * target currency.
-    const fallbackRate = Number(fallbackFxRates?.[code]);
-    if (Number.isFinite(fallbackRate) && fallbackRate > 0) {
-      return usdTotal * fallbackRate;
-    }
-
-    return null;
+    return 0;
   };
+
+  /** Portfolio total in RLUSD — XRP converted at XRP/RLUSD + custodial RLUSD balance. */
+  const getTotalPortfolioRlusdNumber = () => {
+    const xrpBalance =
+      accountType === 'Personal' ? getPersonalWalletXrpBalance() : getDashboardSummaryXrpBalance();
+
+    let rlusdFromXrp = 0;
+    if (xrpBalance != null && Number(xrpBalance) > 0) {
+      const xrpToRlusd = getExchangeRate('XRP', 'RLUSD') ?? getExchangeRate('XRP', 'USD');
+      if (xrpToRlusd) {
+        rlusdFromXrp = Number(xrpBalance) * Number(xrpToRlusd);
+      }
+    }
+
+    const directRlusd =
+      accountType === 'Personal'
+        ? getPersonalWalletRlusdBalance()
+        : Number(
+            getBalanceValue(dashboardData, 'rlusd') ??
+              dashboardData?.balance?.rlusd ??
+              dashboardData?.balance?.RLUSD ??
+              0,
+          );
+
+    const total = rlusdFromXrp + (Number.isFinite(directRlusd) ? directRlusd : 0);
+    if (total > 0) return total;
+
+    return getTotalPortfolioUsdNumber();
+  };
+
+  /** Convert RLUSD total to fiat using live api/exchange/rates (unitsPerUsd). */
+  const convertRlusdTotalToFiatDisplayAmount = (code, rlusdTotal) =>
+    convertUsdTotalToFiatDisplayAmount(code, rlusdTotal, exchangeRates, exchangeQuoteDirection);
 
   const formatConvertedFiatAmount = (code, amount) => {
     const fractionDigits = code === 'JPY' || code === 'KRW' ? 0 : 2;
@@ -1883,8 +1922,13 @@ const Dashboard = () => {
   };
 
   const computeDashboardTotalUsdDisplay = () => {
-    const usdValue = getTotalPortfolioUsdNumber();
+    const usdValue = getTotalPortfolioRlusdNumber();
     return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const computeDashboardTotalRlusdDisplay = () => {
+    const rlusdValue = getTotalPortfolioRlusdNumber();
+    return `${rlusdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RLUSD`;
   };
 
   const computeDashboardXrpAmount = () => {
@@ -1897,24 +1941,27 @@ const Dashboard = () => {
   };
 
   const formatFiatPrimaryBalance = (code) => {
-    const usd = getTotalPortfolioUsdNumber();
-    const amt = convertUsdTotalToFiatDisplayAmount(code, usd);
+    const rlusd = getTotalPortfolioRlusdNumber();
+    const amt = convertRlusdTotalToFiatDisplayAmount(code, rlusd);
     if (amt == null) return '—';
     return formatConvertedFiatAmount(code, amt);
   };
+
+  const isLoadingTotalBalance =
+    isLoadingDashboard || (accountType === 'Personal' && isLoadingWalletBalances);
 
   let balanceLabelUsd = '—';
   let balanceLabelXrp = '—';
   const fiatCodes = TOTAL_BALANCE_DISPLAY_CODES.filter((code) => code !== 'USD' && code !== 'XRP');
   const fiatLabels = fiatCodes.reduce((acc, code) => ({ ...acc, [code]: '—' }), {});
 
-  if (!isLoadingDashboard) {
-    const usdTotal = getTotalPortfolioUsdNumber();
-    balanceLabelUsd = `$${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (!isLoadingTotalBalance) {
+    const rlusdTotal = getTotalPortfolioRlusdNumber();
+    balanceLabelUsd = `$${rlusdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const xrpAmt = computeDashboardXrpAmount();
     balanceLabelXrp = `${xrpAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
     fiatCodes.forEach((c) => {
-      const amt = convertUsdTotalToFiatDisplayAmount(c, usdTotal);
+      const amt = convertRlusdTotalToFiatDisplayAmount(c, rlusdTotal);
       if (amt != null) {
         fiatLabels[c] = formatConvertedFiatAmount(c, amt);
       }
@@ -2868,6 +2915,9 @@ const Dashboard = () => {
           if (result?.success && Array.isArray(result?.data?.rates) && result.data.rates.length > 0) {
             console.log('Setting exchange rates:', result.data.rates);
             setExchangeRates(result.data.rates);
+            setExchangeQuoteDirection(
+              normalizeExchangeQuoteDirection(result?.data?.quoteDirection),
+            );
           } else {
             console.warn('Unexpected exchange rates response shape. Expected data.rates as an array.', result);
             console.warn('Setting exchange rates to empty array');
@@ -2891,45 +2941,6 @@ const Dashboard = () => {
     };
 
     fetchExchangeRates();
-  }, []);
-
-  useEffect(() => {
-    const fiatCodes = TOTAL_BALANCE_DISPLAY_CODES.filter((code) => code !== 'USD' && code !== 'XRP');
-    if (!fiatCodes.length) return undefined;
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    const fetchFallbackFxRates = async () => {
-      try {
-        const response = await fetch('https://open.er-api.com/v6/latest/USD', {
-          method: 'GET',
-          signal: controller.signal,
-        });
-        const result = await response.json().catch(() => ({}));
-        if (cancelled) return;
-
-        const rates = result?.rates && typeof result.rates === 'object' ? result.rates : {};
-        const mapped = {};
-        fiatCodes.forEach((code) => {
-          const rate = Number(rates[code]);
-          if (Number.isFinite(rate) && rate > 0) {
-            mapped[code] = rate;
-          }
-        });
-        setFallbackFxRates(mapped);
-      } catch (error) {
-        if (error?.name !== 'AbortError') {
-          console.warn('Fallback FX rates unavailable:', error);
-        }
-      }
-    };
-
-    fetchFallbackFxRates();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
   }, []);
 
   useEffect(() => {
@@ -3116,11 +3127,7 @@ const Dashboard = () => {
     return val / portfolioChartScaleMax;
   }, [portfolioChartScaleMax]);
 
-  const formatPortfolioUsd = useCallback((value) => {
-    const num = Number(value ?? 0);
-    if (!Number.isFinite(num)) return '$0.00';
-    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }, []);
+  const formatPortfolioUsd = useCallback((value) => formatFromUsd(value), [formatFromUsd]);
 
   const formatPortfolioSignedPercent = useCallback((value) => {
     const num = Number(value ?? 0);
@@ -3948,27 +3955,8 @@ const Dashboard = () => {
     setShowFundMethodModal(false);
     setFundViaAddress(false);
     setFundDepositPaymentMethod(method);
-    setStripeFundSession(null);
-    setFundWalletForm({ amount: '', currency: 'USDC' });
+    setFundWalletForm({ amount: '', currency: 'USD' });
     setShowFundWalletModal(true);
-  };
-
-  const resetStripeFundModal = () => {
-    setShowFundWalletModal(false);
-    setFundWalletForm({ amount: '', currency: 'XRP' });
-    setTransactionData(null);
-    setFundingStep('idle');
-    setIsFundingWallet(false);
-    setFundViaAddress(false);
-    setFundDepositPaymentMethod(null);
-    setStripeFundSession(null);
-    setDepositAddressNetwork('XRPL');
-  };
-
-  const handleStripeFundSuccess = async () => {
-    resetStripeFundModal();
-    await fetchDashboardSummary();
-    setWalletBalancesRefreshTrigger((n) => n + 1);
   };
 
   const handleFundWallet = async (e) => {
@@ -3993,28 +3981,62 @@ const Dashboard = () => {
     if (STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod)) {
       const amountUsd = Number(parseFloat(fundWalletForm.amount).toFixed(2));
       const methodLabel = fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay';
-      const asset = fundWalletForm.currency === 'USDT' ? 'USDT' : 'USDC';
       setIsFundingWallet(true);
       setFundingStep('preparing');
       try {
-        assertStripePublishableKey();
         toast.loading(`Preparing ${methodLabel}…`, { id: 'fund-wallet' });
-        const intentData = await createStripeFundingIntent({
-          token,
-          amountUsd,
-          asset,
-          suiteContext: resolveStripeSuiteContext(accountType),
+        const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amountUsd,
+            currency: 'usd',
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-pi-${Date.now()}`,
+          }),
         });
-        setStripeFundSession({
-          clientSecret: intentData.clientSecret,
-          fundingAttemptId: intentData.fundingAttemptId,
-          intentId: intentData.intentId,
-          amountUsd,
-          asset,
+        const piData = await piResponse.json().catch(() => ({}));
+        if (!piResponse.ok) {
+          throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
+        }
+
+        const customerEmail =
+          dashboardData?.user?.email?.trim() ||
+          dashboardData?.email?.trim() ||
+          'unknown@trustichain.app';
+        const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerEmail,
+            paymentMethod: fundDepositPaymentMethod,
+            purpose: 'wallet_fund',
+            idempotencyKey: `wallet-si-${Date.now()}`,
+          }),
         });
-        toast.success(`Complete payment with ${methodLabel} below`, { id: 'fund-wallet' });
+        const siData = await siResponse.json().catch(() => ({}));
+        if (!siResponse.ok) {
+          throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
+        }
+
+        toast.success(
+          `${methodLabel} initialized. Continue payment using the returned Stripe client secret.`,
+          { id: 'fund-wallet' },
+        );
+        setShowFundWalletModal(false);
+        setFundWalletForm({ amount: '', currency: 'XRP' });
+        setFundDepositPaymentMethod(null);
         setFundingStep('idle');
         setIsFundingWallet(false);
+        await fetchDashboardSummary();
+        setWalletBalancesRefreshTrigger((n) => n + 1);
       } catch (stripeError) {
         console.error('Stripe deposit error:', stripeError);
         toast.error(
@@ -5631,38 +5653,30 @@ const Dashboard = () => {
                 </button>
               </div>
               <TotalBalanceCurrencyTrigger
-                value={balancePrimaryCurrency}
+                value={displayCurrency}
                 modalOpen={balanceCurrencyModalOpen}
                 onOpen={() => setBalanceCurrencyModalOpen(true)}
               />
             </div>
-            {showBalance && isLoadingDashboard ? (
+            {showBalance && isLoadingTotalBalance ? (
               <DashboardBalanceSkeleton mobile />
             ) : (
               <>
             <div className="mobile-balance-amount">
               {showBalance ? (
-                balancePrimaryCurrency === 'USD' ? (
+                displayCurrency === 'USD' ? (
                   computeDashboardTotalUsdDisplay()
-                ) : balancePrimaryCurrency === 'XRP' ? (
+                ) : displayCurrency === 'XRP' ? (
                   `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
                 ) : (
-                  formatFiatPrimaryBalance(balancePrimaryCurrency)
+                  formatFiatPrimaryBalance(displayCurrency)
                 )
               ) : (
                 '••••••'
               )}
             </div>
             <div className="mobile-balance-xrp">
-              ≈{' '}
-              {balancePrimaryCurrency === 'USD' ? (
-                <>
-                  {computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-                  XRP
-                </>
-              ) : (
-                computeDashboardTotalUsdDisplay()
-              )}
+              ≈ {computeDashboardTotalRlusdDisplay()}
             </div>
               </>
             )}
@@ -5711,9 +5725,7 @@ const Dashboard = () => {
                   : 23}
               </div>
               <div className="mobile-metric-subvalue">
-                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
-                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : '156,789'} locked
+                {formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)} locked
               </div>
                 </>
               )}
@@ -6016,7 +6028,7 @@ const Dashboard = () => {
                 <DashboardExchangeRatesSkeleton count={5} mobile />
               ) : null}
 
-              {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
+              {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && filterSidebarExchangeRates(exchangeRates).map((rate, index) => {
                 const code = (rate.currency || rate.code || '').toUpperCase();
                 const change = Number(rate.changePercent ?? rate.change ?? 0);
                 const isPositive = change > 0;
@@ -6396,36 +6408,31 @@ const Dashboard = () => {
                 </button>
               </div>
               <TotalBalanceCurrencyTrigger
-                value={balancePrimaryCurrency}
+                value={displayCurrency}
                 modalOpen={balanceCurrencyModalOpen}
                 onOpen={() => setBalanceCurrencyModalOpen(true)}
               />
             </div>
             <div className="summary-card-value-row">
-              {showBalance && isLoadingDashboard ? (
+              {showBalance && isLoadingTotalBalance ? (
                 <DashboardBalanceSkeleton />
               ) : (
                 <>
               <div className="summary-card-value">
                 {showBalance ? (
-                  balancePrimaryCurrency === 'USD' ? (
+                  displayCurrency === 'USD' ? (
                     computeDashboardTotalUsdDisplay()
-                  ) : balancePrimaryCurrency === 'XRP' ? (
+                  ) : displayCurrency === 'XRP' ? (
                     `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
                   ) : (
-                    formatFiatPrimaryBalance(balancePrimaryCurrency)
+                    formatFiatPrimaryBalance(displayCurrency)
                   )
                 ) : (
                   '••••••'
                 )}
               </div>
               <div className="summary-card-subvalue">
-                ≈{' '}
-                {balancePrimaryCurrency === 'USD' ? (
-                  `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
-                ) : (
-                  computeDashboardTotalUsdDisplay()
-                )}
+                ≈ {computeDashboardTotalRlusdDisplay()}
               </div>
                 </>
               )}
@@ -6474,9 +6481,7 @@ const Dashboard = () => {
                   : 23}
               </div>
               <div className="summary-card-subvalue active-escrow-locked">
-                ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
-                    ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : '156,789'} locked
+                {formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)} locked
               </div>
                 </>
               )}
@@ -6925,7 +6930,7 @@ const Dashboard = () => {
                   <DashboardExchangeRatesSkeleton count={5} />
                 ) : null}
 
-                {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && exchangeRates.map((rate, index) => {
+                {!isLoadingRates && Array.isArray(exchangeRates) && exchangeRates.length > 0 && filterSidebarExchangeRates(exchangeRates).map((rate, index) => {
                   const code = (rate.currency || rate.code || '').toUpperCase();
                   const change = Number(rate.changePercent ?? rate.change ?? 0);
                   const isPositive = change > 0;
@@ -8312,9 +8317,9 @@ const Dashboard = () => {
       <TotalBalanceCurrencySelectModal
         isOpen={balanceCurrencyModalOpen}
         onClose={() => setBalanceCurrencyModalOpen(false)}
-        selectedCode={balancePrimaryCurrency}
+        selectedCode={displayCurrency}
         onConfirm={(code) => {
-          setBalancePrimaryCurrency(code);
+          setDisplayCurrency(code);
           setBalanceCurrencyModalOpen(false);
         }}
         rows={balanceCurrencyModalRows}
@@ -8867,8 +8872,6 @@ const Dashboard = () => {
                       </span>
                     </div>
                   )}
-                  {!stripeFundSession && (
-                    <>
                   <div className="form-group">
                     <label htmlFor="fund-amount">
                       {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? 'Amount (USD)' : 'Amount'}
@@ -8886,22 +8889,7 @@ const Dashboard = () => {
                     />
                   </div>
 
-                  {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) ? (
-                    <div className="form-group">
-                      <label htmlFor="fund-stripe-asset">Receive as</label>
-                      <select
-                        id="fund-stripe-asset"
-                        value={fundWalletForm.currency}
-                        onChange={(e) =>
-                          setFundWalletForm((prev) => ({ ...prev, currency: e.target.value }))
-                        }
-                        disabled={isFundingWallet}
-                      >
-                        <option value="USDC">USDC</option>
-                        <option value="USDT">USDT</option>
-                      </select>
-                    </div>
-                  ) : (
+                  {!STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
                     <div className="form-group">
                       <label htmlFor="fund-currency">Wallets</label>
                       <select
@@ -8931,7 +8919,16 @@ const Dashboard = () => {
                     <button
                       type="button"
                       className="fund-wallet-btn cancel"
-                      onClick={resetStripeFundModal}
+                      onClick={() => {
+                        setShowFundWalletModal(false);
+                        setFundWalletForm({ amount: '', currency: 'XRP' });
+                        setTransactionData(null);
+                        setFundingStep('idle');
+                        setIsFundingWallet(false);
+                        setFundViaAddress(false);
+                        setFundDepositPaymentMethod(null);
+                        setDepositAddressNetwork('XRPL');
+                      }}
                       disabled={isFundingWallet && fundingStep !== 'idle'}
                     >
                       Cancel
@@ -8957,21 +8954,6 @@ const Dashboard = () => {
                       {isFundingWallet && fundingStep === 'idle' && 'Processing...'}
                     </button>
                   </div>
-                    </>
-                  )}
-
-                  {stripeFundSession && STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
-                    <StripeWalletFundCheckout
-                      clientSecret={stripeFundSession.clientSecret}
-                      fundingAttemptId={stripeFundSession.fundingAttemptId}
-                      intentId={stripeFundSession.intentId}
-                      methodLabel={
-                        fundDepositPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'
-                      }
-                      onSuccess={handleStripeFundSuccess}
-                      onCancel={resetStripeFundModal}
-                    />
-                  )}
                 </form>
               </>
             )}

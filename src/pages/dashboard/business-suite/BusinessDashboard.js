@@ -48,6 +48,13 @@ import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import AddPayrollModal from '../../../components/AddPayrollModal';
 import CreateNewSupplierModal from '../../../components/CreateNewSupplierModal';
 import { handleLogout } from '../../../utils/logout';
+import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
+import {
+  computePortfolioUsdTotalFromSummary,
+  formatPortfolioPrimaryDisplay,
+  formatPortfolioSecondaryDisplay,
+  resolveSummaryXrpBalance,
+} from '../../../utils/displayCurrencyFormat';
 
 const businessSuiteNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null, path: '/dashboard' },
@@ -151,6 +158,15 @@ const BusinessDashboard = ({
 }) => {
   const [showAddPayrollModal, setShowAddPayrollModal] = useState(false);
   const [showCreateNewSupplierModal, setShowCreateNewSupplierModal] = useState(false);
+  const { displayCurrency, formatFromUsd, exchangeQuoteDirection } = useDisplayCurrency();
+
+  const portfolioUsdTotal = computePortfolioUsdTotalFromSummary({
+    dashboardData,
+    exchangeRates,
+    getExchangeRate,
+    getBalanceValue,
+  });
+  const portfolioXrpAmount = resolveSummaryXrpBalance(dashboardData, getBalanceValue);
 
   const handleNavClick = (item) => {
     if (!item?.path) return;
@@ -736,41 +752,20 @@ const BusinessDashboard = ({
             {showBalance && isLoadingDashboard ? (
               <DashboardBalanceSkeleton mobile />
             ) : showBalance ? (
-              (() => {
-                      if (dashboardData?.balance?.xrp !== undefined && dashboardData?.balance?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
-                        const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                        if (xrpToUsdRate) {
-                          const usdValue = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-                          return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                        }
-                        const usdRate = exchangeRates.find(r => 
-                          (r.from === 'XRP' && r.to === 'USD') || 
-                          (r.currency === 'USD' || r.code === 'USD')
-                        );
-                        if (usdRate && usdRate.rate) {
-                          const usdValue = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-                          return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                        }
-                      }
-                      const usdBalance = getBalanceValue(dashboardData, 'usd');
-                      if (usdBalance !== null && usdBalance !== undefined) {
-                        return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                      }
-                      return '$0.00';
-                    })()
+              formatPortfolioPrimaryDisplay(
+                displayCurrency,
+                portfolioUsdTotal,
+                portfolioXrpAmount,
+                exchangeRates,
+                exchangeQuoteDirection,
+              )
             ) : (
               '••••••'
             )}
           </div>
           {!isLoadingDashboard && (
           <div className="mobile-balance-xrp">
-            ≈ {(() => {
-                const xrpBalance = getBalanceValue(dashboardData, 'xrp');
-                if (xrpBalance !== null && xrpBalance !== undefined) {
-                  return Number(xrpBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                }
-                return '0.00';
-              })()} XRP
+            ≈ {formatPortfolioSecondaryDisplay(displayCurrency, portfolioUsdTotal, portfolioXrpAmount)}
           </div>
           )}
           <div className="mobile-balance-actions">
@@ -810,9 +805,7 @@ const BusinessDashboard = ({
                 : 23}
             </div>
             <div className="mobile-metric-subvalue">
-              ${dashboardData?.activeEscrows?.lockedAmount !== undefined 
-                  ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                  : '156,789'} locked
+              {formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)} locked
             </div>
               </>
             )}
@@ -1040,37 +1033,17 @@ const BusinessDashboard = ({
                 <>
               <span className="bs-card-value">
                 {showBalance
-                  ? (() => {
-                          let usdBalance = null;
-                          if (dashboardData?.balance?.xrp != null && exchangeRates?.length > 0) {
-                            const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                            if (xrpToUsdRate != null) {
-                              usdBalance = Number(dashboardData.balance.xrp) * Number(xrpToUsdRate);
-                            } else {
-                              const usdRate = exchangeRates.find(r =>
-                                (r.from === 'XRP' && r.to === 'USD') ||
-                                (r.currency === 'USD' || r.code === 'USD')
-                              );
-                              if (usdRate && usdRate.rate != null) {
-                                usdBalance = Number(dashboardData.balance.xrp) * Number(usdRate.rate);
-                              }
-                            }
-                          }
-                          if (usdBalance == null) usdBalance = getBalanceValue(dashboardData, 'usd');
-                          if (usdBalance == null && dashboardData?.balance != null) {
-                            const b = dashboardData.balance;
-                            const directUsd = b.usd ?? b.USD ?? b.usdAmount;
-                            if (directUsd != null) usdBalance = Number(directUsd);
-                          }
-                          if (usdBalance != null) return `$${Number(usdBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          return '$0.00';
-                        })()
+                  ? formatPortfolioPrimaryDisplay(
+                      displayCurrency,
+                      portfolioUsdTotal,
+                      portfolioXrpAmount,
+                      exchangeRates,
+                      exchangeQuoteDirection,
+                    )
                   : '••••••'}
               </span>
               <span className="bs-card-subvalue">
-                ≈ {dashboardData?.balance?.xrp != null
-                  ? Number(dashboardData.balance.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  : '0.00'} XRP
+                ≈ {formatPortfolioSecondaryDisplay(displayCurrency, portfolioUsdTotal, portfolioXrpAmount)}
               </span>
                 </>
               )}
@@ -1095,7 +1068,7 @@ const BusinessDashboard = ({
               <span className="bs-card-value">
                 {dashboardData?.activeEscrows?.count !== undefined ? dashboardData.activeEscrows.count : 23}
               </span><span className="bs-card-subvalue">
-                ${dashboardData?.activeEscrows?.lockedAmount !== undefined ? dashboardData.activeEscrows.lockedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '156,789'} locked
+                {formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)} locked
               </span>
             </div>
             )}
@@ -1133,7 +1106,7 @@ const BusinessDashboard = ({
               {isLoadingTotalEscrowed ? (
                 <DashboardSkeletonBlock className="business-suite-single-value-skeleton" />
               ) : (
-                <>${totalEscrowedAmount != null ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</>
+                <>{formatFromUsd(totalEscrowedAmount ?? 0)}</>
               )}
             </div>
             <button type="button" className="bs-btn">View Payroll Escrow</button>
