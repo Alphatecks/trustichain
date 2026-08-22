@@ -441,8 +441,13 @@
   transition: background 0.2s ease;
 }
 
-.release-btn:hover {
+.release-btn:hover:not(:disabled) {
   background: var(--blue-700);
+}
+
+.release-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .cancel-btn {

@@ -11,7 +11,7 @@ export default function EscrowDetailModalBody({
   exchangeRate,
   onDispute,
   onReleaseEscrow,
-  onRequestCancelEscrow,
+  isReleasing = false,
 }) {
   const escrowId = escrow.id || escrow.escrowId || escrow.xrplEscrowId || '';
   const formattedId = escrowId || '#ESC-N/A';
@@ -182,7 +182,7 @@ export default function EscrowDetailModalBody({
 
   const showSecondaryXRPL =
     typeof onReleaseEscrow === 'function' &&
-    typeof onRequestCancelEscrow === 'function' &&
+    typeof onDispute === 'function' &&
     hasXrplEscrowId &&
     (statusLower === 'active' || statusLower === 'pending release');
 
@@ -259,8 +259,8 @@ export default function EscrowDetailModalBody({
           <ExternalLink size={16} aria-hidden />
           View on block Explorer
         </button>
-        {!escrowCompleted && typeof onDispute === 'function' ? (
-          <button type="button" className="escrow-detail-btn escrow-detail-btn--primary" onClick={onDispute}>
+        {!escrowCompleted && !showSecondaryXRPL && typeof onDispute === 'function' ? (
+          <button type="button" className="escrow-detail-btn escrow-detail-btn--primary" onClick={() => onDispute(escrow)}>
             Dispute
           </button>
         ) : null}
@@ -272,28 +272,31 @@ export default function EscrowDetailModalBody({
             type="button"
             className="release-btn"
             onClick={() => {
-              if (canReleaseNow) {
+              if (canReleaseNow && !isReleasing) {
                 onReleaseEscrow(escrowId);
               }
             }}
-            disabled={!canReleaseNow}
+            disabled={!canReleaseNow || isReleasing}
+            aria-busy={isReleasing || undefined}
             style={{
-              opacity: canReleaseNow ? 1 : 0.6,
-              cursor: canReleaseNow ? 'pointer' : 'not-allowed',
+              opacity: canReleaseNow && !isReleasing ? 1 : 0.6,
+              cursor: canReleaseNow && !isReleasing ? 'pointer' : 'not-allowed',
             }}
           >
-            {canRelease
-              ? 'Release'
-              : timeRemaining > 0
-                ? `Release (${Math.ceil(timeRemaining)}s)`
-                : 'Release'}
+            {isReleasing
+              ? 'Waiting...'
+              : canRelease
+                ? 'Release'
+                : timeRemaining > 0
+                  ? `Release (${Math.ceil(timeRemaining)}s)`
+                  : 'Release'}
           </button>
           <button
             type="button"
             className="cancel-btn"
-            onClick={() => onRequestCancelEscrow(escrowId)}
+            onClick={() => onDispute(escrow)}
           >
-            Cancel escrow
+            Dispute
           </button>
         </div>
       )}

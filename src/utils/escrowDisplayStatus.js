@@ -74,3 +74,15 @@ export const getEscrowDisplayStatus = (escrow) => {
     isCompleted: false,
   };
 };
+
+/** Canonical escrow id for dispute creation / parties API. */
+export function resolveEscrowDisputeId(escrow) {
+  if (!escrow || typeof escrow !== 'object') return '';
+  return String(
+    escrow.id ||
+      escrow.escrowId ||
+      escrow.xrplEscrowId ||
+      escrow.xrpl_escrow_id ||
+      '',
+  ).trim();
+}

@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Plus,
   Calendar,
-  MoreVertical,
   TrendingUp,
   X,
   CreditCard,
@@ -48,7 +47,6 @@ import {
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBadge';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
-import CancelReasonModal from '../../../components/CancelReasonModal';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
 import { useSession } from '../../../context/SessionContext';
 import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
@@ -63,6 +61,7 @@ import './MyEscrow.css';
 import {
   getEscrowDisplayStatus,
   isEscrowCompleted,
+  resolveEscrowDisputeId,
 } from '../../../utils/escrowDisplayStatus';
 
 const sidebarNav = [
@@ -114,6 +113,70 @@ const getFirstNameOnly = (name, fallback = 'Unknown') => {
   return str.split(/\s+/)[0] || fallback;
 };
 
+/** Normalize create-escrow API payload for the success modal (amount is often an object). */
+const normalizeCreatedEscrowForSuccessModal = (createdEscrow, exchangeRate) => {
+  const amountNode = createdEscrow?.amount;
+  let successPrimaryAmount = '0 XRP';
+  let successUsdAmount = null;
+
+  if (amountNode && typeof amountNode === 'object') {
+    if (amountNode.display?.value != null) {
+      const cur = String(amountNode.display.currency || createdEscrow?.currency || 'USD').toUpperCase();
+      successPrimaryAmount = `${Number(amountNode.display.value).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: cur === 'XRP' ? 6 : 2,
+      })} ${cur}`;
+    } else if (amountNode.xrp != null) {
+      successPrimaryAmount = `${Number(amountNode.xrp).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })} XRP`;
+    } else if (amountNode.usd != null) {
+      successPrimaryAmount = `$${Number(amountNode.usd).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    }
+
+    if (amountNode.usd != null) {
+      successUsdAmount = Number(amountNode.usd).toFixed(2);
+    }
+  } else if (amountNode != null && amountNode !== '') {
+    const numeric = parseFloat(String(amountNode));
+    if (Number.isFinite(numeric)) {
+      successPrimaryAmount = `${numeric.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })} XRP`;
+      if (exchangeRate) {
+        successUsdAmount = (numeric * exchangeRate).toFixed(2);
+      }
+    }
+  }
+
+  if (successUsdAmount == null && createdEscrow?.amountUsd != null) {
+    successUsdAmount = Number(createdEscrow.amountUsd).toFixed(2);
+  }
+
+  const normalizedAmount =
+    amountNode && typeof amountNode === 'object'
+      ? amountNode
+      : { xrp: amountNode, usd: successUsdAmount };
+
+  return {
+    ...createdEscrow,
+    amount: normalizedAmount,
+    successPrimaryAmount,
+    successUsdAmount,
+  };
+};
+
+const renderCreatedEscrowSuccessAmount = (createdEscrowData) => {
+  const primary = createdEscrowData?.successPrimaryAmount || '0 XRP';
+  const usd = createdEscrowData?.successUsdAmount;
+  return usd ? `${primary} ($${usd} USD)` : primary;
+};
+
 const MyEscrow = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -149,11 +212,9 @@ const MyEscrow = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalEscrowsCount, setTotalEscrowsCount] = useState(0);
   const limit = 20;
-  const [openActionMenu, setOpenActionMenu] = useState(null); // Track which escrow's menu is open
-  const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
-  const [escrowToCancel, setEscrowToCancel] = useState(null);
   const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
   const [selectedEscrow, setSelectedEscrow] = useState(null);
+  const [releasingEscrowId, setReleasingEscrowId] = useState(null);
 
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -779,27 +840,28 @@ const MyEscrow = () => {
       if (showIndustryDropdown && !event.target.closest('.industry-dropdown')) {
         setShowIndustryDropdown(false);
       }
-      if (openActionMenu && !event.target.closest('.escrow-action')) {
-        setOpenActionMenu(null);
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showIndustryDropdown, openActionMenu]);
+  }, [showIndustryDropdown]);
 
   // Handle release escrow
   const handleReleaseEscrow = async (escrowId) => {
+    const id = String(escrowId || '').trim();
+    if (!id) return false;
+
+    setReleasingEscrowId(id);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         toast.error('Authentication required');
-        return;
+        return false;
       }
 
-      const apiUrl = getApiUrl(`api/escrow/${escrowId}/release`);
+      const apiUrl = getApiUrl(`api/escrow/${id}/release`);
       console.log('Releasing escrow:', apiUrl);
 
       const response = await fetch(apiUrl, {
@@ -841,81 +903,33 @@ const MyEscrow = () => {
             }
           };
           fetchEscrows();
-        } else {
-          toast.error(result?.message || 'Failed to release escrow');
+          return true;
         }
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        toast.error(errorData?.message || 'Failed to release escrow');
+        toast.error(result?.message || 'Failed to release escrow');
+        return false;
       }
+
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      toast.error(errorData?.message || 'Failed to release escrow');
+      return false;
     } catch (error) {
       console.error('Error releasing escrow:', error);
       toast.error('An error occurred while releasing escrow');
+      return false;
+    } finally {
+      setReleasingEscrowId(null);
     }
   };
 
-  // Handle cancel escrow
-  const handleCancelEscrow = async (escrowId, reason = '') => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required');
-        return;
-      }
-
-      const apiUrl = getApiUrl(`api/escrow/${escrowId}/cancel`);
-      console.log('Cancelling escrow:', apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reason: reason || 'Escrow cancelled by user' }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result?.success) {
-          toast.success('Escrow cancelled successfully');
-          // Refresh escrow list
-          const fetchEscrows = async () => {
-            const transactionType = getTransactionType(activeCategory);
-            const offset = (currentPage - 1) * limit;
-            const params = new URLSearchParams();
-            if (transactionType) params.append('transactionType', transactionType);
-            if (selectedIndustry) params.append('industry', selectedIndustry);
-            params.append('limit', limit.toString());
-            params.append('offset', offset.toString());
-            const url = getApiUrl(`api/escrow/list?${params.toString()}`);
-            const res = await fetch(url, {
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data?.success && data?.data) {
-                if (Array.isArray(data.data.escrows)) {
-                  setEscrows(data.data.escrows);
-                  const total = data.data.total || data.data.count || data.data.escrows.length;
-                  setTotalEscrowsCount(total);
-                  setTotalPages(Math.ceil(total / limit));
-                }
-              }
-            }
-          };
-          fetchEscrows();
-        } else {
-          toast.error(result?.message || 'Failed to cancel escrow');
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        toast.error(errorData?.message || 'Failed to cancel escrow');
-      }
-    } catch (error) {
-      console.error('Error cancelling escrow:', error);
-      toast.error('An error occurred while cancelling escrow');
-    }
+  const handleFileDispute = (escrow) => {
+    setShowEscrowDetailModal(false);
+    setSelectedEscrow(null);
+    navigate('/dispute', {
+      state: {
+        openCreateDisputeModal: true,
+        escrowId: resolveEscrowDisputeId(escrow),
+      },
+    });
   };
 
   // Helper function to refresh escrow list
@@ -1557,6 +1571,7 @@ const MyEscrow = () => {
                 : hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && timeRemaining > 0
                 ? `Release (${Math.ceil(timeRemaining)}s)`
                 : 'View';
+              const isReleasing = releasingEscrowId === escrowId;
               
               return (
                 <tr
@@ -1617,69 +1632,23 @@ const MyEscrow = () => {
                         <button 
                           type="button" 
                           className="release-btn"
-                          onClick={() => canReleaseNow && handleReleaseEscrow(escrowId)}
-                          disabled={!canReleaseNow}
+                          onClick={() => canReleaseNow && !isReleasing && handleReleaseEscrow(escrowId)}
+                          disabled={!canReleaseNow || isReleasing}
+                          aria-busy={isReleasing || undefined}
                           style={{
-                            opacity: canReleaseNow ? 1 : 0.6,
-                            cursor: canReleaseNow ? 'pointer' : 'not-allowed'
+                            opacity: canReleaseNow && !isReleasing ? 1 : 0.6,
+                            cursor: canReleaseNow && !isReleasing ? 'pointer' : 'not-allowed'
                           }}
                         >
-                          {actionText}
+                          {isReleasing ? 'Waiting...' : actionText}
                         </button>
                         <button 
                           type="button" 
                           className="cancel-btn"
-                          onClick={() => {
-                            setEscrowToCancel(escrowId);
-                            setShowCancelReasonModal(true);
-                          }}
+                          onClick={() => handleFileDispute(escrow)}
                         >
-                          Cancel
+                          Dispute
                         </button>
-                      </>
-                    )}
-                    {!isCompletedStatus && (
-                      <>
-                        <button 
-                          type="button" 
-                          className="action-menu-btn"
-                          onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
-                        >
-                          <MoreVertical size={18} />
-                        </button>
-                        {openActionMenu === escrowId && (
-                          <div 
-                            className="action-menu-dropdown"
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              right: 0,
-                              backgroundColor: 'var(--card-bg, #fff)',
-                              border: '1px solid var(--border-color, #e0e0e0)',
-                              borderRadius: '8px',
-                              marginTop: '4px',
-                              zIndex: 1000,
-                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                              minWidth: '120px'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div
-                              style={{
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid var(--border-color, #e0e0e0)'
-                              }}
-                              onClick={() => {
-                                setOpenActionMenu(null);
-                                setEscrowToCancel(escrowId);
-                                setShowCancelReasonModal(true);
-                              }}
-                            >
-                              Cancel
-                            </div>
-                          </div>
-                        )}
                       </>
                     )}
                   </td>
@@ -1793,10 +1762,7 @@ const MyEscrow = () => {
               You have successfully locked
             </p>
             <p className="payment-success-amount">
-              {createdEscrowData?.amount || '0'}XRP
-              ({createdEscrowData?.amountUsd || (exchangeRate && createdEscrowData?.amount 
-                ? (parseFloat(createdEscrowData.amount) * exchangeRate).toFixed(2)
-                : '0')}USD)
+              {renderCreatedEscrowSuccessAmount(createdEscrowData)}
             </p>
 
             {/* Status and Transaction ID Section */}
@@ -2167,6 +2133,7 @@ const MyEscrow = () => {
                       : hasXrplEscrowId && (statusLower === 'active' || statusLower === 'pending release') && timeRemaining > 0
                       ? `Release (${Math.ceil(timeRemaining)}s)`
                       : 'View';
+                    const isReleasing = releasingEscrowId === escrowId;
                     
                     return (
                       <tr
@@ -2227,69 +2194,23 @@ const MyEscrow = () => {
                               <button 
                                 type="button" 
                                 className="release-btn"
-                                onClick={() => canReleaseNow && handleReleaseEscrow(escrowId)}
-                                disabled={!canReleaseNow}
+                                onClick={() => canReleaseNow && !isReleasing && handleReleaseEscrow(escrowId)}
+                                disabled={!canReleaseNow || isReleasing}
+                                aria-busy={isReleasing || undefined}
                                 style={{
-                                  opacity: canReleaseNow ? 1 : 0.6,
-                                  cursor: canReleaseNow ? 'pointer' : 'not-allowed'
+                                  opacity: canReleaseNow && !isReleasing ? 1 : 0.6,
+                                  cursor: canReleaseNow && !isReleasing ? 'pointer' : 'not-allowed'
                                 }}
                               >
-                                {actionText}
+                                {isReleasing ? 'Waiting...' : actionText}
                               </button>
                               <button 
                                 type="button" 
                                 className="cancel-btn"
-                                onClick={() => {
-                                  setEscrowToCancel(escrowId);
-                                  setShowCancelReasonModal(true);
-                                }}
+                                onClick={() => handleFileDispute(escrow)}
                               >
-                                Cancel
+                                Dispute
                               </button>
-                            </>
-                          )}
-                          {!isCompletedStatus && (
-                            <>
-                              <button 
-                                type="button" 
-                                className="action-menu-btn"
-                                onClick={() => setOpenActionMenu(openActionMenu === escrowId ? null : escrowId)}
-                              >
-                                <MoreVertical size={18} />
-                              </button>
-                              {openActionMenu === escrowId && (
-                                <div 
-                                  className="action-menu-dropdown"
-                                  style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    right: 0,
-                                    backgroundColor: 'var(--card-bg, #fff)',
-                                    border: '1px solid var(--border-color, #e0e0e0)',
-                                    borderRadius: '8px',
-                                    marginTop: '4px',
-                                    zIndex: 1000,
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                    minWidth: '120px'
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <div
-                                    style={{
-                                      padding: '8px 12px',
-                                      cursor: 'pointer',
-                                      borderBottom: '1px solid var(--border-color, #e0e0e0)'
-                                    }}
-                                    onClick={() => {
-                                      setOpenActionMenu(null);
-                                      setEscrowToCancel(escrowId);
-                                      setShowCancelReasonModal(true);
-                                    }}
-                                  >
-                                    Cancel
-                                  </div>
-                                </div>
-                              )}
                             </>
                           )}
                         </td>
@@ -2384,16 +2305,7 @@ const MyEscrow = () => {
         isOpen={showCreateEscrowModal}
         onCancel={() => setShowCreateEscrowModal(false)}
         onSuccess={(createdEscrow) => {
-          const amt = createdEscrow?.amount;
-          setCreatedEscrowData({
-            ...createdEscrow,
-            amount: amt ?? '',
-            amountUsd:
-              createdEscrow?.amountUsd ??
-              (exchangeRate && amt != null && String(amt).trim() !== ''
-                ? (parseFloat(String(amt)) * exchangeRate).toFixed(2)
-                : undefined),
-          });
+          setCreatedEscrowData(normalizeCreatedEscrowForSuccessModal(createdEscrow, exchangeRate));
           setShowSuccessModal(true);
           setEscrowDataVersion((v) => v + 1);
         }}
@@ -2425,10 +2337,7 @@ const MyEscrow = () => {
               You have successfully locked
             </p>
             <p className="payment-success-amount">
-              {createdEscrowData?.amount || '0'}XRP
-              ({createdEscrowData?.amountUsd || (exchangeRate && createdEscrowData?.amount 
-                ? (parseFloat(createdEscrowData.amount) * exchangeRate).toFixed(2)
-                : '0')}USD)
+              {renderCreatedEscrowSuccessAmount(createdEscrowData)}
             </p>
 
             {/* Status and Transaction ID Section */}
@@ -2554,23 +2463,6 @@ const MyEscrow = () => {
         </div>
       )}
 
-      {/* Cancel Reason Modal */}
-      <CancelReasonModal
-        isOpen={showCancelReasonModal}
-        onClose={() => {
-          setShowCancelReasonModal(false);
-          setEscrowToCancel(null);
-        }}
-        onConfirm={async (reason) => {
-          if (escrowToCancel) {
-            await handleCancelEscrow(escrowToCancel, reason);
-            setShowCancelReasonModal(false);
-            setEscrowToCancel(null);
-            setShowEscrowDetailModal(false);
-            setSelectedEscrow(null);
-          }
-        }}
-      />
 
       {/* Escrow Detail Modal */}
       {showEscrowDetailModal && selectedEscrow && (
@@ -2610,22 +2502,22 @@ const MyEscrow = () => {
               <EscrowDetailModalBody
                 escrow={selectedEscrow}
                 exchangeRate={exchangeRate}
-                onDispute={() => {
-                  navigate('/dispute');
-                              setShowEscrowDetailModal(false);
-                              setSelectedEscrow(null);
+                onDispute={handleFileDispute}
+                isReleasing={
+                  !!selectedEscrow &&
+                  releasingEscrowId ===
+                    (selectedEscrow.id ||
+                      selectedEscrow.escrowId ||
+                      selectedEscrow.xrplEscrowId ||
+                      '')
+                }
+                onReleaseEscrow={async (id) => {
+                  const released = await handleReleaseEscrow(id);
+                  if (released) {
+                    setShowEscrowDetailModal(false);
+                    setSelectedEscrow(null);
+                  }
                 }}
-                onReleaseEscrow={(id) => {
-                  handleReleaseEscrow(id);
-                            setShowEscrowDetailModal(false);
-                  setSelectedEscrow(null);
-                }}
-                onRequestCancelEscrow={(id) => {
-                  setShowEscrowDetailModal(false);
-                  setEscrowToCancel(id);
-                            setShowCancelReasonModal(true);
-                            setSelectedEscrow(null);
-                          }}
               />
             </div>
           </div>

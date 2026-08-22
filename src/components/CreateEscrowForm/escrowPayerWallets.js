@@ -8,7 +8,7 @@ import {
   getDepositNetworksForCurrency,
   resolveDepositAddressFromBalance,
 } from '../../utils/depositAddressFlow';
-import { readStoredDashboardAccountType } from '../../utils/custodialWalletBalances';
+import { readStoredDashboardAccountType, parseCustodialWalletBalances } from '../../utils/custodialWalletBalances';
 
 export const PAYER_WALLET_ICONS = {
   custodial: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
@@ -34,6 +34,28 @@ export const getPayerWalletIconUrl = (wallet) => {
     return PAYER_WALLET_ICONS[wallet.id];
   }
   return PAYER_WALLET_ICONS.connected;
+};
+
+export const formatPayerWalletBalanceLabel = (amount, currency) => {
+  const code = String(currency || 'XRP').toUpperCase();
+  const num = Number(amount);
+  if (!Number.isFinite(num)) return null;
+  const formatted = num.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: code === 'XRP' ? 6 : 2,
+  });
+  return `${formatted} ${code}`;
+};
+
+const attachCustodialBalance = (option, balances) => {
+  const currency = String(option.currency || '').toUpperCase();
+  const amount = balances?.[currency];
+  if (amount == null || !Number.isFinite(Number(amount))) return option;
+  return {
+    ...option,
+    balance: Number(amount),
+    balanceLabel: formatPayerWalletBalanceLabel(amount, currency),
+  };
 };
 
 /** Map View-wallet row labels → escrow payer option fields. */
@@ -65,20 +87,25 @@ const parseWalletRowLabel = (rowLabel) => {
 export const buildCustodialPayerWalletOptions = (apiResult) => {
   if (!apiResult || typeof apiResult !== 'object') return [];
 
+  const balances = parseCustodialWalletBalances(apiResult);
+
   const rows = buildWalletAddressRows(apiResult);
   if (rows.length > 0) {
     return rows.map((row) => {
       const parsed = parseWalletRowLabel(row.label);
       const currency = parsed.currency || 'XRP';
-      return {
-        id: `custodial-${row.id}`,
-        label: parsed.label,
-        network: parsed.network,
-        currency,
-        address: row.address,
-        iconUrl: DEPOSIT_ADDRESS_CURRENCY_ICON[currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP,
-        source: 'custodial',
-      };
+      return attachCustodialBalance(
+        {
+          id: `custodial-${row.id}`,
+          label: parsed.label,
+          network: parsed.network,
+          currency,
+          address: row.address,
+          iconUrl: DEPOSIT_ADDRESS_CURRENCY_ICON[currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP,
+          source: 'custodial',
+        },
+        balances,
+      );
     });
   }
 
@@ -93,15 +120,20 @@ export const buildCustodialPayerWalletOptions = (apiResult) => {
     const dedupeKey = `${currency}::${network}::${normalizedAddress}`;
     if (seen.has(dedupeKey)) return;
     seen.add(dedupeKey);
-    options.push({
-      id: `custodial-${currency}-${networkKey}`,
-      label: depositAddressCurrencyLabel(currency),
-      network,
-      currency,
-      address: normalizedAddress,
-      iconUrl: DEPOSIT_ADDRESS_CURRENCY_ICON[currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP,
-      source: 'custodial',
-    });
+    options.push(
+      attachCustodialBalance(
+        {
+          id: `custodial-${currency}-${networkKey}`,
+          label: depositAddressCurrencyLabel(currency),
+          network,
+          currency,
+          address: normalizedAddress,
+          iconUrl: DEPOSIT_ADDRESS_CURRENCY_ICON[currency] || DEPOSIT_ADDRESS_CURRENCY_ICON.XRP,
+          source: 'custodial',
+        },
+        balances,
+      ),
+    );
   };
 
   for (const code of ['XRP', 'RLUSD', 'USDT', 'USDC']) {

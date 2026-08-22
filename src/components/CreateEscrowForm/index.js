@@ -39,6 +39,12 @@ import {
   maskWalletAddressShort,
   resolveDefaultPayerWalletAddress,
 } from './escrowPayerWallets';
+import { readStoredDashboardAccountType } from '../../utils/custodialWalletBalances';
+import {
+  fetchEscrowCreationFeeQuote,
+  resolveEscrowCreationFeeDisplayAmounts,
+} from '../../utils/escrowCreationFeeQuote';
+import LoadingIndicator from '../LoadingIndicator';
 
 /** Matches MyEscrow.css desktop breakpoint (`min-width: 769px`). */
 const CREATE_ESCROW_DESKTOP_MODAL_MQ = '(min-width: 769px)';
@@ -95,17 +101,6 @@ const TrustichainPayBadge = () => (
 );
 
 const STRIPE_METHODS = new Set(['googlepay', 'applepay']);
-
-const ESCROW_FEE_RATE = 0.05;
-
-const getEscrowPaymentBreakdown = (totalAmountStr) => {
-  const amount = parseFloat(String(totalAmountStr || '').trim().replace(/,/g, ''));
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { amount: null, fee: null, total: null };
-  }
-  const fee = amount * ESCROW_FEE_RATE;
-  return { amount, fee, total: amount + fee };
-};
 
 /** Map create-escrow API escrow object for success callbacks (fiat display + settlement). */
 const normalizeCreatedEscrowFromApi = ({
@@ -347,6 +342,24 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [isCreatingEscrow, setIsCreatingEscrow] = useState(false);
   const [escrowCreationStep, setEscrowCreationStep] = useState('idle'); // 'idle' | 'creating'
   const [stripePaymentStatus, setStripePaymentStatus] = useState(null);
+  const [creationFeeQuote, setCreationFeeQuote] = useState(null);
+  const [isLoadingCreationFeeQuote, setIsLoadingCreationFeeQuote] = useState(false);
+
+  const parsedEscrowAmount = useMemo(() => {
+    const amount = parseFloat(String(termsData.totalAmount || '').trim().replace(/,/g, ''));
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
+  }, [termsData.totalAmount]);
+
+  const escrowCreationFeeDisplay = useMemo(
+    () =>
+      resolveEscrowCreationFeeDisplayAmounts(
+        creationFeeQuote,
+        termsData.escrowCurrency,
+        exchangeRates,
+        exchangeQuoteDirection,
+      ),
+    [creationFeeQuote, termsData.escrowCurrency, exchangeRates, exchangeQuoteDirection],
+  );
 
   const amountExchangeHint = formatAmountExchangeHint(
     termsData.totalAmount,
@@ -354,7 +367,6 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     exchangeRates,
     exchangeQuoteDirection,
   );
-  const escrowPaymentBreakdown = getEscrowPaymentBreakdown(termsData.totalAmount);
 
   // Map escrow type to industry for API
   const getEscrowTypeMapping = (escrowType) => {
@@ -440,6 +452,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     setSelectedPayerWalletId('');
     setShowPayerWalletModal(false);
     setStripePaymentStatus(null);
+    setCreationFeeQuote(null);
+    setIsLoadingCreationFeeQuote(false);
     setCounterpartyMethod('wallet');
     setFormData({
       payerWallet: '',
@@ -518,6 +532,69 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     })();
     return () => ac.abort();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!showPayerWalletModal) return undefined;
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const balanceRaw = await fetchCustodialWalletBalance(ac.signal);
+        if (ac.signal.aborted) return;
+        setCustodialWalletBalanceRaw(balanceRaw);
+      } catch (_) {
+        /* ignore */
+      }
+    })();
+    return () => ac.abort();
+  }, [showPayerWalletModal]);
+
+  useEffect(() => {
+    if (!isOpen || currentStep !== 3 || parsedEscrowAmount == null) {
+      if (!isOpen || currentStep !== 3) {
+        setCreationFeeQuote(null);
+        setIsLoadingCreationFeeQuote(false);
+      }
+      return undefined;
+    }
+
+    const ac = new AbortController();
+    setIsLoadingCreationFeeQuote(true);
+
+    (async () => {
+      try {
+        const quote = await fetchEscrowCreationFeeQuote({
+          amount: parsedEscrowAmount,
+          currency: normalizeEscrowAmountCurrency(termsData.escrowCurrency),
+          transactionType: mapEscrowTypeToTransactionType(selectedEscrowType),
+          releaseType: termsData.releaseType,
+          suiteContext:
+            readStoredDashboardAccountType() === 'Business Suite' ? 'business' : undefined,
+          signal: ac.signal,
+        });
+        if (!ac.signal.aborted) {
+          setCreationFeeQuote(quote);
+        }
+      } catch (error) {
+        if (!ac.signal.aborted) {
+          setCreationFeeQuote(null);
+          console.warn('Escrow creation fee quote failed:', error);
+        }
+      } finally {
+        if (!ac.signal.aborted) {
+          setIsLoadingCreationFeeQuote(false);
+        }
+      }
+    })();
+
+    return () => ac.abort();
+  }, [
+    isOpen,
+    currentStep,
+    parsedEscrowAmount,
+    termsData.escrowCurrency,
+    termsData.releaseType,
+    selectedEscrowType,
+  ]);
 
   useEffect(() => {
     if (selectedConfirmationPaymentMethod !== 'trustichain') return;
@@ -788,8 +865,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
             toast.success(result?.message || 'Escrow created successfully!');
 
-            if (onSuccess) {
-              onSuccess(createdEscrow);
+            try {
+              if (onSuccess) {
+                onSuccess(createdEscrow);
+              }
+            } catch (callbackError) {
+              console.error('CreateEscrowForm onSuccess callback failed:', callbackError);
             }
 
             // Reset form and close
@@ -892,8 +973,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
             // If escrow data is already available, use it
             if (escrow) {
               const createdEscrow = buildCreatedEscrow(escrow);
-              if (onSuccess) {
-                onSuccess(createdEscrow);
+              try {
+                if (onSuccess) {
+                  onSuccess(createdEscrow);
+                }
+              } catch (callbackError) {
+                console.error('CreateEscrowForm onSuccess callback failed:', callbackError);
               }
             }
 
@@ -1759,7 +1844,7 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       <span className="confirmation-detail-label">Escrow Amount</span>
                       <span className="confirmation-detail-value">
                         {formatConfirmationMoneyLine(
-                          escrowPaymentBreakdown.amount,
+                          parsedEscrowAmount,
                           termsData.escrowCurrency,
                           exchangeRates,
                           exchangeQuoteDirection,
@@ -1769,13 +1854,20 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     <div className="confirmation-detail-item create-escrow-step3-amount-fee-item">
                       <span className="confirmation-detail-label create-escrow-step3-fee-label">
                         Escrow Fee
+                        {Number.isFinite(escrowCreationFeeDisplay.percentage)
+                          ? ` (${escrowCreationFeeDisplay.percentage}%)`
+                          : ''}
                       </span>
                       <span className="confirmation-detail-value">
-                        {formatConfirmationMoneyLine(
-                          escrowPaymentBreakdown.fee,
-                          termsData.escrowCurrency,
-                          exchangeRates,
-                          exchangeQuoteDirection,
+                        {isLoadingCreationFeeQuote ? (
+                          <LoadingIndicator size="sm" />
+                        ) : (
+                          formatConfirmationMoneyLine(
+                            escrowCreationFeeDisplay.fee,
+                            termsData.escrowCurrency,
+                            exchangeRates,
+                            exchangeQuoteDirection,
+                          )
                         )}
                       </span>
                     </div>
@@ -1783,11 +1875,15 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                   <div className="confirmation-detail-item">
                     <span className="confirmation-detail-label">Total Escrowed Payment</span>
                     <span className="confirmation-detail-value">
-                      {formatConfirmationMoneyLine(
-                        escrowPaymentBreakdown.total,
-                        termsData.escrowCurrency,
-                        exchangeRates,
-                        exchangeQuoteDirection,
+                      {isLoadingCreationFeeQuote ? (
+                        <LoadingIndicator size="sm" />
+                      ) : (
+                        formatConfirmationMoneyLine(
+                          escrowCreationFeeDisplay.total,
+                          termsData.escrowCurrency,
+                          exchangeRates,
+                          exchangeQuoteDirection,
+                        )
                       )}
                     </span>
                   </div>

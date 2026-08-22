@@ -1450,6 +1450,21 @@
   word-break: break-all;
 }
 
+.create-escrow-payer-wallet-modal-row-balance {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.create-escrow-payer-wallet-modal-row.is-selected .create-escrow-payer-wallet-modal-row-balance {
+  color: var(--blue-600, #2563eb);
+}
+
 .create-escrow-payer-wallet-modal-row-check {
   flex-shrink: 0;
   color: var(--blue-600, #2563eb);

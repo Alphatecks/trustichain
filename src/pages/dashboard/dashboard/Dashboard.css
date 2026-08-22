@@ -3490,6 +3490,13 @@ button.user-avatar.header-profile-avatar-nav:focus-visible {
   margin-left: 0;
 }
 
+.active-escrow-card .summary-card-subvalue.active-escrow-locked strong,
+.total-escrowed-card .summary-card-value strong,
+.mobile-metric-subvalue strong,
+.mobile-metric-value strong {
+  font-weight: 700;
+}
+
 
 .active-escrow-card .summary-card-btn,
 .trustiscore-card .summary-card-btn,

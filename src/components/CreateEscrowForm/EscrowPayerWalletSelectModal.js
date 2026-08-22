@@ -101,6 +101,11 @@ const EscrowPayerWalletSelectModal = ({
                       {wallet.network} · {maskWalletAddressShort(wallet.address)}
                     </span>
                   </span>
+                  {wallet.balanceLabel ? (
+                    <span className="create-escrow-payer-wallet-modal-row-balance">
+                      {wallet.balanceLabel}
+                    </span>
+                  ) : null}
                   {isActive ? (
                     <Check size={18} className="create-escrow-payer-wallet-modal-row-check" aria-hidden />
                   ) : null}

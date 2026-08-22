@@ -77,7 +77,7 @@ import { useSession } from '../../../context/SessionContext';
 import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
-import { getEscrowDisplayStatus } from '../../../utils/escrowDisplayStatus';
+import { getEscrowDisplayStatus, resolveEscrowDisputeId } from '../../../utils/escrowDisplayStatus';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
 import {
@@ -1978,9 +1978,42 @@ const Dashboard = () => {
           : fiatLabels[code] ?? '—',
   }));
 
-  const formatWalletDetailsFiat = (value) => (
-    `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  );
+  const formatWalletDetailsDisplayAmount = (walletDetails) => {
+    const code = String(walletDetails?.code || '').toUpperCase();
+    const amount = Number(walletDetails?.amount ?? 0);
+    const usdValue = Number(walletDetails?.usdValue ?? 0);
+
+    if (displayCurrency === 'XRP') {
+      if (code === 'XRP') {
+        return formatFromUsd(usdValue, { xrpAmount: amount });
+      }
+      const xrpToUsd = getExchangeRate('XRP', 'USD');
+      if (xrpToUsd != null && Number(xrpToUsd) > 0) {
+        return formatFromUsd(usdValue, { xrpAmount: usdValue / Number(xrpToUsd) });
+      }
+    }
+
+    return formatFromUsd(usdValue);
+  };
+
+  const getWalletDetailsExchangeLabel = (walletCode) => {
+    const code = String(walletCode || '').toUpperCase();
+
+    if (code === 'XRP') {
+      if (displayCurrency === 'XRP') return '1 XRP = 1.00 XRP';
+      const xrpToUsd = getExchangeRate('XRP', 'USD');
+      if (xrpToUsd == null || Number(xrpToUsd) <= 0) return '1 XRP — rate unavailable';
+      return `1 XRP = ${formatFromUsd(Number(xrpToUsd))}`;
+    }
+
+    if (displayCurrency === 'XRP') {
+      const xrpToUsd = getExchangeRate('XRP', 'USD');
+      if (xrpToUsd == null || Number(xrpToUsd) <= 0) return `1 ${code} — rate unavailable`;
+      return `1 ${code} = ${formatFromUsd(1, { xrpAmount: 1 / Number(xrpToUsd) })}`;
+    }
+
+    return `1 ${code} = ${formatFromUsd(1)}`;
+  };
 
   const openWalletDetailsModal = (walletCode) => {
     const code = String(walletCode || '').toUpperCase();
@@ -2007,15 +2040,6 @@ const Dashboard = () => {
       ...config,
       amount,
       usdValue: Number(usdValue) || 0,
-      exchangeLabel:
-        code === 'XRP'
-          ? (() => {
-              const r = getExchangeRate('XRP', 'USD');
-              return r != null && Number(r) > 0
-                ? `1 XRP = ${formatWalletDetailsFiat(r)}`
-                : '1 XRP — rate unavailable';
-            })()
-          : `1 ${code} = $1.00`,
     });
     setShowWalletDetailsModal(true);
   };
@@ -5725,7 +5749,7 @@ const Dashboard = () => {
                   : 23}
               </div>
               <div className="mobile-metric-subvalue">
-                {formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)} locked
+                <strong>{formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)}</strong> locked
               </div>
                 </>
               )}
@@ -5741,15 +5765,13 @@ const Dashboard = () => {
             <div className="mobile-metric-card">
               <div className="mobile-metric-header">
                 <CreditCard size={16} />
-                <span>Total Escrowed</span>
+                <span>Locked amount</span>
               </div>
               <div className="mobile-metric-value">
-                {isLoadingTotalEscrowed ? (
+                {isLoadingDashboard ? (
                   <DashboardMetricValuesSkeleton mobile withSubvalue={false} />
                 ) : (
-                  <>${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                  ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  : '0.00'}</>
+                  <strong>{formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)}</strong>
                 )}
               </div>
               <button type="button" className="mobile-metric-btn" onClick={() => navigate('/my-escrow')}>
@@ -6481,7 +6503,7 @@ const Dashboard = () => {
                   : 23}
               </div>
               <div className="summary-card-subvalue active-escrow-locked">
-                {formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)} locked
+                <strong>{formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)}</strong> locked
               </div>
                 </>
               )}
@@ -6498,16 +6520,14 @@ const Dashboard = () => {
           <div className="summary-card total-escrowed-card">
             <div className="summary-card-header">
               <CreditCard size={16} />
-              <h3>Total Escrowed</h3>
+              <h3>Locked amount</h3>
             </div>
             <div className="summary-card-value-row">
               <div className="summary-card-value">
-                {isLoadingTotalEscrowed ? (
+                {isLoadingDashboard ? (
                   <DashboardMetricValuesSkeleton withSubvalue={false} />
                 ) : (
-                  <>${totalEscrowedAmount !== null && totalEscrowedAmount !== undefined
-                    ? totalEscrowedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                    : '0.00'}</>
+                  <strong>{formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)}</strong>
                 )}
               </div>
             </div>
@@ -8168,8 +8188,13 @@ const Dashboard = () => {
               <EscrowDetailModalBody
                 escrow={selectedEscrowDetail}
                 exchangeRate={getExchangeRate('XRP', 'USD') ?? undefined}
-                onDispute={() => {
-                  navigate('/dispute');
+                onDispute={(escrow) => {
+                  navigate('/dispute', {
+                    state: {
+                      openCreateDisputeModal: true,
+                      escrowId: resolveEscrowDisputeId(escrow),
+                    },
+                  });
                   setShowEscrowDetailModal(false);
                   setSelectedEscrowDetail(null);
                 }}
@@ -9043,9 +9068,9 @@ const Dashboard = () => {
                 ) : null}
               </div>
 
-              <p className="wallet-details-total">{formatWalletDetailsFiat(selectedWalletDetails.usdValue)}</p>
+              <p className="wallet-details-total">{formatWalletDetailsDisplayAmount(selectedWalletDetails)}</p>
               <p className="wallet-details-exchange-caption">
-                Exchange rate: {selectedWalletDetails.exchangeLabel}
+                Exchange rate: {getWalletDetailsExchangeLabel(selectedWalletDetails.code)}
               </p>
 
               <div className="wallet-details-actions">
@@ -9136,7 +9161,7 @@ const Dashboard = () => {
             <div className="wallet-details-meta-list">
               <div className="wallet-details-meta-row">
                 <span>Rate</span>
-                <strong>{selectedWalletDetails.exchangeLabel}</strong>
+                <strong>{getWalletDetailsExchangeLabel(selectedWalletDetails.code)}</strong>
               </div>
               <div className="wallet-details-meta-row">
                 <span>Wallet Address</span>

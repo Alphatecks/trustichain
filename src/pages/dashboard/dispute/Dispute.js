@@ -488,6 +488,8 @@ const Dispute = () => {
   const [validationTimeouts, setValidationTimeouts] = useState({ payer: null, counterparty: null });
   const [isFetchingEscrowParties, setIsFetchingEscrowParties] = useState(false);
   const escrowPartiesDebounceRef = useRef(null);
+  const skipEscrowPartiesDebounceRef = useRef(false);
+  const wasCreateDisputeModalOpenRef = useRef(false);
 
   // Fetch escrow parties by escrow ID and fill form (payer + counterparty)
   const fetchEscrowParties = async (escrowId) => {
@@ -575,11 +577,27 @@ const Dispute = () => {
     }
   };
 
+  const openCreateDisputeFromEscrow = (escrowId) => {
+    const id = typeof escrowId === 'string' ? escrowId.trim() : '';
+    setDisputeCurrentStep(1);
+    setSelectedDisputeType('Freelancing');
+    setShowCreateDisputeModal(true);
+    if (!id) return;
+    skipEscrowPartiesDebounceRef.current = true;
+    setDisputeFormData((prev) => ({ ...prev, escrowId: id }));
+    fetchEscrowParties(id);
+  };
+
   // Debounced fetch: when escrow ID is being entered, fetch parties after a short pause (no need to finish typing)
   const ESCROW_PARTIES_DEBOUNCE_MS = 600;
   useEffect(() => {
     const id = (disputeFormData.escrowId || '').trim();
     if (!id) return;
+
+    if (skipEscrowPartiesDebounceRef.current) {
+      skipEscrowPartiesDebounceRef.current = false;
+      return;
+    }
 
     if (escrowPartiesDebounceRef.current) {
       clearTimeout(escrowPartiesDebounceRef.current);
@@ -598,6 +616,15 @@ const Dispute = () => {
       }
     };
   }, [disputeFormData.escrowId]);
+
+  useEffect(() => {
+    const state = location.state;
+    if (!state?.openCreateDisputeModal) return;
+
+    const escrowId = state.escrowId;
+    navigate(location.pathname, { replace: true, state: {} });
+    openCreateDisputeFromEscrow(escrowId);
+  }, [location.key, location.pathname, location.state, navigate]);
 
   // Validate payer email in real-time
   const validatePayerEmail = async (email) => {
@@ -886,9 +913,9 @@ const Dispute = () => {
     };
   }, [showCreateDisputeModal]);
 
-  // Reset form when modal closes
+  // Reset form when modal closes (not on initial mount while closed)
   useEffect(() => {
-    if (!showCreateDisputeModal) {
+    if (wasCreateDisputeModalOpenRef.current && !showCreateDisputeModal) {
       setDisputeCurrentStep(1);
       setSelectedDisputeType('Freelancing');
       setDisputeFormData({
@@ -919,6 +946,7 @@ const Dispute = () => {
         return [];
       });
     }
+    wasCreateDisputeModalOpenRef.current = showCreateDisputeModal;
   }, [showCreateDisputeModal]);
 
   // Clear email validation when modal closes
