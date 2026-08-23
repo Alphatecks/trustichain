@@ -1,4 +1,5 @@
 import { getApiUrl } from './config';
+import { notifyAuthTokenChanged } from './authTokenEvents';
 
 /**
  * Logout function that calls the logout API endpoint
@@ -35,6 +36,7 @@ export const handleLogout = async () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('sessionExpired');
+    notifyAuthTokenChanged();
     
     // Redirect to login page
     window.location.href = '/login';

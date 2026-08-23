@@ -593,10 +593,12 @@ function TotalBalanceCurrencySelectModal({
   onConfirm,
   rows,
   isLoadingBalances,
+  isSaving,
 }) {
   const [query, setQuery] = useState('');
   const [pending, setPending] = useState(selectedCode);
   const [entered, setEntered] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -710,9 +712,21 @@ function TotalBalanceCurrencySelectModal({
           <button
             type="button"
             className="total-balance-currency-modal-select-btn"
-            onClick={() => onConfirm(pending)}
+            disabled={isSaving || isSubmitting}
+            onClick={async () => {
+              if (isSaving || isSubmitting) return;
+              setIsSubmitting(true);
+              try {
+                const result = await onConfirm(pending);
+                if (result?.success !== false) {
+                  onClose();
+                }
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
           >
-            Select
+            {isSaving || isSubmitting ? 'Saving…' : 'Select'}
           </button>
         </div>
       </div>
@@ -925,7 +939,7 @@ const Dashboard = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [businessSupplierId, setBusinessSupplierId] = useState('');
   const [showBalance, setShowBalance] = useState(true);
-  const { displayCurrency, setDisplayCurrency, formatFromUsd } = useDisplayCurrency();
+  const { displayCurrency, setDisplayCurrency, displayCurrencyRevision, isSavingDisplayCurrency, formatFromUsd } = useDisplayCurrency();
   const [balanceCurrencyModalOpen, setBalanceCurrencyModalOpen] = useState(false);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
@@ -1940,11 +1954,12 @@ const Dashboard = () => {
     return summaryXrp !== null ? summaryXrp : 0;
   };
 
-  const formatFiatPrimaryBalance = (code) => {
-    const rlusd = getTotalPortfolioRlusdNumber();
-    const amt = convertRlusdTotalToFiatDisplayAmount(code, rlusd);
-    if (amt == null) return '—';
-    return formatConvertedFiatAmount(code, amt);
+  const formatTotalPortfolioPrimaryBalance = () => {
+    const rlusdTotal = getTotalPortfolioRlusdNumber();
+    if (displayCurrency === 'XRP') {
+      return formatFromUsd(rlusdTotal, { xrpAmount: computeDashboardXrpAmount() });
+    }
+    return formatFromUsd(rlusdTotal);
   };
 
   const isLoadingTotalBalance =
@@ -2310,7 +2325,7 @@ const Dashboard = () => {
   useEffect(() => {
     // Always fetch when component mounts, not just when kycComplete is true
     fetchDashboardSummary();
-  }, [kycComplete, isSessionExpired]);
+  }, [kycComplete, isSessionExpired, displayCurrencyRevision]);
 
   // Business Suite dashboard summary (when account type is Business Suite)
   useEffect(() => {
@@ -3067,7 +3082,7 @@ const Dashboard = () => {
     };
 
     fetchPortfolioPerformance();
-  }, [portfolioTimeframe, portfolioYear]);
+  }, [portfolioTimeframe, portfolioYear, displayCurrencyRevision]);
 
   const portfolioChartPoints = useMemo(() => {
     const data = portfolioPoints || [];
@@ -5687,17 +5702,7 @@ const Dashboard = () => {
             ) : (
               <>
             <div className="mobile-balance-amount">
-              {showBalance ? (
-                displayCurrency === 'USD' ? (
-                  computeDashboardTotalUsdDisplay()
-                ) : displayCurrency === 'XRP' ? (
-                  `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP`
-                ) : (
-                  formatFiatPrimaryBalance(displayCurrency)
-                )
-              ) : (
-                '••••••'
-              )}
+              {showBalance ? formatTotalPortfolioPrimaryBalance() : '••••••'}
             </div>
             <div className="mobile-balance-xrp">
               ≈ {computeDashboardTotalRlusdDisplay()}
@@ -6441,17 +6446,7 @@ const Dashboard = () => {
               ) : (
                 <>
               <div className="summary-card-value">
-                {showBalance ? (
-                  displayCurrency === 'USD' ? (
-                    computeDashboardTotalUsdDisplay()
-                  ) : displayCurrency === 'XRP' ? (
-                    `${computeDashboardXrpAmount().toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} XRP`
-                  ) : (
-                    formatFiatPrimaryBalance(displayCurrency)
-                  )
-                ) : (
-                  '••••••'
-                )}
+                {showBalance ? formatTotalPortfolioPrimaryBalance() : '••••••'}
               </div>
               <div className="summary-card-subvalue">
                 ≈ {computeDashboardTotalRlusdDisplay()}
@@ -8343,12 +8338,10 @@ const Dashboard = () => {
         isOpen={balanceCurrencyModalOpen}
         onClose={() => setBalanceCurrencyModalOpen(false)}
         selectedCode={displayCurrency}
-        onConfirm={(code) => {
-          setDisplayCurrency(code);
-          setBalanceCurrencyModalOpen(false);
-        }}
+        onConfirm={(code) => setDisplayCurrency(code)}
         rows={balanceCurrencyModalRows}
         isLoadingBalances={isLoadingDashboard}
+        isSaving={isSavingDisplayCurrency}
       />
 
       {/* Fund Method Selection Modal */}

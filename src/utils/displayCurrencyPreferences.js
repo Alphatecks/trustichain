@@ -2,7 +2,7 @@ import { getApiUrl } from './config';
 
 export const DISPLAY_CURRENCY_STORAGE_KEY = 'trustichain_display_currency';
 
-/** Values accepted by PATCH /api/user/preferences */
+/** Values accepted by PATCH /api/dashboard/display-currency */
 export const API_DISPLAY_CURRENCY_CODES = new Set([
   'USD',
   'EUR',
@@ -113,8 +113,31 @@ export function toApiDisplayCurrency(code) {
   return null;
 }
 
+function parseDisplayCurrencyFromApiPayload(json) {
+  const data = json?.data;
+  if (!data || typeof data !== 'object') return null;
+  return data.displayCurrency ?? data.display_currency ?? null;
+}
+
 export async function fetchDisplayCurrencyPreference(token) {
   if (!token) return null;
+
+  try {
+    const res = await fetch(getApiUrl('api/dashboard/display-currency'), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      const fromDashboard = parseDisplayCurrencyFromApiPayload(json);
+      if (fromDashboard) return fromDashboard;
+    }
+  } catch (_) {
+    /* ignore */
+  }
 
   try {
     const res = await fetch(getApiUrl('api/user/preferences'), {
@@ -126,7 +149,7 @@ export async function fetchDisplayCurrencyPreference(token) {
     });
     if (res.ok) {
       const json = await res.json().catch(() => ({}));
-      const fromPrefs = json?.data?.displayCurrency;
+      const fromPrefs = json?.data?.displayCurrency ?? json?.data?.display_currency;
       if (fromPrefs) return fromPrefs;
     }
   } catch (_) {
@@ -144,7 +167,7 @@ export async function fetchDisplayCurrencyPreference(token) {
     if (res.ok) {
       const json = await res.json().catch(() => ({}));
       const data = json?.data;
-      return data?.displayCurrency ?? data?.preferences?.displayCurrency ?? null;
+      return data?.displayCurrency ?? data?.display_currency ?? data?.preferences?.displayCurrency ?? null;
     }
   } catch (_) {
     /* ignore */
@@ -159,13 +182,13 @@ export async function patchDisplayCurrencyPreference(token, displayCurrency) {
     return { success: true, skipped: true };
   }
 
-  const response = await fetch(getApiUrl('api/user/preferences'), {
+  const response = await fetch(getApiUrl('api/dashboard/display-currency'), {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ displayCurrency: apiCode }),
+    body: JSON.stringify({ displayCurrency: apiCode, display_currency: apiCode }),
   });
 
   const result = await response.json().catch(() => ({}));
@@ -173,7 +196,11 @@ export async function patchDisplayCurrencyPreference(token, displayCurrency) {
     throw new Error(result?.message || 'Failed to update display currency preference');
   }
 
-  const saved = result?.data?.displayCurrency ?? apiCode;
+  const saved =
+    parseDisplayCurrencyFromApiPayload(result) ??
+    result?.data?.displayCurrency ??
+    result?.data?.display_currency ??
+    apiCode;
   writeStoredDisplayCurrency(saved);
   return result;
 }

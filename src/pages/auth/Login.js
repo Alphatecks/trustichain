@@ -17,6 +17,7 @@ import {
   isNewlyRegisteredAuthResponse,
   queueTrustitagWelcomeModal,
 } from '../../utils/trustitag';
+import { notifyAuthTokenChanged } from '../../utils/authTokenEvents';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -171,6 +172,10 @@ const Login = () => {
         queueTrustitagWelcomeModal(trustitag, {
           newlyRegistered: isNewlyRegisteredAuthResponse(data),
         });
+      }
+
+      if (tokenFound) {
+        notifyAuthTokenChanged();
       }
 
       toast.success('Login successful!');

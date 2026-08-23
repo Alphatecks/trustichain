@@ -198,8 +198,11 @@ export function formatDisplayAmountFromUsd(
         maximumFractionDigits: maxDigits ?? 6,
       })} XRP`;
     }
+    if (options.isLoadingRates) return '…';
     return formatUsdAmount(usdTotal);
   }
+
+  if (options.isLoadingRates) return '…';
 
   const amt = convertUsdTotalToFiatDisplayAmount(
     code,
@@ -207,7 +210,7 @@ export function formatDisplayAmountFromUsd(
     exchangeRates,
     options.quoteDirection,
   );
-  if (amt == null) return formatUsdAmount(usdTotal);
+  if (amt == null) return '—';
 
   const fractionDigits =
     maxDigits ?? (code === 'JPY' || code === 'KRW' ? 0 : 2);

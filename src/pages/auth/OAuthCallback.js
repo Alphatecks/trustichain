@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getApiUrl } from '../../utils/config';
+import { notifyAuthTokenChanged } from '../../utils/authTokenEvents';
 import { isNewlyRegisteredAuthResponse, queueTrustitagWelcomeModal } from '../../utils/trustitag';
 
 /**
@@ -116,6 +117,7 @@ function storeSessionToken(raw) {
   const t = normalizeBearerToken(raw);
   if (!t) return null;
   localStorage.setItem('token', t);
+  notifyAuthTokenChanged();
   return t;
 }
 

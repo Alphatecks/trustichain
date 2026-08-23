@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import './TwoFactor.css';
 import logoWhite from '../../assets/images/logo/logo_white.png';
 import { completeLoginMfa } from '../../utils/mfaApi';
+import { notifyAuthTokenChanged } from '../../utils/authTokenEvents';
 import {
   extractTrustitagFromLoginResponse,
   isNewlyRegisteredAuthResponse,
@@ -76,6 +77,7 @@ const TwoFactor = () => {
       } else {
         localStorage.removeItem('refresh_token');
       }
+      notifyAuthTokenChanged();
       sessionStorage.removeItem(MFA_TOKEN_KEY);
       sessionStorage.removeItem(MFA_EMAIL_KEY);
       const trustitag = extractTrustitagFromLoginResponse(mfaResult.raw || {});
