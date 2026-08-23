@@ -157,6 +157,18 @@ export const resolveDepositAddressFromBalance = (apiResult, currency, networkKey
   return (xrp || '').trim();
 };
 
+/** True when balance/create-wallet payload includes at least one USDT and one USDC deposit address. */
+export function hasStablecoinDepositAddresses(apiResult) {
+  if (!apiResult || typeof apiResult !== 'object') return false;
+
+  const hasForCurrency = (currency) =>
+    getDepositNetworksForCurrency(currency).some((network) =>
+      Boolean(resolveDepositAddressFromBalance(apiResult, currency, network)),
+    );
+
+  return hasForCurrency('USDT') && hasForCurrency('USDC');
+}
+
 /**
  * Build display rows for View wallet modal from balance/create-wallet API payloads.
  * @returns {{ id: string, label: string, address: string }[]}

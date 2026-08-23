@@ -113,6 +113,20 @@
   line-height: 1.4;
 }
 
+.wallets-modal-connected-empty-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.wallets-modal-connect-wallet-btn {
+  width: 100%;
+}
+
+.connect-wallet-modal-overlay.wallets-modal-connect-stack {
+  z-index: 1200;
+}
+
 .wallets-modal-connected-select {
   width: 100%;
   display: flex;

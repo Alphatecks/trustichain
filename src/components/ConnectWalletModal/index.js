@@ -6,7 +6,7 @@ import './index.css';
 const WALLETCONNECT_ICON =
   'https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg';
 
-const ConnectWalletModal = ({ isOpen, onClose }) => {
+const ConnectWalletModal = ({ isOpen, onClose, overlayClassName = '' }) => {
   const { 
     connectWallet, 
     account, 
@@ -171,7 +171,7 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className={`create-escrow-modal-overlay connect-wallet-modal-overlay${connectingWallet === 'walletconnect' ? ' connect-wallet-modal-overlay--walletconnect-pending' : ''}`}
+      className={`create-escrow-modal-overlay connect-wallet-modal-overlay${connectingWallet === 'walletconnect' ? ' connect-wallet-modal-overlay--walletconnect-pending' : ''}${overlayClassName ? ` ${overlayClassName}` : ''}`}
       onClick={handleCloseModal}
     >
       <div className="create-escrow-modal connect-wallet-modal" onClick={(e) => e.stopPropagation()}>

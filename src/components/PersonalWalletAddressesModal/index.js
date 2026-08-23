@@ -2,8 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, ChevronDown, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useWeb3 } from '../../context/Web3Context';
 import LoadingIndicator from '../LoadingIndicator';
+import ConnectWalletModal from '../ConnectWalletModal';
 import { DashboardSkeletonBlock } from '../DashboardSkeletons';
-import { parseWalletBalancesFromApi, DEPOSIT_ADDRESS_CURRENCY_ICON } from '../../utils/depositAddressFlow';
+import {
+  hasStablecoinDepositAddresses,
+  parseWalletBalancesFromApi,
+  DEPOSIT_ADDRESS_CURRENCY_ICON,
+} from '../../utils/depositAddressFlow';
 import { getApiUrl } from '../../utils/config';
 import rlusdLogo from '../../assets/images/icons/rlusd-logo.svg';
 import './index.css';
@@ -209,6 +214,7 @@ const PersonalWalletAddressesModal = ({
   const { account, isConnected, chainId } = useWeb3();
   const [connectedPickerOpen, setConnectedPickerOpen] = useState(false);
   const [selectedConnectedId, setSelectedConnectedId] = useState('');
+  const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [exchangeRates, setExchangeRates] = useState([]);
   const connectedPickerRef = useRef(null);
 
@@ -220,6 +226,7 @@ const PersonalWalletAddressesModal = ({
   useEffect(() => {
     if (!isOpen) {
       setConnectedPickerOpen(false);
+      setShowConnectWalletModal(false);
       return;
     }
     if (connectedWallets.length === 0) {
@@ -295,6 +302,11 @@ const PersonalWalletAddressesModal = ({
     connectedWallets.find((w) => w.id === selectedConnectedId) ?? connectedWallets[0] ?? null;
 
   const hasCustodialWallet = Boolean(walletAddress?.trim());
+  const stablecoinAddressesReady = useMemo(
+    () => hasStablecoinDepositAddresses(walletBalanceRaw),
+    [walletBalanceRaw],
+  );
+  const showProvisionStablecoinButton = showProvisionButton && !stablecoinAddressesReady;
   const showLoadingAssets = isLoadingWalletAddress && !walletBalanceRaw;
 
   if (!isOpen) return null;
@@ -326,14 +338,15 @@ const PersonalWalletAddressesModal = ({
   };
 
   return (
-    <div className="wallets-modal-overlay" onClick={onClose} role="presentation">
-      <div
-        className="wallets-modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="wallets-modal-title"
-      >
+    <React.Fragment>
+      <div className="wallets-modal-overlay" onClick={onClose} role="presentation">
+        <div
+          className="wallets-modal"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wallets-modal-title"
+        >
         <div className="wallets-modal-header">
           <h2 id="wallets-modal-title" className="wallets-modal-title">
             Wallets
@@ -422,7 +435,16 @@ const PersonalWalletAddressesModal = ({
                 ) : null}
               </>
             ) : (
-              <p className="wallets-modal-connected-empty">No external wallet connected.</p>
+              <div className="wallets-modal-connected-empty-wrap">
+                <p className="wallets-modal-connected-empty">No external wallet connected.</p>
+                <button
+                  type="button"
+                  className="wallets-modal-action-btn wallets-modal-connect-wallet-btn"
+                  onClick={() => setShowConnectWalletModal(true)}
+                >
+                  Connect a wallet
+                </button>
+              </div>
             )}
           </div>
         </section>
@@ -481,7 +503,7 @@ const PersonalWalletAddressesModal = ({
                 ))}
               </ul>
 
-              {showProvisionButton ? (
+              {showProvisionStablecoinButton ? (
                 <div className="wallets-modal-actions">
                   <button
                     type="button"
@@ -507,8 +529,15 @@ const PersonalWalletAddressesModal = ({
         <button type="button" className="wallets-modal-done-btn" onClick={onClose}>
           Done
         </button>
+        </div>
       </div>
-    </div>
+
+      <ConnectWalletModal
+        isOpen={showConnectWalletModal}
+        onClose={() => setShowConnectWalletModal(false)}
+        overlayClassName="wallets-modal-connect-stack"
+      />
+    </React.Fragment>
   );
 };
 
