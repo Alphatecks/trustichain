@@ -44,6 +44,11 @@ import {
   fetchEscrowCreationFeeQuote,
   resolveEscrowCreationFeeDisplayAmounts,
 } from '../../utils/escrowCreationFeeQuote';
+import {
+  confirmEscrowStripePayment,
+  createEscrowStripePaymentIntent,
+  resolveEscrowPaymentReturnUrl,
+} from '../../utils/stripeEscrowPayment';
 import LoadingIndicator from '../LoadingIndicator';
 
 /** Matches MyEscrow.css desktop breakpoint (`min-width: 769px`). */
@@ -891,67 +896,67 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
               return;
             }
 
-            const amountNumber = totalAmountNumber;
-            const amountUsd =
-              amountUsdForPayload ??
-              (amountUsdEstimate != null && Number.isFinite(amountUsdEstimate)
-                ? Number(amountUsdEstimate.toFixed(2))
-                : Number(amountNumber.toFixed(2)));
+            const methodLabel =
+              selectedConfirmationPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay';
 
-            const piResponse = await fetch(getApiUrl('api/payments/payment-intent'), {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                escrowId: resolvedEscrowId,
-                amountUsd,
-                currency: 'usd',
-                idempotencyKey: `pi-${resolvedEscrowId}-${Date.now()}`,
-              }),
-            });
-            const piData = await piResponse.json().catch(() => ({}));
-            if (!piResponse.ok) {
-              throw new Error(piData?.message || piData?.error || 'Failed to create payment intent');
-            }
+            toast.loading(`Preparing ${methodLabel} payment…`, { id: 'escrow-stripe-pay' });
 
-            const siResponse = await fetch(getApiUrl('api/payments/setup-intent'), {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                escrowId: resolvedEscrowId,
-                customerEmail: formData.payerEmail?.trim() || 'unknown@trustichain.app',
-                idempotencyKey: `si-${resolvedEscrowId}-${Date.now()}`,
-              }),
-            });
-            const siData = await siResponse.json().catch(() => ({}));
-            if (!siResponse.ok) {
-              throw new Error(siData?.message || siData?.error || 'Failed to create setup intent');
-            }
-
-            const statusResponse = await fetch(
-              getApiUrl(`api/payments/escrow/${resolvedEscrowId}/status`),
-              {
-                method: 'GET',
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              },
+            const paymentIntentResult = await createEscrowStripePaymentIntent(
+              token,
+              resolvedEscrowId,
             );
-            const statusData = await statusResponse.json().catch(() => null);
-            if (statusResponse.ok) {
-              setStripePaymentStatus(statusData?.data || statusData || null);
+            const paymentData = paymentIntentResult?.data || {};
+            setStripePaymentStatus(paymentData);
+
+            const clientSecret = paymentData.clientSecret;
+            const publishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY?.trim();
+
+            if (clientSecret && publishableKey) {
+              const confirmResult = await confirmEscrowStripePayment({
+                publishableKey,
+                clientSecret,
+                returnUrl: resolveEscrowPaymentReturnUrl(),
+              });
+
+              if (confirmResult?.error) {
+                throw new Error(
+                  confirmResult.error.message || `${methodLabel} payment could not be completed`,
+                );
+              }
+
+              toast.success(
+                paymentIntentResult?.message ||
+                  `${methodLabel} payment submitted. Your escrow will finalize once payment succeeds.`,
+                { id: 'escrow-stripe-pay' },
+              );
+            } else if (!clientSecret) {
+              throw new Error('PaymentIntent response is missing clientSecret');
             } else {
-              setStripePaymentStatus(null);
+              toast.success(
+                `PaymentIntent created ($${Number(paymentData.payableAmountUsd ?? paymentData.amountUsd ?? 0).toFixed(2)} payable). Set REACT_APP_STRIPE_PUBLISHABLE_KEY to complete ${methodLabel} in-app.`,
+                { id: 'escrow-stripe-pay' },
+              );
             }
 
-            toast.success(
-              `${selectedConfirmationPaymentMethod === 'googlepay' ? 'Google Pay' : 'Apple Pay'} initialized. Continue payment using returned Stripe client secret.`,
-            );
+            const createdEscrow = buildCreatedEscrow({
+              ...responseData,
+              id: resolvedEscrowId,
+              escrowId: resolvedEscrowId,
+              paymentIntent: paymentData,
+            });
+
+            try {
+              if (onSuccess) {
+                onSuccess(createdEscrow);
+              }
+            } catch (callbackError) {
+              console.error('CreateEscrowForm onSuccess callback failed:', callbackError);
+            }
+
+            resetFormState();
+            if (onCancel) {
+              onCancel();
+            }
             setEscrowCreationStep('idle');
             setIsCreatingEscrow(false);
             return;
@@ -1008,7 +1013,9 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       }
     } catch (error) {
       console.error('Error creating escrow:', error);
-      toast.error(error?.message || 'An error occurred while creating escrow');
+      toast.error(error?.message || 'An error occurred while creating escrow', {
+        id: 'escrow-stripe-pay',
+      });
     } finally {
       setIsCreatingEscrow(false);
       setEscrowCreationStep('idle');
@@ -1750,6 +1757,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                 {stripePaymentStatus && (
                   <p className="create-escrow-step3-payment-status">
                     Payment status: {stripePaymentStatus?.status || 'initialized'}
+                    {stripePaymentStatus?.payableAmountUsd != null
+                      ? ` · Payable $${Number(stripePaymentStatus.payableAmountUsd).toFixed(2)}`
+                      : ''}
+                    {stripePaymentStatus?.creationFeeUsd != null
+                      ? ` (fee $${Number(stripePaymentStatus.creationFeeUsd).toFixed(2)})`
+                      : ''}
                   </p>
                 )}
               </div>
