@@ -3,7 +3,7 @@ import { convertUsdTotalToFiatDisplayAmount } from './displayCurrencyFormat';
 
 /**
  * GET api/escrow/creation-fee/quote — fee for a specific escrow amount while creating.
- * @see amount vs totalAmount: use totalAmount for time-based / milestone escrows.
+ * Always send `amount`. Time-based / milestone quotes also send `totalAmount` + `releaseType`.
  */
 export async function fetchEscrowCreationFeeQuote({
   amount,
@@ -23,35 +23,59 @@ export async function fetchEscrowCreationFeeQuote({
     throw new Error('Invalid escrow amount');
   }
 
-  const params = new URLSearchParams();
-  const useTotalAmount =
-    releaseType === 'Time based' || releaseType === 'Milestones';
-  if (useTotalAmount) {
-    params.set('totalAmount', String(numericAmount));
-  } else {
+  const baseParams = () => {
+    const params = new URLSearchParams();
     params.set('amount', String(numericAmount));
-  }
-  params.set('currency', String(currency || 'USD').toUpperCase());
-  params.set('transactionType', String(transactionType || 'custom'));
+    params.set('currency', String(currency || 'USD').toUpperCase());
+    params.set('transactionType', String(transactionType || 'custom'));
+    if (suiteContext) params.set('suiteContext', suiteContext);
+    return params;
+  };
 
-  if (suiteContext) {
-    params.set('suiteContext', suiteContext);
-  }
+  const isMilestoneOrTimeBased =
+    releaseType === 'Time based' || releaseType === 'Milestones';
 
-  const response = await fetch(
-    `${getApiUrl('api/escrow/creation-fee/quote')}?${params.toString()}`,
-    {
-      method: 'GET',
-      signal,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+  const requestQuote = async (search) => {
+    const response = await fetch(
+      `${getApiUrl('api/escrow/creation-fee/quote')}?${search}`,
+      {
+        method: 'GET',
+        signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    },
-  );
+    );
+    const result = await response.json().catch(() => ({}));
+    return { response, result };
+  };
 
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result?.success) {
+  const attempts = [];
+  if (isMilestoneOrTimeBased) {
+    const withTotalAndType = baseParams();
+    withTotalAndType.set('totalAmount', String(numericAmount));
+    if (releaseType) withTotalAndType.set('releaseType', releaseType);
+    attempts.push(withTotalAndType);
+
+    const withTotal = baseParams();
+    withTotal.set('totalAmount', String(numericAmount));
+    attempts.push(withTotal);
+  }
+
+  const withReleaseType = baseParams();
+  if (releaseType) withReleaseType.set('releaseType', releaseType);
+  attempts.push(withReleaseType);
+  attempts.push(baseParams());
+
+  let response;
+  let result = {};
+  for (const params of attempts) {
+    ({ response, result } = await requestQuote(params.toString()));
+    if (response.ok && result?.success) break;
+  }
+
+  if (!response?.ok || !result?.success) {
     throw new Error(result?.message || 'Failed to load escrow fee quote');
   }
 
@@ -84,12 +108,36 @@ export function resolveEscrowCreationFeeDisplayAmounts(
     return converted != null && Number.isFinite(Number(converted)) ? Number(converted) : usd;
   };
 
+  const pickNumeric = (...values) => {
+    for (const value of values) {
+      const num = Number(value);
+      if (Number.isFinite(num)) return num;
+    }
+    return null;
+  };
+
+  const percentage = pickNumeric(
+    quote.creationFeePercentage,
+    quote.feePercentage,
+    quote.percentage,
+  );
+  const feeUsd = pickNumeric(
+    quote.creationFeeUsd,
+    quote.creationFee,
+    quote.feeUsd,
+    quote.fee,
+  );
+  const totalUsd = pickNumeric(
+    quote.payableAmountUsd,
+    quote.payableAmount,
+    quote.totalAmountUsd,
+    quote.totalUsd,
+    quote.totalEscrowedUsd,
+  );
+
   return {
-    fee: toDisplay(quote.creationFeeUsd),
-    total: toDisplay(quote.payableAmountUsd),
-    percentage:
-      quote.creationFeePercentage != null
-        ? Number(quote.creationFeePercentage)
-        : null,
+    fee: toDisplay(feeUsd),
+    total: toDisplay(totalUsd),
+    percentage,
   };
 }

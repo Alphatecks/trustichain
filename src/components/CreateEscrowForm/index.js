@@ -12,6 +12,7 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
+  Trash2,
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/config';
 import { useWeb3 } from '../../context/Web3Context';
@@ -59,8 +60,20 @@ const toDateInputValue = (raw) => {
   if (!raw || typeof raw !== 'string') return '';
   const s = raw.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [day, month, year] = s.split('/');
+    return `${year}-${month}-${day}`;
+  }
   if (s.includes('T')) return s.slice(0, 10);
   return s;
+};
+
+/** Backend milestone create expects DD/MM/YYYY. */
+const formatDateToDDMMYYYY = (raw) => {
+  const iso = toDateInputValue(raw);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const [year, month, day] = iso.split('-');
+  return `${day}/${month}/${year}`;
 };
 
 const COUNTERPARTY_METHOD_META = {
@@ -246,6 +259,49 @@ const estimateUsdForConfirmationAmount = (
     quoteDirection,
   );
 
+const parsePositiveAmount = (raw) => {
+  const amount = parseFloat(String(raw || '').trim().replace(/,/g, ''));
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+};
+
+const commitDraftMilestone = (data) => {
+  const details = String(data?.milestoneDetails || '').trim();
+  const amountRaw = String(data?.milestoneAmount || '').trim();
+  if (!details && !amountRaw) {
+    return { next: data, added: false, error: null };
+  }
+  if (!details || !amountRaw) {
+    return {
+      next: data,
+      added: false,
+      error: 'Enter both milestone details and amount',
+    };
+  }
+  const amount = parsePositiveAmount(amountRaw);
+  if (amount == null) {
+    return { next: data, added: false, error: 'Enter a valid milestone amount' };
+  }
+  return {
+    next: {
+      ...data,
+      milestones: [
+        ...(Array.isArray(data.milestones) ? data.milestones : []),
+        { details, amount: String(amount) },
+      ],
+      milestoneDetails: '',
+      milestoneAmount: '',
+    },
+    added: true,
+    error: null,
+  };
+};
+
+const sumMilestoneAmounts = (milestones) =>
+  (Array.isArray(milestones) ? milestones : []).reduce((sum, milestone) => {
+    const amount = parsePositiveAmount(milestone?.amount);
+    return sum + (amount || 0);
+  }, 0);
+
 /** Short hint under amount inputs — selected fiat converted to RLUSD. */
 const formatAmountExchangeHint = (amountStr, currency, exchangeRates, quoteDirection) => {
   const raw = String(amountStr || '').trim().replace(/,/g, '');
@@ -351,20 +407,46 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
   const [isLoadingCreationFeeQuote, setIsLoadingCreationFeeQuote] = useState(false);
 
   const parsedEscrowAmount = useMemo(() => {
-    const amount = parseFloat(String(termsData.totalAmount || '').trim().replace(/,/g, ''));
-    return Number.isFinite(amount) && amount > 0 ? amount : null;
-  }, [termsData.totalAmount]);
+    const fromTotal = parseFloat(String(termsData.totalAmount || '').trim().replace(/,/g, ''));
+    if (Number.isFinite(fromTotal) && fromTotal > 0) return fromTotal;
+    if (termsData.releaseType === 'Milestones') {
+      const milestoneTotal = sumMilestoneAmounts(termsData.milestones);
+      return milestoneTotal > 0 ? milestoneTotal : null;
+    }
+    return null;
+  }, [termsData.totalAmount, termsData.releaseType, termsData.milestones]);
 
-  const escrowCreationFeeDisplay = useMemo(
-    () =>
-      resolveEscrowCreationFeeDisplayAmounts(
-        creationFeeQuote,
-        termsData.escrowCurrency,
-        exchangeRates,
-        exchangeQuoteDirection,
-      ),
-    [creationFeeQuote, termsData.escrowCurrency, exchangeRates, exchangeQuoteDirection],
-  );
+  const escrowCreationFeeDisplay = useMemo(() => {
+    const fromQuote = resolveEscrowCreationFeeDisplayAmounts(
+      creationFeeQuote,
+      termsData.escrowCurrency,
+      exchangeRates,
+      exchangeQuoteDirection,
+    );
+    const fee =
+      fromQuote.fee != null
+        ? fromQuote.fee
+        : fromQuote.percentage != null && parsedEscrowAmount != null
+          ? parsedEscrowAmount * (fromQuote.percentage / 100)
+          : null;
+    const total =
+      fromQuote.total != null
+        ? fromQuote.total
+        : parsedEscrowAmount != null && fee != null
+          ? parsedEscrowAmount + fee
+          : parsedEscrowAmount;
+    return {
+      fee,
+      total,
+      percentage: fromQuote.percentage,
+    };
+  }, [
+    creationFeeQuote,
+    termsData.escrowCurrency,
+    exchangeRates,
+    exchangeQuoteDirection,
+    parsedEscrowAmount,
+  ]);
 
   const amountExchangeHint = formatAmountExchangeHint(
     termsData.totalAmount,
@@ -698,13 +780,17 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       }
 
       // Validate milestones if release type is Milestones
-      if (
-        termsData.releaseType === 'Milestones' &&
-        (!termsData.milestones || termsData.milestones.length === 0)
-      ) {
-        toast.error('Please add at least one milestone');
-        setIsCreatingEscrow(false);
-        return;
+      if (termsData.releaseType === 'Milestones') {
+        if (!termsData.milestones || termsData.milestones.length === 0) {
+          toast.error('Please add at least one milestone');
+          setIsCreatingEscrow(false);
+          return;
+        }
+        if (!toDateInputValue(termsData.expectedCompletionDate)) {
+          toast.error('Please select an expected completion date');
+          setIsCreatingEscrow(false);
+          return;
+        }
       }
 
       const token = localStorage.getItem('token');
@@ -719,17 +805,21 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       const transactionType = mapEscrowTypeToTransactionType(selectedEscrowType);
       const industry = getEscrowTypeMapping(selectedEscrowType);
 
-      // Format dates to YYYY-MM-DD format
+      // Format dates to YYYY-MM-DD format (milestone create uses DD/MM/YYYY)
       const expectedCompletionDateISO = formatDateToYYYYMMDD(termsData.expectedCompletionDate);
       const expectedReleaseDateISO = formatDateToYYYYMMDD(termsData.expectedReleaseDate);
+      const expectedCompletionDateMilestone = formatDateToDDMMYYYY(
+        termsData.expectedCompletionDate,
+      );
 
       // Format dispute resolution period
       const disputeResolutionPeriodFormatted = formatDisputePeriod(
         termsData.disputeResolutionPeriod,
       );
 
-      // Determine description - use milestoneDetails, releaseConditions, or fallback
+      // Determine description - use first milestone, releaseConditions, or fallback
       const description =
+        (Array.isArray(termsData.milestones) && termsData.milestones[0]?.details) ||
         termsData.milestoneDetails ||
         termsData.releaseConditions ||
         `Escrow for ${selectedEscrowType}`;
@@ -777,7 +867,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       }
 
       // Add date fields if provided
-      if (expectedCompletionDateISO) {
+      if (termsData.releaseType === 'Milestones') {
+        if (expectedCompletionDateMilestone) {
+          payload.expectedCompletionDate = expectedCompletionDateMilestone;
+        }
+      } else if (expectedCompletionDateISO) {
         payload.expectedCompletionDate = expectedCompletionDateISO;
       }
 
@@ -798,12 +892,19 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
           payload.releaseConditions = termsData.releaseConditions;
         }
       } else if (termsData.releaseType === 'Milestones') {
-        // Format milestones array
-        if (termsData.milestones && termsData.milestones.length > 0) {
-          payload.milestones = termsData.milestones.map((milestone) => ({
-            milestoneDetails: milestone.details,
-            milestoneAmount: parseFloat(milestone.amount),
-          }));
+        const milestones = Array.isArray(termsData.milestones) ? termsData.milestones : [];
+        payload.milestones = milestones
+          .map((milestone) => {
+            const milestoneAmount = parsePositiveAmount(milestone?.amount);
+            const milestoneDetails = String(milestone?.details || '').trim();
+            if (milestoneAmount == null || !milestoneDetails) return null;
+            return { milestoneAmount, milestoneDetails };
+          })
+          .filter(Boolean);
+        if (payload.milestones.length === 0) {
+          toast.error('Please add at least one milestone');
+          setIsCreatingEscrow(false);
+          return;
         }
       }
 
@@ -1042,6 +1143,26 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
     setCurrentStep(2);
   };
 
+  const handleAddMilestone = () => {
+    const { next, added, error } = commitDraftMilestone(termsData);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    if (!added) {
+      toast.error('Enter milestone details and amount');
+      return;
+    }
+    setTermsData(next);
+  };
+
+  const handleRemoveMilestone = (index) => {
+    setTermsData((prev) => ({
+      ...prev,
+      milestones: (prev.milestones || []).filter((_, i) => i !== index),
+    }));
+  };
+
   const handleContinueFromStep2 = () => {
     if (termsData.releaseType === 'Time based' && !termsData.timeBasedAutoReleaseAck) {
       toast.error(
@@ -1049,6 +1170,34 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
       );
       return;
     }
+
+    if (termsData.releaseType === 'Milestones') {
+      const { next, error } = commitDraftMilestone(termsData);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      if (!next.milestones || next.milestones.length === 0) {
+        toast.error('Please add at least one milestone');
+        return;
+      }
+      if (!toDateInputValue(next.expectedCompletionDate)) {
+        toast.error('Please select an expected completion date');
+        return;
+      }
+      const milestoneTotal = sumMilestoneAmounts(next.milestones);
+      const resolvedTotal = next.totalAmount?.trim()
+        ? next
+        : { ...next, totalAmount: String(milestoneTotal) };
+      if (!resolvedTotal.totalAmount?.trim()) {
+        toast.error('Please enter the total amount');
+        return;
+      }
+      setTermsData(resolvedTotal);
+      setCurrentStep(3);
+      return;
+    }
+
     if (!termsData.totalAmount?.trim()) {
       toast.error('Please enter the total amount');
       return;
@@ -1549,13 +1698,16 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
                 {/* Form Fields - Milestones */}
                 {termsData.releaseType === 'Milestones' && (
-                  <div className="terms-form-grid">
+                  <div className="terms-form-grid create-escrow-milestone-terms">
                     {renderEscrowAmountField({ label: 'Total Amount' })}
 
                     <div className="form-group">
-                      <label>Milestone amount</label>
+                      <label htmlFor="create-escrow-milestone-amount">Milestone amount</label>
                       <input
+                        id="create-escrow-milestone-amount"
                         type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
                         placeholder="Enter amount"
                         value={termsData.milestoneAmount}
                         onChange={(e) =>
@@ -1564,12 +1716,19 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                             milestoneAmount: e.target.value,
                           })
                         }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMilestone();
+                          }
+                        }}
                       />
                     </div>
 
                     <div className="form-group">
-                      <label>Milestone details</label>
+                      <label htmlFor="create-escrow-milestone-details">Milestone details</label>
                       <input
+                        id="create-escrow-milestone-details"
                         type="text"
                         placeholder="Enter milestone details"
                         value={termsData.milestoneDetails}
@@ -1579,6 +1738,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                             milestoneDetails: e.target.value,
                           })
                         }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMilestone();
+                          }
+                        }}
                       />
                     </div>
 
@@ -1599,13 +1764,12 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                             });
                           }}
                           onMouseDown={(e) => {
-                            // Open picker on mousedown (before default behavior)
                             if (e.target.showPicker) {
                               try {
                                 e.target.showPicker();
-                                e.preventDefault(); // Prevent default browser behavior
+                                e.preventDefault();
                               } catch (err) {
-                                // Silently fail if showPicker is not available
+                                /* ignore */
                               }
                             }
                           }}
@@ -1613,24 +1777,41 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       </div>
                     </div>
 
-                    <div className="form-group">
+                    {Array.isArray(termsData.milestones) && termsData.milestones.length > 0 && (
+                      <div className="form-group form-group-full">
+                        <ul className="create-escrow-milestone-list" aria-label="Added milestones">
+                          {termsData.milestones.map((milestone, index) => (
+                            <li key={`${milestone.details}-${index}`} className="create-escrow-milestone-item">
+                              <div className="create-escrow-milestone-item-copy">
+                                <span className="create-escrow-milestone-item-title">
+                                  Milestone {index + 1}
+                                </span>
+                                <span className="create-escrow-milestone-item-details">
+                                  {milestone.details}
+                                </span>
+                              </div>
+                              <span className="create-escrow-milestone-item-amount">
+                                {milestone.amount}
+                              </span>
+                              <button
+                                type="button"
+                                className="create-escrow-milestone-remove"
+                                onClick={() => handleRemoveMilestone(index)}
+                                aria-label={`Remove milestone ${index + 1}`}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="form-group form-group-full">
                       <button
                         type="button"
                         className="add-milestone-btn"
-                        onClick={() => {
-                          if (termsData.milestoneDetails && termsData.milestoneAmount) {
-                            const newMilestone = {
-                              details: termsData.milestoneDetails,
-                              amount: termsData.milestoneAmount,
-                            };
-                            setTermsData({
-                              ...termsData,
-                              milestones: [...termsData.milestones, newMilestone],
-                              milestoneDetails: '',
-                              milestoneAmount: '',
-                            });
-                          }
-                        }}
+                        onClick={handleAddMilestone}
                       >
                         <Plus size={18} />
                         <span>Add milestone</span>
@@ -1852,6 +2033,23 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                         : '—'}
                     </span>
                   </div>
+                  {termsData.releaseType === 'Milestones' &&
+                    Array.isArray(termsData.milestones) &&
+                    termsData.milestones.length > 0 && (
+                      <div className="confirmation-detail-item create-escrow-step3-milestones">
+                        <span className="confirmation-detail-label">Milestones</span>
+                        <ul className="create-escrow-step3-milestone-list">
+                          {termsData.milestones.map((milestone, index) => (
+                            <li key={`${milestone.details}-${index}`}>
+                              <span>
+                                {index + 1}. {milestone.details}
+                              </span>
+                              <span>{milestone.amount}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   <div className="create-escrow-step3-amount-fee-grid">
                     <div className="confirmation-detail-item create-escrow-step3-amount-fee-item">
                       <span className="confirmation-detail-label">Escrow Amount</span>

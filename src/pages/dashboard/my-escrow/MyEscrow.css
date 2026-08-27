@@ -11,6 +11,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  overflow: visible;
 }
 
 .escrow-breadcrumb {
@@ -37,6 +38,12 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
+  z-index: 5;
+}
+
+.escrow-month-dropdown-wrapper {
+  position: relative;
 }
 
 .escrow-month-dropdown {
@@ -50,6 +57,63 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--text-dark);
+  font-family: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
+  appearance: none;
+}
+
+.escrow-month-dropdown.open {
+  border-color: var(--blue-600);
+}
+
+.escrow-month-dropdown-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.escrow-month-dropdown-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.escrow-month-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  padding: 0.5rem 0;
+  z-index: 50;
+}
+
+.escrow-month-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.escrow-month-dropdown-item:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--blue-600);
+}
+
+.escrow-month-dropdown-item.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--blue-600);
+  font-weight: 600;
 }
 
 .create-escrow-btn {
@@ -1118,6 +1182,8 @@
   transition: all 0.2s ease;
   font-family: 'Satoshi', 'Inter', sans-serif;
   width: fit-content;
+  position: relative;
+  z-index: 2;
 }
 
 .add-milestone-btn:hover {
@@ -1967,6 +2033,11 @@
     gap: 1rem;
   }
 
+  .escrow-month-dropdown-menu {
+    left: 0;
+    right: auto;
+  }
+
   .escrow-metrics {
     grid-template-columns: 1fr;
   }
@@ -2553,7 +2624,9 @@
 }
 
 .escrow-detail-modal .escrow-detail-row--recipient .escrow-detail-label,
-.escrow-detail-modal .escrow-detail-row--recipient .escrow-detail-value {
+.escrow-detail-modal .escrow-detail-row--recipient .escrow-detail-value,
+.escrow-detail-modal .escrow-detail-row--total .escrow-detail-label,
+.escrow-detail-modal .escrow-detail-row--total .escrow-detail-value {
   font-weight: 700;
   color: #111827;
 }

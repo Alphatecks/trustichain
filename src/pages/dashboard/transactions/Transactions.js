@@ -75,6 +75,7 @@ import {
   computePortfolioUsdTotalFromSummary,
   formatPortfolioPrimaryDisplay,
   formatPortfolioSecondaryDisplay,
+  formatWalletUsdInDisplayCurrency,
   resolveSummaryXrpBalance,
   normalizeExchangeQuoteDirection,
 } from '../../../utils/displayCurrencyFormat';
@@ -389,7 +390,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { displayCurrency } = useDisplayCurrency();
+  const { displayCurrency, formatFromUsd } = useDisplayCurrency();
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
@@ -3564,6 +3565,51 @@ const Transactions = () => {
     return null;
   };
 
+  const formatWalletFiatAmount = (usdValue, nativeCode, nativeAmount) =>
+    formatWalletUsdInDisplayCurrency({
+      usdValue,
+      nativeCode,
+      nativeAmount,
+      displayCurrency,
+      formatFromUsd,
+      getExchangeRate,
+    });
+
+  const renderWalletOverviewFiatAmount = (code) => {
+    if (!showBalance) return '••••••';
+    if (isLoadingWalletBalances) return <LoadingIndicator size="sm" />;
+
+    const key = String(code || '').toLowerCase();
+    const raw = walletBalances?.[key];
+
+    if (code === 'XRP') {
+      if (raw !== undefined && raw !== null && Array.isArray(exchangeRates) && exchangeRates.length > 0) {
+        const xrpToUsdRate = getExchangeRate('XRP', 'USD');
+        if (xrpToUsdRate) {
+          const amount = Number(raw);
+          return formatWalletFiatAmount(amount * Number(xrpToUsdRate), 'XRP', amount);
+        }
+        const usdRate = exchangeRates.find((r) =>
+          (r.from === 'XRP' && r.to === 'USD') ||
+          r.currency === 'USD' ||
+          r.code === 'USD'
+        );
+        if (usdRate?.rate) {
+          const amount = Number(raw);
+          return formatWalletFiatAmount(amount * Number(usdRate.rate), 'XRP', amount);
+        }
+      }
+      return formatWalletFiatAmount(0, 'XRP', 0);
+    }
+
+    if (raw !== undefined && raw !== null) {
+      const amount = Number(raw);
+      return formatWalletFiatAmount(amount, code, amount);
+    }
+
+    return formatWalletFiatAmount(0, code, 0);
+  };
+
   const portfolioUsdTotal = useMemo(
     () =>
       computePortfolioUsdTotalFromSummary({
@@ -6379,31 +6425,7 @@ const Transactions = () => {
                       : '••••••'}
                   </div>
                   <div className="wallet-overview-secondary">
-                    {showBalance 
-                      ? (isLoadingWalletBalances 
-                          ? <LoadingIndicator size="sm" /> 
-                          : (() => {
-                              // Calculate USD value from XRP using exchange rate from API
-                              if (walletBalances?.xrp !== undefined && walletBalances?.xrp !== null && exchangeRates && exchangeRates.length > 0) {
-                                // Try to find XRP to USD rate
-                                const xrpToUsdRate = getExchangeRate('XRP', 'USD');
-                                if (xrpToUsdRate) {
-                                  const usdValue = Number(walletBalances.xrp) * Number(xrpToUsdRate);
-                                  return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                }
-                                // Fallback: try to find USD rate from exchange rates array
-                                const usdRate = exchangeRates.find(r => 
-                                  (r.from === 'XRP' && r.to === 'USD') || 
-                                  (r.currency === 'USD' || r.code === 'USD')
-                                );
-                                if (usdRate && usdRate.rate) {
-                                  const usdValue = Number(walletBalances.xrp) * Number(usdRate.rate);
-                                  return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                }
-                              }
-                              return '$0.00';
-                            })())
-                      : '••••••'}
+                    {renderWalletOverviewFiatAmount('XRP')}
                   </div>
                 </div>
                 <div className="wallet-overview-trend">
@@ -6434,13 +6456,7 @@ const Transactions = () => {
                       : '••••••'}
                   </div>
                   <div className="wallet-overview-secondary">
-                    {showBalance 
-                      ? (isLoadingWalletBalances 
-                          ? <LoadingIndicator size="sm" /> 
-                          : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
-                              ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : '$0.00'))
-                      : '••••••'}
+                    {renderWalletOverviewFiatAmount('USDT')}
                   </div>
                 </div>
                 <div className="wallet-overview-trend">
@@ -6471,13 +6487,7 @@ const Transactions = () => {
                       : '••••••'}
                   </div>
                   <div className="wallet-overview-secondary">
-                    {showBalance 
-                      ? (isLoadingWalletBalances 
-                          ? <LoadingIndicator size="sm" /> 
-                          : (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
-                              ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : '$0.00'))
-                      : '••••••'}
+                    {renderWalletOverviewFiatAmount('USDC')}
                   </div>
                 </div>
                 <div className="wallet-overview-trend">

@@ -53,6 +53,16 @@ export const isEscrowCompleted = (escrow) => {
   return false;
 };
 
+/** Open escrows counted as Active (pending, in progress, pending release). */
+export const isActiveEscrow = (escrow) => {
+  if (!escrow || typeof escrow !== 'object') return false;
+  if (isEscrowCompleted(escrow)) return false;
+  const status = normalizeEscrowStatus(
+    escrow.status || escrow.escrowStatus || escrow.state || '',
+  );
+  return status === 'pending' || status === 'active' || status === 'pending release';
+};
+
 /** Display label + CSS class for escrow list rows. Completed escrows never show as disputed. */
 export const getEscrowDisplayStatus = (escrow) => {
   const raw = escrow?.status || escrow?.escrowStatus || 'Unknown';

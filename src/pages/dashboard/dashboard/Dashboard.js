@@ -92,6 +92,7 @@ import {
 } from '../../../components/DashboardSkeletons';
 import CreateEscrowForm from '../../../components/CreateEscrowForm';
 import EscrowDetailModalBody from '../../../components/EscrowDetailModal/EscrowDetailModalBody';
+import ActiveEscrowsModal from '../../../components/ActiveEscrowsModal';
 import BusinessSuiteLoader from '../../../components/BusinessSuiteLoader';
 import BusinessDashboard from '../business-suite/BusinessDashboard';
 import SupplierContractContent from '../business-suite/SupplierContractContent';
@@ -113,6 +114,7 @@ import DepositAddressSelectors from '../../../components/DepositAddressSelectors
 import { filterSidebarExchangeRates } from '../../../utils/exchangeRatesDisplay';
 import {
   convertUsdTotalToFiatDisplayAmount,
+  formatWalletUsdInDisplayCurrency,
   normalizeExchangeQuoteDirection,
 } from '../../../utils/displayCurrencyFormat';
 
@@ -1493,6 +1495,7 @@ const Dashboard = () => {
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [showEscrowDetailModal, setShowEscrowDetailModal] = useState(false);
   const [selectedEscrowDetail, setSelectedEscrowDetail] = useState(null);
+  const [showActiveEscrowsModal, setShowActiveEscrowsModal] = useState(false);
   const [showFundMethodModal, setShowFundMethodModal] = useState(false);
   const [showFundingAssetModal, setShowFundingAssetModal] = useState(false);
   const [showFundWalletModal, setShowFundWalletModal] = useState(false);
@@ -1993,22 +1996,54 @@ const Dashboard = () => {
           : fiatLabels[code] ?? '—',
   }));
 
-  const formatWalletDetailsDisplayAmount = (walletDetails) => {
-    const code = String(walletDetails?.code || '').toUpperCase();
-    const amount = Number(walletDetails?.amount ?? 0);
-    const usdValue = Number(walletDetails?.usdValue ?? 0);
+  const formatWalletFiatAmount = (usdValue, nativeCode, nativeAmount) =>
+    formatWalletUsdInDisplayCurrency({
+      usdValue,
+      nativeCode,
+      nativeAmount,
+      displayCurrency,
+      formatFromUsd,
+      getExchangeRate,
+    });
 
-    if (displayCurrency === 'XRP') {
-      if (code === 'XRP') {
-        return formatFromUsd(usdValue, { xrpAmount: amount });
+  const formatWalletDetailsDisplayAmount = (walletDetails) =>
+    formatWalletFiatAmount(
+      walletDetails?.usdValue,
+      walletDetails?.code,
+      walletDetails?.amount,
+    );
+
+  const renderWalletListFiatAmount = (code) => {
+    if (!showBalance) return '••••••';
+
+    const key = String(code || '').toLowerCase();
+    const raw = walletBalances?.[key];
+
+    if (code === 'XRP') {
+      if (raw != null && raw !== '') {
+        const xrpToUsd = getExchangeRate('XRP', 'USD');
+        if (xrpToUsd != null && Number(xrpToUsd) > 0) {
+          const amount = Number(raw);
+          return formatWalletFiatAmount(amount * Number(xrpToUsd), 'XRP', amount);
+        }
       }
-      const xrpToUsd = getExchangeRate('XRP', 'USD');
-      if (xrpToUsd != null && Number(xrpToUsd) > 0) {
-        return formatFromUsd(usdValue, { xrpAmount: usdValue / Number(xrpToUsd) });
-      }
+      return isLoadingWalletBalances || isLoadingRates ? (
+        <LoadingIndicator size="sm" />
+      ) : (
+        formatWalletFiatAmount(0, 'XRP', 0)
+      );
     }
 
-    return formatFromUsd(usdValue);
+    if (raw !== undefined && raw !== null) {
+      const amount = Number(raw);
+      return formatWalletFiatAmount(amount, code, amount);
+    }
+
+    return isLoadingWalletBalances ? (
+      <LoadingIndicator size="sm" />
+    ) : (
+      formatWalletFiatAmount(0, code, 0)
+    );
   };
 
   const getWalletDetailsExchangeLabel = (walletCode) => {
@@ -5779,7 +5814,7 @@ const Dashboard = () => {
                   <strong>{formatFromUsd(dashboardData?.activeEscrows?.lockedAmount ?? 156789)}</strong>
                 )}
               </div>
-              <button type="button" className="mobile-metric-btn" onClick={() => navigate('/my-escrow')}>
+              <button type="button" className="mobile-metric-btn" onClick={() => setShowActiveEscrowsModal(true)}>
                 View Escrow
               </button>
             </div>
@@ -6147,22 +6182,7 @@ const Dashboard = () => {
                 </div>
                 <div className="mobile-wallet-value-change">
                   <span className="mobile-wallet-amount">
-                    {showBalance 
-                      ? (() => {
-                          if (walletBalances?.xrp != null && walletBalances?.xrp !== '') {
-                            const xrpToUsd = getExchangeRate('XRP', 'USD');
-                            if (xrpToUsd != null && Number(xrpToUsd) > 0) {
-                              const usdValue = Number(walletBalances.xrp) * Number(xrpToUsd);
-                              return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            }
-                          }
-                          return isLoadingWalletBalances || isLoadingRates ? (
-                            <LoadingIndicator size="sm" />
-                          ) : (
-                            '$0.00'
-                          );
-                        })()
-                      : '••••••'}
+                    {renderWalletListFiatAmount('XRP')}
                   </span>
                   <div className="mobile-wallet-change positive">
                     <TrendingUp size={14} />
@@ -6194,11 +6214,7 @@ const Dashboard = () => {
                 </div>
                 <div className="mobile-wallet-value-change">
                   <span className="mobile-wallet-amount">
-                    {showBalance
-                      ? (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null
-                          ? `$${Number(walletBalances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
-                      : '••••••'}
+                    {renderWalletListFiatAmount('RLUSD')}
                   </span>
                   <div className="mobile-wallet-change neutral">
                     <span>0.0%</span>
@@ -6229,13 +6245,7 @@ const Dashboard = () => {
                 </div>
                 <div className="mobile-wallet-value-change">
                     <span className="mobile-wallet-amount">
-                      {showBalance 
-                        ? (isLoadingWalletBalances 
-                            ? <LoadingIndicator size="sm" />
-                            : (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null && walletBalances.usdt > 0
-                                ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                : '$0.00'))
-                        : '••••••'}
+                      {renderWalletListFiatAmount('USDT')}
                     </span>
                   <div className="mobile-wallet-change neutral">
                     <span>0.0%</span>
@@ -6266,11 +6276,7 @@ const Dashboard = () => {
                 </div>
                 <div className="mobile-wallet-value-change">
                   <span className="mobile-wallet-amount">
-                    {showBalance 
-                      ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
-                          ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$8,750.00'))
-                      : '••••••'}
+                    {renderWalletListFiatAmount('USDC')}
                   </span>
                   <div className="mobile-wallet-change positive">
                     <TrendingUp size={14} />
@@ -6526,7 +6532,13 @@ const Dashboard = () => {
                 )}
               </div>
             </div>
-            <button type="button" className="summary-card-btn secondary">View Escrow</button>
+            <button
+              type="button"
+              className="summary-card-btn secondary"
+              onClick={() => setShowActiveEscrowsModal(true)}
+            >
+              View Escrow
+            </button>
           </div>
 
           <div className="summary-card trustiscore-card">
@@ -6785,7 +6797,13 @@ const Dashboard = () => {
             <div className="escrow-table-card">
               <div className="table-header">
                 <h3>Live Escrow</h3>
-                <a href="#" className="view-link">View Escrow</a>
+                <button
+                  type="button"
+                  className="view-link"
+                  onClick={() => setShowActiveEscrowsModal(true)}
+                >
+                  View Escrow
+                </button>
               </div>
               <div className="table-wrapper">
                 <table className="escrow-table">
@@ -7031,22 +7049,7 @@ const Dashboard = () => {
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">
-                      {showBalance 
-                        ? (() => {
-                            if (walletBalances?.xrp != null && walletBalances?.xrp !== '') {
-                              const xrpToUsd = getExchangeRate('XRP', 'USD');
-                              if (xrpToUsd != null && Number(xrpToUsd) > 0) {
-                                const usdValue = Number(walletBalances.xrp) * Number(xrpToUsd);
-                                return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                              }
-                            }
-                            return isLoadingWalletBalances || isLoadingRates ? (
-                              <LoadingIndicator size="sm" />
-                            ) : (
-                              '$0.00'
-                            );
-                          })()
-                        : '••••••'}
+                      {renderWalletListFiatAmount('XRP')}
                     </span>
                   <div className="wallet-change positive">
                     <TrendingUp size={14} />
@@ -7076,11 +7079,7 @@ const Dashboard = () => {
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">
-                      {showBalance
-                        ? (walletBalances?.rlusd !== undefined && walletBalances?.rlusd !== null
-                            ? `$${Number(walletBalances.rlusd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
-                        : '••••••'}
+                      {renderWalletListFiatAmount('RLUSD')}
                     </span>
                   <div className="wallet-change neutral">
                     <span>0.0%</span>
@@ -7109,11 +7108,7 @@ const Dashboard = () => {
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">
-                      {showBalance 
-                        ? (walletBalances?.usdt !== undefined && walletBalances?.usdt !== null
-                            ? `$${Number(walletBalances.usdt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
-                        : '••••••'}
+                      {renderWalletListFiatAmount('USDT')}
                     </span>
                   <div className="wallet-change neutral">
                     <span>0.0%</span>
@@ -7142,11 +7137,7 @@ const Dashboard = () => {
                   </div>
                   <div className="wallet-value-change">
                     <span className="wallet-amount">
-                      {showBalance 
-                        ? (walletBalances?.usdc !== undefined && walletBalances?.usdc !== null
-                            ? `$${Number(walletBalances.usdc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : (isLoadingWalletBalances ? <LoadingIndicator size="sm" /> : '$0.00'))
-                        : '••••••'}
+                      {renderWalletListFiatAmount('USDC')}
                     </span>
                   <div className="wallet-change positive">
                     <TrendingUp size={14} />
@@ -8144,6 +8135,16 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      <ActiveEscrowsModal
+        open={showActiveEscrowsModal}
+        onClose={() => setShowActiveEscrowsModal(false)}
+        getExchangeRate={getExchangeRate}
+        onSelectEscrow={(escrow) => {
+          setSelectedEscrowDetail(escrow);
+          setShowEscrowDetailModal(true);
+        }}
+      />
 
       {/* Live Escrow detail (tap row / card on dashboard) */}
       {showEscrowDetailModal && selectedEscrowDetail && (

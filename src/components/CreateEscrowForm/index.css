@@ -487,6 +487,102 @@
   resize: vertical;
 }
 
+.create-escrow-milestone-terms .add-milestone-btn {
+  position: relative;
+  z-index: 2;
+  margin-top: 0.25rem;
+}
+
+.create-escrow-milestone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-escrow-milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.create-escrow-milestone-item-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.create-escrow-milestone-item-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+}
+
+.create-escrow-milestone-item-details {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dark, #111827);
+  word-break: break-word;
+}
+
+.create-escrow-milestone-item-amount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--blue-600, #2563eb);
+  white-space: nowrap;
+}
+
+.create-escrow-milestone-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.create-escrow-milestone-remove:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.create-escrow-step3-milestones {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.create-escrow-step3-milestone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.create-escrow-step3-milestone-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-dark, #111827);
+}
+
 .create-escrow-amount-row {
   display: flex;
   align-items: stretch;
@@ -1726,6 +1822,10 @@
   .create-escrow-step2-time-terms {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  .create-escrow-milestone-terms {
+    grid-template-columns: 1fr;
   }
 
   .create-escrow-step2-date-icon {

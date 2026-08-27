@@ -60,6 +60,7 @@ import '../dashboard/Dashboard.css';
 import './MyEscrow.css';
 import {
   getEscrowDisplayStatus,
+  isActiveEscrow,
   isEscrowCompleted,
   resolveEscrowDisputeId,
 } from '../../../utils/escrowDisplayStatus';
@@ -111,6 +112,56 @@ const getFirstNameOnly = (name, fallback = 'Unknown') => {
   const str = typeof name === 'string' ? name.trim() : '';
   if (!str) return fallback;
   return str.split(/\s+/)[0] || fallback;
+};
+
+const ESCROW_PERIOD_OPTIONS = [
+  { value: 'this_month', label: 'This month' },
+  { value: 'last_month', label: 'Last month' },
+  { value: 'this_year', label: 'This year' },
+  { value: 'all_time', label: 'All time' },
+];
+
+const getEscrowUsdAmount = (escrow) => {
+  const amount =
+    escrow?.amount?.usd ||
+    escrow?.amount?.USD ||
+    escrow?.amount?.xrp ||
+    escrow?.amount?.XRP ||
+    escrow?.totalAmount ||
+    escrow?.usdAmount ||
+    (typeof escrow?.amount === 'number' ? escrow.amount : null) ||
+    0;
+  return typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+};
+
+const getEscrowCreatedDate = (escrow) => {
+  const raw = escrow?.createdAt || escrow?.created || escrow?.created_at;
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
+const isEscrowInPeriod = (escrow, period) => {
+  if (!period || period === 'all_time') return true;
+  const created = getEscrowCreatedDate(escrow);
+  if (!created) return false;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  if (period === 'this_month') {
+    return created.getFullYear() === year && created.getMonth() === month;
+  }
+  if (period === 'last_month') {
+    const lastMonthDate = new Date(year, month - 1, 1);
+    return (
+      created.getFullYear() === lastMonthDate.getFullYear() &&
+      created.getMonth() === lastMonthDate.getMonth()
+    );
+  }
+  if (period === 'this_year') {
+    return created.getFullYear() === year;
+  }
+  return true;
 };
 
 /** Normalize create-escrow API payload for the success modal (amount is often an object). */
@@ -186,7 +237,8 @@ const MyEscrow = () => {
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [selectedMonth] = useState('This month');
+  const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [escrowDataVersion, setEscrowDataVersion] = useState(0);
 
@@ -346,6 +398,7 @@ const MyEscrow = () => {
       }
 
       try {
+        setIsLoadingEscrowMetrics(true);
         const token = localStorage.getItem('token');
         if (!token) {
           console.warn('No token found for escrow metrics');
@@ -371,65 +424,48 @@ const MyEscrow = () => {
           console.log('Escrows metrics API response data:', result);
 
           if (result?.success && result?.data) {
-            // Check for totalEscrowed in API response
-            if (result.data.totalEscrowed !== undefined && result.data.totalEscrowed !== null) {
+            const allEscrows = Array.isArray(result.data.escrows)
+              ? result.data.escrows
+              : Array.isArray(result.data)
+                ? result.data
+                : [];
+            const periodEscrows = allEscrows.filter((escrow) => isEscrowInPeriod(escrow, selectedPeriod));
+
+            if (
+              selectedPeriod === 'all_time' &&
+              result.data.totalEscrowed !== undefined &&
+              result.data.totalEscrowed !== null
+            ) {
               setTotalEscrowedAmount(result.data.totalEscrowed);
-            } else if (result.data.totalEscrowedAmount !== undefined && result.data.totalEscrowedAmount !== null) {
+            } else if (
+              selectedPeriod === 'all_time' &&
+              result.data.totalEscrowedAmount !== undefined &&
+              result.data.totalEscrowedAmount !== null
+            ) {
               setTotalEscrowedAmount(result.data.totalEscrowedAmount);
-            } else if (Array.isArray(result.data.escrows) && result.data.escrows.length > 0) {
-              // Calculate total from escrows array
-              const total = result.data.escrows.reduce((sum, escrow) => {
-                const amount = escrow.amount?.usd || 
-                              escrow.amount?.USD || 
-                              escrow.amount?.xrp || 
-                              escrow.amount?.XRP ||
-                              escrow.totalAmount || 
-                              escrow.usdAmount || 
-                              (typeof escrow.amount === 'number' ? escrow.amount : null) ||
-                              0;
-                return sum + (typeof amount === 'number' ? amount : parseFloat(amount) || 0);
-              }, 0);
-              setTotalEscrowedAmount(total);
             } else {
-              setTotalEscrowedAmount(0);
+              setTotalEscrowedAmount(
+                periodEscrows.reduce((sum, escrow) => sum + getEscrowUsdAmount(escrow), 0)
+              );
             }
 
-            // Calculate active escrow count and locked amount (escrows with status 'pending' or 'active')
-            if (Array.isArray(result.data.escrows) && result.data.escrows.length > 0) {
-              // Count total escrows
-              setTotalEscrowCount(result.data.escrows.length);
-              
-              // Filter and count active escrows (pending, active, pending release)
-              const activeEscrows = result.data.escrows.filter((escrow) => {
-                if (isEscrowCompleted(escrow)) return false;
-                const status = (escrow.status || '').toLowerCase();
-                return status === 'pending' || status === 'active' || status === 'pending release';
-              });
-              
-              setActiveEscrowCount(activeEscrows.length);
-              
-              // Calculate locked amount from active escrows
-              const locked = activeEscrows.reduce((sum, escrow) => {
-                const amount = escrow.amount?.usd || 
-                              escrow.amount?.USD || 
-                              escrow.amount?.xrp || 
-                              escrow.amount?.XRP ||
-                              escrow.totalAmount || 
-                              escrow.usdAmount || 
-                              (typeof escrow.amount === 'number' ? escrow.amount : null) ||
-                              0;
-                return sum + (typeof amount === 'number' ? amount : parseFloat(amount) || 0);
-              }, 0);
-              setLockedAmount(locked);
-            } else {
-              setActiveEscrowCount(0);
-              setTotalEscrowCount(0);
-              setLockedAmount(0);
+            setTotalEscrowCount(periodEscrows.length);
+            const activeEscrows = periodEscrows.filter(isActiveEscrow);
+            setActiveEscrowCount(activeEscrows.length);
+            setLockedAmount(
+              activeEscrows.reduce((sum, escrow) => sum + getEscrowUsdAmount(escrow), 0)
+            );
+
+            if (selectedPeriod !== 'this_month') {
+              setCompletedEscrowCount(periodEscrows.filter(isEscrowCompleted).length);
+              setIsLoadingCompletedEscrow(false);
             }
           } else {
             console.warn('Unexpected escrows response shape. Expected success and data.', result);
             setTotalEscrowedAmount(0);
             setLockedAmount(0);
+            setActiveEscrowCount(0);
+            setTotalEscrowCount(0);
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -451,10 +487,14 @@ const MyEscrow = () => {
     };
 
     fetchEscrowMetrics();
-  }, [isSessionExpired, escrowDataVersion]);
+  }, [isSessionExpired, escrowDataVersion, selectedPeriod]);
 
-  // Fetch completed escrow count from API
+  // Fetch completed escrow count from API (this month). Other periods use the filtered list.
   useEffect(() => {
+    if (selectedPeriod !== 'this_month') {
+      return;
+    }
+
     const fetchCompletedEscrow = async () => {
       // If session is expired, use fallback data
       if (isSessionExpired) {
@@ -465,6 +505,7 @@ const MyEscrow = () => {
       }
 
       try {
+        setIsLoadingCompletedEscrow(true);
         const token = localStorage.getItem('token');
         if (!token) {
           console.warn('No token found for completed escrow');
@@ -525,7 +566,7 @@ const MyEscrow = () => {
     };
 
     fetchCompletedEscrow();
-  }, [isSessionExpired]);
+  }, [isSessionExpired, selectedPeriod, escrowDataVersion]);
 
   // Fetch user profile for mobile header
   useEffect(() => {
@@ -840,13 +881,16 @@ const MyEscrow = () => {
       if (showIndustryDropdown && !event.target.closest('.industry-dropdown')) {
         setShowIndustryDropdown(false);
       }
+      if (showPeriodDropdown && !event.target.closest('.escrow-month-dropdown-wrapper')) {
+        setShowPeriodDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showIndustryDropdown]);
+  }, [showIndustryDropdown, showPeriodDropdown]);
 
   // Handle release escrow
   const handleReleaseEscrow = async (escrowId) => {
@@ -973,6 +1017,51 @@ const MyEscrow = () => {
       console.error('Error refreshing escrow list:', error);
     }
   };
+
+  const selectedPeriodLabel =
+    ESCROW_PERIOD_OPTIONS.find((option) => option.value === selectedPeriod)?.label || 'This month';
+
+  const renderPeriodDropdown = () => (
+    <div className="escrow-month-dropdown-wrapper">
+      <button
+        type="button"
+        className={`escrow-month-dropdown${showPeriodDropdown ? ' open' : ''}`}
+        onClick={() => {
+          setShowIndustryDropdown(false);
+          setShowPeriodDropdown((open) => !open);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={showPeriodDropdown}
+        aria-label="Filter escrow metrics by period"
+      >
+        <span>{selectedPeriodLabel}</span>
+        <ChevronDown
+          size={16}
+          className={`escrow-month-dropdown-chevron${showPeriodDropdown ? ' rotated' : ''}`}
+        />
+      </button>
+      {showPeriodDropdown ? (
+        <div className="escrow-month-dropdown-menu" role="listbox" aria-label="Period">
+          {ESCROW_PERIOD_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={selectedPeriod === option.value}
+              className={`escrow-month-dropdown-item${selectedPeriod === option.value ? ' active' : ''}`}
+              onClick={() => {
+                setSelectedPeriod(option.value);
+                setShowPeriodDropdown(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {selectedPeriod === option.value ? <CheckCircle size={14} /> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <MyEscrowLayout>
@@ -1163,10 +1252,7 @@ const MyEscrow = () => {
           <span className="breadcrumb-item active">My Escrow</span>
         </div>
         <div className="escrow-header-actions">
-          <div className="escrow-month-dropdown">
-            <span>{selectedMonth}</span>
-            <ChevronDown size={16} />
-          </div>
+          {renderPeriodDropdown()}
           <button type="button" className="create-escrow-btn" onClick={() => setShowCreateEscrowModal(true)}>
             <Plus size={18} />
             Create Escrow
@@ -1221,7 +1307,7 @@ const MyEscrow = () => {
               {totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0}
             </div>
             <div className="metric-subtitle-row">
-              <div className="metric-subtitle">This month</div>
+              <div className="metric-subtitle">{selectedPeriodLabel}</div>
               <div className="metric-trend positive">
                 <TrendingUp size={14} />
                 <span>+3.1%</span>
@@ -1248,7 +1334,7 @@ const MyEscrow = () => {
               {activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0}
             </div>
             <div className="metric-subtitle-row">
-              <div className="metric-subtitle">This month</div>
+              <div className="metric-subtitle">{selectedPeriodLabel}</div>
             </div>
               </>
             )}
@@ -1271,7 +1357,7 @@ const MyEscrow = () => {
               {completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0}
             </div>
             <div className="metric-subtitle-row">
-              <div className="metric-subtitle">This month</div>
+              <div className="metric-subtitle">{selectedPeriodLabel}</div>
             </div>
               </>
             )}
@@ -1297,7 +1383,10 @@ const MyEscrow = () => {
           <div 
             className="industry-dropdown" 
             style={{ position: 'relative', cursor: 'pointer' }}
-            onClick={() => setShowIndustryDropdown(!showIndustryDropdown)}
+            onClick={() => {
+              setShowPeriodDropdown(false);
+              setShowIndustryDropdown(!showIndustryDropdown);
+            }}
           >
             <span>{selectedIndustry || 'All industries'}</span>
             <ChevronDown size={16} />
@@ -1842,10 +1931,7 @@ const MyEscrow = () => {
                 <span className="breadcrumb-item active">My Escrow</span>
               </div>
               <div className="escrow-header-actions">
-                <div className="escrow-month-dropdown">
-                  <span>{selectedMonth}</span>
-                  <ChevronDown size={16} />
-                </div>
+                {renderPeriodDropdown()}
                 <button type="button" className="create-escrow-btn" onClick={() => setShowCreateEscrowModal(true)}>
                   <Plus size={18} />
                   Create Escrow
@@ -1897,7 +1983,7 @@ const MyEscrow = () => {
                   <div className="metric-value">
                     {totalEscrowCount !== null && totalEscrowCount !== undefined ? totalEscrowCount : 0}
                   </div>
-                  <div className="metric-subtitle">This month</div>
+                  <div className="metric-subtitle">{selectedPeriodLabel}</div>
                     </>
                   )}
                 </div>
@@ -1922,7 +2008,7 @@ const MyEscrow = () => {
                   <div className="metric-value">
                     {activeEscrowCount !== null && activeEscrowCount !== undefined ? activeEscrowCount : 0}
                   </div>
-                  <div className="metric-subtitle">This month</div>
+                  <div className="metric-subtitle">{selectedPeriodLabel}</div>
                     </>
                   )}
                 </div>
@@ -1943,7 +2029,7 @@ const MyEscrow = () => {
                   <div className="metric-value">
                     {completedEscrowCount !== null && completedEscrowCount !== undefined ? completedEscrowCount : 0}
                   </div>
-                  <div className="metric-subtitle">This month</div>
+                  <div className="metric-subtitle">{selectedPeriodLabel}</div>
                     </>
                   )}
                 </div>
@@ -1968,7 +2054,10 @@ const MyEscrow = () => {
                 <div 
                   className="industry-dropdown" 
                   style={{ position: 'relative', cursor: 'pointer' }}
-                  onClick={() => setShowIndustryDropdown(!showIndustryDropdown)}
+                  onClick={() => {
+                    setShowPeriodDropdown(false);
+                    setShowIndustryDropdown(!showIndustryDropdown);
+                  }}
                 >
                   <span>{selectedIndustry || 'All industries'}</span>
                   <ChevronDown size={16} />

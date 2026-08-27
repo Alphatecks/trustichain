@@ -1,7 +1,11 @@
 import React from 'react';
 import { Copy, ExternalLink, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getEscrowDisplayStatus, isEscrowCompleted } from '../../utils/escrowDisplayStatus';
+import {
+  getEscrowDisplayStatus,
+  isEscrowCompleted,
+  normalizeEscrowStatus,
+} from '../../utils/escrowDisplayStatus';
 
 /**
  * Shared escrow detail sheet (rows, explorer/dispute, optional XRPL release/cancel, footnote).
@@ -19,6 +23,10 @@ export default function EscrowDetailModalBody({
   const displayStatus = getEscrowDisplayStatus(escrow);
   const status = displayStatus.label;
   const statusLower = (escrow.status || '').toLowerCase();
+  const normalizedStatus = normalizeEscrowStatus(
+    escrow.status || escrow.escrowStatus || escrow.state || '',
+  );
+  const isPendingEscrow = normalizedStatus === 'pending';
   const escrowCompleted = isEscrowCompleted(escrow);
   const createdDate = escrow.createdAt || escrow.created || '';
   const createdTimestamp = createdDate ? new Date(createdDate).getTime() : null;
@@ -117,12 +125,41 @@ export default function EscrowDetailModalBody({
         ? Number(escrow.escrowFeePercent)
         : 5;
   const feeUsd = Number.isFinite(principalUsd) ? principalUsd * (feePercent / 100) : 0;
-  const feeLabel = `$${feeUsd.toLocaleString('en-US', {
+
+  const pickFiniteUsd = (...values) => {
+    for (const value of values) {
+      const num = Number(value);
+      if (Number.isFinite(num) && num >= 0) return num;
+    }
+    return null;
+  };
+  const resolvedFeeUsd =
+    pickFiniteUsd(escrow.creationFeeUsd, escrow.escrowFeeUsd, escrow.feeUsd) ?? feeUsd;
+  const feeLabel = `$${resolvedFeeUsd.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })} (${Number.isFinite(feePercent) ? feePercent : 5}%)`;
 
-  const recipientUsd = Math.max(0, principalUsd - feeUsd);
+  const amountUsdPlusFee = (() => {
+    const amountUsd = pickFiniteUsd(escrow.amountUsd, escrow.amount?.usd, principalUsd);
+    return amountUsd != null ? amountUsd + resolvedFeeUsd : null;
+  })();
+  const totalEscrowedUsd =
+    pickFiniteUsd(
+      escrow.payableAmountUsd,
+      escrow.totalPayableUsd,
+      escrow.totalEscrowedUsd,
+    ) ??
+    amountUsdPlusFee ??
+    NaN;
+  const totalEscrowedLabel = Number.isFinite(totalEscrowedUsd)
+    ? `$${totalEscrowedUsd.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} USD`
+    : '—';
+
+  const recipientUsd = Math.max(0, principalUsd - resolvedFeeUsd);
   const recipientLabel = `$${recipientUsd.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -235,9 +272,13 @@ export default function EscrowDetailModalBody({
           <span className="escrow-detail-label">Network Fee</span>
           <span className="escrow-detail-value">{netFeeDisplay}</span>
         </div>
-        <div className="escrow-detail-row escrow-detail-row--fee-sep">
+        <div className="escrow-detail-row">
           <span className="escrow-detail-label">Escrow Fee</span>
           <span className="escrow-detail-value">{feeLabel}</span>
+        </div>
+        <div className="escrow-detail-row escrow-detail-row--fee-sep escrow-detail-row--total">
+          <span className="escrow-detail-label">Total Escrowed Amount</span>
+          <span className="escrow-detail-value escrow-detail-value--strong">{totalEscrowedLabel}</span>
         </div>
         <div className="escrow-detail-row escrow-detail-row--recipient">
           <span className="escrow-detail-label">Recipient Gets</span>
@@ -259,7 +300,10 @@ export default function EscrowDetailModalBody({
           <ExternalLink size={16} aria-hidden />
           View on block Explorer
         </button>
-        {!escrowCompleted && !showSecondaryXRPL && typeof onDispute === 'function' ? (
+        {!escrowCompleted &&
+        !isPendingEscrow &&
+        !showSecondaryXRPL &&
+        typeof onDispute === 'function' ? (
           <button type="button" className="escrow-detail-btn escrow-detail-btn--primary" onClick={() => onDispute(escrow)}>
             Dispute
           </button>

@@ -4719,6 +4719,15 @@ button.user-avatar.header-profile-avatar-nav:focus-visible {
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.escrow-detail-modal-overlay {
+  z-index: 1100;
 }
 
 .table-wrapper {

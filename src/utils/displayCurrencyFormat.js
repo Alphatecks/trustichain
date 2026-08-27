@@ -172,6 +172,35 @@ export function formatPortfolioPrimaryDisplay(
   return formatConvertedFiatAmount(code, amt);
 }
 
+/**
+ * Format a wallet's USD value in the user's display currency.
+ * When XRP is selected, native XRP balances stay in XRP and stablecoins convert via XRP/USD.
+ */
+export function formatWalletUsdInDisplayCurrency({
+  usdValue,
+  nativeCode,
+  nativeAmount,
+  displayCurrency,
+  formatFromUsd,
+  getExchangeRate,
+}) {
+  const code = String(nativeCode || '').toUpperCase();
+  const amount = Number(nativeAmount ?? 0);
+  const usd = Number(usdValue ?? 0);
+
+  if ((displayCurrency || 'USD') === 'XRP') {
+    if (code === 'XRP') {
+      return formatFromUsd(usd, { xrpAmount: amount });
+    }
+    const xrpToUsd = typeof getExchangeRate === 'function' ? getExchangeRate('XRP', 'USD') : null;
+    if (xrpToUsd != null && Number(xrpToUsd) > 0) {
+      return formatFromUsd(usd, { xrpAmount: usd / Number(xrpToUsd) });
+    }
+  }
+
+  return formatFromUsd(usd);
+}
+
 /** Format a USD-denominated API amount in the user's display currency. */
 export function formatDisplayAmountFromUsd(
   usdAmount,
