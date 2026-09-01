@@ -282,6 +282,10 @@
   color: var(--text-dark);
 }
 
+.date-filter-wrapper {
+  position: relative;
+}
+
 .date-filter {
   display: flex;
   align-items: center;
@@ -291,6 +295,19 @@
   font-weight: 500;
   font-size: 0.9rem;
   cursor: pointer;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.date-filter.open {
+  color: var(--blue-700, var(--blue-600));
+}
+
+.escrow-history-month-wrapper {
+  position: relative;
 }
 
 /* Table Section */
@@ -1553,6 +1570,16 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+  }
+
+  .escrow-history-control-btn.active {
+    color: var(--blue-600) !important;
+  }
+
+  .escrow-history-month-wrapper .escrow-month-dropdown-menu {
+    right: 0;
+    left: auto;
+    min-width: 160px;
   }
 
   /* Escrow History Card List */

@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Copy, ExternalLink, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   getEscrowDisplayStatus,
   isEscrowCompleted,
   normalizeEscrowStatus,
+  resolveEscrowDisputeId,
 } from '../../utils/escrowDisplayStatus';
+import {
+  fetchEscrowPartyWallets,
+  resolveEscrowWalletAddresses,
+} from '../../utils/escrowPartyWallets';
+import {
+  formatEscrowDenominationLabel,
+  resolveEscrowCreationCurrency,
+  resolveEscrowDenominationAmount,
+  resolveEscrowSettlementUsd,
+} from '../../utils/escrowDenomination';
 
 /**
  * Shared escrow detail sheet (rows, explorer/dispute, optional XRPL release/cancel, footnote).
@@ -56,67 +67,109 @@ export default function EscrowDetailModalBody({
     ),
   );
 
-  const walletAddress =
-    escrow.payerWallet ||
-    escrow.payerXrpWalletAddress ||
-    escrow.walletAddress ||
-    escrow.initiatorWallet ||
-    escrow.senderWallet ||
-    '—';
-  const counterpartyAddress =
-    escrow.counterpartyWallet ||
-    escrow.counterpartyXrpWalletAddress ||
-    escrow.receiverWallet ||
-    escrow.counterparty?.wallet ||
-    '—';
+  const partyEscrowId = resolveEscrowDisputeId(escrow);
+  const walletsFromEscrow = resolveEscrowWalletAddresses(escrow);
+  const alreadyHaveWallets = !!(walletsFromEscrow.payerWallet && walletsFromEscrow.counterpartyWallet);
+  const alreadyHaveDenom =
+    resolveEscrowDenominationAmount(escrow) != null && !!resolveEscrowCreationCurrency(escrow);
+  const [fetchedParties, setFetchedParties] = useState({
+    payerWallet: '',
+    counterpartyWallet: '',
+    currency: '',
+    denominationAmount: null,
+  });
 
-  const asset = String(escrow.currency || escrow.asset || 'XRP').toUpperCase();
-  const rawAmt =
-    escrow.amount?.xrp ??
-    escrow.amount?.XRP ??
-    escrow.amount?.rlusd ??
-    escrow.amount?.RLUSD ??
-    escrow.totalAmount ??
-    escrow.amount;
-  const amtNum =
-    rawAmt != null && rawAmt !== '' && !Number.isNaN(Number(rawAmt)) ? Number(rawAmt) : NaN;
-  const xrpFallback =
-    escrow.amount?.xrp != null
-      ? Number(escrow.amount.xrp).toLocaleString('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 6,
-        })
-      : '0.00';
-  const amountFormatted = Number.isFinite(amtNum)
-    ? amtNum.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 6,
+  useEffect(() => {
+    if (!partyEscrowId || (alreadyHaveWallets && alreadyHaveDenom)) {
+      setFetchedParties({
+        payerWallet: '',
+        counterpartyWallet: '',
+        currency: '',
+        denominationAmount: null,
+      });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setFetchedParties({
+      payerWallet: '',
+      counterpartyWallet: '',
+      currency: '',
+      denominationAmount: null,
+    });
+    fetchEscrowPartyWallets(partyEscrowId)
+      .then((parties) => {
+        if (!cancelled) setFetchedParties(parties);
       })
-    : xrpFallback;
-  const escrowAmountLabel = `${amountFormatted} ${asset}`;
+      .catch(() => {
+        if (!cancelled) {
+          setFetchedParties({
+            payerWallet: '',
+            counterpartyWallet: '',
+            currency: '',
+            denominationAmount: null,
+          });
+        }
+      });
 
-  let principalUsd =
-    escrow.amount?.usd != null && escrow.amount?.usd !== '' ? Number(escrow.amount.usd) : NaN;
-  if (!Number.isFinite(principalUsd) && asset === 'XRP' && Number.isFinite(amtNum) && exchangeRate) {
-    principalUsd = amtNum * exchangeRate;
-  }
-  if (!Number.isFinite(principalUsd)) {
-    principalUsd = escrow.amount?.usd != null ? Number(escrow.amount.usd) : 0;
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [partyEscrowId, alreadyHaveWallets, alreadyHaveDenom]);
 
-  const xrpUsdRate =
-    asset === 'XRP' && Number.isFinite(amtNum) && amtNum > 0 && Number.isFinite(principalUsd)
-      ? principalUsd / amtNum
-      : exchangeRate || 0;
-  const exchangeRateLabel =
-    asset === 'XRP' && Number(xrpUsdRate) > 0
-      ? `1 ${asset} = $${Number(xrpUsdRate).toLocaleString('en-US', {
-          minimumFractionDigits: 4,
-          maximumFractionDigits: 4,
-        })}`
-      : ['RLUSD', 'USDT', 'USDC'].includes(asset)
-        ? `1 ${asset} ≈ $1.00 USD`
-        : '—';
+  const mergedEscrow = {
+    ...escrow,
+    ...(fetchedParties.currency ? { currency: fetchedParties.currency } : {}),
+    ...(fetchedParties.denominationAmount != null
+      ? { denominationAmount: fetchedParties.denominationAmount }
+      : {}),
+  };
+
+  const creationCurrency = resolveEscrowCreationCurrency(mergedEscrow);
+  const denominationAmount = resolveEscrowDenominationAmount(mergedEscrow);
+
+  const walletAddress =
+    fetchedParties.payerWallet || walletsFromEscrow.payerWallet || '—';
+  const counterpartyAddress =
+    fetchedParties.counterpartyWallet || walletsFromEscrow.counterpartyWallet || '—';
+
+  const escrowAmountLabel = formatEscrowDenominationLabel(mergedEscrow);
+  const principalUsd = resolveEscrowSettlementUsd(mergedEscrow) ?? 0;
+  const settlementAsset = String(mergedEscrow.amount?.currency || 'RLUSD').toUpperCase();
+
+  const xrpUsdRate = (() => {
+    const xrpAmt = Number(mergedEscrow.amount?.xrp);
+    if (Number.isFinite(xrpAmt) && xrpAmt > 0 && Number.isFinite(principalUsd) && principalUsd > 0) {
+      return principalUsd / xrpAmt;
+    }
+    return exchangeRate || 0;
+  })();
+
+  const exchangeRateLabel = (() => {
+    if (creationCurrency === 'XRP' && Number(xrpUsdRate) > 0) {
+      return `1 XRP = $${Number(xrpUsdRate).toLocaleString('en-US', {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4,
+      })}`;
+    }
+    if (['RLUSD', 'USDT', 'USDC', 'USD'].includes(creationCurrency)) {
+      return `1 ${creationCurrency} ≈ $1.00 USD`;
+    }
+    if (
+      creationCurrency &&
+      denominationAmount != null &&
+      denominationAmount > 0 &&
+      Number.isFinite(principalUsd) &&
+      principalUsd > 0
+    ) {
+      const perUnit = principalUsd / denominationAmount;
+      return `1 ${creationCurrency} = $${perUnit.toLocaleString('en-US', {
+        minimumFractionDigits: perUnit < 0.01 ? 6 : 4,
+        maximumFractionDigits: perUnit < 0.01 ? 6 : 4,
+      })}`;
+    }
+    return '—';
+  })();
 
   const feePercent =
     escrow.feePercent != null && escrow.feePercent !== ''
@@ -170,8 +223,8 @@ export default function EscrowDetailModalBody({
       ? `${Number(escrow.networkFee).toLocaleString('en-US', {
           minimumFractionDigits: 5,
           maximumFractionDigits: 8,
-        })} ${asset}`
-      : `0.00001 ${asset}`;
+        })} XRP`
+      : '0.00001 XRP';
 
   const explorerHash =
     xrpHashes.find((h) => typeof h === 'string' && /^[0-9A-Fa-f]{64}$/.test(h)) || xrpHashes[0];
@@ -209,7 +262,7 @@ export default function EscrowDetailModalBody({
     }
   };
 
-  const disclaimerAsset = asset === 'XRP' ? 'XRP' : asset;
+  const disclaimerAsset = settlementAsset;
   const disclaimerApprox = Number.isFinite(recipientUsd)
     ? recipientUsd.toLocaleString('en-US', {
         minimumFractionDigits: 2,

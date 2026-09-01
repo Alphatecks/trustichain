@@ -82,7 +82,9 @@ export async function fetchEscrowCreationFeeQuote({
   return result.data || {};
 }
 
-/** Convert USD quote fields into the user's selected escrow currency for display. */
+/** Convert USD quote fields into the creation currency for display.
+ * Use top-level quote.currency (creation currency). Never quote.amount.currency (always RLUSD).
+ */
 export function resolveEscrowCreationFeeDisplayAmounts(
   quote,
   currency,
@@ -93,7 +95,7 @@ export function resolveEscrowCreationFeeDisplayAmounts(
     return { fee: null, total: null, percentage: null };
   }
 
-  const cur = String(currency || 'USD').toUpperCase();
+  const cur = String(quote.currency || currency || 'USD').toUpperCase();
   const toDisplay = (usdValue) => {
     const usd = Number(usdValue);
     if (!Number.isFinite(usd)) return null;

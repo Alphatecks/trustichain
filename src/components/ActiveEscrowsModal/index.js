@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, X } from 'lucide-react';
 import { useSession } from '../../context/SessionContext';
-import { useDisplayCurrency } from '../../context/DisplayCurrencyContext';
 import { getApiUrl } from '../../utils/config';
 import { getEscrowDisplayStatus, isActiveEscrow } from '../../utils/escrowDisplayStatus';
+import { formatEscrowListAmountParts } from '../../utils/escrowDenomination';
 import { DashboardEscrowListSkeleton } from '../DashboardSkeletons';
 import './index.css';
 
@@ -27,10 +27,8 @@ export default function ActiveEscrowsModal({
   open,
   onClose,
   onSelectEscrow,
-  getExchangeRate,
 }) {
   const { isSessionExpired } = useSession();
-  const { formatFromUsd } = useDisplayCurrency();
   const [escrows, setEscrows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -84,25 +82,10 @@ export default function ActiveEscrowsModal({
   if (!open) return null;
 
   const formatEscrowAmounts = (escrow) => {
-    const xrpRaw = escrow.amount?.xrp ?? escrow.amount?.XRP ?? escrow.xrpAmount;
-    const usdRaw = escrow.amount?.usd ?? escrow.amount?.USD ?? escrow.usdAmount ?? escrow.totalAmount;
-    const xrpAmount = xrpRaw != null && xrpRaw !== '' ? Number(xrpRaw) : null;
-    let usdAmount = usdRaw != null && usdRaw !== '' ? Number(usdRaw) : null;
-
-    if ((usdAmount == null || !Number.isFinite(usdAmount)) && xrpAmount != null && typeof getExchangeRate === 'function') {
-      const xrpToUsd = getExchangeRate('XRP', 'USD');
-      if (xrpToUsd != null && Number(xrpToUsd) > 0) {
-        usdAmount = xrpAmount * Number(xrpToUsd);
-      }
-    }
-
+    const { primaryLabel, usdLabel, showUsdApprox } = formatEscrowListAmountParts(escrow);
     return {
-      xrpLabel:
-        xrpAmount != null && Number.isFinite(xrpAmount)
-          ? `${xrpAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP`
-          : '0.00 XRP',
-      fiatLabel:
-        usdAmount != null && Number.isFinite(usdAmount) ? formatFromUsd(usdAmount) : null,
+      xrpLabel: primaryLabel,
+      fiatLabel: showUsdApprox && usdLabel ? `$${usdLabel}` : null,
     };
   };
 

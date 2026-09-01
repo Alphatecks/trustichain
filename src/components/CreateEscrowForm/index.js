@@ -175,7 +175,12 @@ const normalizeCreatedEscrowFromApi = ({
 
   return {
     ...base,
-    currency: base.currency || display?.currency || fallbackDisplayCurrency,
+    // Top-level creation currency only — never amount.currency (always RLUSD settlement).
+    currency: base.currency || fallbackDisplayCurrency,
+    denominationAmount:
+      base.denominationAmount != null && Number.isFinite(Number(base.denominationAmount))
+        ? Number(base.denominationAmount)
+        : fallbackDisplayAmount,
     id: base.id || base.escrowId || responseData?.escrowId,
     escrowId: base.escrowId || base.id || responseData?.escrowId,
     xrplEscrowId:
@@ -450,6 +455,13 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
 
   const amountExchangeHint = formatAmountExchangeHint(
     termsData.totalAmount,
+    termsData.escrowCurrency,
+    exchangeRates,
+    exchangeQuoteDirection,
+  );
+
+  const milestoneAmountExchangeHint = formatAmountExchangeHint(
+    termsData.milestoneAmount,
     termsData.escrowCurrency,
     exchangeRates,
     exchangeQuoteDirection,
@@ -1723,6 +1735,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                           }
                         }}
                       />
+                      {milestoneAmountExchangeHint ? (
+                        <p className="create-escrow-amount-exchange-hint" aria-live="polite">
+                          {milestoneAmountExchangeHint}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="form-group">
@@ -1780,7 +1797,14 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                     {Array.isArray(termsData.milestones) && termsData.milestones.length > 0 && (
                       <div className="form-group form-group-full">
                         <ul className="create-escrow-milestone-list" aria-label="Added milestones">
-                          {termsData.milestones.map((milestone, index) => (
+                          {termsData.milestones.map((milestone, index) => {
+                            const milestoneExchangeHint = formatAmountExchangeHint(
+                              milestone.amount,
+                              termsData.escrowCurrency,
+                              exchangeRates,
+                              exchangeQuoteDirection,
+                            );
+                            return (
                             <li key={`${milestone.details}-${index}`} className="create-escrow-milestone-item">
                               <div className="create-escrow-milestone-item-copy">
                                 <span className="create-escrow-milestone-item-title">
@@ -1792,6 +1816,11 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                               </div>
                               <span className="create-escrow-milestone-item-amount">
                                 {milestone.amount}
+                                {milestoneExchangeHint ? (
+                                  <span className="create-escrow-milestone-item-exchange">
+                                    {milestoneExchangeHint}
+                                  </span>
+                                ) : null}
                               </span>
                               <button
                                 type="button"
@@ -1802,7 +1831,8 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                                 <Trash2 size={16} />
                               </button>
                             </li>
-                          ))}
+                            );
+                          })}
                         </ul>
                       </div>
                     )}
@@ -2039,14 +2069,29 @@ const CreateEscrowForm = ({ isOpen, onCancel, onSuccess }) => {
                       <div className="confirmation-detail-item create-escrow-step3-milestones">
                         <span className="confirmation-detail-label">Milestones</span>
                         <ul className="create-escrow-step3-milestone-list">
-                          {termsData.milestones.map((milestone, index) => (
+                          {termsData.milestones.map((milestone, index) => {
+                            const milestoneExchangeHint = formatAmountExchangeHint(
+                              milestone.amount,
+                              termsData.escrowCurrency,
+                              exchangeRates,
+                              exchangeQuoteDirection,
+                            );
+                            return (
                             <li key={`${milestone.details}-${index}`}>
                               <span>
                                 {index + 1}. {milestone.details}
                               </span>
-                              <span>{milestone.amount}</span>
+                              <span className="create-escrow-step3-milestone-amount">
+                                {milestone.amount}
+                                {milestoneExchangeHint ? (
+                                  <span className="create-escrow-milestone-item-exchange">
+                                    {milestoneExchangeHint}
+                                  </span>
+                                ) : null}
+                              </span>
                             </li>
-                          ))}
+                            );
+                          })}
                         </ul>
                       </div>
                     )}

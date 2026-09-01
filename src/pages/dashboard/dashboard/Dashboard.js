@@ -117,6 +117,7 @@ import {
   formatWalletUsdInDisplayCurrency,
   normalizeExchangeQuoteDirection,
 } from '../../../utils/displayCurrencyFormat';
+import { formatEscrowListAmountParts } from '../../../utils/escrowDenomination';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
 const normalizeCompanyLogoUrl = (data) => {
@@ -6310,19 +6311,7 @@ const Dashboard = () => {
                   const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                   const counterpartyInitials = counterpartyName.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '??';
                   
-                  // Get amount - try XRP first, then USD
-                  const xrpAmount = escrow.amount?.xrp || escrow.amount?.XRP || escrow.xrpAmount || null;
-                  const usdAmount = escrow.amount?.usd || escrow.amount?.USD || escrow.usdAmount || escrow.totalAmount || null;
-                  
-                  // Calculate USD equivalent if we have XRP amount and exchange rate
-                  let displayXrp = xrpAmount;
-                  let displayUsd = usdAmount;
-                  if (xrpAmount && exchangeRates && exchangeRates.length > 0) {
-                    const xrpRate = exchangeRates.find(r => (r.currency || r.code || '').toUpperCase() === 'XRP');
-                    if (xrpRate && xrpRate.rate && !displayUsd) {
-                      displayUsd = Number(xrpAmount) * Number(xrpRate.rate);
-                    }
-                  }
+                  const { primaryLabel, usdLabel, showUsdApprox } = formatEscrowListAmountParts(escrow);
                   
                   const displayStatus = getEscrowDisplayStatus(escrow);
                   const statusText = displayStatus.label;
@@ -6369,11 +6358,11 @@ const Dashboard = () => {
                       </div>
                       <div className="mobile-escrow-amounts">
                         <div className="mobile-escrow-xrp">
-                          {displayXrp ? `${Number(displayXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XRP` : '0.00 XRP'}
+                          {primaryLabel}
                         </div>
-                        {displayUsd && (
+                        {showUsdApprox && usdLabel && (
                           <div className="mobile-escrow-usd">
-                            ≈ ${Number(displayUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ≈ ${usdLabel}
                           </div>
                         )}
                       </div>
@@ -6850,13 +6839,8 @@ const Dashboard = () => {
                         return name.substring(0, 2).toUpperCase();
                       };
                       
-                      // Format amounts
-                      const xrpAmount = escrow.amount?.xrp 
-                        ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
-                        : '0.00';
-                      const usdAmount = escrow.amount?.usd 
-                        ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                        : '0.00';
+                      // Format amounts using creation currency + denominationAmount (not amount.currency)
+                      const { primaryLabel, usdLabel, showUsdApprox } = formatEscrowListAmountParts(escrow);
                       
                       const displayStatus = getEscrowDisplayStatus(escrow);
                       const statusBadge = {
@@ -6912,8 +6896,8 @@ const Dashboard = () => {
                             </div>
                           </td>
                           <td>
-                            <div>{xrpAmount} XRP</div>
-                            <div className="amount-usd">≈ ${usdAmount}</div>
+                            <div>{primaryLabel}</div>
+                            {showUsdApprox && usdLabel ? <div className="amount-usd">≈ ${usdLabel}</div> : null}
                           </td>
                           <td>
                             <span className={`status-badge ${statusBadge.class}`}>

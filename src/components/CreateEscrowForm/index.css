@@ -534,10 +534,23 @@
 }
 
 .create-escrow-milestone-item-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--blue-600, #2563eb);
   white-space: nowrap;
+}
+
+.create-escrow-milestone-item-exchange {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  white-space: normal;
+  text-align: right;
+  max-width: 12rem;
 }
 
 .create-escrow-milestone-remove {
@@ -581,6 +594,15 @@
   gap: 1rem;
   font-size: 0.9rem;
   color: var(--text-dark, #111827);
+}
+
+.create-escrow-step3-milestone-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .create-escrow-amount-row {

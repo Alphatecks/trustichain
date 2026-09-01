@@ -1689,6 +1689,54 @@ body.transactions-page-active .landing-navbar {
   color: var(--blue-600);
 }
 
+.transaction-direction-icon.deposit {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.transaction-direction-icon.withdrawal {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.transaction-table tbody tr.transaction-history-row,
+.desktop-savings-history-table tbody tr.transaction-history-row {
+  cursor: pointer;
+}
+
+.transaction-table tbody tr.transaction-history-row:hover,
+.desktop-savings-history-table tbody tr.transaction-history-row:hover {
+  background: var(--blue-100, #eff6ff);
+}
+
+[data-theme="dark"] .transaction-table tbody tr.transaction-history-row:hover,
+[data-theme="dark"] .desktop-savings-history-table tbody tr.transaction-history-row:hover {
+  background: var(--bg-muted, #1f2937);
+}
+
+.transaction-history-row:focus-visible {
+  outline: 2px solid var(--blue-600, #2563eb);
+  outline-offset: -2px;
+}
+
+.mobile-transaction-card.transaction-history-row,
+.mobile-savings-history-card.transaction-history-row {
+  cursor: pointer;
+}
+
+.transaction-details-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  color: var(--text-muted);
+}
+
+.transaction-details-loading--inline {
+  min-height: 0;
+  padding: 0 0 1rem;
+}
+
 /* Transaction Pagination */
 .transaction-pagination {
   display: flex;
@@ -3204,6 +3252,11 @@ body.transactions-page-active .landing-navbar {
   max-width: 450px;
   width: 90%;
   font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
+.notification-modal.transaction-summary-modal.transaction-details-modal {
+  width: min(720px, 92vw);
+  max-width: 720px;
 }
 
 .transaction-summary-header {
@@ -5846,6 +5899,11 @@ body.transactions-page-active .landing-navbar {
     max-width: 100%;
   }
 
+  .mobile-transaction-card.transaction-history-row:hover {
+    border-color: #c9d4e5 !important;
+    background: #f8fafc !important;
+  }
+
   .mobile-transaction-top {
     display: flex !important;
     align-items: flex-start !important;
@@ -7173,6 +7231,16 @@ body.transactions-page-active .landing-navbar {
   border-radius: 50%;
   background: var(--blue-100);
   color: var(--blue-600);
+}
+
+.desktop-savings-transaction-arrow.deposit {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.desktop-savings-transaction-arrow.withdrawal {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
 }
 
 /* Pagination */

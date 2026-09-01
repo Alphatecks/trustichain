@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSession } from './SessionContext';
 import { getApiUrl } from '../utils/config';
-import { formatEscrowCountBadge, totalEscrowCountFromListData } from '../utils/escrowListMetrics';
+import { formatEscrowCountBadge, activeEscrowCountFromListData } from '../utils/escrowListMetrics';
 
 const EscrowMetricsContext = createContext(null);
 
@@ -38,7 +38,7 @@ export function EscrowMetricsProvider({ children }) {
       }
       const result = await response.json().catch(() => ({}));
       if (result?.success && result?.data) {
-        setEscrowCount(totalEscrowCountFromListData(result.data));
+        setEscrowCount(activeEscrowCountFromListData(result.data));
       } else {
         setEscrowCount(0);
       }
@@ -90,7 +90,7 @@ export function useEscrowMetrics() {
 }
 
 /**
- * Badge string for a sidebar item: live escrow count for "My Escrow", else static item.badge.
+ * Sidebar badge string for a sidebar item: live *active* escrow count for "My Escrow", else static item.badge.
  */
 export function useEscrowNavBadge() {
   const { badgeText, isLoading } = useEscrowMetrics();

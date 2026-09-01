@@ -64,6 +64,13 @@ import {
   isEscrowCompleted,
   resolveEscrowDisputeId,
 } from '../../../utils/escrowDisplayStatus';
+import {
+  formatEscrowListAmountParts,
+  formatEscrowDenominationLabel,
+  resolveEscrowCreationCurrency,
+  resolveEscrowDenominationAmount,
+  resolveEscrowSettlementUsd,
+} from '../../../utils/escrowDenomination';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -121,6 +128,155 @@ const ESCROW_PERIOD_OPTIONS = [
   { value: 'all_time', label: 'All time' },
 ];
 
+const HISTORY_MONTH_OPTIONS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const getCurrentHistoryMonth = () => HISTORY_MONTH_OPTIONS[new Date().getMonth()];
+
+const extractEscrowList = (data) => {
+  if (Array.isArray(data?.escrows)) return data.escrows;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  return [];
+};
+
+const buildEscrowByMonthParams = ({
+  monthLabel,
+  transactionType,
+  industry,
+  page,
+  pageSize,
+}) => {
+  const params = new URLSearchParams();
+  const monthIndex = HISTORY_MONTH_OPTIONS.findIndex(
+    (month) => month.toLowerCase() === String(monthLabel || '').trim().toLowerCase(),
+  );
+  params.set('month', monthIndex >= 0 ? String(monthIndex + 1) : String(monthLabel || ''));
+  params.set('year', String(new Date().getUTCFullYear()));
+  if (transactionType) params.set('transactionType', transactionType);
+  if (industry) params.set('industry', industry);
+  params.set('status', 'all');
+  params.set('limit', String(pageSize));
+  params.set('offset', String((Math.max(1, page) - 1) * pageSize));
+  return params;
+};
+
+const applyEscrowHistoryPayload = (result, pageSize) => {
+  const data = result?.data !== undefined ? result.data : result;
+  const list = extractEscrowList(data);
+  const source = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  const rawTotal =
+    source.total ??
+    source.count ??
+    source.totalCount ??
+    source.pagination?.total ??
+    result?.total ??
+    result?.count ??
+    result?.totalCount ??
+    result?.pagination?.total ??
+    list.length;
+  const total = Number.isFinite(Number(rawTotal)) ? Math.max(0, Math.floor(Number(rawTotal))) : list.length;
+  return {
+    escrows: list,
+    total,
+    totalPages: Math.max(1, Math.ceil((total || list.length) / pageSize) || 1),
+  };
+};
+
+const fetchEscrowByMonthPage = async ({
+  token,
+  monthLabel,
+  transactionType,
+  industry,
+  page,
+  pageSize,
+}) => {
+  const params = buildEscrowByMonthParams({
+    monthLabel,
+    transactionType,
+    industry,
+    page,
+    pageSize,
+  });
+  const apiUrl = getApiUrl(`api/escrow/by-month?${params.toString()}`);
+  const response = await fetch(apiUrl, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    const error = new Error(errorData?.message || 'Failed to load escrows');
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+
+  const result = await response.json();
+  if (result && result.success === false) {
+    throw new Error(result.message || 'Failed to load escrows');
+  }
+  return applyEscrowHistoryPayload(result, pageSize);
+};
+
+const parseEscrowDateValue = (raw) => {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'boolean') return null;
+  if (raw instanceof Date) {
+    return Number.isFinite(raw.getTime()) ? raw : null;
+  }
+  if (typeof raw === 'object') {
+    return parseEscrowDateValue(
+      raw.date ??
+        raw.iso ??
+        raw.value ??
+        raw.datetime ??
+        raw.timestamp ??
+        raw.createdAt ??
+        raw.completedAt,
+    );
+  }
+
+  const str = String(raw).trim();
+  const isoDateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (isoDateOnly) {
+    const parsed = new Date(
+      Number(isoDateOnly[1]),
+      Number(isoDateOnly[2]) - 1,
+      Number(isoDateOnly[3]),
+    );
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+
+  if (typeof raw === 'number' || /^\d+(\.\d+)?$/.test(str)) {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const ms = n < 1e12 ? n * 1000 : n;
+    const fromUnix = new Date(ms);
+    return Number.isFinite(fromUnix.getTime()) ? fromUnix : null;
+  }
+
+  const date = new Date(str);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
 const getEscrowUsdAmount = (escrow) => {
   const amount =
     escrow?.amount?.usd ||
@@ -134,12 +290,15 @@ const getEscrowUsdAmount = (escrow) => {
   return typeof amount === 'number' ? amount : parseFloat(amount) || 0;
 };
 
-const getEscrowCreatedDate = (escrow) => {
-  const raw = escrow?.createdAt || escrow?.created || escrow?.created_at;
-  if (!raw) return null;
-  const date = new Date(raw);
-  return Number.isFinite(date.getTime()) ? date : null;
-};
+const getEscrowCreatedDate = (escrow) =>
+  parseEscrowDateValue(
+    escrow?.createdAt ||
+      escrow?.created ||
+      escrow?.created_at ||
+      escrow?.dateCreated ||
+      escrow?.createdDate ||
+      escrow?.timestamp,
+  );
 
 const isEscrowInPeriod = (escrow, period) => {
   if (!period || period === 'all_time') return true;
@@ -167,12 +326,18 @@ const isEscrowInPeriod = (escrow, period) => {
 /** Normalize create-escrow API payload for the success modal (amount is often an object). */
 const normalizeCreatedEscrowForSuccessModal = (createdEscrow, exchangeRate) => {
   const amountNode = createdEscrow?.amount;
-  let successPrimaryAmount = '0 XRP';
+  let successPrimaryAmount = formatEscrowDenominationLabel(createdEscrow);
   let successUsdAmount = null;
 
-  if (amountNode && typeof amountNode === 'object') {
+  const creationCurrency = resolveEscrowCreationCurrency(createdEscrow);
+  const denominationAmount = resolveEscrowDenominationAmount(createdEscrow);
+  if (denominationAmount != null && creationCurrency) {
+    successPrimaryAmount = formatEscrowDenominationLabel(createdEscrow);
+  } else if (amountNode && typeof amountNode === 'object') {
     if (amountNode.display?.value != null) {
-      const cur = String(amountNode.display.currency || createdEscrow?.currency || 'USD').toUpperCase();
+      const cur = String(
+        createdEscrow?.currency || amountNode.display.currency || 'USD',
+      ).toUpperCase();
       successPrimaryAmount = `${Number(amountNode.display.value).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: cur === 'XRP' ? 6 : 2,
@@ -188,10 +353,6 @@ const normalizeCreatedEscrowForSuccessModal = (createdEscrow, exchangeRate) => {
         maximumFractionDigits: 2,
       })}`;
     }
-
-    if (amountNode.usd != null) {
-      successUsdAmount = Number(amountNode.usd).toFixed(2);
-    }
   } else if (amountNode != null && amountNode !== '') {
     const numeric = parseFloat(String(amountNode));
     if (Number.isFinite(numeric)) {
@@ -199,14 +360,21 @@ const normalizeCreatedEscrowForSuccessModal = (createdEscrow, exchangeRate) => {
         minimumFractionDigits: 2,
         maximumFractionDigits: 6,
       })} XRP`;
-      if (exchangeRate) {
-        successUsdAmount = (numeric * exchangeRate).toFixed(2);
-      }
     }
   }
 
-  if (successUsdAmount == null && createdEscrow?.amountUsd != null) {
+  const settlementUsd = resolveEscrowSettlementUsd(createdEscrow);
+  if (settlementUsd != null) {
+    successUsdAmount = Number(settlementUsd).toFixed(2);
+  } else if (amountNode && typeof amountNode === 'object' && amountNode.usd != null) {
+    successUsdAmount = Number(amountNode.usd).toFixed(2);
+  } else if (createdEscrow?.amountUsd != null) {
     successUsdAmount = Number(createdEscrow.amountUsd).toFixed(2);
+  } else if (successUsdAmount == null && exchangeRate && amountNode != null && typeof amountNode !== 'object') {
+    const numeric = parseFloat(String(amountNode));
+    if (Number.isFinite(numeric)) {
+      successUsdAmount = (numeric * exchangeRate).toFixed(2);
+    }
   }
 
   const normalizedAmount =
@@ -228,6 +396,42 @@ const renderCreatedEscrowSuccessAmount = (createdEscrowData) => {
   return usd ? `${primary} ($${usd} USD)` : primary;
 };
 
+const buildDetailEscrowFromCreated = (createdEscrowData) => {
+  const escrowId =
+    createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId;
+  if (!escrowId || !createdEscrowData) return null;
+  return {
+    ...createdEscrowData,
+    id: escrowId,
+    escrowId,
+    xrpHash: createdEscrowData?.xrpHash,
+    xrpHashes: createdEscrowData?.xrpHashes,
+    xrplEscrowId: createdEscrowData?.xrplEscrowId,
+    counterpartyName:
+      createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
+    initiatorName:
+      createdEscrowData?.initiatorName ||
+      createdEscrowData?.userName ||
+      createdEscrowData?.user?.name ||
+      'You',
+    counterpartyAvatarUrl:
+      createdEscrowData?.counterpartyAvatarUrl ||
+      createdEscrowData?.counterpartyAvatar ||
+      createdEscrowData?.counterparty?.avatar ||
+      null,
+    initiatorAvatarUrl:
+      createdEscrowData?.initiatorAvatarUrl ||
+      createdEscrowData?.initiatorAvatar ||
+      createdEscrowData?.user?.avatar ||
+      null,
+    amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
+    status: createdEscrowData?.status || 'active',
+    progress: createdEscrowData?.progress ?? 0,
+    createdAt: createdEscrowData?.createdAt || createdEscrowData?.created,
+  };
+};
+
+
 const MyEscrow = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -239,6 +443,8 @@ const MyEscrow = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
+  const [selectedHistoryMonth, setSelectedHistoryMonth] = useState(getCurrentHistoryMonth);
+  const [showHistoryMonthDropdown, setShowHistoryMonthDropdown] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [escrowDataVersion, setEscrowDataVersion] = useState(0);
 
@@ -785,70 +991,17 @@ const MyEscrow = () => {
         }
 
         setIsLoadingEscrows(true);
-        const transactionType = getTransactionType(activeCategory);
-        const offset = (currentPage - 1) * limit;
-        
-        // Build query parameters
-        const params = new URLSearchParams();
-        if (transactionType) {
-          params.append('transactionType', transactionType);
-        }
-        if (selectedIndustry) {
-          params.append('industry', selectedIndustry);
-        }
-        params.append('limit', limit.toString());
-        params.append('offset', offset.toString());
-
-        const apiUrl = getApiUrl(`api/escrow/list?${params.toString()}`);
-        console.log('Fetching escrows from:', apiUrl);
-
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+        const { escrows: pageItems, total, totalPages: pages } = await fetchEscrowByMonthPage({
+          token,
+          monthLabel: selectedHistoryMonth,
+          transactionType: getTransactionType(activeCategory),
+          industry: selectedIndustry,
+          page: currentPage,
+          pageSize: limit,
         });
-
-        console.log('Escrows list API response status:', response.status);
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Escrows list API response data:', result);
-
-          if (result?.success && result?.data) {
-            // Handle different response structures
-            if (Array.isArray(result.data.escrows)) {
-              setEscrows(result.data.escrows);
-              // Calculate total pages from total count
-              const total = result.data.total || result.data.count || result.data.escrows.length;
-              setTotalEscrowsCount(total);
-              setTotalPages(Math.ceil(total / limit));
-            } else if (Array.isArray(result.data)) {
-              setEscrows(result.data);
-              setTotalEscrowsCount(result.data.length);
-              setTotalPages(Math.ceil(result.data.length / limit));
-            } else {
-              setEscrows([]);
-              setTotalEscrowsCount(0);
-              setTotalPages(1);
-            }
-          } else {
-            setEscrows([]);
-            setTotalEscrowsCount(0);
-            setTotalPages(1);
-          }
-        } else {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          console.error('Escrows list API error response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data: errorData
-          });
-          setEscrows([]);
-          setTotalEscrowsCount(0);
-          setTotalPages(1);
-        }
+        setEscrows(pageItems);
+        setTotalEscrowsCount(total);
+        setTotalPages(pages);
       } catch (error) {
         console.error('Error fetching escrows:', error);
         setEscrows([]);
@@ -860,7 +1013,7 @@ const MyEscrow = () => {
     };
 
     fetchEscrows();
-  }, [activeCategory, selectedIndustry, currentPage, limit, isSessionExpired, escrowDataVersion]);
+  }, [activeCategory, selectedIndustry, selectedHistoryMonth, currentPage, limit, isSessionExpired, escrowDataVersion]);
 
   // Update timers every second for countdown
   useEffect(() => {
@@ -873,7 +1026,7 @@ const MyEscrow = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategory, selectedIndustry]);
+  }, [activeCategory, selectedIndustry, selectedHistoryMonth]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -884,13 +1037,41 @@ const MyEscrow = () => {
       if (showPeriodDropdown && !event.target.closest('.escrow-month-dropdown-wrapper')) {
         setShowPeriodDropdown(false);
       }
+      if (
+        showHistoryMonthDropdown &&
+        !event.target.closest('.date-filter-wrapper') &&
+        !event.target.closest('.escrow-history-month-wrapper')
+      ) {
+        setShowHistoryMonthDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showIndustryDropdown, showPeriodDropdown]);
+  }, [showIndustryDropdown, showPeriodDropdown, showHistoryMonthDropdown]);
+
+  const refreshEscrowList = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const { escrows: pageItems, total, totalPages: pages } = await fetchEscrowByMonthPage({
+        token,
+        monthLabel: selectedHistoryMonth,
+        transactionType: getTransactionType(activeCategory),
+        industry: selectedIndustry,
+        page: currentPage,
+        pageSize: limit,
+      });
+      setEscrows(pageItems);
+      setTotalEscrowsCount(total);
+      setTotalPages(pages);
+    } catch (error) {
+      console.error('Error refreshing escrow list:', error);
+    }
+  };
 
   // Handle release escrow
   const handleReleaseEscrow = async (escrowId) => {
@@ -921,32 +1102,7 @@ const MyEscrow = () => {
         const result = await response.json();
         if (result?.success) {
           toast.success('Escrow released successfully');
-          // Refresh escrow list
-          const fetchEscrows = async () => {
-            const transactionType = getTransactionType(activeCategory);
-            const offset = (currentPage - 1) * limit;
-            const params = new URLSearchParams();
-            if (transactionType) params.append('transactionType', transactionType);
-            if (selectedIndustry) params.append('industry', selectedIndustry);
-            params.append('limit', limit.toString());
-            params.append('offset', offset.toString());
-            const url = getApiUrl(`api/escrow/list?${params.toString()}`);
-            const res = await fetch(url, {
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data?.success && data?.data) {
-                if (Array.isArray(data.data.escrows)) {
-                  setEscrows(data.data.escrows);
-                  const total = data.data.total || data.data.count || data.data.escrows.length;
-                  setTotalEscrowsCount(total);
-                  setTotalPages(Math.ceil(total / limit));
-                }
-              }
-            }
-          };
-          fetchEscrows();
+          await refreshEscrowList();
           return true;
         }
         toast.error(result?.message || 'Failed to release escrow');
@@ -976,48 +1132,6 @@ const MyEscrow = () => {
     });
   };
 
-  // Helper function to refresh escrow list
-  const refreshEscrowList = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const transactionType = getTransactionType(activeCategory);
-      const offset = (currentPage - 1) * limit;
-      const params = new URLSearchParams();
-      if (transactionType) params.append('transactionType', transactionType);
-      if (selectedIndustry) params.append('industry', selectedIndustry);
-      params.append('limit', limit.toString());
-      params.append('offset', offset.toString());
-
-      const apiUrl = getApiUrl(`api/escrow/list?${params.toString()}`);
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result?.success && result?.data) {
-          if (Array.isArray(result.data.escrows)) {
-            setEscrows(result.data.escrows);
-            const total = result.data.total || result.data.count || result.data.escrows.length;
-            setTotalEscrowsCount(total);
-            setTotalPages(Math.ceil(total / limit));
-          } else if (Array.isArray(result.data)) {
-            setEscrows(result.data);
-            setTotalEscrowsCount(result.data.length);
-            setTotalPages(Math.ceil(result.data.length / limit));
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing escrow list:', error);
-    }
-  };
-
   const selectedPeriodLabel =
     ESCROW_PERIOD_OPTIONS.find((option) => option.value === selectedPeriod)?.label || 'This month';
 
@@ -1028,6 +1142,7 @@ const MyEscrow = () => {
         className={`escrow-month-dropdown${showPeriodDropdown ? ' open' : ''}`}
         onClick={() => {
           setShowIndustryDropdown(false);
+          setShowHistoryMonthDropdown(false);
           setShowPeriodDropdown((open) => !open);
         }}
         aria-haspopup="listbox"
@@ -1060,6 +1175,50 @@ const MyEscrow = () => {
           ))}
         </div>
       ) : null}
+    </div>
+  );
+
+  const renderHistoryMonthMenu = () =>
+    showHistoryMonthDropdown ? (
+      <div className="escrow-month-dropdown-menu" role="listbox" aria-label="Month">
+        {HISTORY_MONTH_OPTIONS.map((month) => (
+          <button
+            key={month}
+            type="button"
+            role="option"
+            aria-selected={selectedHistoryMonth === month}
+            className={`escrow-month-dropdown-item${selectedHistoryMonth === month ? ' active' : ''}`}
+            onClick={() => {
+              setSelectedHistoryMonth(month);
+              setShowHistoryMonthDropdown(false);
+              setCurrentPage(1);
+            }}
+          >
+            <span>{month}</span>
+            {selectedHistoryMonth === month ? <CheckCircle size={14} /> : null}
+          </button>
+        ))}
+      </div>
+    ) : null;
+
+  const renderHistoryMonthFilter = () => (
+    <div className="date-filter-wrapper">
+      <button
+        type="button"
+        className={`date-filter${showHistoryMonthDropdown ? ' open' : ''}`}
+        onClick={() => {
+          setShowIndustryDropdown(false);
+          setShowPeriodDropdown(false);
+          setShowHistoryMonthDropdown((open) => !open);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={showHistoryMonthDropdown}
+        aria-label="Filter escrow history by month"
+      >
+        <span>{selectedHistoryMonth}</span>
+        <Calendar size={16} />
+      </button>
+      {renderHistoryMonthMenu()}
     </div>
   );
 
@@ -1385,6 +1544,7 @@ const MyEscrow = () => {
             style={{ position: 'relative', cursor: 'pointer' }}
             onClick={() => {
               setShowPeriodDropdown(false);
+              setShowHistoryMonthDropdown(false);
               setShowIndustryDropdown(!showIndustryDropdown);
             }}
           >
@@ -1449,10 +1609,7 @@ const MyEscrow = () => {
               </div>
             )}
           </div>
-          <div className="date-filter">
-            <span>November</span>
-            <Calendar size={16} />
-          </div>
+          {renderHistoryMonthFilter()}
         </div>
       </div>
 
@@ -1466,9 +1623,23 @@ const MyEscrow = () => {
           <button type="button" className="escrow-history-control-btn">
             <ChevronDown size={18} />
           </button>
-          <button type="button" className="escrow-history-control-btn">
-            <Calendar size={18} />
-          </button>
+          <div className="escrow-history-month-wrapper">
+            <button
+              type="button"
+              className={`escrow-history-control-btn${showHistoryMonthDropdown ? ' active' : ''}`}
+              onClick={() => {
+                setShowIndustryDropdown(false);
+                setShowPeriodDropdown(false);
+                setShowHistoryMonthDropdown((open) => !open);
+              }}
+              aria-haspopup="listbox"
+              aria-expanded={showHistoryMonthDropdown}
+              aria-label="Filter escrow history by month"
+            >
+              <Calendar size={18} />
+            </button>
+            {renderHistoryMonthMenu()}
+          </div>
         </div>
       </div>
 
@@ -1503,13 +1674,8 @@ const MyEscrow = () => {
           const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
           const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
           
-          // Format amounts
-          const xrpAmount = escrow.amount?.xrp 
-            ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
-            : '0.00';
-          const usdAmount = escrow.amount?.usd 
-            ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            : '0.00';
+          // Format amounts using creation currency + denominationAmount (not amount.currency)
+          const { primaryLabel, usdLabel, showUsdApprox } = formatEscrowListAmountParts(escrow);
           
           const displayStatus = getEscrowDisplayStatus(escrow);
           
@@ -1535,7 +1701,7 @@ const MyEscrow = () => {
               <div className="escrow-card-top">
                 <div className="escrow-card-id">{formattedId}</div>
                 <div className="escrow-card-value">
-                  {xrpAmount} XRP ≈ ${usdAmount}
+                  {showUsdApprox ? `${primaryLabel} ≈ $${usdLabel}` : primaryLabel}
                 </div>
               </div>
               <div className="escrow-card-bottom">
@@ -1615,13 +1781,8 @@ const MyEscrow = () => {
               const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
               const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
               
-              // Format amounts
-              const xrpAmount = escrow.amount?.xrp 
-                ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
-                : '0.00';
-              const usdAmount = escrow.amount?.usd 
-                ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                : '0.00';
+              // Format amounts using creation currency + denominationAmount (not amount.currency)
+              const { primaryLabel, usdLabel, showUsdApprox } = formatEscrowListAmountParts(escrow);
               
               const displayStatus = getEscrowDisplayStatus(escrow);
               const statusLower = (escrow.status || 'Unknown').toLowerCase();
@@ -1698,9 +1859,13 @@ const MyEscrow = () => {
                   </td>
                   <td className="escrow-amount">
                     <span className="amount-single-line">
-                      <span className="amount-crypto">{xrpAmount} XRP</span>
-                      <span className="amount-separator"> </span>
-                      <span className="amount-usd">≈ ${usdAmount}</span>
+                      <span className="amount-crypto">{primaryLabel}</span>
+                      {showUsdApprox ? (
+                        <>
+                          <span className="amount-separator"> </span>
+                          <span className="amount-usd">≈ ${usdLabel}</span>
+                        </>
+                      ) : null}
                     </span>
                   </td>
                   <td>
@@ -1848,7 +2013,7 @@ const MyEscrow = () => {
 
             {/* Sub-text */}
             <p className="payment-success-subtext">
-              You have successfully locked
+              You have successfully escrowed
             </p>
             <p className="payment-success-amount">
               {renderCreatedEscrowSuccessAmount(createdEscrowData)}
@@ -1878,23 +2043,9 @@ const MyEscrow = () => {
                 type="button"
                 className="payment-details-btn"
                 onClick={() => {
-                  const escrowId = createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId;
-                  if (escrowId && createdEscrowData) {
-                    setSelectedEscrow({
-                      id: escrowId,
-                      escrowId,
-                      xrpHash: createdEscrowData?.xrpHash,
-                      xrpHashes: createdEscrowData?.xrpHashes,
-                      xrplEscrowId: createdEscrowData?.xrplEscrowId,
-                      counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
-                      initiatorName: createdEscrowData?.initiatorName || createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
-                      counterpartyAvatarUrl: createdEscrowData?.counterpartyAvatarUrl || createdEscrowData?.counterpartyAvatar || createdEscrowData?.counterparty?.avatar || null,
-                      initiatorAvatarUrl: createdEscrowData?.initiatorAvatarUrl || createdEscrowData?.initiatorAvatar || createdEscrowData?.user?.avatar || null,
-                      amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
-                      status: createdEscrowData?.status || 'active',
-                      progress: createdEscrowData?.progress ?? 0,
-                      createdAt: createdEscrowData?.createdAt || createdEscrowData?.created
-                    });
+                  const detailEscrow = buildDetailEscrowFromCreated(createdEscrowData);
+                  if (detailEscrow) {
+                    setSelectedEscrow(detailEscrow);
                     setShowEscrowDetailModal(true);
                   }
                   setShowSuccessModal(false);
@@ -2056,6 +2207,7 @@ const MyEscrow = () => {
                   style={{ position: 'relative', cursor: 'pointer' }}
                   onClick={() => {
                     setShowPeriodDropdown(false);
+                    setShowHistoryMonthDropdown(false);
                     setShowIndustryDropdown(!showIndustryDropdown);
                   }}
                 >
@@ -2120,10 +2272,7 @@ const MyEscrow = () => {
                     </div>
                   )}
                 </div>
-                <div className="date-filter">
-                  <span>November</span>
-                  <Calendar size={16} />
-                </div>
+                {renderHistoryMonthFilter()}
               </div>
             </div>
 
@@ -2178,13 +2327,8 @@ const MyEscrow = () => {
                     const initiatorAvatar = escrow.initiatorAvatarUrl || escrow.initiatorAvatar || escrow.user?.avatar || null;
                     const counterpartyAvatar = escrow.counterpartyAvatarUrl || escrow.counterpartyAvatar || escrow.counterparty?.avatar || null;
                     
-                    // Format amounts
-                    const xrpAmount = escrow.amount?.xrp 
-                      ? Number(escrow.amount.xrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
-                      : '0.00';
-                    const usdAmount = escrow.amount?.usd 
-                      ? Number(escrow.amount.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : '0.00';
+                    // Format amounts using creation currency + denominationAmount (not amount.currency)
+                    const { primaryLabel, usdLabel, showUsdApprox } = formatEscrowListAmountParts(escrow);
                     
                     const displayStatus = getEscrowDisplayStatus(escrow);
                     const statusLower = (escrow.status || 'Unknown').toLowerCase();
@@ -2260,9 +2404,13 @@ const MyEscrow = () => {
                         </td>
                         <td className="escrow-amount">
                           <span className="amount-single-line">
-                            <span className="amount-crypto">{xrpAmount} XRP</span>
-                            <span className="amount-separator"> </span>
-                            <span className="amount-usd">≈ ${usdAmount}</span>
+                            <span className="amount-crypto">{primaryLabel}</span>
+                            {showUsdApprox ? (
+                              <>
+                                <span className="amount-separator"> </span>
+                                <span className="amount-usd">≈ ${usdLabel}</span>
+                              </>
+                            ) : null}
                           </span>
                         </td>
                         <td>
@@ -2423,7 +2571,7 @@ const MyEscrow = () => {
 
             {/* Sub-text */}
             <p className="payment-success-subtext">
-              You have successfully locked
+              You have successfully escrowed
             </p>
             <p className="payment-success-amount">
               {renderCreatedEscrowSuccessAmount(createdEscrowData)}
@@ -2453,23 +2601,9 @@ const MyEscrow = () => {
                 type="button"
                 className="payment-details-btn"
                 onClick={() => {
-                  const escrowId = createdEscrowData?.id || createdEscrowData?.transactionId || createdEscrowData?.escrowId;
-                  if (escrowId && createdEscrowData) {
-                    setSelectedEscrow({
-                      id: escrowId,
-                      escrowId,
-                      xrpHash: createdEscrowData?.xrpHash,
-                      xrpHashes: createdEscrowData?.xrpHashes,
-                      xrplEscrowId: createdEscrowData?.xrplEscrowId,
-                      counterpartyName: createdEscrowData?.counterpartyName || createdEscrowData?.counterparty?.name || 'Unknown',
-                      initiatorName: createdEscrowData?.initiatorName || createdEscrowData?.userName || createdEscrowData?.user?.name || 'You',
-                      counterpartyAvatarUrl: createdEscrowData?.counterpartyAvatarUrl || createdEscrowData?.counterpartyAvatar || createdEscrowData?.counterparty?.avatar || null,
-                      initiatorAvatarUrl: createdEscrowData?.initiatorAvatarUrl || createdEscrowData?.initiatorAvatar || createdEscrowData?.user?.avatar || null,
-                      amount: createdEscrowData?.amount || { xrp: 0, usd: 0 },
-                      status: createdEscrowData?.status || 'active',
-                      progress: createdEscrowData?.progress ?? 0,
-                      createdAt: createdEscrowData?.createdAt || createdEscrowData?.created
-                    });
+                  const detailEscrow = buildDetailEscrowFromCreated(createdEscrowData);
+                  if (detailEscrow) {
+                    setSelectedEscrow(detailEscrow);
                     setShowEscrowDetailModal(true);
                   }
                   setShowSuccessModal(false);
