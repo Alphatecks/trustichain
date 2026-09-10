@@ -310,6 +310,39 @@ const getBeneficiaryDeleteKey = (beneficiary) => {
   return null;
 };
 
+const getBeneficiarySendTag = (beneficiary) => {
+  const tag = String(getBeneficiaryTrustitag(beneficiary) || '').trim().replace(/^@/, '');
+  if (tag) return tag;
+  const trustitagId = getBeneficiaryTrustitagId(beneficiary);
+  if (trustitagId && trustitagId !== '—') return String(trustitagId).replace(/^@/, '');
+  return '';
+};
+
+const getBeneficiaryFullName = (beneficiary) => {
+  const name = typeof beneficiary?.name === 'string' ? beneficiary.name.trim() : '';
+  const first = typeof beneficiary?.firstName === 'string' ? beneficiary.firstName.trim() : '';
+  const last = typeof beneficiary?.lastName === 'string' ? beneficiary.lastName.trim() : '';
+  const combined = [first, last].filter(Boolean).join(' ');
+  return name || combined;
+};
+
+const getBeneficiaryPhone = (beneficiary) => {
+  if (!beneficiary || typeof beneficiary !== 'object') return '';
+  for (const key of ['phoneNumber', 'phone', 'mobile', 'mobileNumber']) {
+    const value = beneficiary[key];
+    if (value != null && String(value).trim() !== '') return String(value).trim();
+  }
+  return '';
+};
+
+const SWAP_CURRENCIES = ['XRP', 'USDT', 'USDC'];
+
+const SWAP_CURRENCY_ICONS = {
+  XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+  USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
+  USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
+};
+
 const formatTimeAgo = (isoString) => {
   if (!isoString) return 'N/A';
   const date = new Date(isoString);
@@ -714,6 +747,8 @@ const Transactions = () => {
   const [isFetchingSwapQuote, setIsFetchingSwapQuote] = useState(false);
   const [useDEX, setUseDEX] = useState(false);
   const [slippageTolerance, setSlippageTolerance] = useState(5);
+  const [showSwapFromCurrencyDropdown, setShowSwapFromCurrencyDropdown] = useState(false);
+  const [showSwapToCurrencyDropdown, setShowSwapToCurrencyDropdown] = useState(false);
   const swapQuoteTimeoutRef = useRef(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSendPage, setShowSendPage] = useState(false);
@@ -1612,7 +1647,70 @@ const Transactions = () => {
     }
   }, [showToCurrencyDropdown]);
 
-  // Handle toAmount change (reverse calculation)
+  useEffect(() => {
+    if (!showSwapFromCurrencyDropdown && !showSwapToCurrencyDropdown) return undefined;
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.swap-modal .swap-currency-selector-wrapper')) {
+        setShowSwapFromCurrencyDropdown(false);
+        setShowSwapToCurrencyDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSwapFromCurrencyDropdown, showSwapToCurrencyDropdown]);
+
+  const renderSwapCurrencyBadge = (currency) => (
+    <div className={`swap-currency-badge ${currency === 'USDT' || currency === 'USDC' ? `${currency.toLowerCase()}-badge` : ''}`}>
+      {SWAP_CURRENCY_ICONS[currency] ? (
+        <img src={SWAP_CURRENCY_ICONS[currency]} alt="" />
+      ) : (
+        getCurrencyBadge(currency)
+      )}
+    </div>
+  );
+
+  const renderSwapCurrencySelector = (field, currency, isOpen, setIsOpen, closeOther) => (
+    <div className="swap-currency-selector-wrapper">
+      <button
+        type="button"
+        className={`swap-currency-selector${isOpen ? ' is-open' : ''}`}
+        onClick={() => {
+          if (isSwapping) return;
+          closeOther();
+          setIsOpen((open) => !open);
+        }}
+        disabled={isSwapping}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`${field === 'fromCurrency' ? 'From' : 'To'} currency`}
+      >
+        {renderSwapCurrencyBadge(currency)}
+        <span className="swap-currency-name">{getCurrencyDisplayName(currency)}</span>
+        <ChevronDown size={16} className="swap-currency-chevron" aria-hidden />
+      </button>
+      {isOpen ? (
+        <div className="swap-currency-dropdown" role="listbox">
+          {SWAP_CURRENCIES.map((code) => (
+            <button
+              key={code}
+              type="button"
+              role="option"
+              aria-selected={currency === code}
+              className={`swap-currency-option${currency === code ? ' is-active' : ''}`}
+              onClick={() => {
+                handleSwapCurrencyChange(field, code);
+                setIsOpen(false);
+              }}
+            >
+              {renderSwapCurrencyBadge(code)}
+              <span className="swap-currency-name">{getCurrencyDisplayName(code)}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+
   const handleToAmountChange = (value) => {
     setLastEditedField('to');
     const numericValue = value.replace(/[^0-9.]/g, '');
@@ -2163,6 +2261,26 @@ const Transactions = () => {
       setIsAddingBeneficiary(false);
     }
   }, [addBeneficiaryTrustitag, isSessionExpired, loadBeneficiaries]);
+
+  const openSendToBeneficiary = useCallback((beneficiary) => {
+    const tag = getBeneficiarySendTag(beneficiary);
+    if (!tag) {
+      toast.error('This beneficiary has no Trustitag to send to');
+      return;
+    }
+    setSendForm((prev) => ({
+      ...prev,
+      recipientTrustitag: tag,
+      recipientFullName: getBeneficiaryFullName(beneficiary),
+      recipientPhone: getBeneficiaryPhone(beneficiary),
+    }));
+    setShowSendModal(true);
+  }, []);
+
+  const openRemoveBeneficiary = useCallback((beneficiary) => {
+    setBeneficiaryToRemove(beneficiary);
+    setShowRemoveBeneficiaryModal(true);
+  }, []);
 
   const handleConfirmRemoveBeneficiary = useCallback(async () => {
     if (!beneficiaryToRemove || isRemovingBeneficiary) return;
@@ -3937,6 +4055,8 @@ const Transactions = () => {
   };
 
   const handleSwapCurrencies = () => {
+    setShowSwapFromCurrencyDropdown(false);
+    setShowSwapToCurrencyDropdown(false);
     setSwapForm(prev => {
       const newFromCurrency = prev.toCurrency;
       const newToCurrency = prev.fromCurrency;
@@ -6877,29 +6997,40 @@ const Transactions = () => {
                             const label = getBeneficiaryDisplayName(beneficiary);
                             const initials = getBeneficiaryInitials(beneficiary);
                             return (
-                              <button
-                                key={beneficiary.id ?? label}
-                                type="button"
-                                className="beneficiary-avatar-btn"
-                                aria-label={`Remove ${label}`}
-                                onClick={() => {
-                                  setBeneficiaryToRemove(beneficiary);
-                                  setShowRemoveBeneficiaryModal(true);
-                                }}
-                              >
-                                {avatarUrl ? (
-                                  <img
-                                    src={avatarUrl}
-                                    alt=""
-                                    className="beneficiary-avatar-img"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <span className="beneficiary-avatar-img beneficiary-avatar-img--initials" aria-hidden>
-                                    {initials}
-                                  </span>
-                                )}
-                              </button>
+                              <div key={beneficiary.id ?? label} className="beneficiary-chip">
+                                <button
+                                  type="button"
+                                  className="beneficiary-avatar-btn"
+                                  aria-label={`Send to ${label}`}
+                                  title={`Send to ${label}`}
+                                  onClick={() => openSendToBeneficiary(beneficiary)}
+                                >
+                                  {avatarUrl ? (
+                                    <img
+                                      src={avatarUrl}
+                                      alt=""
+                                      className="beneficiary-avatar-img"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="beneficiary-avatar-img beneficiary-avatar-img--initials" aria-hidden>
+                                      {initials}
+                                    </span>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="beneficiary-remove-btn"
+                                  aria-label={`Remove ${label}`}
+                                  title={`Remove ${label}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openRemoveBeneficiary(beneficiary);
+                                  }}
+                                >
+                                  <X size={10} strokeWidth={3} aria-hidden />
+                                </button>
+                              </div>
                             );
                           })}
                       </div>
@@ -7665,6 +7796,8 @@ const Transactions = () => {
         <div className="notification-modal-overlay swap-modal-overlay" onClick={() => {
           if (!isSwapping) {
             setShowSwapModal(false);
+            setShowSwapFromCurrencyDropdown(false);
+            setShowSwapToCurrencyDropdown(false);
             setSwapForm({
               fromCurrency: 'XRP',
               toCurrency: 'USDT',
@@ -7677,13 +7810,15 @@ const Transactions = () => {
             <div className="notification-modal-header">
               <div className="notification-header-content">
                 <div className="notification-header-accent"></div>
-                <h2>Swap</h2>
+                <h2>Convert</h2>
               </div>
               <button 
                 type="button" 
                 className="notification-close-btn" 
                 onClick={() => {
                   setShowSwapModal(false);
+                  setShowSwapFromCurrencyDropdown(false);
+                  setShowSwapToCurrencyDropdown(false);
                   setSwapForm({
                     fromCurrency: 'XRP',
                     toCurrency: 'USDT',
@@ -7703,46 +7838,13 @@ const Transactions = () => {
                 <div className="swap-section">
                   <div className="swap-section-header">
                     <label className="swap-section-label">From</label>
-                    <div className="swap-currency-selector-wrapper">
-                    <select
-                      id="swap-from-currency"
-                      className="swap-currency-select"
-                      value={swapForm.fromCurrency}
-                      onChange={(e) => handleSwapCurrencyChange('fromCurrency', e.target.value)}
-                      disabled={isSwapping}
-                    >
-                      <option value="XRP">XRP</option>
-                      <option value="USDT">USDT</option>
-                      <option value="USDC">USDC</option>
-                    </select>
-                    <div className="swap-currency-selector">
-                      <div className={`swap-currency-badge ${swapForm.fromCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
-                        {swapForm.fromCurrency === 'XRP' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                            alt="XRP" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapForm.fromCurrency === 'USDT' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
-                            alt="USDT" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapForm.fromCurrency === 'USDC' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
-                            alt="USDC" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : (
-                          getCurrencyBadge(swapForm.fromCurrency)
-                        )}
-                      </div>
-                      <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.fromCurrency)}</span>
-                      <ChevronDown size={16} />
-                    </div>
-                  </div>
+                    {renderSwapCurrencySelector(
+                      'fromCurrency',
+                      swapForm.fromCurrency,
+                      showSwapFromCurrencyDropdown,
+                      setShowSwapFromCurrencyDropdown,
+                      () => setShowSwapToCurrencyDropdown(false),
+                    )}
                   </div>
                   <input
                     type="number"
@@ -7773,46 +7875,13 @@ const Transactions = () => {
                 <div className="swap-section">
                   <div className="swap-section-header">
                     <label className="swap-section-label">To</label>
-                    <div className="swap-currency-selector-wrapper">
-                    <select
-                      id="swap-to-currency"
-                      className="swap-currency-select"
-                      value={swapForm.toCurrency}
-                      onChange={(e) => handleSwapCurrencyChange('toCurrency', e.target.value)}
-                      disabled={isSwapping}
-                    >
-                      <option value="XRP">XRP</option>
-                      <option value="USDT">USDT</option>
-                      <option value="USDC">USDC</option>
-                    </select>
-                    <div className="swap-currency-selector">
-                      <div className={`swap-currency-badge ${swapForm.toCurrency === 'USDT' ? 'usdt-badge' : ''}`}>
-                        {swapForm.toCurrency === 'XRP' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                            alt="XRP" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapForm.toCurrency === 'USDT' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
-                            alt="USDT" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapForm.toCurrency === 'USDC' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
-                            alt="USDC" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : (
-                          getCurrencyBadge(swapForm.toCurrency)
-                        )}
-                      </div>
-                      <span className="swap-currency-name">{getCurrencyDisplayName(swapForm.toCurrency)}</span>
-                      <ChevronDown size={16} />
-                    </div>
-                  </div>
+                    {renderSwapCurrencySelector(
+                      'toCurrency',
+                      swapForm.toCurrency,
+                      showSwapToCurrencyDropdown,
+                      setShowSwapToCurrencyDropdown,
+                      () => setShowSwapFromCurrencyDropdown(false),
+                    )}
                   </div>
                   <input
                     type="number"

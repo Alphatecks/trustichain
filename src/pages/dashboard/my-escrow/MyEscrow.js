@@ -128,6 +128,8 @@ const ESCROW_PERIOD_OPTIONS = [
   { value: 'all_time', label: 'All time' },
 ];
 
+const HISTORY_ALL_TIME_LABEL = 'All time';
+
 const HISTORY_MONTH_OPTIONS = [
   'January',
   'February',
@@ -143,7 +145,12 @@ const HISTORY_MONTH_OPTIONS = [
   'December',
 ];
 
+const HISTORY_FILTER_OPTIONS = [HISTORY_ALL_TIME_LABEL, ...HISTORY_MONTH_OPTIONS];
+
 const getCurrentHistoryMonth = () => HISTORY_MONTH_OPTIONS[new Date().getMonth()];
+
+const isHistoryAllTime = (monthLabel) =>
+  String(monthLabel || '').trim().toLowerCase() === HISTORY_ALL_TIME_LABEL.toLowerCase();
 
 const extractEscrowList = (data) => {
   if (Array.isArray(data?.escrows)) return data.escrows;
@@ -162,11 +169,13 @@ const buildEscrowByMonthParams = ({
   pageSize,
 }) => {
   const params = new URLSearchParams();
-  const monthIndex = HISTORY_MONTH_OPTIONS.findIndex(
-    (month) => month.toLowerCase() === String(monthLabel || '').trim().toLowerCase(),
-  );
-  params.set('month', monthIndex >= 0 ? String(monthIndex + 1) : String(monthLabel || ''));
-  params.set('year', String(new Date().getUTCFullYear()));
+  if (!isHistoryAllTime(monthLabel)) {
+    const monthIndex = HISTORY_MONTH_OPTIONS.findIndex(
+      (month) => month.toLowerCase() === String(monthLabel || '').trim().toLowerCase(),
+    );
+    params.set('month', monthIndex >= 0 ? String(monthIndex + 1) : String(monthLabel || ''));
+    params.set('year', String(new Date().getUTCFullYear()));
+  }
   if (transactionType) params.set('transactionType', transactionType);
   if (industry) params.set('industry', industry);
   params.set('status', 'all');
@@ -212,7 +221,8 @@ const fetchEscrowByMonthPage = async ({
     page,
     pageSize,
   });
-  const apiUrl = getApiUrl(`api/escrow/by-month?${params.toString()}`);
+  const endpoint = isHistoryAllTime(monthLabel) ? 'api/escrow/list' : 'api/escrow/by-month';
+  const apiUrl = getApiUrl(`${endpoint}?${params.toString()}`);
   const response = await fetch(apiUrl, {
     method: 'GET',
     headers: {
@@ -1180,8 +1190,8 @@ const MyEscrow = () => {
 
   const renderHistoryMonthMenu = () =>
     showHistoryMonthDropdown ? (
-      <div className="escrow-month-dropdown-menu" role="listbox" aria-label="Month">
-        {HISTORY_MONTH_OPTIONS.map((month) => (
+      <div className="escrow-month-dropdown-menu" role="listbox" aria-label="Time period">
+        {HISTORY_FILTER_OPTIONS.map((month) => (
           <button
             key={month}
             type="button"
@@ -1213,7 +1223,7 @@ const MyEscrow = () => {
         }}
         aria-haspopup="listbox"
         aria-expanded={showHistoryMonthDropdown}
-        aria-label="Filter escrow history by month"
+        aria-label="Filter escrow history by time period"
       >
         <span>{selectedHistoryMonth}</span>
         <Calendar size={16} />
@@ -1634,7 +1644,7 @@ const MyEscrow = () => {
               }}
               aria-haspopup="listbox"
               aria-expanded={showHistoryMonthDropdown}
-              aria-label="Filter escrow history by month"
+              aria-label="Filter escrow history by time period"
             >
               <Calendar size={18} />
             </button>

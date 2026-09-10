@@ -522,6 +522,13 @@ body.transactions-page-active .landing-navbar {
   min-width: 0;
   justify-content: flex-start;
   flex-wrap: nowrap;
+  padding-top: 4px;
+  padding-right: 4px;
+}
+
+.beneficiary-chip {
+  position: relative;
+  flex-shrink: 0;
 }
 
 .beneficiary-avatar-img {
@@ -542,6 +549,35 @@ body.transactions-page-active .landing-navbar {
   flex-shrink: 0;
   border-radius: 50%;
   transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.beneficiary-remove-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+}
+
+.beneficiary-remove-btn:hover,
+.beneficiary-remove-btn:focus-visible {
+  background: #dc2626;
+}
+
+.beneficiary-remove-btn:focus-visible {
+  outline: 2px solid #0671ff;
+  outline-offset: 1px;
 }
 
 .beneficiary-avatar-btn:hover {
@@ -1918,20 +1954,18 @@ body.transactions-page-active .landing-navbar {
   flex: 0 0 auto;
   width: 200px;
   min-width: 180px;
+  z-index: 1;
+}
+
+.swap-currency-selector-wrapper:has(.swap-currency-dropdown) {
+  z-index: 12;
 }
 
 .swap-currency-select {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 2;
-  font-size: 0;
+  display: none;
 }
 
+.swap-modal button.swap-currency-selector,
 .swap-currency-selector {
   width: 100%;
   display: flex;
@@ -1944,15 +1978,16 @@ body.transactions-page-active .landing-navbar {
   cursor: pointer;
   transition: border-color 0.2s ease;
   font-family: 'Satoshi', 'Inter', sans-serif;
-  pointer-events: none;
+  pointer-events: auto;
+  text-align: left;
 }
 
 .swap-currency-selector-wrapper:hover .swap-currency-selector,
-.swap-currency-select:focus + .swap-currency-selector {
+.swap-modal button.swap-currency-selector.is-open {
   border-color: var(--blue-400);
 }
 
-.swap-currency-select:focus + .swap-currency-selector {
+.swap-modal button.swap-currency-selector.is-open {
   border-color: var(--blue-600);
   outline: 2px solid var(--blue-200);
   outline-offset: 2px;
@@ -1971,6 +2006,7 @@ body.transactions-page-active .landing-navbar {
   font-weight: 600;
   overflow: hidden;
   padding: 0.2rem;
+  flex-shrink: 0;
 }
 
 .swap-currency-badge img {
@@ -1992,6 +2028,61 @@ body.transactions-page-active .landing-navbar {
   color: var(--text-dark);
   font-family: 'Satoshi', 'Inter', sans-serif;
   text-align: left;
+}
+
+.swap-modal .swap-currency-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.swap-modal button.swap-currency-selector.is-open .swap-currency-chevron {
+  transform: rotate(180deg);
+}
+
+.swap-modal .swap-currency-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 0.4rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border, #e8eaef);
+  background: var(--surface, #ffffff);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.swap-modal .swap-currency-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  transition: background 0.15s ease;
+}
+
+.swap-modal .swap-currency-option:hover {
+  background: rgba(6, 113, 255, 0.08);
+}
+
+.swap-modal .swap-currency-option.is-active {
+  background: rgba(6, 113, 255, 0.1);
+  color: var(--blue-600);
+  font-weight: 600;
+}
+
+.swap-modal .swap-currency-option .swap-currency-badge {
+  width: 28px;
+  height: 28px;
 }
 
 .swap-amount-input {
@@ -2167,6 +2258,7 @@ body.transactions-page-active .landing-navbar {
     min-width: unset;
   }
 
+  .swap-modal button.swap-currency-selector,
   .swap-currency-selector {
     border: 2px solid var(--blue-600);
     border-radius: 2rem;
@@ -5664,7 +5756,7 @@ body.transactions-page-active .landing-navbar {
     min-width: 0 !important;
     max-width: 100% !important;
     gap: 0.5rem !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   .transactions-left-column .beneficiaries-card .beneficiary-avatar-stack {
@@ -5674,7 +5766,10 @@ body.transactions-page-active .landing-navbar {
     gap: 0.5rem !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    padding-top: 6px !important;
+    padding-right: 6px !important;
     overflow-x: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
