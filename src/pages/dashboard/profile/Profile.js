@@ -35,6 +35,7 @@ import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import NotificationCenterModal from '../../../components/NotificationCenterModal/NotificationCenterModal';
 import EditTrustitagModal from '../../../components/EditTrustitagModal/EditTrustitagModal';
 import LoadingIndicator from '../../../components/LoadingIndicator';
+import { ProfileDetailsSkeleton } from '../../../components/DashboardSkeletons';
 import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
 
 const sidebarNav = [
@@ -548,16 +549,20 @@ const Profile = () => {
                 <Bell size={18} />
               </button>
               <div className="header-user">
-                <HeaderProfileAvatarNav>{desktopHeaderAvatar}</HeaderProfileAvatarNav>
+                <HeaderProfileAvatarNav>
+                  {isLoading ? (
+                    <span className="dashboard-skeleton-block dashboard-skeleton-header-avatar" aria-hidden />
+                  ) : (
+                    desktopHeaderAvatar
+                  )}
+                </HeaderProfileAvatarNav>
               </div>
             </div>
           </header>
 
           <div className="profile-page">
             {isLoading ? (
-              <div className="profile-loading">
-                <LoadingIndicator size="md" />
-              </div>
+              <ProfileDetailsSkeleton />
             ) : (
               <>
                 <div className="card-breadcrumb">

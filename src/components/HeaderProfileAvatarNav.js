@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const loadProfilePage = () => import('../pages/dashboard/profile/Profile');
+
 /**
  * Wraps header avatar markup so tapping opens the Profile route (desktop + mobile shells).
  */
@@ -15,7 +17,12 @@ export default function HeaderProfileAvatarNav({ variant = 'desktop', className 
     <button
       type="button"
       className={[base, className].filter(Boolean).join(' ')}
-      onClick={() => navigate('/profile')}
+      onMouseEnter={loadProfilePage}
+      onFocus={loadProfilePage}
+      onClick={() => {
+        loadProfilePage();
+        navigate('/profile');
+      }}
       aria-label="Open profile"
     >
       {children}

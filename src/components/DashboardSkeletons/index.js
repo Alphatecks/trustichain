@@ -668,3 +668,40 @@ export function NotificationListSkeleton({ count = 6 }) {
     </div>
   );
 }
+
+export function ProfileDetailsSkeleton() {
+  return (
+    <div className="profile-details-skeleton" aria-busy="true" aria-live="polite" aria-label="Loading profile">
+      <DashboardSkeletonBlock className="profile-details-skeleton-breadcrumb" />
+      <div className="profile-details-skeleton-card profile-details-skeleton-card--chip">
+        <DashboardSkeletonBlock className="profile-details-skeleton-chip" />
+      </div>
+      <div className="profile-details-skeleton-card profile-details-skeleton-summary">
+        <DashboardSkeletonBlock className="profile-details-skeleton-avatar" />
+        <div className="profile-details-skeleton-summary-meta">
+          <DashboardSkeletonBlock className="profile-details-skeleton-name" />
+          <DashboardSkeletonBlock className="profile-details-skeleton-email" />
+        </div>
+        <DashboardSkeletonBlock className="profile-details-skeleton-verified" />
+      </div>
+      <div className="profile-details-skeleton-card">
+        <DashboardSkeletonBlock className="profile-details-skeleton-chip profile-details-skeleton-chip--muted" />
+        <div className="profile-details-skeleton-grid">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={`profile-field-skeleton-${index}`} className="profile-details-skeleton-field">
+              <DashboardSkeletonBlock
+                className="profile-details-skeleton-label"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              />
+              <DashboardSkeletonBlock className="profile-details-skeleton-value" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="profile-details-skeleton-card">
+        <DashboardSkeletonBlock className="profile-details-skeleton-chip profile-details-skeleton-chip--muted" />
+        <DashboardSkeletonBlock className="profile-details-skeleton-trustitag" />
+      </div>
+    </div>
+  );
+}

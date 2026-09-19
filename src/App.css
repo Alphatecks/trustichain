@@ -8,6 +8,12 @@
   flex: 1;
 }
 
+.profile-route-lazy-fallback {
+  padding: 2rem;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
 /* Grayscale loading state for sections waiting for API data */
 .section-loading {
   filter: grayscale(100%);

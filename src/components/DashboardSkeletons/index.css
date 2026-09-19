@@ -1494,3 +1494,126 @@
   height: 0.7rem;
   border-radius: 999px;
 }
+
+.profile-details-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-details-skeleton-breadcrumb {
+  width: 8.5rem;
+  height: 0.85rem;
+  border-radius: 0.35rem;
+}
+
+.profile-details-skeleton-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  padding: 1.25rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.profile-details-skeleton-card--chip {
+  padding: 1rem 1.5rem;
+}
+
+.profile-details-skeleton-chip {
+  width: 8.5rem;
+  height: 1.65rem;
+  border-radius: 10px;
+}
+
+.profile-details-skeleton-chip--muted {
+  width: 9.5rem;
+}
+
+.profile-details-skeleton-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.5rem;
+}
+
+.profile-details-skeleton-avatar {
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  border-radius: 50%;
+}
+
+.profile-details-skeleton-summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.profile-details-skeleton-name {
+  width: min(16rem, 70%);
+  height: 1.25rem;
+  border-radius: 0.4rem;
+}
+
+.profile-details-skeleton-email {
+  width: min(12rem, 50%);
+  height: 0.9rem;
+  border-radius: 0.35rem;
+}
+
+.profile-details-skeleton-verified {
+  width: 4.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+}
+
+.profile-details-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.profile-details-skeleton-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.profile-details-skeleton-label {
+  width: 5.5rem;
+  height: 0.75rem;
+  border-radius: 0.3rem;
+}
+
+.profile-details-skeleton-value {
+  width: 80%;
+  height: 1.05rem;
+  border-radius: 0.35rem;
+}
+
+.profile-details-skeleton-trustitag {
+  margin-top: 1rem;
+  width: 100%;
+  height: 2.6rem;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .profile-details-skeleton-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .profile-details-skeleton-verified {
+    display: none;
+  }
+}

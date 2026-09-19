@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Web3Provider } from './context/Web3Context';
@@ -38,11 +38,13 @@ import SandboxEnvironment from './pages/dashboard/business-suite/SandboxEnvironm
 import Webhook from './pages/dashboard/business-suite/Webhook';
 import Invoice from './pages/dashboard/business-suite/Invoice';
 import Settings from './pages/dashboard/settings/Settings';
-import Profile from './pages/dashboard/profile/Profile';
 import useAutoLogout from './hooks/useAutoLogout';
+import { ProfileDetailsSkeleton } from './components/DashboardSkeletons';
 import BusinessEmailGate from './components/BusinessEmailGate';
 import trustiChainLogoIcon from './assets/images/icons/logo.png';
 import './App.css';
+
+const Profile = lazy(() => import('./pages/dashboard/profile/Profile'));
 
 /** Strip trailing slashes for stable route checks (e.g. /dashboard/ vs /dashboard). */
 function normalizePathname(pathname) {
@@ -166,7 +168,20 @@ function AppContent() {
           <Route path="/sandbox-environment" element={<SandboxEnvironment />} />
           <Route path="/webhook" element={<Webhook />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/profile"
+            element={
+              <Suspense
+                fallback={
+                  <div className="profile-route-lazy-fallback">
+                    <ProfileDetailsSkeleton />
+                  </div>
+                }
+              >
+                <Profile />
+              </Suspense>
+            }
+          />
         </Routes>
       </main>
       <Toaster
