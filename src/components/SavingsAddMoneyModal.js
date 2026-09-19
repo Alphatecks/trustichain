@@ -1,37 +1,42 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X, ChevronDown, Info } from 'lucide-react';
-import LoadingIndicator from './LoadingIndicator';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import './SavingsAddMoneyModal.css';
 
 const XRP_ICON =
-  'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731';
+  'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png';
+const USDT_ICON = 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png';
+const USDC_ICON =
+  'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389';
 
-/**
- * @typedef {{ id: string, label: string }} SavingsAddMoneyAccountOption
- */
+const FALLBACK_SOURCES = [
+  { id: 'XRP', code: 'XRP', label: 'XRP wallet', ticker: 'XRP', iconUrl: XRP_ICON },
+  { id: 'USDT', code: 'USDT', label: 'USDT wallet', ticker: 'USDT', iconUrl: USDT_ICON },
+  { id: 'USDC', code: 'USDC', label: 'USDC wallet', ticker: 'USDC', iconUrl: USDC_ICON },
+];
 
-/**
- * Add Money → savings (mobile sheet + desktop dialog styling).
- * @param {object} props
- * @param {boolean} props.isOpen
- * @param {() => void} props.onClose
- * @param {string} props.amount
- * @param {(next: string) => void} props.onAmountChange
- * @param {SavingsAddMoneyAccountOption[]} props.accounts
- * @param {string} props.selectedAccountId
- * @param {(id: string) => void} props.onSelectAccount
- * @param {() => void} props.onTransfer
- * @param {boolean} [props.isSubmitting]
- * @param {boolean} [props.isLoadingBalance]
- * @param {string} [props.balanceLine] — e.g. "24,567.89 USDT" (without "Balance: ")
- * @param {string} [props.sourceWalletLabel='XRP wallet']
- * @param {string} [props.sourceTicker='XRP']
- * @param {string} [props.sourceIconUrl] — wallet/token logo URL (shown in a circle)
- * @param {boolean} [props.useSourceCoinIcon=true]
- * @param {string} [props.amountPrefix='']
- * @param {string} [props.amountSuffix='XRP']
- * @param {string} [props.transferButtonLabel='Transfer']
- */
+function iconForCode(code, iconUrl) {
+  if (iconUrl) return iconUrl;
+  const c = String(code || '').toUpperCase();
+  if (c === 'USDT') return USDT_ICON;
+  if (c === 'USDC') return USDC_ICON;
+  return XRP_ICON;
+}
+
+function SourceCoinIcon({ ticker, iconUrl }) {
+  const code = String(ticker || 'XRP').toUpperCase();
+  return (
+    <span className={`savings-am-wallet-pill-icon ${code === 'XRP' ? 'is-xrp' : ''}`}>
+      <img src={iconForCode(code, iconUrl)} alt="" />
+    </span>
+  );
+}
+
+function usesCoinIcon(ticker) {
+  const t = String(ticker || '').toUpperCase();
+  return t === 'XRP' || t === 'USDT' || t === 'USDC';
+}
+
 const SavingsAddMoneyModal = ({
   isOpen,
   onClose,
@@ -40,91 +45,188 @@ const SavingsAddMoneyModal = ({
   accounts = [],
   selectedAccountId,
   onSelectAccount,
+  sourceWallets = [],
+  selectedSourceId,
+  onSelectSource,
   onTransfer,
   isSubmitting = false,
   isLoadingBalance = false,
-  balanceLine = '',
-  sourceWalletLabel = 'XRP wallet',
-  sourceTicker = 'XRP',
-  sourceIconUrl = XRP_ICON,
-  useSourceCoinIcon = true,
+  balanceLine = '0.00',
   amountPrefix = '',
-  amountSuffix = 'XRP',
-  transferButtonLabel = 'Transfer',
+  amountSuffix,
 }) => {
-  const [accountOpen, setAccountOpen] = useState(false);
+  const overlayRef = useRef(null);
   const accountWrapRef = useRef(null);
+  const sourceWrapRef = useRef(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [internalSourceId, setInternalSourceId] = useState(selectedSourceId || 'XRP');
+
+  const resolvedSources = useMemo(() => {
+    if (Array.isArray(sourceWallets) && sourceWallets.length > 0) {
+      return sourceWallets.map((w) => ({
+        ...w,
+        id: String(w.id || w.code || ''),
+        ticker: w.ticker || w.code || 'XRP',
+        label: w.label || `${w.code || 'XRP'} wallet`,
+        iconUrl: iconForCode(w.code || w.ticker, w.iconUrl),
+      }));
+    }
+    return FALLBACK_SOURCES;
+  }, [sourceWallets]);
+
+  const activeSourceId = selectedSourceId || internalSourceId;
+  const selectedSource =
+    resolvedSources.find((w) => String(w.id) === String(activeSourceId)) ||
+    resolvedSources[0];
+  const sourceTicker = selectedSource?.ticker || 'XRP';
+  const sourceLabel = selectedSource?.label || 'XRP wallet';
+  const sourceIconUrl = selectedSource?.iconUrl;
+  const displaySuffix = amountSuffix != null && amountSuffix !== '' ? amountSuffix : sourceTicker;
+  const useSourceCoinIcon = usesCoinIcon(sourceTicker);
+
+  const selectedAccount =
+    accounts.find((a) => String(a.id) === String(selectedAccountId)) || accounts[0];
+  const selectedLabel = selectedAccount?.label || 'Select account';
 
   useEffect(() => {
     if (!isOpen) {
       setAccountOpen(false);
+      setSourceOpen(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (!accountOpen) return undefined;
-    const onDoc = (e) => {
-      if (accountWrapRef.current && !accountWrapRef.current.contains(e.target)) {
+    if (!isOpen) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        if (sourceOpen) {
+          setSourceOpen(false);
+          return;
+        }
+        if (accountOpen) {
+          setAccountOpen(false);
+          return;
+        }
+        onClose?.();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose, accountOpen, sourceOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onDoc = (event) => {
+      if (accountWrapRef.current && !accountWrapRef.current.contains(event.target)) {
         setAccountOpen(false);
+      }
+      if (sourceWrapRef.current && !sourceWrapRef.current.contains(event.target)) {
+        setSourceOpen(false);
       }
     };
     document.addEventListener('mousedown', onDoc);
-    document.addEventListener('touchstart', onDoc, { passive: true });
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('touchstart', onDoc);
-    };
-  }, [accountOpen]);
-
-  const selectedLabel =
-    accounts.find((a) => a.id === selectedAccountId)?.label ??
-    accounts[0]?.label ??
-    'My Goals';
-
-  const handleAmountInput = (e) => {
-    let value = e.target.value;
-    value = value.replace(/[^0-9.,]/g, '');
-    onAmountChange(value);
-  };
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const titleId = 'savings-add-money-modal-title';
+  const handleAmountInput = (event) => {
+    const next = event.target.value.replace(/[^0-9.]/g, '');
+    const parts = next.split('.');
+    const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : next;
+    onAmountChange?.(sanitized);
+  };
 
-  return (
-    <div className="savings-am-overlay" onClick={onClose} role="presentation">
+  return createPortal(
+    <div
+      className="savings-am-overlay"
+      ref={overlayRef}
+      onClick={(event) => {
+        if (event.target === overlayRef.current) onClose?.();
+      }}
+    >
       <div
-        className="savings-am-sheet"
+        className="savings-am-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
+        aria-labelledby="savings-am-title"
       >
-        <header className="savings-am-head">
-          <h2 id={titleId} className="savings-am-title">
+        <div className="savings-am-top">
+          <h2 id="savings-am-title" className="savings-am-title">
             Add Money
           </h2>
           <button type="button" className="savings-am-close" onClick={onClose} aria-label="Close">
-            <X size={22} strokeWidth={2} />
+            <X size={22} strokeWidth={2.25} />
           </button>
-        </header>
+        </div>
 
         <div className="savings-am-amount-card">
           <div className="savings-am-amount-card-top">
             <span className="savings-am-label-muted">Amount</span>
-            <div className="savings-am-wallet-pill" aria-hidden={false}>
-              {useSourceCoinIcon ? (
-                <span className="savings-am-wallet-pill-icon">
-                  <img src={sourceIconUrl || XRP_ICON} alt="" />
-                </span>
-              ) : (
-                <span className="savings-am-wallet-pill-badge">{sourceTicker}</span>
-              )}
-              <span className="savings-am-wallet-pill-text">{sourceWalletLabel}</span>
-              <ChevronDown size={16} strokeWidth={2.25} className="savings-am-wallet-pill-chevron" aria-hidden />
+            <div className="savings-am-wallet-wrap" ref={sourceWrapRef}>
+              <button
+                type="button"
+                className={`savings-am-wallet-pill ${sourceOpen ? 'is-open' : ''}`}
+                aria-haspopup="listbox"
+                aria-expanded={sourceOpen}
+                aria-label="Source wallet"
+                disabled={isSubmitting}
+                onClick={() => {
+                  setSourceOpen((open) => !open);
+                  setAccountOpen(false);
+                }}
+              >
+                {useSourceCoinIcon ? (
+                  <SourceCoinIcon ticker={sourceTicker} iconUrl={sourceIconUrl} />
+                ) : (
+                  <span className="savings-am-wallet-pill-badge">{sourceTicker}</span>
+                )}
+                <span className="savings-am-wallet-pill-text">{sourceLabel}</span>
+                <ChevronDown
+                  size={16}
+                  strokeWidth={2.25}
+                  className="savings-am-wallet-pill-chevron"
+                  aria-hidden
+                />
+              </button>
+              {sourceOpen ? (
+                <ul className="savings-am-wallet-menu" role="listbox">
+                  {resolvedSources.map((wallet) => {
+                    const selected = String(wallet.id) === String(selectedSource?.id);
+                    const ticker = wallet.ticker || wallet.code || 'XRP';
+                    return (
+                      <li key={wallet.id} role="none">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          className={`savings-am-wallet-option ${selected ? 'is-selected' : ''}`}
+                          onClick={() => {
+                            if (onSelectSource) onSelectSource(wallet.id);
+                            else setInternalSourceId(wallet.id);
+                            setSourceOpen(false);
+                          }}
+                        >
+                          <span className="savings-am-wallet-option-main">
+                            {usesCoinIcon(ticker) ? (
+                              <SourceCoinIcon ticker={ticker} iconUrl={wallet.iconUrl} />
+                            ) : (
+                              <span className="savings-am-wallet-pill-badge">{ticker}</span>
+                            )}
+                            <span>{wallet.label}</span>
+                          </span>
+                          {wallet.balanceLabel ? (
+                            <span className="savings-am-wallet-option-bal">{wallet.balanceLabel}</span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
             </div>
           </div>
-
           <div className="savings-am-amount-hero">
             {amountPrefix ? <span className="savings-am-amount-prefix">{amountPrefix}</span> : null}
             <input
@@ -134,54 +236,58 @@ const SavingsAddMoneyModal = ({
               onChange={handleAmountInput}
               placeholder="0.00"
               inputMode="decimal"
-              autoComplete="off"
               disabled={isSubmitting}
-              aria-label="Amount"
+              aria-label="Amount to add"
             />
-            {amountSuffix ? <span className="savings-am-amount-suffix">{amountSuffix}</span> : null}
+            <span className="savings-am-amount-suffix">{displaySuffix}</span>
           </div>
-
-          <p className="savings-am-balance-line">
-            <span className="savings-am-balance-label">Balance:</span>{' '}
-            {isLoadingBalance ? (
-              <LoadingIndicator size="sm" />
-            ) : (
-              <span className="savings-am-balance-value">{balanceLine || '—'}</span>
-            )}
-          </p>
         </div>
 
-        <div className="savings-am-accounts">
-          <p className="savings-am-accounts-heading">Saving accounts</p>
+        <p className="savings-am-balance">
+          {isLoadingBalance ? 'Loading balance…' : `Available Balance: ${balanceLine}`}
+        </p>
+
+        <div className="savings-am-field">
+          <span className="savings-am-field-label" id="savings-am-account-label">
+            Saving accounts
+          </span>
           <div className="savings-am-account-wrap" ref={accountWrapRef}>
             <button
               type="button"
               className={`savings-am-account-trigger ${accountOpen ? 'is-open' : ''}`}
-              onClick={() => setAccountOpen((o) => !o)}
-              aria-expanded={accountOpen}
               aria-haspopup="listbox"
+              aria-expanded={accountOpen}
+              aria-labelledby="savings-am-account-label"
               disabled={isSubmitting || accounts.length === 0}
+              onClick={() => {
+                setAccountOpen((open) => !open);
+                setSourceOpen(false);
+              }}
             >
-              <span className="savings-am-account-trigger-value">{selectedLabel}</span>
-              <ChevronDown size={18} strokeWidth={2} className="savings-am-account-chevron" aria-hidden />
+              <span className="savings-am-account-value">{selectedLabel}</span>
+              <ChevronDown size={18} strokeWidth={2.25} className="savings-am-account-chevron" />
             </button>
             {accountOpen && accounts.length > 0 ? (
               <ul className="savings-am-account-menu" role="listbox">
-                {accounts.map((a) => (
-                  <li key={a.id}>
-                    <button
-                      type="button"
-                      role="option"
-                      className={`savings-am-account-option ${a.id === selectedAccountId ? 'is-selected' : ''}`}
-                      onClick={() => {
-                        onSelectAccount(a.id);
-                        setAccountOpen(false);
-                      }}
-                    >
-                      {a.label}
-                    </button>
-                  </li>
-                ))}
+                {accounts.map((account) => {
+                  const selected = String(account.id) === String(selectedAccount?.id);
+                  return (
+                    <li key={account.id} role="none">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        className={`savings-am-account-option ${selected ? 'is-selected' : ''}`}
+                        onClick={() => {
+                          onSelectAccount?.(account.id);
+                          setAccountOpen(false);
+                        }}
+                      >
+                        {account.label}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             ) : null}
           </div>
@@ -193,15 +299,11 @@ const SavingsAddMoneyModal = ({
           onClick={onTransfer}
           disabled={isSubmitting || accounts.length === 0}
         >
-          {isSubmitting ? 'Transferring…' : transferButtonLabel}
+          {isSubmitting ? 'Transferring…' : 'Transfer'}
         </button>
-
-        <div className="savings-am-footnote">
-          <Info size={16} strokeWidth={2} className="savings-am-footnote-icon" aria-hidden />
-          <span>Your funds will be added to your account within seconds or refunded if there&apos;s an issue.</span>
-        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

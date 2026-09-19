@@ -1478,6 +1478,15 @@
   letter-spacing: -0.02em;
 }
 
+.wallet-details-fiat-amount {
+  margin: 0 0 0.45rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-family: 'Satoshi', 'Inter', sans-serif;
+}
+
 .wallet-details-exchange-caption {
   margin: 0 0 0.85rem;
   text-align: left;

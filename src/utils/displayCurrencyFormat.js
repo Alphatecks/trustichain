@@ -9,6 +9,41 @@ export function normalizeExchangeQuoteDirection(value) {
   return DEFAULT_EXCHANGE_QUOTE_DIRECTION;
 }
 
+/** USD value of 1 XRP from api/exchange/rates (handles pair rows and quoteDirection). */
+export function getUsdPerXrpFromExchangeRates(
+  exchangeRates,
+  quoteDirection = DEFAULT_EXCHANGE_QUOTE_DIRECTION,
+) {
+  if (!Array.isArray(exchangeRates) || exchangeRates.length === 0) return null;
+
+  const pair = exchangeRates.find(
+    (r) =>
+      (r.from === 'XRP' && r.to === 'USD') ||
+      (r.fromCurrency === 'XRP' && r.toCurrency === 'USD'),
+  );
+  if (pair != null) {
+    const v = Number(pair.rate ?? pair.exchangeRate ?? pair.value);
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+
+  const reverse = exchangeRates.find(
+    (r) =>
+      (r.from === 'USD' && r.to === 'XRP') ||
+      (r.fromCurrency === 'USD' && r.toCurrency === 'XRP'),
+  );
+  if (reverse != null) {
+    const v = Number(reverse.rate ?? reverse.exchangeRate ?? reverse.value);
+    if (Number.isFinite(v) && v > 0) return 1 / v;
+  }
+
+  const row = exchangeRates.find((r) => (r.currency || r.code || '').toUpperCase() === 'XRP');
+  const n = Number(row?.rate ?? row?.value ?? row?.exchangeRate ?? row?.priceUsd ?? row?.usd);
+  if (!Number.isFinite(n) || n <= 0) return null;
+
+  if (normalizeExchangeQuoteDirection(quoteDirection) === 'usdPerUnit') return n;
+  return 1 / n;
+}
+
 /** Convert a USD/RLUSD total into another fiat using api/exchange/rates rows. */
 export function convertUsdTotalToFiatDisplayAmount(
   code,

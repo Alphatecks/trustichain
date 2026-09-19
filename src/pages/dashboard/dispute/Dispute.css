@@ -148,8 +148,12 @@
   flex-wrap: wrap;
 }
 
+.dispute-filter-dropdown-wrapper {
+  position: relative;
+}
+
 .dispute-filter-dropdown {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
@@ -160,10 +164,19 @@
   font-size: 0.9rem;
   cursor: pointer;
   font-family: 'Satoshi', 'Inter', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.dispute-filter-dropdown:hover {
+.dispute-filter-dropdown:hover,
+.dispute-filter-dropdown.open {
   border-color: var(--blue-600);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
+}
+
+.dispute-status-dropdown {
+  left: 0;
+  right: auto;
+  min-width: 180px;
 }
 
 .dispute-month-filter-wrapper {

@@ -76,3 +76,35 @@ export function parseCustodialWalletBalances(apiJson) {
 
   return out;
 }
+
+export function emptyCustodialWalletIds() {
+  return { XRP: '', USDT: '', USDC: '' };
+}
+
+/** Wallet UUIDs from GET api/wallet/balance (top-level aliases or wallets[]). */
+export function extractCustodialWalletIds(apiJson) {
+  const ids = emptyCustodialWalletIds();
+  const data = apiJson?.data && typeof apiJson.data === 'object' ? apiJson.data : apiJson;
+  if (!data || typeof data !== 'object') return ids;
+
+  const assign = (code, value) => {
+    if (value != null && String(value).trim()) ids[code] = String(value);
+  };
+  assign('XRP', data.xrpWalletId || data.xrp_wallet_id);
+  assign('USDT', data.usdtWalletId || data.usdt_wallet_id);
+  assign('USDC', data.usdcWalletId || data.usdc_wallet_id);
+
+  if (Array.isArray(data.wallets)) {
+    data.wallets.forEach((w) => {
+      const c = String(w.currency || w.code || '')
+        .toLowerCase()
+        .replace(/[\s_-]/g, '');
+      const id = w.id || w.walletId || w.wallet_id;
+      if (!id) return;
+      if (c === 'xrp') ids.XRP = String(id);
+      else if (c === 'usdt') ids.USDT = String(id);
+      else if (c === 'usdc') ids.USDC = String(id);
+    });
+  }
+  return ids;
+}

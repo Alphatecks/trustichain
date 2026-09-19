@@ -58,7 +58,7 @@ import logo from '../../../assets/images/icons/logo.png';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
-import { getDisputeSummary, getDisputes, getDisputeDetail } from '../../../utils/disputesApi';
+import { getDisputes, getDisputeDetail, loadDisputeMonthOverview } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
@@ -111,6 +111,8 @@ const MONTH_OPTIONS = [
   'November',
   'December'
 ];
+
+const STATUS_FILTER_OPTIONS = ['All', 'Pending', 'Active', 'Resolved', 'Cancelled'];
 
 // Get current month name
 const getCurrentMonth = () => {
@@ -300,9 +302,13 @@ const Dispute = () => {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isMobileMonthDropdownOpen, setIsMobileMonthDropdownOpen] = useState(false);
+  const [isMobileStatusDropdownOpen, setIsMobileStatusDropdownOpen] = useState(false);
   const monthDropdownRef = useRef(null);
+  const statusDropdownRef = useRef(null);
   const mobileMonthDropdownRef = useRef(null);
+  const mobileStatusDropdownRef = useRef(null);
 
   const [summaryMetrics, setSummaryMetrics] = useState({
     totalDisputes: null,
@@ -325,6 +331,7 @@ const Dispute = () => {
   const [isLoadingDisputeDetail, setIsLoadingDisputeDetail] = useState(false);
 
   const monthParam = useMemo(() => monthLabelToYYYYMM(selectedMonth), [selectedMonth]);
+  const monthNumber = useMemo(() => MONTH_LABEL_TO_NUMBER[String(selectedMonth || '').trim().toLowerCase()] || undefined, [selectedMonth]);
   const statusParam = useMemo(() => {
     const normalized = (selectedFilter || '').trim().toLowerCase();
     if (!normalized || normalized === 'all') return 'all';
@@ -415,12 +422,31 @@ const Dispute = () => {
     setIsMobileMonthDropdownOpen(false);
   };
 
+  const handleStatusSelect = (status) => {
+    setSelectedFilter(status);
+    setCurrentPage(1);
+    setIsStatusDropdownOpen(false);
+    setIsMobileStatusDropdownOpen(false);
+  };
+
   const toggleMonthDropdown = () => {
+    setIsStatusDropdownOpen(false);
     setIsMonthDropdownOpen((prev) => !prev);
   };
 
+  const toggleStatusDropdown = () => {
+    setIsMonthDropdownOpen(false);
+    setIsStatusDropdownOpen((prev) => !prev);
+  };
+
   const toggleMobileMonthDropdown = () => {
+    setIsMobileStatusDropdownOpen(false);
     setIsMobileMonthDropdownOpen((prev) => !prev);
+  };
+
+  const toggleMobileStatusDropdown = () => {
+    setIsMobileMonthDropdownOpen(false);
+    setIsMobileStatusDropdownOpen((prev) => !prev);
   };
 
   const [formattedToday, setFormattedToday] = useState('');
@@ -430,15 +456,23 @@ const Dispute = () => {
       if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target)) {
         setIsMonthDropdownOpen(false);
       }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setIsStatusDropdownOpen(false);
+      }
       if (mobileMonthDropdownRef.current && !mobileMonthDropdownRef.current.contains(event.target)) {
         setIsMobileMonthDropdownOpen(false);
+      }
+      if (mobileStatusDropdownRef.current && !mobileStatusDropdownRef.current.contains(event.target)) {
+        setIsMobileStatusDropdownOpen(false);
       }
     };
 
     const handleEscapeKey = (event) => {
       if (event.key === 'Escape') {
         setIsMonthDropdownOpen(false);
+        setIsStatusDropdownOpen(false);
         setIsMobileMonthDropdownOpen(false);
+        setIsMobileStatusDropdownOpen(false);
       }
     };
 
@@ -1000,15 +1034,52 @@ const Dispute = () => {
         return;
       }
 
-      if (!cancelled) setIsLoadingSummary(true);
+      if (!cancelled) {
+        setSummaryMetrics({
+          totalDisputes: null,
+          activeDisputes: null,
+          resolvedDisputes: null,
+          avgResolutionTimeSeconds: null,
+          totalChangePercent: null,
+          activeChangePercent: null,
+          resolvedChangePercent: null,
+          avgResolutionTimeChangePercent: null,
+        });
+        setIsLoadingSummary(true);
+      }
       try {
-        const data = await getDisputeSummary({ token, month: monthParam });
-        const metrics = data?.metrics;
+        const metrics = await loadDisputeMonthOverview({
+          token,
+          month: monthParam,
+          monthNumber,
+          monthLabel: selectedMonth,
+        });
         if (!cancelled && metrics) {
-          setSummaryMetrics((prev) => ({ ...prev, ...metrics }));
+          setSummaryMetrics({
+            totalDisputes: metrics.totalDisputes,
+            activeDisputes: metrics.activeDisputes,
+            resolvedDisputes: metrics.resolvedDisputes,
+            avgResolutionTimeSeconds: metrics.avgResolutionTimeSeconds,
+            totalChangePercent: metrics.totalChangePercent,
+            activeChangePercent: metrics.activeChangePercent,
+            resolvedChangePercent: metrics.resolvedChangePercent,
+            avgResolutionTimeChangePercent: metrics.avgResolutionTimeChangePercent,
+          });
         }
       } catch (error) {
         console.error('Error fetching dispute summary:', error);
+        if (!cancelled) {
+          setSummaryMetrics({
+            totalDisputes: 0,
+            activeDisputes: 0,
+            resolvedDisputes: 0,
+            avgResolutionTimeSeconds: 0,
+            totalChangePercent: null,
+            activeChangePercent: null,
+            resolvedChangePercent: null,
+            avgResolutionTimeChangePercent: null,
+          });
+        }
       } finally {
         if (!cancelled) setIsLoadingSummary(false);
       }
@@ -1018,7 +1089,7 @@ const Dispute = () => {
     return () => {
       cancelled = true;
     };
-  }, [isSessionExpired, monthParam]);
+  }, [isSessionExpired, monthParam, monthNumber, selectedMonth]);
 
   // Fetch disputes list (table)
   useEffect(() => {
@@ -1038,6 +1109,7 @@ const Dispute = () => {
           token,
           status: statusParam,
           month: monthParam,
+          monthNumber,
           page: currentPage,
           pageSize: itemsPerPage
         });
@@ -1058,9 +1130,13 @@ const Dispute = () => {
           reason: d?.reason || '—',
           duration: formatDurationSeconds(d?.durationSeconds)
         }));
+        const filtered =
+          statusParam === 'all'
+            ? mapped
+            : mapped.filter((d) => String(d.status || '').toLowerCase() === statusParam);
 
         if (!cancelled) {
-          setDisputeData(mapped);
+          setDisputeData(filtered);
         }
       } catch (error) {
         console.error('Error fetching disputes list:', error);
@@ -1076,7 +1152,7 @@ const Dispute = () => {
     return () => {
       cancelled = true;
     };
-  }, [isSessionExpired, monthParam, statusParam, currentPage, itemsPerPage]);
+  }, [isSessionExpired, monthParam, monthNumber, statusParam, currentPage, itemsPerPage]);
 
   // Fetch user profile
   useEffect(() => {
@@ -1493,10 +1569,6 @@ const Dispute = () => {
                     summaryMetrics.totalDisputes ?? '—'
                   )}
                 </div>
-                <div className="dispute-card-dropdown">
-                  <span>This Monthly</span>
-                  <ChevronDown size={14} />
-                </div>
               </div>
             </div>
 
@@ -1522,10 +1594,6 @@ const Dispute = () => {
                   ) : (
                     summaryMetrics.activeDisputes ?? '—'
                   )}
-                </div>
-                <div className="dispute-card-dropdown">
-                  <span>This Monthly</span>
-                  <ChevronDown size={14} />
                 </div>
               </div>
             </div>
@@ -1553,10 +1621,6 @@ const Dispute = () => {
                     summaryMetrics.resolvedDisputes ?? '—'
                   )}
                 </div>
-                <div className="dispute-card-dropdown">
-                  <span>This Monthly</span>
-                  <ChevronDown size={14} />
-                </div>
               </div>
             </div>
 
@@ -1580,19 +1644,42 @@ const Dispute = () => {
                     </>
                   )}
                 </div>
-                <div className="dispute-card-dropdown">
-                  <span>This Monthly</span>
-                  <ChevronDown size={14} />
-                </div>
               </div>
             </div>
           </div>
 
           {/* Filter Section */}
           <div className="dispute-filters">
-            <div className="dispute-filter-dropdown">
-              <span>{selectedFilter}</span>
-              <ChevronDown size={16} />
+            <div className="dispute-filter-dropdown-wrapper" ref={statusDropdownRef}>
+              <button
+                type="button"
+                className={`dispute-filter-dropdown${isStatusDropdownOpen ? ' open' : ''}`}
+                onClick={toggleStatusDropdown}
+                aria-haspopup="listbox"
+                aria-expanded={isStatusDropdownOpen}
+                aria-label="Filter disputes by status"
+              >
+                <Filter size={16} />
+                <span>{selectedFilter}</span>
+                <ChevronDown size={16} className={`month-filter-chevron${isStatusDropdownOpen ? ' rotated' : ''}`} />
+              </button>
+              {isStatusDropdownOpen && (
+                <div className="dispute-month-dropdown dispute-status-dropdown" role="listbox" aria-label="Dispute status">
+                  {STATUS_FILTER_OPTIONS.map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`dispute-month-dropdown-item ${selectedFilter === status ? 'active' : ''}`}
+                      onClick={() => handleStatusSelect(status)}
+                      role="option"
+                      aria-selected={selectedFilter === status}
+                    >
+                      <span>{status}</span>
+                      {selectedFilter === status && <CheckCircle size={14} />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="dispute-month-filter-wrapper" ref={monthDropdownRef}>
               <button
@@ -1634,9 +1721,35 @@ const Dispute = () => {
                 <h3 className="mobile-dispute-history-title">Dispute History</h3>
               </div>
               <div className="mobile-dispute-history-actions">
-                <button type="button" className="mobile-dispute-history-icon-btn">
-                  <ChevronDown size={18} />
-                </button>
+                <div className="mobile-month-filter-wrapper" ref={mobileStatusDropdownRef}>
+                  <button
+                    type="button"
+                    className={`mobile-dispute-history-icon-btn ${isMobileStatusDropdownOpen ? 'active' : ''}`}
+                    onClick={toggleMobileStatusDropdown}
+                    aria-haspopup="listbox"
+                    aria-expanded={isMobileStatusDropdownOpen}
+                    aria-label="Filter disputes by status"
+                  >
+                    <Filter size={18} />
+                  </button>
+                  {isMobileStatusDropdownOpen && (
+                    <div className="mobile-dispute-month-dropdown" role="listbox" aria-label="Dispute status">
+                      {STATUS_FILTER_OPTIONS.map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          className={`mobile-dispute-month-dropdown-item ${selectedFilter === status ? 'active' : ''}`}
+                          onClick={() => handleStatusSelect(status)}
+                          role="option"
+                          aria-selected={selectedFilter === status}
+                        >
+                          <span>{status}</span>
+                          {selectedFilter === status && <CheckCircle size={14} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="mobile-month-filter-wrapper" ref={mobileMonthDropdownRef}>
                   <button 
                     type="button" 

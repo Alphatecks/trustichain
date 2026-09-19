@@ -147,8 +147,6 @@ const HISTORY_MONTH_OPTIONS = [
 
 const HISTORY_FILTER_OPTIONS = [HISTORY_ALL_TIME_LABEL, ...HISTORY_MONTH_OPTIONS];
 
-const getCurrentHistoryMonth = () => HISTORY_MONTH_OPTIONS[new Date().getMonth()];
-
 const isHistoryAllTime = (monthLabel) =>
   String(monthLabel || '').trim().toLowerCase() === HISTORY_ALL_TIME_LABEL.toLowerCase();
 
@@ -160,6 +158,57 @@ const extractEscrowList = (data) => {
   if (Array.isArray(data)) return data;
   return [];
 };
+
+const ESCROW_TRANSACTION_TYPES = ['freelance', 'product_purchase', 'real_estate', 'custom'];
+
+const TYPE_MAPPED_INDUSTRY_LABELS = new Set(['technology', 'retail', 'real estate', 'other']);
+
+const normalizeIndustryLabel = (item) => {
+  if (item == null) return '';
+  if (typeof item === 'string' || typeof item === 'number') return String(item).trim();
+  if (typeof item === 'object') {
+    return String(item.name || item.label || item.industry || item.title || item.value || '').trim();
+  }
+  return '';
+};
+
+const uniqueIndustryLabels = (items) => {
+  const seen = new Set();
+  const out = [];
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const label = normalizeIndustryLabel(item);
+    if (!label) return;
+    const key = label.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(label);
+  });
+  return out;
+};
+
+const parseIndustriesPayload = (result) => {
+  const data = result?.data !== undefined ? result.data : result;
+  if (Array.isArray(data)) return uniqueIndustryLabels(data);
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.industries)) return uniqueIndustryLabels(data.industries);
+    if (Array.isArray(data.items)) return uniqueIndustryLabels(data.items);
+    if (Array.isArray(data.results)) return uniqueIndustryLabels(data.results);
+  }
+  if (Array.isArray(result?.industries)) return uniqueIndustryLabels(result.industries);
+  return [];
+};
+
+const industriesFromEscrows = (list) =>
+  uniqueIndustryLabels(
+    (Array.isArray(list) ? list : []).map(
+      (escrow) =>
+        escrow?.industry ||
+        escrow?.industryName ||
+        escrow?.industry_name ||
+        escrow?.category ||
+        escrow?.escrowType,
+    ),
+  );
 
 const buildEscrowByMonthParams = ({
   monthLabel,
@@ -453,7 +502,7 @@ const MyEscrow = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
-  const [selectedHistoryMonth, setSelectedHistoryMonth] = useState(getCurrentHistoryMonth);
+  const [selectedHistoryMonth, setSelectedHistoryMonth] = useState(HISTORY_ALL_TIME_LABEL);
   const [showHistoryMonthDropdown, setShowHistoryMonthDropdown] = useState(false);
   const [showCreateEscrowModal, setShowCreateEscrowModal] = useState(false);
   const [escrowDataVersion, setEscrowDataVersion] = useState(0);
@@ -913,61 +962,55 @@ const MyEscrow = () => {
     fetchExchangeRate();
   }, []);
 
-  // Fetch industries based on transaction type
+  // Fetch industries based on transaction type (All loads every type)
   useEffect(() => {
+    const fetchIndustriesForType = async (token, transactionType) => {
+      const path = transactionType
+        ? `api/escrow/industries?transactionType=${encodeURIComponent(transactionType)}`
+        : 'api/escrow/industries';
+      const response = await fetch(getApiUrl(path), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) return [];
+      const result = await response.json().catch(() => ({}));
+      return parseIndustriesPayload(result);
+    };
+
     const fetchIndustries = async () => {
-      // If session is expired, use fallback data
       if (isSessionExpired) {
-        console.log('Session expired, using fallback industries');
         setIndustries([]);
         setIsLoadingIndustries(false);
         return;
       }
 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setIndustries([]);
+        setIsLoadingIndustries(false);
+        return;
+      }
+
+      const transactionType = getTransactionType(activeCategory);
+      setIsLoadingIndustries(true);
+
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          return;
-        }
-
-        const transactionType = getTransactionType(activeCategory);
-        if (!transactionType) {
-          setIndustries([]);
-          return;
-        }
-
-        setIsLoadingIndustries(true);
-        const apiUrl = getApiUrl(`api/escrow/industries?transactionType=${transactionType}`);
-        console.log('Fetching industries from:', apiUrl);
-
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Industries API response data:', result);
-
-          if (result?.success && result?.data) {
-            // Handle different response structures
-            if (Array.isArray(result.data)) {
-              setIndustries(result.data);
-            } else if (Array.isArray(result.data.industries)) {
-              setIndustries(result.data.industries);
-            } else {
-              setIndustries([]);
-            }
-          } else {
-            setIndustries([]);
-          }
+        let labels = [];
+        if (transactionType) {
+          labels = await fetchIndustriesForType(token, transactionType);
         } else {
-          console.error('Industries API error:', response.status);
-          setIndustries([]);
+          labels = await fetchIndustriesForType(token, null);
+          if (!labels.length) {
+            const batches = await Promise.all(
+              ESCROW_TRANSACTION_TYPES.map((type) => fetchIndustriesForType(token, type)),
+            );
+            labels = uniqueIndustryLabels(batches.flat());
+          }
         }
+        setIndustries(labels);
       } catch (error) {
         console.error('Error fetching industries:', error);
         setIndustries([]);
@@ -977,8 +1020,16 @@ const MyEscrow = () => {
     };
 
     fetchIndustries();
-    setSelectedIndustry(null); // Reset industry when category changes
-  }, [activeCategory]);
+    setSelectedIndustry(null);
+  }, [activeCategory, isSessionExpired]);
+
+  const industryOptions = useMemo(
+    () =>
+      uniqueIndustryLabels([...industries, ...industriesFromEscrows(escrows)]).filter(
+        (label) => !TYPE_MAPPED_INDUSTRY_LABELS.has(label.toLowerCase()),
+      ),
+    [industries, escrows],
+  );
 
   // Fetch filtered escrow list
   useEffect(() => {
@@ -1231,6 +1282,67 @@ const MyEscrow = () => {
       {renderHistoryMonthMenu()}
     </div>
   );
+
+  const renderIndustryFilter = () => {
+    if (!isLoadingIndustries && industryOptions.length === 0) return null;
+
+    return (
+      <div className={`industry-dropdown${showIndustryDropdown ? ' open' : ''}`}>
+        <button
+          type="button"
+          className="industry-dropdown-trigger"
+          onClick={() => {
+            setShowPeriodDropdown(false);
+            setShowHistoryMonthDropdown(false);
+            setShowIndustryDropdown((open) => !open);
+          }}
+          aria-haspopup="listbox"
+          aria-expanded={showIndustryDropdown}
+          aria-label="Filter escrows by industry"
+        >
+          <span>{selectedIndustry || 'All industries'}</span>
+          <ChevronDown size={16} aria-hidden />
+        </button>
+        {showIndustryDropdown ? (
+          <div className="industry-dropdown-menu" role="listbox" aria-label="Industries" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              role="option"
+              aria-selected={!selectedIndustry}
+              className={`industry-dropdown-item${!selectedIndustry ? ' active' : ''}`}
+              onClick={() => {
+                setSelectedIndustry(null);
+                setShowIndustryDropdown(false);
+              }}
+            >
+              All industries
+            </button>
+            {isLoadingIndustries ? (
+              <div className="industry-dropdown-empty">
+                <DashboardSkeletonBlock className="dashboard-skeleton-industry-option" />
+              </div>
+            ) : (
+              industryOptions.map((industry) => (
+                <button
+                  key={industry}
+                  type="button"
+                  role="option"
+                  aria-selected={selectedIndustry === industry}
+                  className={`industry-dropdown-item${selectedIndustry === industry ? ' active' : ''}`}
+                  onClick={() => {
+                    setSelectedIndustry(industry);
+                    setShowIndustryDropdown(false);
+                  }}
+                >
+                  {industry}
+                </button>
+              ))
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <MyEscrowLayout>
@@ -1549,76 +1661,7 @@ const MyEscrow = () => {
           ))}
         </div>
         <div className="secondary-filters">
-          <div 
-            className="industry-dropdown" 
-            style={{ position: 'relative', cursor: 'pointer' }}
-            onClick={() => {
-              setShowPeriodDropdown(false);
-              setShowHistoryMonthDropdown(false);
-              setShowIndustryDropdown(!showIndustryDropdown);
-            }}
-          >
-            <span>{selectedIndustry || 'All industries'}</span>
-            <ChevronDown size={16} />
-            {showIndustryDropdown && (
-              <div 
-                className="industry-dropdown-menu"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'var(--card-bg, #fff)',
-                  border: '1px solid var(--border-color, #e0e0e0)',
-                  borderRadius: '8px',
-                  marginTop: '4px',
-                  zIndex: 1000,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid var(--border-color, #e0e0e0)'
-                  }}
-                  onClick={() => {
-                    setSelectedIndustry(null);
-                    setShowIndustryDropdown(false);
-                  }}
-                >
-                  All industries
-                </div>
-                {isLoadingIndustries ? (
-                  <div style={{ padding: '8px 12px' }}><DashboardSkeletonBlock className="dashboard-skeleton-industry-option" /></div>
-                ) : industries.length > 0 ? (
-                  industries.map((industry, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        borderBottom: idx < industries.length - 1 ? '1px solid var(--border-color, #e0e0e0)' : 'none'
-                      }}
-                      onClick={() => {
-                        setSelectedIndustry(industry);
-                        setShowIndustryDropdown(false);
-                      }}
-                    >
-                      {industry}
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-muted, #666)' }}>
-                    No industries available
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {renderIndustryFilter()}
           {renderHistoryMonthFilter()}
         </div>
       </div>
@@ -2212,76 +2255,7 @@ const MyEscrow = () => {
                 ))}
               </div>
               <div className="secondary-filters">
-                <div 
-                  className="industry-dropdown" 
-                  style={{ position: 'relative', cursor: 'pointer' }}
-                  onClick={() => {
-                    setShowPeriodDropdown(false);
-                    setShowHistoryMonthDropdown(false);
-                    setShowIndustryDropdown(!showIndustryDropdown);
-                  }}
-                >
-                  <span>{selectedIndustry || 'All industries'}</span>
-                  <ChevronDown size={16} />
-                  {showIndustryDropdown && (
-                    <div 
-                      className="industry-dropdown-menu"
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        backgroundColor: 'var(--card-bg, #fff)',
-                        border: '1px solid var(--border-color, #e0e0e0)',
-                        borderRadius: '8px',
-                        marginTop: '4px',
-                        zIndex: 1000,
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid var(--border-color, #e0e0e0)'
-                        }}
-                        onClick={() => {
-                          setSelectedIndustry(null);
-                          setShowIndustryDropdown(false);
-                        }}
-                      >
-                        All industries
-                      </div>
-                      {isLoadingIndustries ? (
-                        <div style={{ padding: '8px 12px' }}><DashboardSkeletonBlock className="dashboard-skeleton-industry-option" /></div>
-                      ) : industries.length > 0 ? (
-                        industries.map((industry, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              padding: '8px 12px',
-                              cursor: 'pointer',
-                              borderBottom: idx < industries.length - 1 ? '1px solid var(--border-color, #e0e0e0)' : 'none'
-                            }}
-                            onClick={() => {
-                              setSelectedIndustry(industry);
-                              setShowIndustryDropdown(false);
-                            }}
-                          >
-                            {industry}
-                          </div>
-                        ))
-                      ) : (
-                        <div style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-muted, #666)' }}>
-                          No industries available
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                {renderIndustryFilter()}
                 {renderHistoryMonthFilter()}
               </div>
             </div>

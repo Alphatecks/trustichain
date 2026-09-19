@@ -18,6 +18,7 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
+  Calendar,
   ArrowRight,
   ArrowLeft,
   LogOut,
@@ -56,6 +57,7 @@ import '../dashboard/Dashboard.css';
 import './Transactions.css';
 import logo from '../../../assets/images/icons/logo.png';
 import googleLogo from '../../../assets/images/icons/google-logo.svg';
+import rlusdLogo from '../../../assets/images/icons/rlusd-logo.svg';
 import { getApiUrl } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
 import { persistTrustitagFromProfileResponse } from '../../../utils/trustitag';
@@ -64,6 +66,7 @@ import { handleLogout } from '../../../utils/logout';
 import {
   getDepositNetworksForCurrency,
   extractWalletAddresses,
+  extractDepositAddressFromApiResponse,
   resolveDepositAddressFromBalance,
   splitDepositAddressLines,
 } from '../../../utils/depositAddressFlow';
@@ -71,8 +74,14 @@ import { useSession } from '../../../context/SessionContext';
 import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { filterSidebarExchangeRates } from '../../../utils/exchangeRatesDisplay';
-import { formatWalletUsdInDisplayCurrency } from '../../../utils/displayCurrencyFormat';
-import { parseCustodialWalletBalances } from '../../../utils/custodialWalletBalances';
+import { formatWalletUsdInDisplayCurrency, getUsdPerXrpFromExchangeRates } from '../../../utils/displayCurrencyFormat';
+import {
+  formatDateForDisplayCurrency,
+  getDisplayCalendar,
+  getHistoryMonthFilterOptions,
+  transactionMatchesMonthFilter,
+} from '../../../utils/displayCalendar';
+import { parseCustodialWalletBalances, extractCustodialWalletIds } from '../../../utils/custodialWalletBalances';
 import { useSidebarNavBadges } from '../../../hooks/useSidebarNavBadges';
 import { useWeb3 } from '../../../context/Web3Context';
 import LoadingIndicator from '../../../components/LoadingIndicator';
@@ -222,6 +231,122 @@ const getTransactionDetailPaths = (targetId, { accountType, savings } = {}) => {
   return [`api/transactions/${encoded}`];
 };
 
+const TRANSACTION_TYPE_LABELS = {
+  escrow_release: 'Escrow Release',
+  escrow_released: 'Escrow Release',
+  escrow_complete: 'Escrow Completed',
+  escrow_completed: 'Escrow Completed',
+  escrow_create: 'Escrow Created',
+  escrow_created: 'Escrow Created',
+  escrow_fund: 'Escrow Funded',
+  escrow_funded: 'Escrow Funded',
+  escrow_cancel: 'Escrow Cancelled',
+  escrow_cancelled: 'Escrow Cancelled',
+  escrow_canceled: 'Escrow Cancelled',
+  escrow_lock: 'Escrow Locked',
+  escrow_locked: 'Escrow Locked',
+  escrow_dispute: 'Escrow Dispute',
+  wallet_deposit: 'Deposit',
+  wallet_withdraw: 'Withdrawal',
+  wallet_withdrawal: 'Withdrawal',
+  wallet_swap: 'Swap',
+  wallet_transfer: 'Transfer',
+  wallet_send: 'Sent',
+  wallet_receive: 'Received',
+  deposit: 'Deposit',
+  withdraw: 'Withdrawal',
+  withdrawal: 'Withdrawal',
+  swap: 'Swap',
+  transfer: 'Transfer',
+  send: 'Sent',
+  sent: 'Sent',
+  receive: 'Received',
+  received: 'Received',
+  payment: 'Payment',
+  savings_funded: 'Savings Deposit',
+  savings_fund: 'Savings Deposit',
+  savings_deposit: 'Savings Deposit',
+};
+
+const titleCaseWords = (value) =>
+  String(value || '')
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
+const formatTransactionTypeLabel = (type) => {
+  const raw = String(type || '').trim();
+  if (!raw) return 'Transaction';
+  const key = raw.toLowerCase().replace(/[\s-]+/g, '_');
+  if (TRANSACTION_TYPE_LABELS[key]) return TRANSACTION_TYPE_LABELS[key];
+  if (/[_-]/.test(raw) || raw === raw.toLowerCase() || raw === raw.toUpperCase()) {
+    return titleCaseWords(raw);
+  }
+  return raw;
+};
+
+const formatTransactionStatusLabel = (status) => {
+  const raw = String(status || '').trim();
+  if (!raw || raw === 'N/A') return 'Unknown';
+  return titleCaseWords(raw);
+};
+
+const getTransactionStatusTone = (status) => {
+  const key = String(status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (['successful', 'success', 'completed', 'complete', 'released', 'paid', 'confirmed'].includes(key)) {
+    return 'success';
+  }
+  if (['failed', 'failure', 'cancelled', 'canceled', 'rejected', 'error'].includes(key)) {
+    return 'failed';
+  }
+  return 'pending';
+};
+
+const isPresentDetailValue = (value) => {
+  if (value == null) return false;
+  const text = String(value).trim();
+  return text !== '' && text !== 'N/A';
+};
+
+const copyTransactionDetailValue = (label, value) => {
+  navigator.clipboard.writeText(String(value));
+  toast.success(`${label} copied`);
+};
+
+const TransactionDetailInfoRow = ({ label, value, copyValue, href, mono }) => {
+  if (!isPresentDetailValue(value)) return null;
+  return (
+    <div className="txd-row">
+      <span className="txd-row-label">{label}</span>
+      <div className="txd-row-value-wrap">
+        <span className={`txd-row-value${mono ? ' txd-row-value--mono' : ''}`}>{value}</span>
+        {copyValue ? (
+          <button
+            type="button"
+            className="txd-icon-btn"
+            aria-label={`Copy ${label}`}
+            onClick={() => copyTransactionDetailValue(label, copyValue)}
+          >
+            <Copy size={14} />
+          </button>
+        ) : null}
+        {href ? (
+          <a
+            className="txd-icon-btn"
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${label} in explorer`}
+          >
+            <ExternalLink size={14} />
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const fetchTransactionDetailRecord = async (targetId, options = {}) => {
   const token = localStorage.getItem('token');
   if (!token || !targetId) return null;
@@ -247,14 +372,56 @@ const fetchTransactionDetailRecord = async (targetId, options = {}) => {
   return null;
 };
 
-const getBeneficiaryTrustitag = (beneficiary) =>
-  beneficiary?.trustitag || beneficiary?.tag || beneficiary?.handle || beneficiary?.username || '';
+const firstNonEmptyString = (...values) => {
+  for (const value of values) {
+    if (value == null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const getBeneficiaryProfile = (beneficiary) => {
+  if (!beneficiary || typeof beneficiary !== 'object') return {};
+  const nested =
+    beneficiary.user ||
+    beneficiary.recipient ||
+    beneficiary.profile ||
+    beneficiary.contact ||
+    beneficiary.details ||
+    null;
+  return nested && typeof nested === 'object' ? nested : {};
+};
+
+const normalizeBeneficiaryRecord = (raw) => {
+  if (!raw || typeof raw !== 'object') return raw;
+  const nested = getBeneficiaryProfile(raw);
+  return { ...nested, ...raw };
+};
+
+const getBeneficiaryTrustitag = (beneficiary) => {
+  const nested = getBeneficiaryProfile(beneficiary);
+  return firstNonEmptyString(
+    beneficiary?.trustitag,
+    beneficiary?.trustiTag,
+    beneficiary?.trustitagHandle,
+    beneficiary?.tag,
+    beneficiary?.handle,
+    beneficiary?.username,
+    nested?.trustitag,
+    nested?.trustiTag,
+    nested?.tag,
+    nested?.handle,
+    nested?.username,
+  );
+};
 
 const getBeneficiaryDisplayName = (beneficiary) => {
+  const fullName = getBeneficiaryFullName(beneficiary);
+  if (fullName) return fullName;
   const tag = getBeneficiaryTrustitag(beneficiary);
-  const name = typeof beneficiary?.name === 'string' ? beneficiary.name.trim() : '';
-  if (name && name !== tag) return name;
-  return tag ? tag.replace(/^@/, '') : 'Trustitag';
+  if (tag) return tag.replace(/^@/, '');
+  return 'Trustitag';
 };
 
 const getBeneficiaryTrustitagId = (beneficiary) => {
@@ -290,6 +457,7 @@ const getBeneficiaryInitials = (beneficiary) => {
 
 const getBeneficiaryAvatarUrl = (beneficiary) =>
   getProfileAvatarUrl(beneficiary) ||
+  getProfileAvatarUrl(getBeneficiaryProfile(beneficiary)) ||
   (typeof beneficiary?.avatar === 'string' ? beneficiary.avatar.trim() : null) ||
   null;
 
@@ -313,24 +481,78 @@ const getBeneficiaryDeleteKey = (beneficiary) => {
 const getBeneficiarySendTag = (beneficiary) => {
   const tag = String(getBeneficiaryTrustitag(beneficiary) || '').trim().replace(/^@/, '');
   if (tag) return tag;
-  const trustitagId = getBeneficiaryTrustitagId(beneficiary);
-  if (trustitagId && trustitagId !== '—') return String(trustitagId).replace(/^@/, '');
+
+  const nested = getBeneficiaryProfile(beneficiary);
+  const explicit = firstNonEmptyString(
+    beneficiary?.trustitagId,
+    beneficiary?.tagId,
+    beneficiary?.trustitagCode,
+    nested?.trustitagId,
+    nested?.tagId,
+  );
+  if (explicit && explicit !== '—' && !UUID_PATTERN.test(explicit)) {
+    return explicit.replace(/^@/, '');
+  }
   return '';
 };
 
+const getBeneficiaryWalletOrAccount = (beneficiary) => {
+  const nested = getBeneficiaryProfile(beneficiary);
+  return firstNonEmptyString(
+    beneficiary?.walletAddress,
+    beneficiary?.wallet_address,
+    beneficiary?.xrplAddress,
+    beneficiary?.xrpl_address,
+    beneficiary?.address,
+    beneficiary?.bankAccount,
+    beneficiary?.bank_account,
+    beneficiary?.accountNumber,
+    beneficiary?.account_number,
+    beneficiary?.iban,
+    nested?.walletAddress,
+    nested?.xrplAddress,
+    nested?.address,
+    nested?.bankAccount,
+    nested?.accountNumber,
+    nested?.iban,
+  );
+};
+
+const getBeneficiaryDestination = (beneficiary) =>
+  firstNonEmptyString(getBeneficiarySendTag(beneficiary), getBeneficiaryWalletOrAccount(beneficiary));
+
 const getBeneficiaryFullName = (beneficiary) => {
-  const name = typeof beneficiary?.name === 'string' ? beneficiary.name.trim() : '';
-  const first = typeof beneficiary?.firstName === 'string' ? beneficiary.firstName.trim() : '';
-  const last = typeof beneficiary?.lastName === 'string' ? beneficiary.lastName.trim() : '';
-  const combined = [first, last].filter(Boolean).join(' ');
-  return name || combined;
+  const nested = getBeneficiaryProfile(beneficiary);
+  for (const src of [beneficiary, nested]) {
+    if (!src || typeof src !== 'object') continue;
+    const first = firstNonEmptyString(src.firstName, src.first_name, src.givenName);
+    const last = firstNonEmptyString(src.lastName, src.last_name, src.familyName);
+    const combined = [first, last].filter(Boolean).join(' ');
+    const name = firstNonEmptyString(src.fullName, src.full_name, src.displayName, src.legalName, src.name);
+    if (combined) return combined;
+    if (name && name !== getBeneficiaryTrustitag(src) && name !== getBeneficiaryTrustitag(beneficiary)) {
+      return name;
+    }
+    if (name) return name;
+  }
+  return '';
 };
 
 const getBeneficiaryPhone = (beneficiary) => {
-  if (!beneficiary || typeof beneficiary !== 'object') return '';
-  for (const key of ['phoneNumber', 'phone', 'mobile', 'mobileNumber']) {
-    const value = beneficiary[key];
-    if (value != null && String(value).trim() !== '') return String(value).trim();
+  const nested = getBeneficiaryProfile(beneficiary);
+  for (const src of [beneficiary, nested]) {
+    if (!src || typeof src !== 'object') continue;
+    for (const key of ['phoneNumber', 'phone_number', 'phone', 'mobile', 'mobileNumber', 'telephone']) {
+      const value = src[key];
+      if (value == null || String(value).trim() === '') continue;
+      const num = String(value).trim();
+      const cc = firstNonEmptyString(src.countryCode, src.phoneCountryCode, src.dialCode);
+      if (cc && !num.startsWith('+')) {
+        const prefix = cc.startsWith('+') ? cc : `+${cc.replace(/^\+/, '')}`;
+        return `${prefix} ${num}`.replace(/\s+/g, ' ').trim();
+      }
+      return num;
+    }
   }
   return '';
 };
@@ -341,6 +563,60 @@ const SWAP_CURRENCY_ICONS = {
   XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
   USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
   USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
+};
+
+const WALLET_DETAILS_WALLETS = {
+  XRP: {
+    code: 'XRP',
+    name: 'XRP wallet',
+    symbolLabel: 'XRP',
+    iconUrl: SWAP_CURRENCY_ICONS.XRP,
+    chain: 'XRPL',
+  },
+  RLUSD: {
+    code: 'RLUSD',
+    name: 'Ripple USD wallet',
+    symbolLabel: 'RLUSD',
+    iconUrl: rlusdLogo,
+    chain: 'XRPL',
+  },
+  USDT: {
+    code: 'USDT',
+    name: 'USDT wallet',
+    symbolLabel: 'USDT',
+    iconUrl: SWAP_CURRENCY_ICONS.USDT,
+    chain: 'XRPL',
+  },
+  USDC: {
+    code: 'USDC',
+    name: 'USDC wallet',
+    symbolLabel: 'USDC',
+    iconUrl: SWAP_CURRENCY_ICONS.USDC,
+    chain: 'XRPL',
+  },
+};
+
+const WALLET_DETAILS_ORDER = ['XRP', 'RLUSD', 'USDT', 'USDC'];
+
+const WALLET_DETAILS_NETWORK_KEYS = {
+  USDT: ['ERC20', 'TRC20', 'BEP20'],
+  USDC: ['BEP20', 'SOLANA'],
+};
+
+const formatWalletDetailsAddressShort = (addr) => {
+  if (!addr || typeof addr !== 'string') return 'N/A';
+  const t = addr.trim();
+  if (!t.length) return 'N/A';
+  if (t.length <= 16) return t;
+  return `${t.slice(0, 12)}…${t.slice(-6)}`;
+};
+
+const walletDetailsNetworkLabel = (key) => {
+  if (key === 'ERC20') return 'ERC 20';
+  if (key === 'TRC20') return 'TRC 20';
+  if (key === 'BEP20') return 'BEP 20';
+  if (key === 'SOLANA') return 'Solana';
+  return key;
 };
 
 const formatTimeAgo = (isoString) => {
@@ -358,6 +634,12 @@ const formatTimeAgo = (isoString) => {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
 };
+
+const HISTORY_DIRECTION_OPTIONS = [
+  { value: 'All', label: 'All' },
+  { value: 'Received', label: 'Received' },
+  { value: 'Sent', label: 'Sent' },
+];
 
 /** Short month names for cashflow X-axis (Jan–Dec). */
 const CASHFLOW_MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -539,7 +821,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { displayCurrency, formatFromUsd } = useDisplayCurrency();
+  const { displayCurrency, formatFromUsd, exchangeRates: contextExchangeRates, exchangeQuoteDirection, isLoadingExchangeRates } = useDisplayCurrency();
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
@@ -658,10 +940,13 @@ const Transactions = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
+  const [exchangeQuoteDirectionLocal, setExchangeQuoteDirectionLocal] = useState(null);
   const [isLoadingRates, setIsLoadingRates] = useState(true);
+  const [xrpUsdSpotRate, setXrpUsdSpotRate] = useState(null);
+  const [isLoadingXrpUsdSpotRate, setIsLoadingXrpUsdSpotRate] = useState(false);
   const [walletBalances, setWalletBalances] = useState(null);
   /** Custodial wallet UUIDs from GET api/wallet/balance when provided (for savings transfer sourceWalletId). */
-  const [custodialWalletIds, setCustodialWalletIds] = useState({ xrp: '', usdt: '' });
+  const [custodialWalletIds, setCustodialWalletIds] = useState({ xrp: '', usdt: '', usdc: '' });
   const [isLoadingWalletBalances, setIsLoadingWalletBalances] = useState(true);
   const [isSubmittingSavingsTransfer, setIsSubmittingSavingsTransfer] = useState(false);
   const [isSubmittingSavingsWithdraw, setIsSubmittingSavingsWithdraw] = useState(false);
@@ -689,7 +974,9 @@ const Transactions = () => {
   const [linkedAccounts, setLinkedAccounts] = useState(null);
   const [isLoadingLinkedAccounts, setIsLoadingLinkedAccounts] = useState(true);
   const [transactionFilter, setTransactionFilter] = useState('All');
-  const [monthlyFilter, setMonthlyFilter] = useState('Monthly');
+  const [monthlyFilter, setMonthlyFilter] = useState('all');
+  const [openHistoryFilter, setOpenHistoryFilter] = useState(null);
+  const historyFiltersRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [showFundMethodModal, setShowFundMethodModal] = useState(false);
@@ -705,8 +992,15 @@ const Transactions = () => {
   const [fundDepositPaymentMethod, setFundDepositPaymentMethod] = useState(null);
   const [depositAddressNetwork, setDepositAddressNetwork] = useState('XRPL');
   const [walletAddress, setWalletAddress] = useState('');
+  const [rlusdWalletAddress, setRlusdWalletAddress] = useState('');
   /** Last successful GET wallet/balance JSON (used to resolve deposit address by currency/network). */
   const [walletBalanceRaw, setWalletBalanceRaw] = useState(null);
+  const [showWalletDetailsModal, setShowWalletDetailsModal] = useState(false);
+  const [selectedWalletDetails, setSelectedWalletDetails] = useState(null);
+  const [walletDetailsNetwork, setWalletDetailsNetwork] = useState('ERC20');
+  const [walletDetailsDepositAddress, setWalletDetailsDepositAddress] = useState('');
+  const [isLoadingWalletDetailsAddress, setIsLoadingWalletDetailsAddress] = useState(false);
+  const [walletDetailsPickerOpen, setWalletDetailsPickerOpen] = useState(false);
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
   const [showSavingsWithdrawModal, setShowSavingsWithdrawModal] = useState(false);
   const [showSavingsWithdrawConfirmModal, setShowSavingsWithdrawConfirmModal] = useState(false);
@@ -716,6 +1010,7 @@ const Transactions = () => {
     amount: '',
     savingAccount: 'My Goals',
     walletId: '',
+    sourceCode: 'XRP',
   });
   const [showAddSavingsAccountModal, setShowAddSavingsAccountModal] = useState(false);
   const [addSavingsAccountForm, setAddSavingsAccountForm] = useState({
@@ -829,12 +1124,34 @@ const Transactions = () => {
   ];
 
   const formattedToday = useMemo(() => {
-    const now = new Date();
-    const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
-    const day = now.getDate();
-    const month = now.toLocaleDateString(undefined, { month: 'long' });
-    return `${weekday}, ${day}${day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} ${month}`;
-  }, []);
+    const { locale, timeZone } = getDisplayCalendar(displayCurrency);
+    return new Intl.DateTimeFormat(locale, {
+      timeZone,
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(new Date());
+  }, [displayCurrency]);
+
+  const historyMonthFilterOptions = useMemo(
+    () => getHistoryMonthFilterOptions(displayCurrency).options,
+    [displayCurrency],
+  );
+  const historyMonthFilterLabel =
+    historyMonthFilterOptions.find((option) => option.value === monthlyFilter)?.label || 'Monthly';
+  const historyDirectionFilterLabel =
+    transactionFilter === 'All' ? 'Filter' : transactionFilter;
+
+  useEffect(() => {
+    if (!openHistoryFilter) return undefined;
+    const close = (event) => {
+      if (!historyFiltersRef.current?.contains(event.target)) {
+        setOpenHistoryFilter(null);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [openHistoryFilter]);
 
   // Savings (API-backed) state
   const [savingsSummaryRange] = useState('this_month');
@@ -1045,6 +1362,7 @@ const Transactions = () => {
       amount: '',
       savingAccount: 'My Goals',
       walletId: '',
+      sourceCode: 'XRP',
     });
   }, []);
 
@@ -1054,6 +1372,7 @@ const Transactions = () => {
       amount: '',
       savingAccount: wallet?.name || 'My Goals',
       walletId: wallet?.id ? String(wallet.id) : '',
+      sourceCode: 'XRP',
     });
     setShowSavingsAddMoneyModal(true);
   }, []);
@@ -1069,6 +1388,7 @@ const Transactions = () => {
           amount: '',
           savingAccount: first.name || 'My Goals',
           walletId: String(first.id),
+          sourceCode: 'XRP',
         });
       }
       setShowSavingsAddMoneyModal(true);
@@ -1526,6 +1846,9 @@ const Transactions = () => {
           const result = await response.json();
           if (result?.success && Array.isArray(result?.data?.rates)) {
             setExchangeRates(result.data.rates);
+            if (result?.data?.quoteDirection) {
+              setExchangeQuoteDirectionLocal(result.data.quoteDirection);
+            }
           }
         }
       } catch (error) {
@@ -1537,6 +1860,41 @@ const Transactions = () => {
 
     fetchExchangeRates();
   }, []);
+
+  const resolvedQuoteDirection = exchangeQuoteDirectionLocal || exchangeQuoteDirection;
+  const mergedExchangeRates = useMemo(() => {
+    if (Array.isArray(exchangeRates) && exchangeRates.length > 0) return exchangeRates;
+    if (Array.isArray(contextExchangeRates) && contextExchangeRates.length > 0) return contextExchangeRates;
+    return Array.isArray(exchangeRates) ? exchangeRates : [];
+  }, [exchangeRates, contextExchangeRates]);
+
+  useEffect(() => {
+    const fromTable = getUsdPerXrpFromExchangeRates(mergedExchangeRates, resolvedQuoteDirection);
+    if (fromTable != null && fromTable > 0) {
+      setXrpUsdSpotRate(fromTable);
+      setIsLoadingXrpUsdSpotRate(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLoadingXrpUsdSpotRate(true);
+
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        const n = Number(data?.ripple?.usd);
+        if (Number.isFinite(n) && n > 0) setXrpUsdSpotRate(n);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoadingXrpUsdSpotRate(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mergedExchangeRates, resolvedQuoteDirection]);
 
   // Fetch external exchange rate when send modal opens or currencies change
   useEffect(() => {
@@ -1754,19 +2112,12 @@ const Transactions = () => {
         const result = await response.json();
         const d = result?.data && typeof result.data === 'object' ? result.data : {};
 
-        const nextCustodial = { xrp: '', usdt: '' };
-        if (d.xrpWalletId) nextCustodial.xrp = String(d.xrpWalletId);
-        if (d.usdtWalletId) nextCustodial.usdt = String(d.usdtWalletId);
-        if (d.xrp_wallet_id && !nextCustodial.xrp) nextCustodial.xrp = String(d.xrp_wallet_id);
-        if (d.usdt_wallet_id && !nextCustodial.usdt) nextCustodial.usdt = String(d.usdt_wallet_id);
-        if (Array.isArray(d.wallets)) {
-          d.wallets.forEach((w) => {
-            const c = String(w.currency || w.code || '').toLowerCase();
-            if (c === 'xrp' && w.id) nextCustodial.xrp = String(w.id);
-            if (c === 'usdt' && w.id) nextCustodial.usdt = String(w.id);
-          });
-        }
-        setCustodialWalletIds(nextCustodial);
+        const extractedIds = extractCustodialWalletIds(result);
+        setCustodialWalletIds({
+          xrp: extractedIds.XRP,
+          usdt: extractedIds.USDT,
+          usdc: extractedIds.USDC,
+        });
 
         setWalletBalanceRaw(result);
 
@@ -1777,12 +2128,15 @@ const Transactions = () => {
           d.address ??
           result?.xrplAddress ??
           '';
-        const { xrp } = extractWalletAddresses(
+        const { xrp, rlusd } = extractWalletAddresses(
           result,
           typeof mergedFallback === 'string' ? mergedFallback : ''
         );
         if (xrp) {
           setWalletAddress(xrp);
+        }
+        if (rlusd) {
+          setRlusdWalletAddress(rlusd);
         }
 
         if (result?.success && result?.data) {
@@ -1847,6 +2201,106 @@ const Transactions = () => {
     fundWalletForm.currency,
     depositAddressNetwork,
     walletAddress,
+  ]);
+
+  const walletDetailsAddress = useMemo(() => {
+    const code = selectedWalletDetails?.code;
+    if (code === 'RLUSD') return (rlusdWalletAddress || walletAddress || '').trim();
+    if (code === 'XRP') return (walletAddress || '').trim();
+    if (code === 'USDT' || code === 'USDC') {
+      const fetched = String(walletDetailsDepositAddress || '').trim();
+      if (fetched) return fetched;
+      if (walletBalanceRaw) {
+        return resolveDepositAddressFromBalance(walletBalanceRaw, code, walletDetailsNetwork).trim();
+      }
+      return '';
+    }
+    return (walletAddress || '').trim();
+  }, [
+    selectedWalletDetails?.code,
+    walletAddress,
+    rlusdWalletAddress,
+    walletDetailsDepositAddress,
+    walletBalanceRaw,
+    walletDetailsNetwork,
+  ]);
+
+  useEffect(() => {
+    if (!showWalletDetailsModal || !selectedWalletDetails) {
+      setWalletDetailsDepositAddress('');
+      setIsLoadingWalletDetailsAddress(false);
+      return undefined;
+    }
+
+    const code = String(selectedWalletDetails.code || '').toUpperCase();
+    if (code !== 'USDT' && code !== 'USDC') {
+      setWalletDetailsDepositAddress('');
+      setIsLoadingWalletDetailsAddress(false);
+      return undefined;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token || isSessionExpired) {
+      setWalletDetailsDepositAddress('');
+      setIsLoadingWalletDetailsAddress(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLoadingWalletDetailsAddress(true);
+    setWalletDetailsDepositAddress('');
+
+    const apiBase =
+      accountType === 'Business Suite' ? 'api/business-suite/wallet' : 'api/wallet';
+    const depositUrl = getApiUrl(
+      `${apiBase}/deposit-address?asset=${encodeURIComponent(code)}&network=${encodeURIComponent(walletDetailsNetwork)}`,
+    );
+
+    fetch(depositUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        const address = extractDepositAddressFromApiResponse(result);
+        if (address) {
+          setWalletDetailsDepositAddress(address);
+          return;
+        }
+        const fallback = resolveDepositAddressFromBalance(
+          walletBalanceRaw,
+          code,
+          walletDetailsNetwork,
+        );
+        setWalletDetailsDepositAddress(fallback || '');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const fallback = resolveDepositAddressFromBalance(
+          walletBalanceRaw,
+          code,
+          walletDetailsNetwork,
+        );
+        setWalletDetailsDepositAddress(fallback || '');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingWalletDetailsAddress(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    showWalletDetailsModal,
+    selectedWalletDetails,
+    walletDetailsNetwork,
+    isSessionExpired,
+    accountType,
+    walletBalanceRaw,
   ]);
 
   // Fetch transactions
@@ -2173,13 +2627,12 @@ const Transactions = () => {
       if (response.ok) {
         const result = await response.json();
         if (result?.success) {
-          if (Array.isArray(result.data)) {
-            setBeneficiaries(result.data);
-          } else if (Array.isArray(result.data?.beneficiaries)) {
-            setBeneficiaries(result.data.beneficiaries);
-          } else {
-            setBeneficiaries([]);
-          }
+          const list = Array.isArray(result.data)
+            ? result.data
+            : Array.isArray(result.data?.beneficiaries)
+              ? result.data.beneficiaries
+              : [];
+          setBeneficiaries(list.map((item) => normalizeBeneficiaryRecord(item)).filter(Boolean));
           return;
         }
       }
@@ -2262,20 +2715,36 @@ const Transactions = () => {
     }
   }, [addBeneficiaryTrustitag, isSessionExpired, loadBeneficiaries]);
 
-  const openSendToBeneficiary = useCallback((beneficiary) => {
-    const tag = getBeneficiarySendTag(beneficiary);
-    if (!tag) {
-      toast.error('This beneficiary has no Trustitag to send to');
-      return;
-    }
+  const openSendModal = useCallback((prefill = {}) => {
     setSendForm((prev) => ({
       ...prev,
-      recipientTrustitag: tag,
-      recipientFullName: getBeneficiaryFullName(beneficiary),
-      recipientPhone: getBeneficiaryPhone(beneficiary),
+      recipientTrustitag: prefill.recipientTrustitag ?? '',
+      recipientFullName: prefill.recipientFullName ?? '',
+      recipientPhone: prefill.recipientPhone ?? '',
+      reason: prefill.reason ?? prev.reason ?? '',
     }));
     setShowSendModal(true);
   }, []);
+
+  const openSendToBeneficiary = useCallback((beneficiary) => {
+    const destination = getBeneficiaryDestination(beneficiary);
+    const fullName = getBeneficiaryFullName(beneficiary);
+    const displayName = getBeneficiaryDisplayName(beneficiary);
+    const phone = getBeneficiaryPhone(beneficiary);
+    const tag = getBeneficiarySendTag(beneficiary);
+
+    if (!destination && !fullName && !phone) {
+      toast.error('This beneficiary has no send details yet');
+      return;
+    }
+
+    openSendModal({
+      recipientTrustitag: destination,
+      recipientFullName: fullName || (displayName !== 'Trustitag' ? displayName : ''),
+      recipientPhone: phone,
+      reason: tag ? `Send to @${tag.replace(/^@/, '')}` : '',
+    });
+  }, [openSendModal]);
 
   const openRemoveBeneficiary = useCallback((beneficiary) => {
     setBeneficiaryToRemove(beneficiary);
@@ -2396,28 +2865,7 @@ const Transactions = () => {
     return `${id.substring(0, 6)}...${id.substring(id.length - 6)}`;
   };
 
-  // Format date to YYYY-MM-DD
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        // If it's already in YYYY-MM-DD format, return as is
-        if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) {
-          return dateString.split('T')[0].split(' ')[0];
-        }
-        return dateString;
-      }
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (error) {
-      // If parsing fails, try to extract YYYY-MM-DD from the string
-      const match = dateString.match(/(\d{4}-\d{2}-\d{2})/);
-      return match ? match[1] : dateString;
-    }
-  };
+  const formatDate = (dateString) => formatDateForDisplayCurrency(dateString, displayCurrency);
 
   const isIncomingTransaction = (transaction) => {
     if (!transaction || typeof transaction !== 'object') return true;
@@ -2479,17 +2927,21 @@ const Transactions = () => {
     return (
       <div className="notification-modal-overlay transaction-details-modal-overlay" onClick={closeTransactionDetailsModal}>
         <div className="notification-modal transaction-summary-modal transaction-details-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="transaction-summary-header">
-            <h2>Transaction Details</h2>
+          <div className="transaction-summary-header txd-header">
+            <div className="txd-header-leading">
+              <span className="txd-header-accent" aria-hidden />
+              <h2>Transaction details</h2>
+            </div>
             <button
               type="button"
-              className="modal-close-btn"
+              className="txd-close-btn"
+              aria-label="Close transaction details"
               onClick={closeTransactionDetailsModal}
             >
-              <X size={24} />
+              <X size={18} />
             </button>
           </div>
-          <div className="transaction-summary-content" style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+          <div className="transaction-summary-content txd-body">
             {isLoadingTransactionDetail && !selectedTransaction ? (
               <div className="transaction-details-loading">
                 <LoadingIndicator size="md" />
@@ -2505,158 +2957,116 @@ const Transactions = () => {
             ) : null}
             {(() => {
               const tx = selectedTransaction;
-              const transactionId = tx.id || tx.transactionId || 'N/A';
-              const type = tx.type || tx.transactionType || 'N/A';
+              const transactionId = tx.id || tx.transactionId || '';
+              const rawType = tx.type || tx.transactionType || '';
+              const type = formatTransactionTypeLabel(rawType);
               const rawAmount = tx.amount?.xrp ?? tx.amountXrp ?? tx.amount ?? 0;
               const amountXrp =
                 typeof rawAmount === 'string'
                   ? parseFloat(String(rawAmount).replace(/[^0-9.-]/g, '')) || 0
                   : Number(rawAmount) || 0;
-              const amountUsd = tx.amount?.usd || tx.amountUsd || (Number.isFinite(amountXrp) ? amountXrp * 0.5 : 0);
+              const amountUsd = tx.amount?.usd ?? tx.amountUsd;
               const status = tx.status || 'N/A';
-              const date = tx.date || tx.createdAt || tx.timestamp || 'N/A';
-              const isReceived =
-                type.toLowerCase().includes('received') ||
-                type.toLowerCase() === 'credit' ||
-                tx.direction === 'received';
-              const direction = tx.direction || (isReceived ? 'received' : 'sent');
-              const fromAddress = tx.from || tx.fromAddress || tx.sender || 'N/A';
-              const toAddress = tx.to || tx.toAddress || tx.recipient || 'N/A';
-              const description = tx.description || tx.reason || tx.note || 'N/A';
-              const fee = tx.fee || tx.transactionFee || 'N/A';
+              const statusTone = getTransactionStatusTone(status);
+              const date = tx.date || tx.createdAt || tx.timestamp;
+              const isReceived = isIncomingTransaction(tx);
+              const isEscrow = /escrow/i.test(String(rawType));
+              const fromAddress = tx.from || tx.fromAddress || tx.sender;
+              const toAddress = tx.to || tx.toAddress || tx.recipient;
+              const description = tx.description || tx.reason || tx.note;
+              const fee = tx.fee ?? tx.transactionFee;
               const network = tx.network || tx.blockchain || 'XRP Ledger';
-              const hash = tx.hash || tx.txHash || tx.transactionHash || 'N/A';
-              const blockNumber = tx.blockNumber || tx.block || 'N/A';
-              const confirmations = tx.confirmations || 'N/A';
+              const hash = tx.hash || tx.txHash || tx.transactionHash;
+              const blockNumber = tx.blockNumber || tx.block;
+              const confirmations = tx.confirmations;
+              const hashText = isPresentDetailValue(hash) ? String(hash).trim() : '';
+              const explorerUrl = /^[0-9A-Fa-f]{64}$/.test(hashText)
+                ? `https://xrpscan.com/tx/${hashText}`
+                : null;
+              let prettyDate = '';
+              if (isPresentDetailValue(date)) {
+                const parsed = new Date(date);
+                prettyDate = Number.isNaN(parsed.getTime())
+                  ? formatDate(date)
+                  : parsed.toLocaleString('en-US', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    });
+              }
+              const heroTone = isEscrow ? 'escrow' : isReceived ? 'in' : 'out';
+              const amountPrefix = isEscrow ? '' : isReceived ? '+' : '−';
 
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div className={`mobile-transaction-icon ${isReceived ? 'received' : 'sent'}`} style={{ width: '48px', height: '48px' }}>
-                        {isReceived ? <ArrowDown size={24} /> : <ArrowUp size={24} />}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-dark)' }}>{type}</div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          {direction === 'received' ? 'Received' : direction === 'spent' ? 'Sent' : 'Transaction'}
-                        </div>
-                      </div>
+                <div className="txd-layout">
+                  <div className="txd-hero">
+                    <div className={`txd-hero-icon ${heroTone}`}>
+                      {isEscrow ? <ShieldCheck size={22} /> : isReceived ? <ArrowDown size={22} /> : <ArrowUp size={22} />}
                     </div>
-                    <span className={`status-badge ${status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' ? 'successful' : 'pending'}`}>
-                      {status}
+                    <p className="txd-hero-type">{type}</p>
+                    {prettyDate ? <p className="txd-hero-date">{prettyDate}</p> : null}
+                    <p className={`txd-hero-amount ${heroTone}`}>
+                      {amountPrefix}
+                      {Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP
+                    </p>
+                    {Number.isFinite(Number(amountUsd)) ? (
+                      <p className="txd-hero-usd">
+                        ≈ ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                      </p>
+                    ) : null}
+                    <span className={`txd-status txd-status--${statusTone}`}>
+                      {formatTransactionStatusLabel(status)}
                     </span>
                   </div>
 
-                  <div style={{ padding: '1rem', background: 'var(--blue-100)', borderRadius: '0.5rem' }}>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Amount</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 600, color: isReceived ? '#10b981' : '#ef4444' }}>
-                      {isReceived ? '+' : '-'}
-                      {Number(amountXrp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} XRP
-                    </div>
-                    <div style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                      ≈ ${Number(amountUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                    </div>
+                  <div className="txd-card">
+                    <h3 className="txd-card-title">Details</h3>
+                    <TransactionDetailInfoRow
+                      label="Transaction ID"
+                      value={transactionId ? formatTransactionId(transactionId) : null}
+                      copyValue={transactionId || undefined}
+                    />
+                    <TransactionDetailInfoRow label="Date" value={prettyDate} />
+                    <TransactionDetailInfoRow
+                      label="From"
+                      value={fromAddress}
+                      copyValue={isPresentDetailValue(fromAddress) ? fromAddress : undefined}
+                    />
+                    <TransactionDetailInfoRow
+                      label="To"
+                      value={toAddress}
+                      copyValue={isPresentDetailValue(toAddress) ? toAddress : undefined}
+                    />
+                    <TransactionDetailInfoRow label="Description" value={description} />
+                    <TransactionDetailInfoRow
+                      label="Network fee"
+                      value={typeof fee === 'number' ? `${fee} XRP` : fee}
+                    />
+                    <TransactionDetailInfoRow
+                      label="Transaction hash"
+                      value={hashText ? formatTransactionId(hashText) : null}
+                      copyValue={hashText || undefined}
+                      href={explorerUrl}
+                      mono
+                    />
+                    <TransactionDetailInfoRow label="Network" value={network} />
+                    <TransactionDetailInfoRow label="Block" value={blockNumber} />
+                    <TransactionDetailInfoRow label="Confirmations" value={confirmations} />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Transaction Information</div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Transaction ID</span>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
-                        {formatTransactionId(transactionId)}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Date</span>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{formatDate(date)}</span>
-                    </div>
-
-                    {fromAddress !== 'N/A' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>From</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
-                          {fromAddress}
-                        </span>
-                      </div>
-                    )}
-
-                    {toAddress !== 'N/A' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>To</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>
-                          {toAddress}
-                        </span>
-                      </div>
-                    )}
-
-                    {description !== 'N/A' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Description</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{description}</span>
-                      </div>
-                    )}
-
-                    {fee !== 'N/A' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Transaction Fee</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>
-                          {typeof fee === 'number' ? `${fee} XRP` : fee}
-                        </span>
-                      </div>
-                    )}
-
-                    {hash !== 'N/A' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Transaction Hash</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500, wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                            {hash}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(String(hash));
-                              toast.success('Transaction hash copied to clipboard');
-                            }}
-                            style={{
-                              padding: '0.25rem 0.5rem',
-                              background: 'var(--blue-100)',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                            }}
-                          >
-                            <Copy size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Network</span>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{network}</span>
-                    </div>
-
-                    {blockNumber !== 'N/A' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Block Number</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{blockNumber}</span>
-                      </div>
-                    )}
-
-                    {confirmations !== 'N/A' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Confirmations</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-dark)', fontWeight: 500 }}>{confirmations}</span>
-                      </div>
-                    )}
-                  </div>
+                  {explorerUrl ? (
+                    <a
+                      className="txd-explorer-btn"
+                      href={explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View on XRPL explorer
+                      <ExternalLink size={16} />
+                    </a>
+                  ) : null}
                 </div>
               );
             })()}
@@ -2826,18 +3236,28 @@ const Transactions = () => {
     );
   };
 
+  const filteredTransactions = useMemo(() => {
+    const direction = String(transactionFilter || 'All').toLowerCase();
+    return transactions.filter((transaction) => {
+      if (direction === 'received' && !isIncomingTransaction(transaction)) return false;
+      if (direction === 'sent' && isIncomingTransaction(transaction)) return false;
+      const date = transaction.date || transaction.createdAt;
+      return transactionMatchesMonthFilter(date, monthlyFilter, displayCurrency);
+    });
+  }, [transactions, transactionFilter, monthlyFilter, displayCurrency]);
+
   // Pagination logic
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const paginatedTransactions = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return transactions.slice(startIndex, endIndex);
-  }, [transactions, currentPage, itemsPerPage]);
+    return filteredTransactions.slice(startIndex, endIndex);
+  }, [filteredTransactions, currentPage, itemsPerPage]);
 
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [transactionFilter, monthlyFilter]);
+  }, [transactionFilter, monthlyFilter, displayCurrency]);
 
   // Function to refresh dashboard data
   const fetchDashboardSummary = async () => {
@@ -3387,14 +3807,33 @@ const Transactions = () => {
     [savingsWallets],
   );
 
+  const savingsAddMoneySourceWallets = useMemo(() => {
+    return ['XRP', 'USDT', 'USDC'].map((code) => {
+      const balance = getCurrencyBalance(code);
+      const formatted = Number(balance).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      });
+      return {
+        id: code,
+        code,
+        label: `${code} wallet`,
+        ticker: code,
+        balanceLabel: `${formatted} ${code}`,
+        sourceWalletId: custodialWalletIds[code.toLowerCase()] || '',
+      };
+    });
+  }, [walletBalances, custodialWalletIds]);
+
   const savingsAddMoneyBalanceLine = useMemo(() => {
-    const balance = getCurrencyBalance('XRP');
+    const code = String(savingsAddMoneyForm.sourceCode || 'XRP').toUpperCase();
+    const balance = getCurrencyBalance(code);
     const formatted = Number(balance).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 6,
     });
-    return `${formatted} XRP`;
-  }, [walletBalances]);
+    return `${formatted} ${code}`;
+  }, [walletBalances, savingsAddMoneyForm.sourceCode]);
 
   const submitSavingsTransfer = async () => {
     if (isSessionExpired) {
@@ -3412,23 +3851,30 @@ const Transactions = () => {
       return;
     }
     const rawAmount = String(savingsAddMoneyForm.amount || '').replace(/,/g, '').trim();
-    const amountXrp = parseFloat(rawAmount);
-    if (!Number.isFinite(amountXrp) || amountXrp <= 0) {
-      toast.error('Enter a valid XRP amount.');
+    const amount = parseFloat(rawAmount);
+    const sourceCode = String(savingsAddMoneyForm.sourceCode || 'XRP').toUpperCase();
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error(`Enter a valid ${sourceCode} amount.`);
       return;
     }
-    const xrpBalance = getCurrencyBalance('XRP');
-    if (amountXrp > xrpBalance + 1e-10) {
-      toast.error('Insufficient XRP balance.');
+    const sourceBalance = getCurrencyBalance(sourceCode);
+    if (amount > sourceBalance + 1e-10) {
+      toast.error(`Insufficient ${sourceCode} balance.`);
       return;
     }
 
     const body = {
       savingsWalletId,
-      amountXrp,
+      currency: sourceCode,
     };
-    if (custodialWalletIds.xrp) {
-      body.sourceWalletId = custodialWalletIds.xrp;
+    if (sourceCode === 'XRP') {
+      body.amountXrp = amount;
+    } else {
+      body.amount = amount;
+    }
+    const sourceWalletId = custodialWalletIds[sourceCode.toLowerCase()];
+    if (sourceWalletId) {
+      body.sourceWalletId = sourceWalletId;
     }
 
     setIsSubmittingSavingsTransfer(true);
@@ -3838,58 +4284,42 @@ const Transactions = () => {
 
   // Helper function to get exchange rate
   const getExchangeRate = (fromCurrency, toCurrency) => {
-    if (!exchangeRates || !Array.isArray(exchangeRates)) return null;
     if (fromCurrency === toCurrency) return 1;
-    
-    // Try to find direct rate
-    const directRate = exchangeRates.find(rate => 
-      rate.from === fromCurrency && rate.to === toCurrency
-    );
-    if (directRate) return directRate.rate;
 
-    // Try reverse rate
-    const reverseRate = exchangeRates.find(rate => 
-      rate.from === toCurrency && rate.to === fromCurrency
-    );
-    if (reverseRate) return 1 / reverseRate.rate;
+    const rates = Array.isArray(mergedExchangeRates) ? mergedExchangeRates : [];
 
-    // Fallback: try to find via USD if available
-    if (fromCurrency !== 'USD' && toCurrency !== 'USD') {
-      const fromToUsd = exchangeRates.find(rate => 
-        rate.from === fromCurrency && rate.to === 'USD'
-      );
-      const usdToTo = exchangeRates.find(rate => 
-        rate.from === 'USD' && rate.to === toCurrency
-      );
-      if (fromToUsd && usdToTo) {
-        return fromToUsd.rate * usdToTo.rate;
-      }
-    }
-
-    // api/exchange/rates shape: { currency: 'XRP', rate } = USD per 1 unit
     if (fromCurrency === 'XRP' && toCurrency === 'USD') {
-      const xrpRow = exchangeRates.find(
-        (r) => (r.currency || r.code || '').toUpperCase() === 'XRP',
-      );
-      const n = Number(xrpRow?.rate ?? xrpRow?.value);
-      if (Number.isFinite(n) && n > 0) return n;
+      const tableRate = getUsdPerXrpFromExchangeRates(rates, resolvedQuoteDirection);
+      if (tableRate != null && tableRate > 0) return tableRate;
+      if (xrpUsdSpotRate != null && Number(xrpUsdSpotRate) > 0) return Number(xrpUsdSpotRate);
+      return null;
     }
     if (fromCurrency === 'USD' && toCurrency === 'XRP') {
-      const xrpRow = exchangeRates.find(
-        (r) => (r.currency || r.code || '').toUpperCase() === 'XRP',
-      );
-      const n = Number(xrpRow?.rate ?? xrpRow?.value);
-      if (Number.isFinite(n) && n > 0) return 1 / n;
+      const usdPerXrp = getExchangeRate('XRP', 'USD');
+      if (usdPerXrp) return 1 / usdPerXrp;
+      return null;
     }
 
     if (fromCurrency === 'RLUSD' && toCurrency === 'USD') return 1;
     if (fromCurrency === 'USD' && toCurrency === 'RLUSD') return 1;
     if (fromCurrency === 'XRP' && toCurrency === 'RLUSD') {
-      const xrpRow = exchangeRates.find(
-        (r) => (r.currency || r.code || '').toUpperCase() === 'XRP',
-      );
-      const n = Number(xrpRow?.rate ?? xrpRow?.value);
-      if (Number.isFinite(n) && n > 0) return n;
+      return getExchangeRate('XRP', 'USD');
+    }
+
+    if (!rates.length) return null;
+
+    const directRate = rates.find((rate) => rate.from === fromCurrency && rate.to === toCurrency);
+    if (directRate) return directRate.rate;
+
+    const reverseRate = rates.find((rate) => rate.from === toCurrency && rate.to === fromCurrency);
+    if (reverseRate) return 1 / reverseRate.rate;
+
+    if (fromCurrency !== 'USD' && toCurrency !== 'USD') {
+      const fromToUsd = rates.find((rate) => rate.from === fromCurrency && rate.to === 'USD');
+      const usdToTo = rates.find((rate) => rate.from === 'USD' && rate.to === toCurrency);
+      if (fromToUsd && usdToTo) {
+        return fromToUsd.rate * usdToTo.rate;
+      }
     }
 
     return null;
@@ -3938,6 +4368,139 @@ const Transactions = () => {
     }
 
     return formatWalletFiatAmount(0, code, 0);
+  };
+
+  const resolveWalletAssetAmount = (walletCode) => {
+    const upper = String(walletCode || '').toUpperCase();
+    const lower = upper.toLowerCase();
+    const candidates = [
+      walletBalances?.[lower],
+      walletBalances?.[upper],
+    ];
+    if (upper === 'XRP') {
+      candidates.push(dashboardData?.balance?.xrp, dashboardData?.balance?.XRP);
+    }
+    if (upper === 'RLUSD') {
+      candidates.push(
+        walletBalances?.rlusd,
+        walletBalances?.RLUSD,
+        dashboardData?.balance?.rlusd,
+        dashboardData?.balance?.RLUSD,
+      );
+    }
+    for (const value of candidates) {
+      if (value === undefined || value === null || value === '') continue;
+      const n = Number(value);
+      if (Number.isFinite(n)) return n;
+    }
+    return 0;
+  };
+
+  const formatWalletDetailsNativeAmount = (walletDetails) => {
+    const code = String(walletDetails?.code || 'XRP').toUpperCase();
+    const amount = resolveWalletAssetAmount(code);
+    const decimals = code === 'XRP' ? 6 : 2;
+    return `${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: decimals,
+    })} ${walletDetails?.symbolLabel || code}`;
+  };
+
+  const formatWalletDetailsDisplayAmount = (walletDetails) => {
+    const code = String(walletDetails?.code || '').toUpperCase();
+    const amount = resolveWalletAssetAmount(code);
+    let usdValue = amount;
+    if (code === 'XRP') {
+      const xrpUsd = getExchangeRate('XRP', 'USD');
+      usdValue = xrpUsd != null && Number(xrpUsd) > 0 ? amount * Number(xrpUsd) : 0;
+    }
+    return formatWalletFiatAmount(usdValue, code, amount);
+  };
+
+  const getWalletDetailsExchangeLabel = (walletCode) => {
+    const code = String(walletCode || '').toUpperCase();
+
+    if (code === 'XRP') {
+      if (displayCurrency === 'XRP') return '1 XRP = 1.00 XRP';
+      if (isLoadingRates || isLoadingExchangeRates || isLoadingXrpUsdSpotRate) {
+        return 'Fetching live rate…';
+      }
+      const xrpToUsd = getExchangeRate('XRP', 'USD');
+      if (xrpToUsd == null || Number(xrpToUsd) <= 0) return '1 XRP — rate unavailable';
+      return `1 XRP = ${formatFromUsd(Number(xrpToUsd))}`;
+    }
+
+    if (displayCurrency === 'XRP') {
+      const xrpToUsd = getExchangeRate('XRP', 'USD');
+      if (xrpToUsd == null || Number(xrpToUsd) <= 0) return `1 ${code} — rate unavailable`;
+      return `1 ${code} = ${formatFromUsd(1, { xrpAmount: 1 / Number(xrpToUsd) })}`;
+    }
+
+    return `1 ${code} = ${formatFromUsd(1)}`;
+  };
+
+  const openWalletDetailsModal = (walletCode) => {
+    const code = String(walletCode || '').toUpperCase();
+    if (!code) return;
+
+    const amount = resolveWalletAssetAmount(code);
+    let usdValue = amount;
+    if (code === 'XRP') {
+      const xrpUsd = getExchangeRate('XRP', 'USD');
+      usdValue = xrpUsd != null && Number(xrpUsd) > 0 ? Number(amount) * Number(xrpUsd) : 0;
+    }
+
+    const config = WALLET_DETAILS_WALLETS[code];
+    if (!config) return;
+
+    setWalletDetailsPickerOpen(false);
+    if (code === 'USDT') {
+      setWalletDetailsNetwork('ERC20');
+    } else if (code === 'USDC') {
+      setWalletDetailsNetwork('BEP20');
+    }
+
+    setSelectedWalletDetails({
+      ...config,
+      amount,
+      usdValue: Number(usdValue) || 0,
+    });
+    setShowWalletDetailsModal(true);
+  };
+
+  const closeWalletDetailsModal = () => {
+    setWalletDetailsPickerOpen(false);
+    setShowWalletDetailsModal(false);
+  };
+
+  const handleWalletDetailsAction = (action) => {
+    const code = selectedWalletDetails?.code || 'XRP';
+    closeWalletDetailsModal();
+
+    if (action === 'deposit') {
+      setFundWalletForm((prev) => ({
+        ...prev,
+        currency: code === 'RLUSD' ? 'RLUSD' : code,
+      }));
+      setFundViaAddress(false);
+      setFundDepositPaymentMethod(null);
+      setDepositAddressNetwork('XRPL');
+      setShowFundMethodModal(true);
+      return;
+    }
+
+    if (action === 'withdraw') {
+      setWithdrawWalletForm((prev) => ({
+        ...prev,
+        currency: code === 'XRP' ? 'XRP' : 'USD',
+      }));
+      setShowWithdrawWalletModal(true);
+      return;
+    }
+
+    if (action === 'convert') {
+      setShowSwapModal(true);
+    }
   };
 
   const getPersonalWalletXrpBalance = () => {
@@ -5677,8 +6240,7 @@ const Transactions = () => {
                         >
                           <td>
                             <div className="desktop-savings-transaction-type">
-                              {isIncoming ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
-                              <span>{transaction.type}</span>
+                              <span>{formatTransactionTypeLabel(transaction.type)}</span>
                             </div>
                             <div className="desktop-savings-transaction-id">{transaction.id}</div>
                           </td>
@@ -5731,7 +6293,7 @@ const Transactions = () => {
                             {isIncoming ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
                           </div>
                           <div className="mobile-savings-history-details">
-                            <div className="mobile-savings-history-type">{transaction.type}</div>
+                            <div className="mobile-savings-history-type">{formatTransactionTypeLabel(transaction.type)}</div>
                             <div className="mobile-savings-history-description">
                               You {isIncoming ? 'received' : 'sent'} {xrpAmount} XRP, worth ${usdValue} USD.
                             </div>
@@ -5966,6 +6528,11 @@ const Transactions = () => {
             savingAccount: w?.name || prev.savingAccount,
           }));
         }}
+        sourceWallets={savingsAddMoneySourceWallets}
+        selectedSourceId={savingsAddMoneyForm.sourceCode || 'XRP'}
+        onSelectSource={(id) =>
+          setSavingsAddMoneyForm((prev) => ({ ...prev, sourceCode: String(id) }))
+        }
         onTransfer={submitSavingsTransfer}
         isSubmitting={isSubmittingSavingsTransfer}
         isLoadingBalance={isLoadingWalletBalances}
@@ -6783,7 +7350,19 @@ const Transactions = () => {
                 <WalletOverviewCardsSkeleton count={3} />
               ) : (
               <>
-              <div className="wallet-overview-card">
+              <div
+                className="wallet-overview-card"
+                role="button"
+                tabIndex={0}
+                aria-label="Open XRP wallet details"
+                onClick={() => openWalletDetailsModal('XRP')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openWalletDetailsModal('XRP');
+                  }
+                }}
+              >
                 <div className="wallet-overview-header">
                   <div className="wallet-overview-icon">
                     <img 
@@ -6814,7 +7393,19 @@ const Transactions = () => {
                 </div>
               </div>
 
-              <div className="wallet-overview-card">
+              <div
+                className="wallet-overview-card"
+                role="button"
+                tabIndex={0}
+                aria-label="Open Tether USD wallet details"
+                onClick={() => openWalletDetailsModal('USDT')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openWalletDetailsModal('USDT');
+                  }
+                }}
+              >
                 <div className="wallet-overview-header">
                   <div className="wallet-overview-icon usdt-icon">
                     <img 
@@ -6845,7 +7436,19 @@ const Transactions = () => {
                 </div>
               </div>
 
-              <div className="wallet-overview-card">
+              <div
+                className="wallet-overview-card"
+                role="button"
+                tabIndex={0}
+                aria-label="Open USD Coin wallet details"
+                onClick={() => openWalletDetailsModal('USDC')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openWalletDetailsModal('USDC');
+                  }
+                }}
+              >
                 <div className="wallet-overview-header">
                   <div className="wallet-overview-icon">
                     <img 
@@ -7038,7 +7641,7 @@ const Transactions = () => {
                     <button
                       type="button"
                       className="send-beneficiary-btn"
-                      onClick={() => setShowSendModal(true)}
+                      onClick={() => openSendModal()}
                     >
                       <Share size={18} strokeWidth={2} aria-hidden />
                       Send
@@ -7132,36 +7735,94 @@ const Transactions = () => {
                         <ArrowRight size={18} className="transaction-history-arrow" aria-hidden />
                       </button>
                     </div>
-                    <div className="transaction-filters">
-                      <select 
-                        className="filter-select"
-                        value={transactionFilter}
-                        onChange={(e) => setTransactionFilter(e.target.value)}
-                      >
-                        <option value="All">Filter</option>
-                        <option value="Received">Received</option>
-                        <option value="Sent">Sent</option>
-                        <option value="All">All</option>
-                      </select>
-                      <select 
-                        className="filter-select"
-                        value={monthlyFilter}
-                        onChange={(e) => setMonthlyFilter(e.target.value)}
-                      >
-                        <option value="Monthly">Monthly</option>
-                        <option value="This month">This month</option>
-                        <option value="Last month">Last month</option>
-                      </select>
-                      <button type="button" className="filter-icon-btn">
-                        <Filter size={18} />
-                      </button>
+                    <div className="transaction-filters" ref={historyFiltersRef}>
+                      <div className={`tx-history-dropdown${openHistoryFilter === 'direction' ? ' is-open' : ''}`}>
+                        <button
+                          type="button"
+                          className="tx-history-dropdown-trigger"
+                          aria-haspopup="listbox"
+                          aria-expanded={openHistoryFilter === 'direction'}
+                          aria-label="Filter transactions by direction"
+                          onClick={() =>
+                            setOpenHistoryFilter((open) => (open === 'direction' ? null : 'direction'))
+                          }
+                        >
+                          <Filter size={15} strokeWidth={2.2} aria-hidden />
+                          <span>{historyDirectionFilterLabel}</span>
+                          <ChevronDown
+                            size={16}
+                            className={`tx-history-dropdown-chevron${openHistoryFilter === 'direction' ? ' is-rotated' : ''}`}
+                            aria-hidden
+                          />
+                        </button>
+                        {openHistoryFilter === 'direction' ? (
+                          <div className="tx-history-dropdown-menu" role="listbox" aria-label="Direction">
+                            {HISTORY_DIRECTION_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                role="option"
+                                aria-selected={transactionFilter === option.value}
+                                className={`tx-history-dropdown-item${transactionFilter === option.value ? ' is-active' : ''}`}
+                                onClick={() => {
+                                  setTransactionFilter(option.value);
+                                  setOpenHistoryFilter(null);
+                                }}
+                              >
+                                <span>{option.label}</span>
+                                {transactionFilter === option.value ? <CheckCircle size={14} aria-hidden /> : null}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className={`tx-history-dropdown${openHistoryFilter === 'month' ? ' is-open' : ''}`}>
+                        <button
+                          type="button"
+                          className="tx-history-dropdown-trigger"
+                          aria-haspopup="listbox"
+                          aria-expanded={openHistoryFilter === 'month'}
+                          aria-label="Filter transaction history by month"
+                          onClick={() =>
+                            setOpenHistoryFilter((open) => (open === 'month' ? null : 'month'))
+                          }
+                        >
+                          <Calendar size={15} strokeWidth={2.2} aria-hidden />
+                          <span>{historyMonthFilterLabel}</span>
+                          <ChevronDown
+                            size={16}
+                            className={`tx-history-dropdown-chevron${openHistoryFilter === 'month' ? ' is-rotated' : ''}`}
+                            aria-hidden
+                          />
+                        </button>
+                        {openHistoryFilter === 'month' ? (
+                          <div className="tx-history-dropdown-menu" role="listbox" aria-label="Month">
+                            {historyMonthFilterOptions.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                role="option"
+                                aria-selected={monthlyFilter === option.value}
+                                className={`tx-history-dropdown-item${monthlyFilter === option.value ? ' is-active' : ''}`}
+                                onClick={() => {
+                                  setMonthlyFilter(option.value);
+                                  setOpenHistoryFilter(null);
+                                }}
+                              >
+                                <span>{option.label}</span>
+                                {monthlyFilter === option.value ? <CheckCircle size={14} aria-hidden /> : null}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                   {/* Mobile Transaction Cards */}
                   <div className="mobile-transaction-cards">
                     {isLoadingTransactions ? (
                       <TransactionHistoryCardsSkeleton count={4} />
-                    ) : transactions.length === 0 ? (
+                    ) : filteredTransactions.length === 0 ? (
                       <div className="mobile-transaction-card">
                         <div className="mobile-transaction-content">
                           <span>No transactions found</span>
@@ -7171,7 +7832,9 @@ const Transactions = () => {
                     paginatedTransactions.map((transaction, index) => {
                       const globalIndex = (currentPage - 1) * itemsPerPage + index;
                       const transactionId = formatTransactionId(transaction.id || transaction.transactionId || `TXN-${globalIndex}`);
-                      const type = transaction.type || transaction.transactionType || 'Received';
+                      const type = formatTransactionTypeLabel(
+                        transaction.type || transaction.transactionType || 'Received',
+                      );
                       const amountXrp = transaction.amount?.xrp || transaction.amountXrp || transaction.amount || 0;
                       const amountUsd = transaction.amount?.usd || transaction.amountUsd || (amountXrp * 0.5);
                       const status = transaction.status || 'Successful';
@@ -7231,17 +7894,19 @@ const Transactions = () => {
                             </td>
                           </tr>
                         ) : null}
-                        {!isLoadingTransactions && transactions.length === 0 && (
+                        {!isLoadingTransactions && filteredTransactions.length === 0 && (
                           <tr>
                             <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
                               No transactions found
                             </td>
                           </tr>
                         )}
-                        {!isLoadingTransactions && transactions.length > 0 && paginatedTransactions.length > 0 && paginatedTransactions.map((transaction, index) => {
+                        {!isLoadingTransactions && filteredTransactions.length > 0 && paginatedTransactions.length > 0 && paginatedTransactions.map((transaction, index) => {
                           const globalIndex = (currentPage - 1) * itemsPerPage + index;
                           const transactionId = formatTransactionId(transaction.id || transaction.transactionId || `TXN-${globalIndex}`);
-                          const type = transaction.type || transaction.transactionType || 'Received';
+                          const type = formatTransactionTypeLabel(
+                            transaction.type || transaction.transactionType || 'Received',
+                          );
                           const amountXrp = transaction.amount?.xrp || transaction.amountXrp || transaction.amount || 0;
                           const amountUsd = transaction.amount?.usd || transaction.amountUsd || (amountXrp * 0.5);
                           const status = transaction.status || 'Successful';
@@ -7261,7 +7926,6 @@ const Transactions = () => {
                               <td>
                                 <div className="transaction-id-with-type">
                                   <div className="transaction-type-indicator">
-                                    {isReceived ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
                                     <span>{type}</span>
                                   </div>
                                   <div className="transaction-id-cell">{transactionId}</div>
@@ -7298,10 +7962,10 @@ const Transactions = () => {
                       </tbody>
                     </table>
                   </div>
-                  {!isLoadingTransactions && transactions.length > 0 && (
+                  {!isLoadingTransactions && filteredTransactions.length > 0 && (
                     <div className="transaction-pagination">
                       <div className="pagination-info">
-                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, transactions.length)} of {transactions.length} transactions
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} of {filteredTransactions.length} transactions
                       </div>
                       <div className="pagination-controls">
                         <button
@@ -8878,6 +9542,185 @@ const Transactions = () => {
       {renderTransactionDetailsModal()}
       {renderAddBeneficiaryModal()}
       {renderRemoveBeneficiaryModal()}
+
+      {showWalletDetailsModal && selectedWalletDetails && (
+        <div
+          className="wallet-details-modal-overlay"
+          onClick={closeWalletDetailsModal}
+        >
+          <div className="wallet-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="wallet-details-modal-header">
+              <h2 className="wallet-details-modal-title">Wallet Details</h2>
+              <button
+                type="button"
+                className="wallet-details-close-btn"
+                onClick={closeWalletDetailsModal}
+                aria-label="Close"
+              >
+                <X size={22} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="wallet-details-top-card">
+              <div className="wallet-details-selector-wrap">
+                <button
+                  type="button"
+                  className="wallet-details-wallet-selector"
+                  onClick={() => setWalletDetailsPickerOpen((o) => !o)}
+                  aria-expanded={walletDetailsPickerOpen}
+                  aria-haspopup="listbox"
+                >
+                  <div className="wallet-details-icon-wrap">
+                    <img src={selectedWalletDetails.iconUrl} alt="" />
+                  </div>
+                  <span className="wallet-details-selector-label">{selectedWalletDetails.name}</span>
+                  <ChevronDown
+                    size={20}
+                    className={`wallet-details-selector-chevron${walletDetailsPickerOpen ? ' is-open' : ''}`}
+                    aria-hidden
+                  />
+                </button>
+                {walletDetailsPickerOpen ? (
+                  <ul className="wallet-details-wallet-picker" role="listbox">
+                    {WALLET_DETAILS_ORDER.map((wc) => {
+                      const cfg = WALLET_DETAILS_WALLETS[wc];
+                      if (!cfg) return null;
+                      const isActive = wc === selectedWalletDetails.code;
+                      return (
+                        <li key={wc}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={isActive}
+                            className={isActive ? 'is-current' : undefined}
+                            onClick={() => openWalletDetailsModal(wc)}
+                          >
+                            <span className="wallet-details-picker-icon-wrap">
+                              <img src={cfg.iconUrl} alt="" />
+                            </span>
+                            {cfg.name}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
+
+              <p className="wallet-details-total">{formatWalletDetailsNativeAmount(selectedWalletDetails)}</p>
+              <p className="wallet-details-fiat-amount">{formatWalletDetailsDisplayAmount(selectedWalletDetails)}</p>
+              <p className="wallet-details-exchange-caption">
+                Exchange rate: {getWalletDetailsExchangeLabel(selectedWalletDetails.code)}
+              </p>
+
+              <div className="wallet-details-actions">
+                <button type="button" className="wallet-details-action-btn" onClick={() => handleWalletDetailsAction('deposit')}>
+                  <Plus size={18} strokeWidth={2.25} />
+                  Deposit
+                </button>
+                <button type="button" className="wallet-details-action-btn" onClick={() => handleWalletDetailsAction('convert')}>
+                  <Repeat size={18} strokeWidth={2.25} />
+                  Convert
+                </button>
+                <button type="button" className="wallet-details-action-btn" onClick={() => handleWalletDetailsAction('withdraw')}>
+                  <Send size={18} strokeWidth={2.25} />
+                  Send
+                </button>
+              </div>
+            </div>
+
+            {(selectedWalletDetails.code === 'USDT' || selectedWalletDetails.code === 'USDC') ? (
+              <div className="wallet-details-network-block">
+                <p className="wallet-details-network-label">Wallet Network</p>
+                <div className="wallet-details-network-segments" role="tablist">
+                  {(WALLET_DETAILS_NETWORK_KEYS[selectedWalletDetails.code] || []).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={walletDetailsNetwork === key}
+                      className={walletDetailsNetwork === key ? 'is-active' : undefined}
+                      onClick={() => setWalletDetailsNetwork(key)}
+                    >
+                      {walletDetailsNetworkLabel(key)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div
+              className={`wallet-details-address-card${isLoadingWalletDetailsAddress ? ' wallet-details-address-card--pending' : ''}`}
+              aria-busy={isLoadingWalletDetailsAddress || undefined}
+            >
+              <div className="wallet-details-qr-wrap">
+                {isLoadingWalletDetailsAddress ? (
+                  <div className="wallet-details-qr-skeleton" aria-hidden />
+                ) : (
+                  <QRCode
+                    value={walletDetailsAddress || 'N/A'}
+                    size={128}
+                    bgColor="#ffffff"
+                    fgColor="#111827"
+                  />
+                )}
+              </div>
+              <div className="wallet-details-address-info">
+                {isLoadingWalletDetailsAddress ? (
+                  <div className="wallet-details-address-skeleton" aria-live="polite">
+                    <span className="wallet-details-address-skeleton-line wallet-details-address-skeleton-line--long" />
+                    <span className="wallet-details-address-skeleton-line wallet-details-address-skeleton-line--short" />
+                  </div>
+                ) : (
+                  <p>{walletDetailsAddress || 'Address not available yet'}</p>
+                )}
+                <button
+                  type="button"
+                  className="wallet-details-copy-icon-btn"
+                  onClick={async () => {
+                    try {
+                      if (!walletDetailsAddress) {
+                        toast.error('No wallet address available');
+                        return;
+                      }
+                      await navigator.clipboard.writeText(walletDetailsAddress);
+                      toast.success('Address copied');
+                    } catch (err) {
+                      console.error('Failed to copy wallet address:', err);
+                      toast.error('Failed to copy wallet address');
+                    }
+                  }}
+                  aria-label="Copy wallet address"
+                  disabled={!walletDetailsAddress || isLoadingWalletDetailsAddress}
+                >
+                  <Copy size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="wallet-details-meta-list">
+              <div className="wallet-details-meta-row">
+                <span>Rate</span>
+                <strong>{getWalletDetailsExchangeLabel(selectedWalletDetails.code)}</strong>
+              </div>
+              <div className="wallet-details-meta-row">
+                <span>Wallet Address</span>
+                <strong className="wallet-details-meta-address-strong">
+                  {isLoadingWalletDetailsAddress ? '…' : formatWalletDetailsAddressShort(walletDetailsAddress)}
+                </strong>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="wallet-details-done-btn"
+              onClick={closeWalletDetailsModal}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Connect Wallet Modal */}
       <ConnectWalletModal 

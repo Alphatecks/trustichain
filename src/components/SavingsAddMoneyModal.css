@@ -59,7 +59,8 @@
   font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
 }
 
-.savings-am-sheet {
+.savings-am-sheet,
+.savings-am-modal {
   width: 100%;
   max-width: 420px;
   max-height: min(92vh, 720px);
@@ -74,7 +75,8 @@
 }
 
 @media (min-width: 480px) {
-  .savings-am-sheet {
+  .savings-am-sheet,
+  .savings-am-modal {
     border-radius: 22px;
     padding: 1.35rem 1.4rem 1.45rem;
     animation: savings-am-sheet-desktop-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -89,7 +91,8 @@
   }
 }
 
-.savings-am-head {
+.savings-am-head,
+.savings-am-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -127,6 +130,9 @@
   border-radius: 16px;
   padding: 0.9rem 1rem 1rem;
   margin-bottom: 1.15rem;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 
 .savings-am-amount-card-top {
@@ -143,6 +149,11 @@
   color: #94a3b8;
 }
 
+.savings-am-wallet-wrap {
+  position: relative;
+  z-index: 6;
+}
+
 .savings-am-wallet-pill {
   display: inline-flex;
   align-items: center;
@@ -152,6 +163,78 @@
   border-radius: 999px;
   border: 1px solid rgba(0, 102, 255, 0.12);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.savings-am-wallet-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.savings-am-wallet-pill.is-open {
+  border-color: rgba(0, 102, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.savings-am-wallet-pill.is-open .savings-am-wallet-pill-chevron {
+  transform: rotate(180deg);
+}
+
+.savings-am-wallet-menu {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.35rem;
+  position: absolute;
+  right: 0;
+  min-width: 220px;
+  z-index: 8;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.savings-am-wallet-option {
+  width: 100%;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.savings-am-wallet-option-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.savings-am-wallet-option-bal {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.savings-am-wallet-option:hover {
+  background: #f8fafc;
+}
+
+.savings-am-wallet-option.is-selected {
+  background: #eef5ff;
+  color: #0066ff;
 }
 
 .savings-am-wallet-pill-icon {
@@ -160,14 +243,17 @@
   min-width: 26px;
   min-height: 26px;
   border-radius: 50%;
-  background: #0066ff;
+  background: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  /* Clip any square/ragged asset to a perfect circle */
   isolation: isolate;
+}
+
+.savings-am-wallet-pill-icon.is-xrp {
+  background: #0066ff;
 }
 
 .savings-am-wallet-pill-icon img {
@@ -205,6 +291,7 @@
   color: #0066ff;
   opacity: 0.85;
   flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
 .savings-am-amount-hero {
@@ -253,8 +340,9 @@
   align-self: center;
 }
 
+.savings-am-balance,
 .savings-am-balance-line {
-  margin: 0;
+  margin: 0 0 1rem;
   font-size: 0.78rem;
   font-weight: 500;
   color: #94a3b8;
@@ -262,6 +350,25 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25rem;
+}
+
+.savings-am-field {
+  margin-bottom: 1.1rem;
+}
+
+.savings-am-field-label,
+.savings-am-accounts-heading {
+  display: block;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.savings-am-account-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0066ff;
 }
 
 .savings-am-balance-label {

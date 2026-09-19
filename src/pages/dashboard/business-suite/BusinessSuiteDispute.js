@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   LogOut,
   Calendar,
+  Filter,
   Menu,
   Plus,
   CheckCircle,
@@ -36,7 +37,7 @@ import './BusinessSuiteDispute.css';
 import logo from '../../../assets/images/icons/logo.png';
 import { getApiUrl, API_BASE_URL } from '../../../utils/config';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
-import { getDisputeSummary, getDisputes } from '../../../utils/disputesApi';
+import { getDisputes, loadDisputeMonthOverview } from '../../../utils/disputesApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
@@ -75,6 +76,8 @@ const MONTH_OPTIONS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+const STATUS_FILTER_OPTIONS = ['All', 'Pending', 'Active', 'Resolved', 'Cancelled'];
 
 const getCurrentMonth = () => MONTH_OPTIONS[new Date().getMonth()];
 
@@ -194,8 +197,10 @@ const BusinessSuiteDispute = () => {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isMobileMonthDropdownOpen, setIsMobileMonthDropdownOpen] = useState(false);
   const monthDropdownRef = useRef(null);
+  const statusDropdownRef = useRef(null);
   const mobileMonthDropdownRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -213,6 +218,10 @@ const BusinessSuiteDispute = () => {
   const [listRefreshKey, setListRefreshKey] = useState(0);
 
   const monthParam = useMemo(() => monthLabelToYYYYMM(selectedMonth), [selectedMonth]);
+  const monthNumber = useMemo(
+    () => MONTH_LABEL_TO_NUMBER[String(selectedMonth || '').trim().toLowerCase()] || undefined,
+    [selectedMonth],
+  );
   const statusParam = useMemo(() => {
     const n = (selectedFilter || '').trim().toLowerCase();
     if (!n || n === 'all') return 'all';
@@ -232,6 +241,12 @@ const BusinessSuiteDispute = () => {
     setIsMobileMonthDropdownOpen(false);
   };
 
+  const handleStatusSelect = (status) => {
+    setSelectedFilter(status);
+    setCurrentPage(1);
+    setIsStatusDropdownOpen(false);
+  };
+
   useEffect(() => {
     const now = new Date();
     const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
@@ -243,6 +258,7 @@ const BusinessSuiteDispute = () => {
   useEffect(() => {
     const onClose = (e) => {
       if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target)) setIsMonthDropdownOpen(false);
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target)) setIsStatusDropdownOpen(false);
       if (mobileMonthDropdownRef.current && !mobileMonthDropdownRef.current.contains(e.target)) setIsMobileMonthDropdownOpen(false);
     };
     document.addEventListener('mousedown', onClose);
@@ -258,17 +274,41 @@ const BusinessSuiteDispute = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
     let cancelled = false;
+    setSummaryMetrics({
+      totalDisputes: null,
+      activeDisputes: null,
+      resolvedDisputes: null,
+      avgResolutionTimeSeconds: null,
+      totalChangePercent: null,
+      activeChangePercent: null,
+      resolvedChangePercent: null,
+    });
     (async () => {
       try {
-        const data = await getDisputeSummary({ token, month: monthParam });
-        const m = data?.metrics;
-        if (!cancelled && m) setSummaryMetrics((prev) => ({ ...prev, ...m }));
+        const metrics = await loadDisputeMonthOverview({
+          token,
+          month: monthParam,
+          monthNumber,
+          monthLabel: selectedMonth,
+        });
+        if (!cancelled && metrics) setSummaryMetrics(metrics);
       } catch (e) {
         console.error('Dispute summary error:', e);
+        if (!cancelled) {
+          setSummaryMetrics({
+            totalDisputes: 0,
+            activeDisputes: 0,
+            resolvedDisputes: 0,
+            avgResolutionTimeSeconds: 0,
+            totalChangePercent: null,
+            activeChangePercent: null,
+            resolvedChangePercent: null,
+          });
+        }
       }
     })();
     return () => { cancelled = true; };
-  }, [isSessionExpired, monthParam]);
+  }, [isSessionExpired, monthParam, monthNumber, selectedMonth]);
 
   useEffect(() => {
     if (isSessionExpired) {
@@ -284,6 +324,7 @@ const BusinessSuiteDispute = () => {
           token,
           status: statusParam,
           month: monthParam,
+          monthNumber,
           page: currentPage,
           pageSize: itemsPerPage
         });
@@ -297,14 +338,18 @@ const BusinessSuiteDispute = () => {
           reason: d?.reason || '—',
           duration: formatDurationSeconds(d?.durationSeconds)
         }));
-        if (!cancelled) setDisputeData(mapped);
+        const filtered =
+          statusParam === 'all'
+            ? mapped
+            : mapped.filter((d) => String(d.status || '').toLowerCase() === statusParam);
+        if (!cancelled) setDisputeData(filtered);
       } catch (e) {
         console.error('Disputes list error:', e);
         if (!cancelled) setDisputeData([]);
       }
     })();
     return () => { cancelled = true; };
-  }, [isSessionExpired, monthParam, statusParam, currentPage, itemsPerPage, listRefreshKey]);
+  }, [isSessionExpired, monthParam, monthNumber, statusParam, currentPage, itemsPerPage, listRefreshKey]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -839,7 +884,6 @@ const BusinessSuiteDispute = () => {
                   <div className="dispute-card-change-badge positive"><TrendingUp size={12} /><span>{formatPercent(summaryMetrics.totalChangePercent)}</span></div>
                 </div>
                 <div className="dispute-card-value">{summaryMetrics.totalDisputes ?? 'N/A'}</div>
-                <div className="dispute-card-dropdown"><span>This Monthly</span><ChevronDown size={14} /></div>
               </div>
             </div>
             <div className="dispute-summary-card">
@@ -850,7 +894,6 @@ const BusinessSuiteDispute = () => {
                   <div className="dispute-card-change-badge positive"><TrendingUp size={12} /><span>{formatPercent(summaryMetrics.activeChangePercent)}</span></div>
                 </div>
                 <div className="dispute-card-value">{summaryMetrics.activeDisputes ?? 'N/A'}</div>
-                <div className="dispute-card-dropdown"><span>This Monthly</span><ChevronDown size={14} /></div>
               </div>
             </div>
             <div className="dispute-summary-card">
@@ -861,7 +904,6 @@ const BusinessSuiteDispute = () => {
                   <div className="dispute-card-change-badge positive"><TrendingUp size={12} /><span>{formatPercent(summaryMetrics.resolvedChangePercent)}</span></div>
                 </div>
                 <div className="dispute-card-value">{summaryMetrics.resolvedDisputes ?? 'N/A'}</div>
-                <div className="dispute-card-dropdown"><span>This Monthly</span><ChevronDown size={14} /></div>
               </div>
             </div>
             <div className="dispute-summary-card">
@@ -876,13 +918,45 @@ const BusinessSuiteDispute = () => {
                     <span className="dispute-card-value-unit">{avgResolutionParts.unit}</span>
                   ) : null}
                 </div>
-                <div className="dispute-card-dropdown"><span>This Monthly</span><ChevronDown size={14} /></div>
               </div>
             </div>
           </div>
 
           <div className="dispute-filters">
-            <div className="dispute-filter-dropdown"><span>{selectedFilter}</span><ChevronDown size={16} /></div>
+            <div className="dispute-filter-dropdown-wrapper" ref={statusDropdownRef}>
+              <button
+                type="button"
+                className={`dispute-filter-dropdown${isStatusDropdownOpen ? ' open' : ''}`}
+                onClick={() => {
+                  setIsMonthDropdownOpen(false);
+                  setIsStatusDropdownOpen((open) => !open);
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={isStatusDropdownOpen}
+                aria-label="Filter disputes by status"
+              >
+                <Filter size={16} />
+                <span>{selectedFilter}</span>
+                <ChevronDown size={16} className={`month-filter-chevron${isStatusDropdownOpen ? ' rotated' : ''}`} />
+              </button>
+              {isStatusDropdownOpen && (
+                <div className="dispute-month-dropdown dispute-status-dropdown" role="listbox" aria-label="Dispute status">
+                  {STATUS_FILTER_OPTIONS.map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`dispute-month-dropdown-item ${selectedFilter === status ? 'active' : ''}`}
+                      onClick={() => handleStatusSelect(status)}
+                      role="option"
+                      aria-selected={selectedFilter === status}
+                    >
+                      <span>{status}</span>
+                      {selectedFilter === status && <CheckCircle size={14} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="dispute-month-filter-wrapper" ref={monthDropdownRef}>
               <button type="button" className={`dispute-month-filter ${isMonthDropdownOpen ? 'open' : ''}`} onClick={() => setIsMonthDropdownOpen((o) => !o)}>
                 <Calendar size={16} /><span>{selectedMonth}</span><ChevronDown size={14} className={isMonthDropdownOpen ? 'rotated' : ''} />

@@ -56,6 +56,11 @@ import {
   SavingsPlanCardsSkeleton,
 } from '../../../components/DashboardSkeletons';
 import { PersonalSidebarWalletProvider, PersonalSidebarWalletNav } from '../../../components/PersonalSidebarWallet';
+import {
+  emptyCustodialWalletBalances,
+  parseCustodialWalletBalances,
+  extractCustodialWalletIds,
+} from '../../../utils/custodialWalletBalances';
 
 const sidebarNav = [
   { label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -78,6 +83,15 @@ const MOBILE_SAVINGS_ALLOCATION_BUCKETS = [
 ];
 
 const HISTORY_PAGE_CHUNK = 10;
+const SAVINGS_SOURCE_WALLET_CODES = ['XRP', 'USDT', 'USDC'];
+
+function formatSourceWalletBalance(amount, code) {
+  const n = Number(amount);
+  const formatted = Number.isFinite(n)
+    ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+    : '0.00';
+  return `${formatted} ${code}`;
+}
 
 /** Pagination strip aligned with Saving history mock: `1 … 11–18` when there are many pages. */
 const getSavingHistoryPaginationStrip = (totalPages) => {
@@ -137,15 +151,31 @@ const mapSavingsWalletApiToUi = (wallet, fallbackIndex = 0) => {
 
   return {
     id: idRaw || `wallet-${fallbackIndex + 1}`,
-    title: String(wallet?.name || `Wallet ${fallbackIndex + 1}`),
+    title: String(wallet?.name || wallet?.title || `Wallet ${fallbackIndex + 1}`),
     progressPct: Math.round(progressPct),
-    typeLabel: String(wallet?.planType || 'Savings'),
+    typeLabel: String(wallet?.planType || wallet?.type || wallet?.category || 'Savings'),
     savedUsd: amountUsd,
     ringColor: style.ringColor,
     Icon: style.Icon,
     status: String(wallet?.status || '').toLowerCase() === 'completed' ? 'completed' : 'active',
     targetAmountUsd,
+    remainingUsd: Math.max(0, targetAmountUsd - amountUsd),
+    createdAt: wallet?.createdAt || wallet?.created_at || wallet?.openedAt || null,
+    targetDate: wallet?.targetDate || wallet?.target_date || wallet?.goalDate || null,
+    autoSaveAmountUsd: toNumeric(wallet?.autoSaveAmountUsd ?? wallet?.autoSaveAmount ?? wallet?.autosaveAmount, NaN),
+    autoSaveFrequency: String(wallet?.autoSaveFrequency || wallet?.frequency || '').trim(),
+    description: String(wallet?.description || wallet?.note || '').trim(),
   };
+};
+
+const formatSavingsWalletDate = (value) => {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    const raw = String(value);
+    return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : raw;
+  }
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 const mapSavingsTransactionApiToUi = (tx, idx) => {
@@ -202,7 +232,14 @@ const Savings = () => {
   const [showWithdrawWalletModal, setShowWithdrawWalletModal] = useState(false);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
   const [showAddSavingsPlanModal, setShowAddSavingsPlanModal] = useState(false);
+  const [selectedSavingsWallet, setSelectedSavingsWallet] = useState(null);
+  const [showSavingsWalletInfoModal, setShowSavingsWalletInfoModal] = useState(false);
+  const [isLoadingSavingsWalletInfo, setIsLoadingSavingsWalletInfo] = useState(false);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
+  const [addMoneySourceCode, setAddMoneySourceCode] = useState('XRP');
+  const [custodialBalances, setCustodialBalances] = useState(() => emptyCustodialWalletBalances());
+  const [custodialWalletIds, setCustodialWalletIds] = useState({ XRP: '', USDT: '', USDC: '' });
+  const [isLoadingCustodialBalances, setIsLoadingCustodialBalances] = useState(false);
   const [savingsPlans, setSavingsPlans] = useState([]);
   const [addMoneyAccountId, setAddMoneyAccountId] = useState('');
   const [savingsTotalUsd, setSavingsTotalUsd] = useState(0);
@@ -352,6 +389,31 @@ const Savings = () => {
     }
     return payload;
   };
+
+  useEffect(() => {
+    if (!showAddMoneyModal || isSessionExpired) return undefined;
+    let cancelled = false;
+    const loadCustodialBalances = async () => {
+      setIsLoadingCustodialBalances(true);
+      try {
+        const payload = await fetchSavingsWithAuth('api/wallet/balance');
+        if (cancelled) return;
+        setCustodialBalances(parseCustodialWalletBalances(payload));
+        setCustodialWalletIds(extractCustodialWalletIds(payload));
+      } catch {
+        if (!cancelled) {
+          setCustodialBalances(emptyCustodialWalletBalances());
+          setCustodialWalletIds({ XRP: '', USDT: '', USDC: '' });
+        }
+      } finally {
+        if (!cancelled) setIsLoadingCustodialBalances(false);
+      }
+    };
+    loadCustodialBalances();
+    return () => {
+      cancelled = true;
+    };
+  }, [showAddMoneyModal, isSessionExpired]);
 
   useEffect(() => {
     if (isSessionExpired) {
@@ -547,12 +609,70 @@ const Savings = () => {
     [savingsPlans],
   );
 
+  const savingsAddMoneySourceWallets = useMemo(
+    () =>
+      SAVINGS_SOURCE_WALLET_CODES.map((code) => ({
+        id: code,
+        code,
+        label: `${code} wallet`,
+        ticker: code,
+        balanceLabel: formatSourceWalletBalance(custodialBalances[code], code),
+        sourceWalletId: custodialWalletIds[code] || '',
+      })),
+    [custodialBalances, custodialWalletIds],
+  );
+
+  const addMoneySourceBalanceLine = formatSourceWalletBalance(
+    custodialBalances[addMoneySourceCode] ?? 0,
+    addMoneySourceCode,
+  );
+
   useEffect(() => {
     if (savingsPlans.length === 0) return;
     if (!savingsPlans.some((p) => p.id === addMoneyAccountId)) {
       setAddMoneyAccountId(savingsPlans[0].id);
     }
   }, [savingsPlans, addMoneyAccountId]);
+
+  useEffect(() => {
+    if (!showSavingsWalletInfoModal) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [showSavingsWalletInfoModal]);
+
+  const closeSavingsWalletInfoModal = () => {
+    setShowSavingsWalletInfoModal(false);
+    setSelectedSavingsWallet(null);
+    setIsLoadingSavingsWalletInfo(false);
+  };
+
+  const openSavingsWalletInfo = async (plan) => {
+    if (!plan) return;
+    setSelectedSavingsWallet(plan);
+    setShowSavingsWalletInfoModal(true);
+    const id = String(plan.id || '').trim();
+    if (!id || id.startsWith('wallet-') || isSessionExpired) return;
+    try {
+      setIsLoadingSavingsWalletInfo(true);
+      const payload = await fetchSavingsWithAuth(`api/savings/wallets/${encodeURIComponent(id)}`);
+      const raw = payload?.data?.wallet || payload?.data || payload;
+      if (raw && typeof raw === 'object' && (raw.id || raw.name || raw.amountUsd != null)) {
+        const mapped = mapSavingsWalletApiToUi({ ...raw, id: raw.id || id }, 0);
+        setSelectedSavingsWallet((prev) => ({
+          ...mapped,
+          Icon: prev?.Icon || mapped.Icon,
+          ringColor: prev?.ringColor || mapped.ringColor,
+        }));
+      }
+    } catch {
+      /* keep list snapshot */
+    } finally {
+      setIsLoadingSavingsWalletInfo(false);
+    }
+  };
 
   const deleteSavingsPlanCard = async (plan) => {
     if (!plan?.id || String(plan.id).startsWith('wallet-')) {
@@ -597,27 +717,42 @@ const Savings = () => {
 
   const submitSavingsTransfer = async () => {
     const savingsWalletId = String(addMoneyAccountId || '').trim();
-    const amountXrp = parseFloat(String(addMoneyAmount || '').replace(/,/g, '').trim());
+    const amount = parseFloat(String(addMoneyAmount || '').replace(/,/g, '').trim());
+    const sourceCode = String(addMoneySourceCode || 'XRP').toUpperCase();
     if (!savingsWalletId) {
       toast.error('Select a savings wallet');
       return;
     }
-    if (!Number.isFinite(amountXrp) || amountXrp <= 0) {
-      toast.error('Enter a valid XRP amount');
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error(`Enter a valid ${sourceCode} amount`);
+      return;
+    }
+    const available = Number(custodialBalances[sourceCode] ?? 0);
+    if (amount > available + 1e-10) {
+      toast.error(`Insufficient ${sourceCode} balance`);
       return;
     }
     try {
       setIsSubmittingSavingsTransfer(true);
+      const body = {
+        savingsWalletId,
+        currency: sourceCode,
+      };
+      if (sourceCode === 'XRP') {
+        body.amountXrp = amount;
+      } else {
+        body.amount = amount;
+      }
+      const sourceWalletId = custodialWalletIds[sourceCode];
+      if (sourceWalletId) body.sourceWalletId = sourceWalletId;
       const payload = await fetchSavingsWithAuth('api/savings/transfer', {
         method: 'POST',
-        body: JSON.stringify({
-          savingsWalletId,
-          amountXrp,
-        }),
+        body: JSON.stringify(body),
       });
       toast.success(payload?.message || 'Funds moved to savings');
       setShowAddMoneyModal(false);
       setAddMoneyAmount('');
+      setAddMoneySourceCode('XRP');
       setSavingsReloadTick((v) => v + 1);
       setSavingHistoryPage(1);
     } catch (error) {
@@ -927,11 +1062,27 @@ const Savings = () => {
                   savingsPlans.map((plan) => {
                     const Pi = plan.Icon;
                     return (
-                      <article key={plan.id} className="savings-plan-card" role="listitem">
+                      <article
+                        key={plan.id}
+                        className="savings-plan-card savings-plan-card--interactive"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View ${plan.title} wallet details`}
+                        onClick={() => openSavingsWalletInfo(plan)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openSavingsWalletInfo(plan);
+                          }
+                        }}
+                      >
                         <button
                           type="button"
                           className="savings-plan-delete-btn"
-                          onClick={() => deleteSavingsPlanCard(plan)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteSavingsPlanCard(plan);
+                          }}
                           disabled={deletingSavingsWalletId === plan.id}
                           aria-label={`Remove ${plan.title}`}
                         >
@@ -1295,6 +1446,150 @@ const Savings = () => {
         </main>
       </div>
 
+      {showSavingsWalletInfoModal && selectedSavingsWallet ? (
+        <div
+          className="savings-wallet-info-overlay"
+          role="presentation"
+          onClick={closeSavingsWalletInfoModal}
+        >
+          <div
+            className="savings-wallet-info-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="savings-wallet-info-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="savings-wallet-info-head">
+              <h2 id="savings-wallet-info-title" className="savings-wallet-info-title">
+                Wallet info
+              </h2>
+              <button
+                type="button"
+                className="savings-wallet-info-close"
+                onClick={closeSavingsWalletInfoModal}
+                aria-label="Close wallet info"
+              >
+                <X size={22} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="savings-wallet-info-hero">
+              <div
+                className="savings-plan-ring"
+                style={{
+                  '--sv-pct': selectedSavingsWallet.progressPct,
+                  '--sv-ring-color': selectedSavingsWallet.ringColor,
+                }}
+              >
+                <div className="savings-plan-ring-inner">
+                  {selectedSavingsWallet.Icon
+                    ? React.createElement(selectedSavingsWallet.Icon, {
+                        size: 22,
+                        strokeWidth: 2,
+                        'aria-hidden': true,
+                      })
+                    : null}
+                </div>
+              </div>
+              <div className="savings-wallet-info-hero-text">
+                <p className="savings-wallet-info-name">{selectedSavingsWallet.title}</p>
+                <p className="savings-wallet-info-type">{selectedSavingsWallet.typeLabel}</p>
+                <span
+                  className={`savings-wallet-info-status savings-wallet-info-status--${selectedSavingsWallet.status}`}
+                >
+                  {selectedSavingsWallet.status === 'completed' ? 'Completed' : 'Active'}
+                </span>
+              </div>
+            </div>
+
+            <p className="savings-wallet-info-saved">
+              {fmtUsdDecimals(selectedSavingsWallet.savedUsd)}
+              <span>Saved</span>
+            </p>
+            {isLoadingSavingsWalletInfo ? (
+              <p className="savings-wallet-info-loading">Updating details…</p>
+            ) : null}
+
+            <dl className="savings-wallet-info-rows">
+              {selectedSavingsWallet.targetAmountUsd > 0 ? (
+                <div className="savings-wallet-info-row">
+                  <dt>Goal</dt>
+                  <dd>{fmtUsdDecimals(selectedSavingsWallet.targetAmountUsd)}</dd>
+                </div>
+              ) : null}
+              {selectedSavingsWallet.targetAmountUsd > 0 ? (
+                <div className="savings-wallet-info-row">
+                  <dt>Remaining</dt>
+                  <dd>{fmtUsdDecimals(selectedSavingsWallet.remainingUsd)}</dd>
+                </div>
+              ) : null}
+              <div className="savings-wallet-info-row">
+                <dt>Progress</dt>
+                <dd>{selectedSavingsWallet.progressPct}%</dd>
+              </div>
+              {formatSavingsWalletDate(selectedSavingsWallet.targetDate) ? (
+                <div className="savings-wallet-info-row">
+                  <dt>Target date</dt>
+                  <dd>{formatSavingsWalletDate(selectedSavingsWallet.targetDate)}</dd>
+                </div>
+              ) : null}
+              {formatSavingsWalletDate(selectedSavingsWallet.createdAt) ? (
+                <div className="savings-wallet-info-row">
+                  <dt>Created</dt>
+                  <dd>{formatSavingsWalletDate(selectedSavingsWallet.createdAt)}</dd>
+                </div>
+              ) : null}
+              {Number.isFinite(selectedSavingsWallet.autoSaveAmountUsd) &&
+              selectedSavingsWallet.autoSaveAmountUsd > 0 ? (
+                <div className="savings-wallet-info-row">
+                  <dt>Auto-save</dt>
+                  <dd>
+                    {fmtUsdDecimals(selectedSavingsWallet.autoSaveAmountUsd)}
+                    {selectedSavingsWallet.autoSaveFrequency
+                      ? ` · ${selectedSavingsWallet.autoSaveFrequency}`
+                      : ''}
+                  </dd>
+                </div>
+              ) : selectedSavingsWallet.autoSaveFrequency ? (
+                <div className="savings-wallet-info-row">
+                  <dt>Auto-save</dt>
+                  <dd>{selectedSavingsWallet.autoSaveFrequency}</dd>
+                </div>
+              ) : null}
+            </dl>
+            {selectedSavingsWallet.description ? (
+              <p className="savings-wallet-info-note">{selectedSavingsWallet.description}</p>
+            ) : null}
+
+            <div className="savings-wallet-info-actions">
+              <button
+                type="button"
+                className="savings-wallet-info-action savings-wallet-info-action--primary"
+                onClick={() => {
+                  setAddMoneyAccountId(selectedSavingsWallet.id);
+                  closeSavingsWalletInfoModal();
+                  setShowAddMoneyModal(true);
+                }}
+              >
+                <Plus size={17} strokeWidth={2.5} aria-hidden />
+                Add money
+              </button>
+              <button
+                type="button"
+                className="savings-wallet-info-action"
+                onClick={() => {
+                  closeSavingsWalletInfoModal();
+                  setShowWithdrawWalletModal(true);
+                }}
+              >
+                <ArrowDownToLine size={17} strokeWidth={2} aria-hidden />
+                Withdraw
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <AddSavingsPlanModal
         isOpen={showAddSavingsPlanModal}
         onClose={() => {
@@ -1381,6 +1676,7 @@ const Savings = () => {
         onClose={() => {
           setShowAddMoneyModal(false);
           setAddMoneyAmount('');
+          setAddMoneySourceCode('XRP');
           setAddMoneyAccountId(savingsPlans[0]?.id ?? '');
         }}
         amount={addMoneyAmount}
@@ -1388,11 +1684,14 @@ const Savings = () => {
         accounts={savingsAddMoneyAccounts}
         selectedAccountId={addMoneyAccountId}
         onSelectAccount={setAddMoneyAccountId}
+        sourceWallets={savingsAddMoneySourceWallets}
+        selectedSourceId={addMoneySourceCode}
+        onSelectSource={setAddMoneySourceCode}
         onTransfer={submitSavingsTransfer}
         isSubmitting={isSubmittingSavingsTransfer}
-        balanceLine={isLoadingSavingsData ? 'Loading…' : formatFromUsd(savingsTotalUsd || 0)}
+        isLoadingBalance={isLoadingCustodialBalances}
+        balanceLine={addMoneySourceBalanceLine}
         amountPrefix=""
-        amountSuffix="XRP"
       />
 
       <SavingsWithdrawWalletModal
