@@ -1478,6 +1478,12 @@
   letter-spacing: -0.02em;
 }
 
+.wallet-details-total.is-unavailable {
+  color: #94a3b8;
+  font-size: clamp(1.25rem, 5vw, 1.6rem);
+  font-weight: 600;
+}
+
 .wallet-details-fiat-amount {
   margin: 0 0 0.45rem;
   color: #6b7280;
@@ -1906,6 +1912,10 @@ button.header-trustiscore-box:focus-visible {
   line-height: 1;
   min-width: 2ch;
   text-align: center;
+}
+
+[data-theme="dark"] .header-trustiscore-box {
+  background: rgba(37, 99, 235, 0.22);
 }
 
 .account-type-btn {

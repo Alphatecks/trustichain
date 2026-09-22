@@ -169,3 +169,37 @@
     justify-content: center;
   }
 }
+
+[data-theme="dark"] .edit-trustitag-overlay {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+[data-theme="dark"] .edit-trustitag-card {
+  background: var(--surface, #111827);
+  border-color: var(--border, #334155);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .edit-trustitag-dismiss {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .edit-trustitag-dismiss:hover {
+  background: rgba(148, 163, 184, 0.28);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .edit-trustitag-input {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .edit-trustitag-btn--ghost {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .edit-trustitag-btn--ghost:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.28);
+}

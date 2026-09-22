@@ -2,6 +2,7 @@ import React, { createContext, useContext } from 'react';
 import { usePersonalSidebarWallet } from '../../hooks/usePersonalSidebarWallet';
 import SidebarWalletSection from '../SidebarWalletNav';
 import PersonalWalletAddressesModal from '../PersonalWalletAddressesModal';
+import { parseCustodialWalletBalances } from '../../utils/custodialWalletBalances';
 
 const PersonalSidebarWalletContext = createContext(null);
 
@@ -46,12 +47,20 @@ export function PersonalSidebarWalletNav({
 export function PersonalSidebarWalletModal({ wallet }) {
   if (!wallet) return null;
 
+  const parsedBalances = parseCustodialWalletBalances(wallet.walletBalanceRaw);
+
   return (
     <PersonalWalletAddressesModal
       isOpen={wallet.showWalletModal}
       onClose={() => wallet.setShowWalletModal(false)}
       walletAddress={wallet.walletAddress}
       walletBalanceRaw={wallet.walletBalanceRaw}
+      walletBalances={{
+        xrp: parsedBalances.XRP,
+        usdt: parsedBalances.USDT,
+        usdc: parsedBalances.USDC,
+        rlusd: parsedBalances.RLUSD,
+      }}
       isLoadingWalletAddress={wallet.isLoadingWalletAddress}
       isProvisioningWallets={wallet.isProvisioningWallets}
       onCreateInitialWallet={async () => {

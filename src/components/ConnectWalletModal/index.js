@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, CheckCircle, Loader } from 'lucide-react';
 import { useWeb3 } from '../../context/Web3Context';
+import { getInjectedMetaMaskProvider } from '../../utils/reownDepositFlow';
+import metamaskIcon from '../../assets/images/icons/metamask-fox.svg';
 import './index.css';
 
 const WALLETCONNECT_ICON =
@@ -25,6 +27,25 @@ const ConnectWalletModal = ({ isOpen, onClose, overlayClassName = '' }) => {
     localStorage.getItem('xamanWalletConnected') === 'true' &&
     isConnected &&
     Boolean(account);
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(() =>
+    Boolean(hasWindow && window.ethereum),
+  );
+
+  useEffect(() => {
+    if (!isOpen || !hasWindow) return undefined;
+    try {
+      setIsMetaMaskInstalled(Boolean(getInjectedMetaMaskProvider() || window.ethereum));
+    } catch (_) {
+      setIsMetaMaskInstalled(Boolean(window.ethereum));
+    }
+    return undefined;
+  }, [isOpen, hasWindow]);
+
+  const isMetaMaskConnected =
+    hasWindow &&
+    localStorage.getItem('metamaskWalletConnected') === 'true' &&
+    isConnected &&
+    Boolean(account);
   const isWalletConnectConnected =
     hasWindow &&
     localStorage.getItem('walletconnectWalletConnected') === 'true' &&
@@ -45,6 +66,26 @@ const ConnectWalletModal = ({ isOpen, onClose, overlayClassName = '' }) => {
       connect: async () => {
         await connectWallet('xaman');
       }
+    },
+    {
+      id: 'metamask',
+      name: 'MetaMask',
+      icon: metamaskIcon,
+      description: isMetaMaskConnected
+        ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+        : isMetaMaskInstalled
+          ? 'Connect using the MetaMask browser extension'
+          : 'Install MetaMask to connect',
+      isInstalled: isMetaMaskInstalled,
+      comingSoon: false,
+      isConnected: isMetaMaskConnected,
+      connect: async () => {
+        if (!getInjectedMetaMaskProvider() && !window.ethereum) {
+          window.open('https://metamask.io/download/', '_blank', 'noopener,noreferrer');
+          return;
+        }
+        await connectWallet('metamask');
+      },
     },
     {
       id: 'walletconnect',
@@ -116,6 +157,24 @@ const ConnectWalletModal = ({ isOpen, onClose, overlayClassName = '' }) => {
         }
       } catch (error) {
         console.error('Error connecting WalletConnect:', error);
+      } finally {
+        setIsConnecting(false);
+        setConnectingWallet(null);
+      }
+    } else if (wallet.id === 'metamask') {
+      if (!getInjectedMetaMaskProvider() && typeof window !== 'undefined' && !window.ethereum) {
+        window.open('https://metamask.io/download/', '_blank', 'noopener,noreferrer');
+        return;
+      }
+      setIsConnecting(true);
+      setConnectingWallet(wallet.id);
+      try {
+        const result = await connectWallet('metamask');
+        if (result?.type === 'metamask' && result?.account) {
+          onClose();
+        }
+      } catch (error) {
+        console.error('Error connecting MetaMask:', error);
       } finally {
         setIsConnecting(false);
         setConnectingWallet(null);

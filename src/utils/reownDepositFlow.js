@@ -22,6 +22,11 @@ export const REOWN_EVM_CURRENCIES = Object.keys(REOWN_EVM_DEPOSIT_PAIRS);
 export const getReownNetworksForCurrency = (currency) =>
   REOWN_EVM_DEPOSIT_PAIRS[currency] || REOWN_EVM_DEPOSIT_PAIRS.USDT;
 
+export function isReownEvmDepositPair(asset, network) {
+  const nets = REOWN_EVM_DEPOSIT_PAIRS[String(asset || '').toUpperCase()];
+  return Boolean(nets && nets.includes(String(network || '').toUpperCase()));
+}
+
 const ERC20_ABI = [
   'function transfer(address to, uint256 amount) returns (bool)',
   'function decimals() view returns (uint8)',
@@ -435,29 +440,72 @@ function discoverEip6963MetaMaskProvider() {
 }
 
 /** Prefer the genuine MetaMask provider when multiple extensions are injected. */
+let cachedMetaMaskProvider;
+let eip6963ListenerBound = false;
+let eip6963DiscoveryAttempted = false;
+
+function bindEip6963MetaMaskListener() {
+  if (eip6963ListenerBound || typeof window === 'undefined') return;
+  eip6963ListenerBound = true;
+  window.addEventListener('eip6963:announceProvider', (event) => {
+    const provider = event?.detail?.provider;
+    if (provider && isGenuineMetaMaskProvider(provider)) {
+      cachedMetaMaskProvider = provider;
+    }
+  });
+}
+
 export function getInjectedMetaMaskProvider() {
   if (typeof window === 'undefined') return null;
 
-  const fromEip6963 = discoverEip6963MetaMaskProvider();
+  bindEip6963MetaMaskListener();
+
+  if (cachedMetaMaskProvider && isGenuineMetaMaskProvider(cachedMetaMaskProvider)) {
+    return cachedMetaMaskProvider;
+  }
+
+  // EIP-6963 requestProvider can make MetaMask's inpage script call connect().
+  // Do that at most once — Connect Wallet is mounted on dashboard and would
+  // otherwise probe on every React render / 1s token poll.
+  const fromEip6963 = eip6963DiscoveryAttempted
+    ? null
+    : (() => {
+        eip6963DiscoveryAttempted = true;
+        try {
+          return discoverEip6963MetaMaskProvider();
+        } catch (_) {
+          return null;
+        }
+      })();
   if (fromEip6963 && isGenuineMetaMaskProvider(fromEip6963)) {
+    cachedMetaMaskProvider = fromEip6963;
     return fromEip6963;
   }
   if (fromEip6963 && !isSpoofedMetaMaskProvider(fromEip6963)) {
+    cachedMetaMaskProvider = fromEip6963;
     return fromEip6963;
   }
 
   const { ethereum } = window;
-  if (!ethereum) return null;
+  if (!ethereum) {
+    cachedMetaMaskProvider = null;
+    return null;
+  }
 
   if (Array.isArray(ethereum.providers) && ethereum.providers.length) {
     const metamask = ethereum.providers.find(isGenuineMetaMaskProvider);
-    if (metamask) return metamask;
+    if (metamask) {
+      cachedMetaMaskProvider = metamask;
+      return metamask;
+    }
   }
 
   if (isGenuineMetaMaskProvider(ethereum)) {
+    cachedMetaMaskProvider = ethereum;
     return ethereum;
   }
 
+  cachedMetaMaskProvider = null;
   return null;
 }
 

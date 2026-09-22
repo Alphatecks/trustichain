@@ -202,6 +202,61 @@
   animation: reown-fund-spin 0.9s linear infinite;
 }
 
+.reown-fund-address-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.reown-fund-qr {
+  width: 148px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.reown-fund-address-empty {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.reown-fund-address-copy {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.reown-fund-address-copy p {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  word-break: break-all;
+  color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.reown-fund-copy-btn {
+  border: none;
+  background: transparent;
+  color: #2f74ff;
+  cursor: pointer;
+  padding: 0.15rem;
+  display: flex;
+}
+
 .reown-fund-form .fund-wallet-btn-primary {
   display: inline-flex;
   align-items: center;

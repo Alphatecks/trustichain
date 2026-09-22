@@ -9,6 +9,53 @@ import {
   isWalletConnectUserRejected,
   switchWalletConnectChain,
 } from '../utils/walletConnectProvider';
+import { getInjectedMetaMaskProvider } from '../utils/reownDepositFlow';
+
+const CONNECTED_WALLET_LABELS = {
+  xaman: 'XAMAN',
+  metamask: 'MetaMask',
+  walletconnect: 'WalletConnect',
+};
+
+function readConnectedWalletKind(account) {
+  try {
+    const addr = String(account || '').trim();
+    const metamask = localStorage.getItem('metamaskWalletConnected') === 'true';
+    const walletconnect = localStorage.getItem('walletconnectWalletConnected') === 'true';
+    const xaman = localStorage.getItem('xamanWalletConnected') === 'true';
+
+    if (addr.startsWith('0x')) {
+      if (walletconnect && !metamask) return 'walletconnect';
+      return 'metamask';
+    }
+    if (xaman) return 'xaman';
+    if (metamask) return 'metamask';
+    if (walletconnect) return 'walletconnect';
+  } catch (_) {
+    /* ignore */
+  }
+  return null;
+}
+
+function clearStoredWalletSession(exceptKind = null) {
+  try {
+    if (exceptKind !== 'metamask') {
+      localStorage.removeItem('metamaskWalletConnected');
+      localStorage.removeItem('metamaskWalletAddress');
+    }
+    if (exceptKind !== 'walletconnect') {
+      localStorage.removeItem('walletconnectWalletConnected');
+      localStorage.removeItem('walletconnectWalletAddress');
+    }
+    if (exceptKind !== 'xaman') {
+      localStorage.removeItem('xamanWalletConnected');
+      localStorage.removeItem('xamanWalletAddress');
+      localStorage.removeItem('xamanXummUuid');
+    }
+  } catch (_) {
+    /* ignore */
+  }
+}
 
 const Web3Context = createContext();
 
@@ -248,7 +295,6 @@ export const Web3Provider = ({ children }) => {
     try {
       let ethereumProvider = null;
       let walletName = 'Wallet';
-      let xrplAddress = null;
 
       // Handle XAMAN wallet connection via backend API
       if (walletType === 'xaman') {
@@ -279,6 +325,7 @@ export const Web3Provider = ({ children }) => {
           setChainId(network.chainId);
           localStorage.setItem('walletconnectWalletConnected', 'true');
           localStorage.setItem('walletconnectWalletAddress', wcAccount);
+          clearStoredWalletSession('walletconnect');
           toast.success('WalletConnect connected');
           return { type: 'walletconnect', account: wcAccount };
         } catch (error) {
@@ -316,11 +363,11 @@ export const Web3Provider = ({ children }) => {
           return;
         }
       } else if (walletType === 'metamask') {
-        if (window.ethereum && window.ethereum.isMetaMask) {
-          ethereumProvider = window.ethereum;
+        const injected = getInjectedMetaMaskProvider();
+        if (injected) {
+          ethereumProvider = injected;
           walletName = 'MetaMask';
         } else if (window.ethereum) {
-          // Fallback to generic injected if MetaMask not detected but ethereum exists
           ethereumProvider = window.ethereum;
           walletName = 'Browser Wallet';
         } else {
@@ -358,143 +405,17 @@ export const Web3Provider = ({ children }) => {
         setIsConnected(true);
         setChainId(network.chainId);
 
-        // If MetaMask, get XRPL address from snap and validate before connecting to API
-        if (walletType === 'metamask' && accounts[0]) {
-          try {
-            // Get XRPL address from MetaMask XRPL Snap
-            // The snap must be installed from https://wallet.xrplevm.org/ first
-            const snapId = 'wallet.xrplevm.org';
-            
-            let xrplAddress = null;
-            let snapError = null;
-            let isInstalled = false;
-            
-            // First, check if the snap is installed
-            try {
-              const installedSnaps = await window.ethereum.request({
-                method: 'wallet_getSnaps'
-              });
-              
-              // Check if snap is installed (could be under different keys)
-              const allKeys = Object.keys(installedSnaps || {});
-              isInstalled = allKeys.some(key => 
-                key.includes('xrpl') || key.includes('xrplevm') || key === snapId
-              );
-              
-            } catch (err) {
-              console.log('Could not check installed snaps:', err);
-            }
-            
-            try {
-              const result = await window.ethereum.request({
-                method: 'wallet_invokeSnap',
-                params: {
-                  snapId: snapId,
-                  request: {
-                    method: 'getAddress'
-                  }
-                }
-              });
-
-              // Handle different response formats
-              if (typeof result === 'string') {
-                xrplAddress = result;
-              } else if (result?.address) {
-                xrplAddress = result.address;
-              } else if (result?.xrplAddress) {
-                xrplAddress = result.xrplAddress;
-              } else if (result?.data?.address) {
-                xrplAddress = result.data.address;
-              }
-            } catch (err) {
-              snapError = err;
-              // Error 4100 means "Unauthorized" - snap exists but needs permission
-              // Note: We cannot programmatically request permission for domain-format snaps
-              // The user must grant permission manually through MetaMask settings or by visiting wallet.xrplevm.org
-            }
-
-            if (!xrplAddress) {
-              setAccount(null);
-              setProvider(null);
-              setSigner(null);
-              setIsConnected(false);
-              setChainId(null);
-              
-              let errorMessage = '';
-              
-              // Error 4100 or "Unauthorized" means snap exists but needs permission
-              // The snap is installed but this website (localhost:3000) doesn't have permission to use it
-              // Permissions are per-origin, so wallet.xrplevm.org having permission doesn't grant localhost:3000 permission
-              if (snapError?.code === 4100 || (snapError?.message && snapError.message.includes('Unauthorized'))) {
-                errorMessage = 'MetaMask XRPL Snap needs permission for localhost:3000. When you click "Connect Wallet", MetaMask should show a permission prompt - please approve it. If no prompt appears, go to MetaMask → Settings → Snaps → find "wallet.xrplevm.org" → click "Manage Permissions" → add localhost:3000 to allowed sites.';
-              } else if (!isInstalled && (!snapError || snapError.message?.includes('not found'))) {
-                // Snap is not installed
-                errorMessage = 'MetaMask XRPL Snap is not installed. Please visit https://wallet.xrplevm.org/ to install it, then try connecting again.';
-              } else if (snapError?.message) {
-                // Other errors
-                if (snapError.message.includes('permission') || snapError.message.includes('does not have permission')) {
-                  errorMessage = 'MetaMask XRPL Snap permission required. Please open MetaMask → Settings → Snaps → find XRPL Snap, and ensure this website has permission. Alternatively, reinstall from https://wallet.xrplevm.org/';
-                } else if (snapError.message.includes('not found') || snapError.message.includes('not installed')) {
-                  errorMessage = 'MetaMask XRPL Snap is not installed. Please install it from https://wallet.xrplevm.org/';
-                } else {
-                  errorMessage = `Failed to get XRPL address: ${snapError.message}. Please ensure the XRPL Snap is installed from https://wallet.xrplevm.org/`;
-                }
-              } else {
-                errorMessage = 'Failed to get XRPL address from MetaMask XRPL Snap. Please ensure it is installed from https://wallet.xrplevm.org/';
-              }
-              
-              toast.error(errorMessage, { duration: 8000 });
-              return;
-            }
-
-            // Validate the XRPL address
-            const validationResult = await validateWalletAddress(xrplAddress);
-            
-            if (!validationResult.isValid) {
-              // Validation failed - reset wallet state and show error
-              setAccount(null);
-              setProvider(null);
-              setSigner(null);
-              setIsConnected(false);
-              setChainId(null);
-              
-              // Show error message
-              let errorMessage = validationResult.message || 'Invalid XRPL wallet address';
-              
-              // Add suggestions if available
-              if (validationResult.data?.suggestions && Array.isArray(validationResult.data.suggestions)) {
-                const suggestions = validationResult.data.suggestions.join('. ');
-                errorMessage += `. ${suggestions}`;
-              }
-              
-              toast.error(errorMessage);
-              return;
-            }
-            
-            // Validation passed - proceed with API connection using XRPL address
-            await connectWalletToAPI(xrplAddress);
-          } catch (snapError) {
-            // Error getting XRPL address from snap
-            console.error('Error getting XRPL address from MetaMask Snap:', snapError);
-            setAccount(null);
-            setProvider(null);
-            setSigner(null);
-            setIsConnected(false);
-            setChainId(null);
-            
-            let errorMessage = 'Failed to get XRPL address from MetaMask XRPL Snap.';
-            if (snapError.message) {
-              errorMessage += ` ${snapError.message}`;
-            } else {
-              errorMessage += ' Please make sure MetaMask XRPL Snap is installed.';
-            }
-            
-            toast.error(errorMessage);
-            return;
-          }
-        } else {
-          toast.success(`${walletName} connected successfully!`);
+        if (walletType === 'metamask') {
+          // EVM session only — same as WalletConnect. Do not POST 0x addresses
+          // to /api/wallet/connect (XRPL r… only) or require the XRPL Snap.
+          localStorage.setItem('metamaskWalletConnected', 'true');
+          localStorage.setItem('metamaskWalletAddress', accounts[0]);
+          clearStoredWalletSession('metamask');
+          toast.success('MetaMask connected');
+          return { type: 'metamask', account: accounts[0] };
         }
+
+        toast.success(`${walletName} connected successfully!`);
       }
     } catch (error) {
       console.error('Error connecting wallet:', error);
@@ -541,6 +462,7 @@ export const Web3Provider = ({ children }) => {
           setIsWalletConnectedViaAPI(true);
           localStorage.setItem('xamanWalletAddress', status.walletAddress);
           localStorage.setItem('xamanWalletConnected', 'true');
+          clearStoredWalletSession('xaman');
           
           // Clear connection data
           setXamanConnectionData(null);
@@ -666,30 +588,58 @@ export const Web3Provider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts) => {
-        if (accounts.length === 0) {
-          disconnectWallet();
-        } else {
-          // Check if this is MetaMask and was previously connected via API
-          const wasConnectedViaAPI = localStorage.getItem('metamaskWalletConnected') === 'true';
-          const isMetaMask = window.ethereum.isMetaMask;
-          
-          if (wasConnectedViaAPI && isMetaMask && accounts[0]) {
-            // Reconnect MetaMask and call API
-            connectWallet('metamask');
-          } else {
-            // For other wallets or if not previously connected via API, just connect normally
-            connectWallet();
-          }
-        }
-      });
+    const ethereum = window.ethereum;
+    if (!ethereum?.on) return undefined;
 
-      window.ethereum.on('chainChanged', () => {
-        window.location.reload();
-      });
-    }
+    const handleAccountsChanged = (accounts) => {
+      try {
+        if (!Array.isArray(accounts) || accounts.length === 0) {
+          if (localStorage.getItem('metamaskWalletConnected') === 'true') {
+            disconnectWallet({ suppressToast: true });
+          }
+          return;
+        }
+
+        const next = String(accounts[0] || '').trim();
+        if (!next) return;
+        if (localStorage.getItem('metamaskWalletConnected') === 'true') {
+          setAccount(next);
+          localStorage.setItem('metamaskWalletAddress', next);
+        }
+      } catch (error) {
+        console.warn('accountsChanged handler failed:', error);
+      }
+    };
+
+    const handleChainChanged = (nextChainId) => {
+      try {
+        const parsed = Number.parseInt(String(nextChainId), 16);
+        if (Number.isFinite(parsed)) setChainId(parsed);
+      } catch (_) {
+        /* ignore */
+      }
+    };
+
+    ethereum.on('accountsChanged', handleAccountsChanged);
+    ethereum.on('chainChanged', handleChainChanged);
+
+    return () => {
+      if (typeof ethereum.removeListener === 'function') {
+        ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []);
+
+  const connectedWalletKind = isConnected && account ? readConnectedWalletKind(account) : null;
+  const isExternalWalletConnected = Boolean(
+    isConnected && account && (isWalletConnectedViaAPI || connectedWalletKind),
+  );
+  const connectedWalletLabel = connectedWalletKind
+    ? CONNECTED_WALLET_LABELS[connectedWalletKind]
+    : isExternalWalletConnected
+      ? 'Wallet'
+      : null;
 
   const value = {
     account,
@@ -698,6 +648,9 @@ export const Web3Provider = ({ children }) => {
     isConnected,
     chainId,
     isWalletConnectedViaAPI,
+    isExternalWalletConnected,
+    connectedWalletKind,
+    connectedWalletLabel,
     connectWallet,
     disconnectWallet,
     switchNetwork,

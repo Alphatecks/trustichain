@@ -1244,3 +1244,184 @@
     width: min(172px, 74vw);
   }
 }
+
+[data-theme="dark"] .savings-wallet-panel,
+[data-theme="dark"] .savings-plan-card,
+[data-theme="dark"] .savings-wallet-info-sheet,
+[data-theme="dark"] .savings-allocation-panel,
+[data-theme="dark"] .savings-history-panel,
+[data-theme="dark"] .savings-history-pill-btn,
+[data-theme="dark"] .savings-history-dropdown-menu,
+[data-theme="dark"] .savings-history-icon-round,
+[data-theme="dark"] .savings-history-table tbody td.savings-history-cell {
+  background: var(--surface, #111827);
+}
+
+[data-theme="dark"] .savings-wallet-panel,
+[data-theme="dark"] .savings-plan-card,
+[data-theme="dark"] .savings-allocation-panel,
+[data-theme="dark"] .savings-history-panel {
+  border-color: var(--border, #334155);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="dark"] .savings-wallet-title,
+[data-theme="dark"] .savings-wallet-info-title,
+[data-theme="dark"] .savings-wallet-info-name,
+[data-theme="dark"] .savings-wallet-info-row dd,
+[data-theme="dark"] .savings-plan-name,
+[data-theme="dark"] .savings-plan-saved-amt,
+[data-theme="dark"] .savings-history-table tbody td.savings-history-cell,
+[data-theme="dark"] .savings-history-tx-label {
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .savings-empty-state,
+[data-theme="dark"] .savings-wallet-info-type,
+[data-theme="dark"] .savings-wallet-info-saved span,
+[data-theme="dark"] .savings-wallet-info-loading,
+[data-theme="dark"] .savings-wallet-info-row dt,
+[data-theme="dark"] .savings-wallet-info-note,
+[data-theme="dark"] .savings-plan-pct,
+[data-theme="dark"] .savings-plan-saved-label,
+[data-theme="dark"] .savings-allocation-subtitle,
+[data-theme="dark"] .savings-allocation-period,
+[data-theme="dark"] .savings-history-page-nav,
+[data-theme="dark"] .savings-history-page-num,
+[data-theme="dark"] .savings-history-page-ellipsis {
+  color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .savings-wallet-info-overlay {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+[data-theme="dark"] .savings-wallet-info-sheet {
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .savings-wallet-info-close {
+  color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .savings-wallet-info-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .savings-wallet-info-rows {
+  border-top-color: var(--border, #334155);
+  border-bottom-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .savings-wallet-info-action {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .savings-wallet-info-action--primary {
+  background: #0671ff;
+  border-color: #0671ff;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .savings-plan-card--interactive:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 24px rgba(37, 99, 235, 0.18);
+}
+
+[data-theme="dark"] .savings-plan-ring {
+  background: conic-gradient(var(--sv-ring-color, #2563eb) calc(var(--sv-pct, 0) * 1%), #334155 0);
+}
+
+[data-theme="dark"] .savings-plan-ring-inner {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .savings-allocation-growth {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+[data-theme="dark"] .savings-allocation-growth svg {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .savings-allocation-bar {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .savings-allocation-legend-item,
+[data-theme="dark"] .savings-history-pill-btn,
+[data-theme="dark"] .savings-history-dropdown-item,
+[data-theme="dark"] .savings-history-table thead th.savings-history-cell {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .savings-history-pill-btn,
+[data-theme="dark"] .savings-history-dropdown-menu,
+[data-theme="dark"] .savings-history-icon-round {
+  border-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .savings-history-dropdown-menu {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .savings-history-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .savings-history-dropdown-item.active {
+  background: rgba(0, 102, 255, 0.18);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .savings-history-table thead th.savings-history-cell {
+  background: #1f2937;
+  border-bottom-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .savings-history-table tbody td.savings-history-cell {
+  border-bottom-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .savings-history-icon-round {
+  color: #93c5fd;
+}
+
+@media (max-width: 768px) {
+  [data-theme="dark"] .dashboard-main.savings-dashboard-main {
+    background: #0a1929;
+  }
+
+  [data-theme="dark"] .savings-history-mobile-feed-item {
+    border-bottom-color: var(--border, #334155);
+  }
+
+  [data-theme="dark"] .savings-history-mobile-feed-icon {
+    background: rgba(0, 102, 255, 0.18);
+    color: #93c5fd;
+  }
+
+  [data-theme="dark"] .savings-history-mobile-feed-title {
+    color: var(--text-dark, #e5e7eb);
+  }
+
+  [data-theme="dark"] .savings-history-mobile-feed-sub,
+  [data-theme="dark"] .savings-history-mobile-feed-date {
+    color: var(--text-muted, #94a3b8);
+  }
+
+  [data-theme="dark"] .savings-wallet-add-money {
+    background: transparent;
+    border-color: #3b82f6;
+    color: #93c5fd;
+  }
+
+  [data-theme="dark"] .savings-wallet-add-money:hover {
+    background: rgba(0, 102, 255, 0.16);
+  }
+}

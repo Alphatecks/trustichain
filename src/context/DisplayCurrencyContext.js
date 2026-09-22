@@ -9,7 +9,7 @@ import React, {
 import toast from 'react-hot-toast';
 import { useSession } from './SessionContext';
 import { getApiUrl } from '../utils/config';
-import { formatDisplayAmountFromUsd, normalizeExchangeQuoteDirection } from '../utils/displayCurrencyFormat';
+import { formatDisplayAmountFromUsd, normalizeExchangeQuoteDirection, readXrpUsdRateFromExchangePayload } from '../utils/displayCurrencyFormat';
 import {
   fetchDisplayCurrencyPreference,
   normalizeDisplayCurrency,
@@ -37,6 +37,7 @@ export const DisplayCurrencyProvider = ({ children }) => {
   const [isLoadingDisplayCurrency, setIsLoadingDisplayCurrency] = useState(true);
   const [isSavingDisplayCurrency, setIsSavingDisplayCurrency] = useState(false);
   const [exchangeRates, setExchangeRates] = useState([]);
+  const [xrpUsdRate, setXrpUsdRate] = useState(null);
   const [exchangeQuoteDirection, setExchangeQuoteDirection] = useState('unitsPerUsd');
   const [isLoadingExchangeRates, setIsLoadingExchangeRates] = useState(true);
   const pendingCurrencySaveRef = useRef(null);
@@ -107,6 +108,7 @@ export const DisplayCurrencyProvider = ({ children }) => {
       if (!authToken || isSessionExpired) {
         if (!cancelled) {
           setExchangeRates([]);
+          setXrpUsdRate(null);
           setIsLoadingExchangeRates(false);
         }
         return;
@@ -127,18 +129,24 @@ export const DisplayCurrencyProvider = ({ children }) => {
           const result = await response.json().catch(() => ({}));
           if (!cancelled && result?.success && Array.isArray(result?.data?.rates)) {
             setExchangeRates(result.data.rates);
+            setXrpUsdRate(readXrpUsdRateFromExchangePayload(result));
             setExchangeQuoteDirection(
               normalizeExchangeQuoteDirection(result?.data?.quoteDirection),
             );
           } else if (!cancelled) {
             setExchangeRates([]);
+            setXrpUsdRate(readXrpUsdRateFromExchangePayload(result));
           }
         } else if (!cancelled) {
           setExchangeRates([]);
+          setXrpUsdRate(null);
         }
       } catch (error) {
         console.warn('Could not load exchange rates for display currency:', error);
-        if (!cancelled) setExchangeRates([]);
+        if (!cancelled) {
+          setExchangeRates([]);
+          setXrpUsdRate(null);
+        }
       } finally {
         if (!cancelled) setIsLoadingExchangeRates(false);
       }
@@ -205,6 +213,7 @@ export const DisplayCurrencyProvider = ({ children }) => {
     isLoadingDisplayCurrency,
     isSavingDisplayCurrency,
     exchangeRates,
+    xrpUsdRate,
     exchangeQuoteDirection,
     isLoadingExchangeRates,
     formatFromUsd,

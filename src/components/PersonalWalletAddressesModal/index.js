@@ -1,15 +1,29 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ChevronDown, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import QRCode from 'react-qr-code';
+import toast from 'react-hot-toast';
+import { X, ChevronDown, Copy, TrendingUp, TrendingDown } from 'lucide-react';
 import { useWeb3 } from '../../context/Web3Context';
 import LoadingIndicator from '../LoadingIndicator';
 import ConnectWalletModal from '../ConnectWalletModal';
 import { DashboardSkeletonBlock } from '../DashboardSkeletons';
 import {
   hasStablecoinDepositAddresses,
-  parseWalletBalancesFromApi,
   DEPOSIT_ADDRESS_CURRENCY_ICON,
+  DEPOSIT_ADDRESS_NETWORK_KEYS,
+  depositAddressNetworkLabel,
+  extractWalletAddresses,
+  extractDepositAddressFromApiResponse,
+  resolveDepositAddressFromBalance,
 } from '../../utils/depositAddressFlow';
 import { getApiUrl } from '../../utils/config';
+import {
+  parseCustodialWalletBalances,
+  readStoredDashboardAccountType,
+} from '../../utils/custodialWalletBalances';
+import { getUsdPerXrpFromExchangeRates, readXrpUsdRateFromExchangePayload } from '../../utils/displayCurrencyFormat';
+import { getWalletBalanceChangePercent } from '../../utils/walletBalanceChange';
+import { useDisplayCurrency } from '../../context/DisplayCurrencyContext';
 import rlusdLogo from '../../assets/images/icons/rlusd-logo.svg';
 import './index.css';
 
@@ -72,59 +86,84 @@ const formatAssetAmount = (amount, symbol, maxDecimals = 2) =>
     maximumFractionDigits: maxDecimals,
   })} ${symbol}`;
 
-const formatUsd = (value) =>
-  `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const getExchangeRateFromRates = (rates, fromCurrency, toCurrency) => {
-  if (!fromCurrency || !toCurrency) return null;
-  if (fromCurrency === toCurrency) return 1;
-  const list = Array.isArray(rates) ? rates : [];
-  if (list.length === 0) return null;
-
-  const direct = list.find((r) => r.from === fromCurrency && r.to === toCurrency);
-  if (direct?.rate != null) {
-    const v = Number(direct.rate);
-    if (Number.isFinite(v) && v > 0) return v;
-  }
-
-  const reverse = list.find((r) => r.from === toCurrency && r.to === fromCurrency);
-  if (reverse?.rate != null) {
-    const v = Number(reverse.rate);
-    if (Number.isFinite(v) && v > 0) return 1 / v;
-  }
-
-  if (fromCurrency === 'XRP' && toCurrency === 'USD') {
-    const xrpRow = list.find((r) => (r.currency || r.code || '').toUpperCase() === 'XRP');
-    const n = Number(xrpRow?.rate ?? xrpRow?.value);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-
-  if (fromCurrency === 'USD' && toCurrency === 'XRP') {
-    const xrpRow = list.find((r) => (r.currency || r.code || '').toUpperCase() === 'XRP');
-    const n = Number(xrpRow?.rate ?? xrpRow?.value);
-    if (Number.isFinite(n) && n > 0) return 1 / n;
-  }
-
-  return null;
+const coerceTokenBalances = (input) => {
+  if (!input || typeof input !== 'object') return null;
+  const read = (...keys) => {
+    for (const key of keys) {
+      if (input[key] === undefined || input[key] === null || input[key] === '') continue;
+      const n = Number(input[key]);
+      if (Number.isFinite(n)) return n;
+    }
+    return 0;
+  };
+  return {
+    xrp: read('xrp', 'XRP'),
+    usdt: read('usdt', 'USDT'),
+    usdc: read('usdc', 'USDC'),
+    rlusd: read('rlusd', 'RLUSD', 'rippleUsd', 'ripple_usd'),
+  };
 };
 
-const getChangePercentForCurrency = (rates, code) => {
-  const list = Array.isArray(rates) ? rates : [];
-  const row = list.find((r) => (r.currency || r.code || '').toUpperCase() === code.toUpperCase());
-  const change = Number(row?.changePercent ?? row?.change);
-  return Number.isFinite(change) ? change : 0;
+const hasAnyTokenBalance = (balances) =>
+  Boolean(
+    balances &&
+      [balances.xrp, balances.usdt, balances.usdc, balances.rlusd].some((n) => Number(n) > 0),
+  );
+
+const DETAILS_WALLET_NAMES = {
+  XRP: 'XRP wallet',
+  RLUSD: 'Ripple USD wallet',
+  USDT: 'USDT wallet',
+  USDC: 'USDC wallet',
 };
 
-const computeWalletUsdValue = (code, amount, rates) => {
+const formatDetailsAddressShort = (addr) => {
+  if (!addr || typeof addr !== 'string') return 'N/A';
+  const t = addr.trim();
+  if (!t.length) return 'N/A';
+  if (t.length <= 16) return t;
+  return `${t.slice(0, 12)}…${t.slice(-6)}`;
+};
+
+const defaultNetworkForCode = (code) => {
+  const networks = DEPOSIT_ADDRESS_NETWORK_KEYS[code] || ['XRPL'];
+  return networks[0] || 'XRPL';
+};
+
+const getChangePercentForCurrency = (rates, code) => getWalletBalanceChangePercent(code, rates);
+
+/** USD value for a wallet row. `null` means the FX rate is missing — do not treat as $0. */
+const computeWalletUsdValue = (code, amount, exchangeRates, quoteDirection, xrpUsdRate) => {
   const qty = Number(amount) || 0;
   if (code === 'XRP') {
-    const rate = getExchangeRateFromRates(rates, 'XRP', 'USD');
-    return rate != null && rate > 0 ? qty * rate : 0;
+    if (qty === 0) return 0;
+    const usdPerXrp = getUsdPerXrpFromExchangeRates(exchangeRates, quoteDirection, xrpUsdRate);
+    return usdPerXrp != null && usdPerXrp > 0 ? qty * usdPerXrp : null;
   }
   if (code === 'RLUSD' || code === 'USDT' || code === 'USDC') {
     return qty;
   }
   return qty;
+};
+
+const formatWalletAssetFiatLabel = ({
+  code,
+  amount,
+  usdValue,
+  displayCurrency,
+  formatFromUsd,
+  isLoadingRates,
+}) => {
+  if (usdValue != null && Number.isFinite(Number(usdValue))) {
+    return formatFromUsd(usdValue, {
+      xrpAmount: code === 'XRP' ? amount : undefined,
+      isLoadingRates,
+    });
+  }
+  if (displayCurrency === 'XRP' && code === 'XRP') {
+    return formatFromUsd(0, { xrpAmount: amount, isLoadingRates });
+  }
+  return isLoadingRates ? '…' : '—';
 };
 
 const getChainLabel = (chainId) => {
@@ -205,6 +244,7 @@ const PersonalWalletAddressesModal = ({
   onClose,
   walletAddress,
   walletBalanceRaw,
+  walletBalances: walletBalancesProp,
   isLoadingWalletAddress = false,
   isProvisioningWallets,
   onCreateInitialWallet,
@@ -212,11 +252,30 @@ const PersonalWalletAddressesModal = ({
   showProvisionButton = true,
 }) => {
   const { account, isConnected, chainId } = useWeb3();
+  const {
+    displayCurrency,
+    formatFromUsd,
+    exchangeRates: displayExchangeRates,
+    xrpUsdRate: contextXrpUsdRate,
+    exchangeQuoteDirection,
+    isLoadingExchangeRates,
+  } = useDisplayCurrency();
   const [connectedPickerOpen, setConnectedPickerOpen] = useState(false);
   const [selectedConnectedId, setSelectedConnectedId] = useState('');
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [exchangeRates, setExchangeRates] = useState([]);
+  const [fetchedXrpUsdRate, setFetchedXrpUsdRate] = useState(null);
+  const [isFetchingLocalRates, setIsFetchingLocalRates] = useState(false);
+  const [fetchedBalances, setFetchedBalances] = useState(null);
+  const [fetchedBalanceRaw, setFetchedBalanceRaw] = useState(null);
+  const [isFetchingBalances, setIsFetchingBalances] = useState(false);
   const connectedPickerRef = useRef(null);
+  const detailsPickerRef = useRef(null);
+  const [selectedDetailsCode, setSelectedDetailsCode] = useState('');
+  const [detailsNetwork, setDetailsNetwork] = useState('XRPL');
+  const [detailsDepositAddress, setDetailsDepositAddress] = useState('');
+  const [isLoadingDetailsAddress, setIsLoadingDetailsAddress] = useState(false);
+  const [detailsPickerOpen, setDetailsPickerOpen] = useState(false);
 
   const connectedWallets = useMemo(
     () => buildConnectedWallets({ account, isConnected, chainId }),
@@ -227,6 +286,12 @@ const PersonalWalletAddressesModal = ({
     if (!isOpen) {
       setConnectedPickerOpen(false);
       setShowConnectWalletModal(false);
+      setSelectedDetailsCode('');
+      setDetailsPickerOpen(false);
+      setDetailsDepositAddress('');
+      setFetchedBalances(null);
+      setFetchedBalanceRaw(null);
+      setFetchedXrpUsdRate(null);
       return;
     }
     if (connectedWallets.length === 0) {
@@ -250,12 +315,27 @@ const PersonalWalletAddressesModal = ({
   }, [connectedPickerOpen]);
 
   useEffect(() => {
+    if (!detailsPickerOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (detailsPickerRef.current && !detailsPickerRef.current.contains(event.target)) {
+        setDetailsPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [detailsPickerOpen]);
+
+  useEffect(() => {
     if (!isOpen) return undefined;
     let cancelled = false;
 
     const fetchExchangeRates = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setIsFetchingLocalRates(false);
+        return;
+      }
+      setIsFetchingLocalRates(true);
       try {
         const response = await fetch(getApiUrl('api/exchange/rates'), {
           method: 'GET',
@@ -270,8 +350,12 @@ const PersonalWalletAddressesModal = ({
         if (result?.success && Array.isArray(result?.data?.rates)) {
           setExchangeRates(result.data.rates);
         }
+        const liveXrpUsd = readXrpUsdRateFromExchangePayload(result);
+        if (liveXrpUsd != null) setFetchedXrpUsdRate(liveXrpUsd);
       } catch (_) {
         if (!cancelled) setExchangeRates([]);
+      } finally {
+        if (!cancelled) setIsFetchingLocalRates(false);
       }
     };
 
@@ -281,38 +365,283 @@ const PersonalWalletAddressesModal = ({
     };
   }, [isOpen]);
 
-  const balances = useMemo(() => parseWalletBalancesFromApi(walletBalanceRaw), [walletBalanceRaw]);
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+
+    const loadBalances = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      setIsFetchingBalances(true);
+      try {
+        const isBusinessSuite = readStoredDashboardAccountType() === 'Business Suite';
+        const endpoint = isBusinessSuite
+          ? 'api/business-suite/wallet/balance'
+          : 'api/wallet/balance';
+        const response = await fetch(getApiUrl(endpoint), {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const result = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        setFetchedBalanceRaw(result && typeof result === 'object' ? result : null);
+        const parsed = parseCustodialWalletBalances(result);
+        setFetchedBalances({
+          xrp: Number(parsed.XRP) || 0,
+          usdt: Number(parsed.USDT) || 0,
+          usdc: Number(parsed.USDC) || 0,
+          rlusd: Number(parsed.RLUSD) || 0,
+        });
+      } catch (_) {
+        if (!cancelled) {
+          setFetchedBalances(null);
+          setFetchedBalanceRaw(null);
+        }
+      } finally {
+        if (!cancelled) setIsFetchingBalances(false);
+      }
+    };
+
+    loadBalances();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  const resolvedBalanceRaw = fetchedBalanceRaw || walletBalanceRaw;
+  const ratesForDisplay =
+    Array.isArray(displayExchangeRates) && displayExchangeRates.length > 0
+      ? displayExchangeRates
+      : exchangeRates;
+  const xrpUsdRate = contextXrpUsdRate ?? fetchedXrpUsdRate;
+  const hasDisplayRates =
+    (Array.isArray(ratesForDisplay) && ratesForDisplay.length > 0) ||
+    (xrpUsdRate != null && Number(xrpUsdRate) > 0);
+  const isWaitingForRates =
+    !hasDisplayRates && (isLoadingExchangeRates || isFetchingLocalRates);
+
+  const balances = useMemo(() => {
+    const fromFetch = coerceTokenBalances(fetchedBalances);
+    const fromProp = coerceTokenBalances(walletBalancesProp);
+    const parsed = parseCustodialWalletBalances(resolvedBalanceRaw);
+    const fromRaw = {
+      xrp: Number(parsed.XRP) || 0,
+      usdt: Number(parsed.USDT) || 0,
+      usdc: Number(parsed.USDC) || 0,
+      rlusd: Number(parsed.RLUSD) || 0,
+    };
+    if (hasAnyTokenBalance(fromFetch)) return fromFetch;
+    if (hasAnyTokenBalance(fromProp)) return fromProp;
+    if (hasAnyTokenBalance(fromRaw)) return fromRaw;
+    return fromFetch || fromProp || fromRaw;
+  }, [fetchedBalances, walletBalancesProp, resolvedBalanceRaw]);
 
   const trustichainAssets = useMemo(
     () =>
       TRUSTICHAIN_WALLETS.map((wallet) => {
         const amount = Number(balances[wallet.balanceKey] ?? 0);
-        const usdValue = computeWalletUsdValue(wallet.code, amount, exchangeRates);
+        const usdValue = computeWalletUsdValue(
+          wallet.code,
+          amount,
+          ratesForDisplay,
+          exchangeQuoteDirection,
+          xrpUsdRate,
+        );
         return {
           ...wallet,
           amount,
           usdValue,
-          changePercent: getChangePercentForCurrency(exchangeRates, wallet.code),
+          fiatLabel: formatWalletAssetFiatLabel({
+            code: wallet.code,
+            amount,
+            usdValue,
+            displayCurrency,
+            formatFromUsd,
+            isLoadingRates: isWaitingForRates,
+          }),
+          changePercent: getChangePercentForCurrency(ratesForDisplay, wallet.code),
         };
       }),
-    [balances, exchangeRates],
+    [
+      balances,
+      ratesForDisplay,
+      exchangeQuoteDirection,
+      xrpUsdRate,
+      formatFromUsd,
+      isWaitingForRates,
+      displayCurrency,
+    ],
   );
+
+  const custodialAddresses = useMemo(
+    () => extractWalletAddresses(resolvedBalanceRaw, walletAddress),
+    [resolvedBalanceRaw, walletAddress],
+  );
+  const resolvedWalletAddress = custodialAddresses.xrp || String(walletAddress || '').trim();
+  const hasCustodialWallet = Boolean(
+    resolvedWalletAddress ||
+      hasAnyTokenBalance(balances) ||
+      (Array.isArray(resolvedBalanceRaw?.data?.wallets) && resolvedBalanceRaw.data.wallets.length > 0) ||
+      (Array.isArray(resolvedBalanceRaw?.wallets) && resolvedBalanceRaw.wallets.length > 0),
+  );
+
+  const selectedDetailsAsset =
+    trustichainAssets.find((asset) => asset.code === selectedDetailsCode) || null;
+
+  const detailsNetworks = DEPOSIT_ADDRESS_NETWORK_KEYS[selectedDetailsCode] || [];
+  const showDetailsNetworkPicker =
+    selectedDetailsCode === 'USDT' || selectedDetailsCode === 'USDC';
+
+  const detailsAddress = useMemo(() => {
+    if (!selectedDetailsCode) return '';
+    if (selectedDetailsCode === 'RLUSD') {
+      return (custodialAddresses.rlusd || resolvedWalletAddress || '').trim();
+    }
+    if (selectedDetailsCode === 'XRP') {
+      return resolvedWalletAddress;
+    }
+    const fetched = String(detailsDepositAddress || '').trim();
+    if (fetched) return fetched;
+    return resolveDepositAddressFromBalance(
+      resolvedBalanceRaw,
+      selectedDetailsCode,
+      detailsNetwork,
+    ).trim();
+  }, [
+    selectedDetailsCode,
+    custodialAddresses,
+    walletAddress,
+    detailsDepositAddress,
+    resolvedBalanceRaw,
+    detailsNetwork,
+  ]);
+
+  const detailsRateLabel = useMemo(() => {
+    if (!selectedDetailsCode) return '—';
+    if (selectedDetailsCode === 'XRP') {
+      const usdPerXrp = getUsdPerXrpFromExchangeRates(
+        ratesForDisplay,
+        exchangeQuoteDirection,
+        xrpUsdRate,
+      );
+      if (usdPerXrp != null && usdPerXrp > 0) {
+        return `1 XRP = ${formatFromUsd(usdPerXrp, { isLoadingRates: isWaitingForRates })}`;
+      }
+      return isWaitingForRates ? '1 XRP …' : '1 XRP — rate unavailable';
+    }
+    return `1 ${selectedDetailsCode} = ${formatFromUsd(1, { isLoadingRates: isWaitingForRates })}`;
+  }, [
+    selectedDetailsCode,
+    ratesForDisplay,
+    exchangeQuoteDirection,
+    xrpUsdRate,
+    formatFromUsd,
+    isWaitingForRates,
+  ]);
+
+  const openWalletDetails = (code) => {
+    const next = String(code || '').toUpperCase();
+    if (!TRUSTICHAIN_WALLETS.some((wallet) => wallet.code === next)) return;
+    setDetailsPickerOpen(false);
+    setSelectedDetailsCode(next);
+    setDetailsNetwork(defaultNetworkForCode(next));
+  };
+
+  const closeWalletDetails = () => {
+    setDetailsPickerOpen(false);
+    setSelectedDetailsCode('');
+    setDetailsDepositAddress('');
+    setIsLoadingDetailsAddress(false);
+  };
+
+  useEffect(() => {
+    if (!isOpen || !selectedDetailsCode) {
+      setDetailsDepositAddress('');
+      setIsLoadingDetailsAddress(false);
+      return undefined;
+    }
+
+    const code = selectedDetailsCode;
+    if (code !== 'USDT' && code !== 'USDC') {
+      setDetailsDepositAddress('');
+      setIsLoadingDetailsAddress(false);
+      return undefined;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setDetailsDepositAddress('');
+      setIsLoadingDetailsAddress(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLoadingDetailsAddress(true);
+    setDetailsDepositAddress('');
+
+    const depositUrl = getApiUrl(
+      `api/wallet/deposit-address?asset=${encodeURIComponent(code)}&network=${encodeURIComponent(detailsNetwork)}`,
+    );
+
+    fetch(depositUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((result) => {
+        if (cancelled) return;
+        const address = extractDepositAddressFromApiResponse(result);
+        if (address) {
+          setDetailsDepositAddress(address);
+          return;
+        }
+        setDetailsDepositAddress(
+          resolveDepositAddressFromBalance(resolvedBalanceRaw, code, detailsNetwork) || '',
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDetailsDepositAddress(
+          resolveDepositAddressFromBalance(resolvedBalanceRaw, code, detailsNetwork) || '',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDetailsAddress(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, selectedDetailsCode, detailsNetwork, resolvedBalanceRaw]);
 
   const selectedConnected =
     connectedWallets.find((w) => w.id === selectedConnectedId) ?? connectedWallets[0] ?? null;
 
-  const hasCustodialWallet = Boolean(walletAddress?.trim());
   const stablecoinAddressesReady = useMemo(
-    () => hasStablecoinDepositAddresses(walletBalanceRaw),
-    [walletBalanceRaw],
+    () => hasStablecoinDepositAddresses(resolvedBalanceRaw),
+    [resolvedBalanceRaw],
   );
   const showProvisionStablecoinButton = showProvisionButton && !stablecoinAddressesReady;
-  const showLoadingAssets = isLoadingWalletAddress && !walletBalanceRaw;
+  const showLoadingAssets =
+    (isLoadingWalletAddress || isFetchingBalances) && !hasAnyTokenBalance(balances);
 
   if (!isOpen) return null;
 
   const renderChange = (changePercent) => {
-    const value = Number(changePercent) || 0;
+    if (changePercent == null || !Number.isFinite(Number(changePercent))) {
+      return (
+        <span className="wallets-modal-asset-change is-unavailable">
+          {isWaitingForRates ? '…' : '—'}
+        </span>
+      );
+    }
+    const value = Number(changePercent);
     if (value > 0) {
       return (
         <span className="wallets-modal-asset-change is-positive">
@@ -331,7 +660,6 @@ const PersonalWalletAddressesModal = ({
     }
     return (
       <span className="wallets-modal-asset-change is-neutral">
-        <Minus size={12} strokeWidth={2.5} aria-hidden />
         0.0%
       </span>
     );
@@ -485,20 +813,36 @@ const PersonalWalletAddressesModal = ({
             <>
               <ul className="wallets-modal-assets">
                 {trustichainAssets.map((asset) => (
-                  <li key={asset.code} className="wallets-modal-asset-row">
-                    <span className="wallets-modal-asset-icon" aria-hidden>
-                      <img src={asset.iconUrl} alt="" />
-                    </span>
-                    <div className="wallets-modal-asset-main">
-                      <p className="wallets-modal-asset-name">{asset.name}</p>
-                      <p className="wallets-modal-asset-amount">
-                        {formatAssetAmount(asset.amount, asset.code, asset.maxDecimals)}
-                      </p>
-                    </div>
-                    <div className="wallets-modal-asset-value-col">
-                      <span className="wallets-modal-asset-usd">{formatUsd(asset.usdValue)}</span>
-                      {renderChange(asset.changePercent)}
-                    </div>
+                  <li key={asset.code}>
+                    <button
+                      type="button"
+                      className="wallets-modal-asset-row"
+                      onClick={() => openWalletDetails(asset.code)}
+                      aria-label={`View ${asset.name} wallet details`}
+                    >
+                      <span className="wallets-modal-asset-icon" aria-hidden>
+                        <img src={asset.iconUrl} alt="" />
+                      </span>
+                      <span className="wallets-modal-asset-main">
+                        <span className="wallets-modal-asset-name">{asset.name}</span>
+                        <span className="wallets-modal-asset-amount">
+                          {formatAssetAmount(asset.amount, asset.code, asset.maxDecimals)}
+                        </span>
+                      </span>
+                      <span className="wallets-modal-asset-value-col">
+                        <span
+                          className={`wallets-modal-asset-usd${
+                            asset.usdValue == null &&
+                            !(displayCurrency === 'XRP' && asset.code === 'XRP')
+                              ? ' is-unavailable'
+                              : ''
+                          }`}
+                        >
+                          {asset.fiatLabel}
+                        </span>
+                        {renderChange(asset.changePercent)}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -537,6 +881,199 @@ const PersonalWalletAddressesModal = ({
         onClose={() => setShowConnectWalletModal(false)}
         overlayClassName="wallets-modal-connect-stack"
       />
+
+      {selectedDetailsAsset && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="wallet-details-modal-overlay wallets-modal-details-stack"
+              onClick={closeWalletDetails}
+              role="presentation"
+            >
+              <div
+                className="wallet-details-modal"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="wallets-details-title"
+              >
+                <div className="wallet-details-modal-header">
+                  <h2 id="wallets-details-title" className="wallet-details-modal-title">
+                    Wallet Details
+                  </h2>
+                  <button
+                    type="button"
+                    className="wallet-details-close-btn"
+                    onClick={closeWalletDetails}
+                    aria-label="Close wallet details"
+                  >
+                    <X size={22} strokeWidth={2} />
+                  </button>
+                </div>
+
+                <div className="wallet-details-top-card">
+                  <div className="wallet-details-selector-wrap" ref={detailsPickerRef}>
+                    <button
+                      type="button"
+                      className="wallet-details-wallet-selector"
+                      onClick={() => setDetailsPickerOpen((open) => !open)}
+                      aria-expanded={detailsPickerOpen}
+                      aria-haspopup="listbox"
+                    >
+                      <div className="wallet-details-icon-wrap">
+                        <img src={selectedDetailsAsset.iconUrl} alt="" />
+                      </div>
+                      <span className="wallet-details-selector-label">
+                        {DETAILS_WALLET_NAMES[selectedDetailsAsset.code] || selectedDetailsAsset.name}
+                      </span>
+                      <ChevronDown
+                        size={20}
+                        className={`wallet-details-selector-chevron${detailsPickerOpen ? ' is-open' : ''}`}
+                        aria-hidden
+                      />
+                    </button>
+                    {detailsPickerOpen ? (
+                      <ul className="wallet-details-wallet-picker" role="listbox">
+                        {trustichainAssets.map((wallet) => {
+                          const isActive = wallet.code === selectedDetailsAsset.code;
+                          return (
+                            <li key={wallet.code}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={isActive}
+                                className={isActive ? 'is-current' : undefined}
+                                onClick={() => openWalletDetails(wallet.code)}
+                              >
+                                <span className="wallet-details-picker-icon-wrap">
+                                  <img src={wallet.iconUrl} alt="" />
+                                </span>
+                                {DETAILS_WALLET_NAMES[wallet.code] || wallet.name}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </div>
+
+                  <p
+                    className={`wallet-details-total${
+                      selectedDetailsAsset.usdValue == null &&
+                      !(displayCurrency === 'XRP' && selectedDetailsAsset.code === 'XRP')
+                        ? ' is-unavailable'
+                        : ''
+                    }`}
+                  >
+                    {formatWalletAssetFiatLabel({
+                      code: selectedDetailsAsset.code,
+                      amount: selectedDetailsAsset.amount,
+                      usdValue: selectedDetailsAsset.usdValue,
+                      displayCurrency,
+                      formatFromUsd,
+                      isLoadingRates: isWaitingForRates,
+                    })}
+                  </p>
+                  <p className="wallet-details-fiat-amount">
+                    {formatAssetAmount(
+                      selectedDetailsAsset.amount,
+                      selectedDetailsAsset.code,
+                      selectedDetailsAsset.maxDecimals,
+                    )}
+                  </p>
+                  <p className="wallet-details-exchange-caption">Exchange rate: {detailsRateLabel}</p>
+                </div>
+
+                {showDetailsNetworkPicker ? (
+                  <div className="wallet-details-network-block">
+                    <p className="wallet-details-network-label">Wallet Network</p>
+                    <div className="wallet-details-network-segments" role="tablist">
+                      {detailsNetworks.map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          role="tab"
+                          aria-selected={detailsNetwork === key}
+                          className={detailsNetwork === key ? 'is-active' : undefined}
+                          onClick={() => setDetailsNetwork(key)}
+                        >
+                          {depositAddressNetworkLabel(key)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div
+                  className={`wallet-details-address-card${
+                    isLoadingDetailsAddress ? ' wallet-details-address-card--pending' : ''
+                  }`}
+                  aria-busy={isLoadingDetailsAddress || undefined}
+                >
+                  <div className="wallet-details-qr-wrap">
+                    {isLoadingDetailsAddress ? (
+                      <div className="wallet-details-qr-skeleton" aria-hidden />
+                    ) : (
+                      <QRCode
+                        value={detailsAddress || 'N/A'}
+                        size={128}
+                        bgColor="#ffffff"
+                        fgColor="#111827"
+                      />
+                    )}
+                  </div>
+                  <div className="wallet-details-address-info">
+                    {isLoadingDetailsAddress ? (
+                      <div className="wallet-details-address-skeleton" aria-live="polite">
+                        <span className="wallet-details-address-skeleton-line wallet-details-address-skeleton-line--long" />
+                        <span className="wallet-details-address-skeleton-line wallet-details-address-skeleton-line--short" />
+                      </div>
+                    ) : (
+                      <p>{detailsAddress || 'Address not available yet'}</p>
+                    )}
+                    <button
+                      type="button"
+                      className="wallet-details-copy-icon-btn"
+                      onClick={async () => {
+                        try {
+                          if (!detailsAddress) {
+                            toast.error('No wallet address available');
+                            return;
+                          }
+                          await navigator.clipboard.writeText(detailsAddress);
+                          toast.success('Address copied');
+                        } catch (err) {
+                          toast.error('Failed to copy address');
+                        }
+                      }}
+                      aria-label="Copy wallet address"
+                      disabled={!detailsAddress || isLoadingDetailsAddress}
+                    >
+                      <Copy size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="wallet-details-meta-list">
+                  <div className="wallet-details-meta-row">
+                    <span>Rate</span>
+                    <strong>{detailsRateLabel}</strong>
+                  </div>
+                  <div className="wallet-details-meta-row">
+                    <span>Wallet Address</span>
+                    <strong className="wallet-details-meta-address-strong">
+                      {isLoadingDetailsAddress ? '…' : formatDetailsAddressShort(detailsAddress)}
+                    </strong>
+                  </div>
+                </div>
+
+                <button type="button" className="wallet-details-done-btn" onClick={closeWalletDetails}>
+                  Done
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </React.Fragment>
   );
 };

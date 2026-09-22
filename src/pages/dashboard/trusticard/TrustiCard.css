@@ -3547,3 +3547,269 @@
     font-size: 0.9rem;
   }
 }
+
+[data-theme="dark"] .tc-v2-section-title,
+[data-theme="dark"] .tc-v2-table--tx-ref tbody td,
+[data-theme="dark"] .tc-v2-tx-type-label,
+[data-theme="dark"] .tc-v2-tx-mobile-type,
+[data-theme="dark"] .trusticard-modal-head h2,
+[data-theme="dark"] .trusticard-add-funds-head h2,
+[data-theme="dark"] .trusticard-card-info-value,
+[data-theme="dark"] .trusticard-statement-label,
+[data-theme="dark"] .trusticard-statement-input,
+[data-theme="dark"] .trusticard-add-card-input:not(:placeholder-shown),
+[data-theme="dark"] .trusticard-create-card-kyc-heading,
+[data-theme="dark"] .trusticard-create-card-kyc-copy strong,
+[data-theme="dark"] .trusticard-create-card-identity-heading,
+[data-theme="dark"] .trusticard-create-card-identity-label,
+[data-theme="dark"] .trusticard-create-card-success-title,
+[data-theme="dark"] .trusticard-create-card-success-copy,
+[data-theme="dark"] .trusticard-create-card-success-close,
+[data-theme="dark"] .trusticard-add-funds-big-input,
+[data-theme="dark"] .trusticard-add-funds-big-suffix {
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .tc-v2-card-list-item,
+[data-theme="dark"] .tc-v2-empty-cards,
+[data-theme="dark"] .tc-v2-tx-mobile-empty,
+[data-theme="dark"] .tc-v2-tx-mobile-sub,
+[data-theme="dark"] .tc-v2-tx-mobile-date,
+[data-theme="dark"] .tc-v2-table--tx-ref thead th,
+[data-theme="dark"] .tc-v2-tx-select-chevron,
+[data-theme="dark"] .tc-v2-page-nav,
+[data-theme="dark"] .tc-v2-page-num-ref,
+[data-theme="dark"] .tc-v2-page-ellipsis,
+[data-theme="dark"] .trusticard-field label,
+[data-theme="dark"] .trusticard-card-info-label,
+[data-theme="dark"] .trusticard-card-info-tab,
+[data-theme="dark"] .trusticard-add-funds-lbl-soft,
+[data-theme="dark"] .trusticard-add-funds-balance,
+[data-theme="dark"] .trusticard-create-card-kyc-copy small {
+  color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .tc-v2-card-list-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .tc-v2-card-list-item.active {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .tc-v2-qaction-ring {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .tc-v2-qaction:hover:not(:disabled) .tc-v2-qaction-ring {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .tc-v2-qaction-ring--danger {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .tc-v2-qaction--danger:hover:not(:disabled) .tc-v2-qaction-ring--danger {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+[data-theme="dark"] .tc-v2-tx-section,
+[data-theme="dark"] .tc-v2-tx-filter-popover,
+[data-theme="dark"] .trusticard-modal-panel,
+[data-theme="dark"] .trusticard-create-card-kyc-card,
+[data-theme="dark"] .trusticard-create-card-success-modal,
+[data-theme="dark"] .trusticard-freeze-confirm-card,
+[data-theme="dark"] .trusticard-add-funds-wallet-menu {
+  background: var(--surface, #111827);
+  border-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .tc-v2-tx-section {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme="dark"] .tc-v2-tx-pill-btn,
+[data-theme="dark"] .tc-v2-tx-select,
+[data-theme="dark"] .tc-v2-tx-filter-square,
+[data-theme="dark"] .tc-v2-tx-filter-mobile-circle {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .tc-v2-tx-pill-btn:hover,
+[data-theme="dark"] .tc-v2-tx-filter-square:hover,
+[data-theme="dark"] .tc-v2-tx-filter-square.is-open {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .tc-v2-tx-filter-option {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .tc-v2-tx-filter-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .tc-v2-tx-filter-option.active {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .tc-v2-table--tx-ref thead tr {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .tc-v2-table--tx-ref tbody td {
+  border-bottom-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .tc-v2-tx-mobile-list {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .trusticard-modal-overlay {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+[data-theme="dark"] .trusticard-modal-head,
+[data-theme="dark"] .trusticard-add-funds-head {
+  border-bottom-color: var(--border, #334155);
+}
+
+[data-theme="dark"] .trusticard-modal-close {
+  background: #1f2937;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .trusticard-field input,
+[data-theme="dark"] .trusticard-field select {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .trusticard-card-info-tabs {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .trusticard-card-info-value-row,
+[data-theme="dark"] .trusticard-statement-input {
+  background: rgba(37, 99, 235, 0.16);
+}
+
+[data-theme="dark"] .trusticard-add-funds-amount-shell {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .trusticard-add-funds-wallet-trigger {
+  background: rgba(31, 41, 55, 0.95);
+  border-color: #334155;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .trusticard-add-funds-wallet-option {
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .trusticard-add-funds-wallet-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .trusticard-statement-btn--cancel {
+  background: #1f2937;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .trusticard-statement-btn--cancel:hover {
+  background: #334155;
+}
+
+[data-theme="dark"] .trusticard-create-card-kyc-item {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .trusticard-create-card-kyc-icon {
+  background: rgba(37, 99, 235, 0.16);
+  border-color: var(--border, #334155);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .trusticard-create-card-kyc-modal .trusticard-modal-close {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .trusticard-create-card-identity-mode.is-active .trusticard-create-card-identity-ring {
+  box-shadow: inset 0 0 0 4px var(--surface, #111827);
+}
+
+[data-theme="dark"] .trusticard-create-card-country-trigger {
+  background: #1f2937;
+  border-color: var(--border, #334155);
+  color: var(--text-dark, #e5e7eb);
+}
+
+[data-theme="dark"] .trusticard-freeze-confirm-overlay {
+  background: rgba(2, 6, 23, 0.78);
+}
+
+[data-theme="dark"] .trusticard-freeze-confirm-header {
+  background: linear-gradient(
+    180deg,
+    #1e3a8a 0%,
+    #1e40af 28%,
+    #1f2937 72%,
+    #111827 100%
+  );
+}
+
+[data-theme="dark"] .trusticard-freeze-confirm-close,
+[data-theme="dark"] .trusticard-freeze-confirm-hero-inner {
+  background: #1f2937;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .trusticard-freeze-confirm-close:hover:not(:disabled) {
+  background: #334155;
+}
+
+[data-theme="dark"] .trusticard-freeze-confirm-lead {
+  color: var(--text-muted, #94a3b8);
+}
+
+@media (max-width: 768px) {
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--add-funds-fullbleed,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--withdraw-fullbleed,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--card-info-fullbleed,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--statement-fullbleed,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed {
+    background: var(--surface, #111827);
+  }
+
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--add-funds-fullbleed .trusticard-add-funds-head,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--withdraw-fullbleed .trusticard-add-funds-head,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--card-info-fullbleed .trusticard-card-info-head.trusticard-modal-head,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--statement-fullbleed .trusticard-statement-modal-head.trusticard-modal-head,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-add-funds-head {
+    border-bottom-color: var(--border, #334155);
+  }
+
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-identity-modal,
+  [data-theme="dark"] .trusticard-modal-overlay.trusticard-modal-overlay--create-card-fullbleed .trusticard-modal-panel.trusticard-create-card-address-modal {
+    background: var(--surface, #111827);
+  }
+
+  [data-theme="dark"] .trusticard-freeze-confirm-overlay {
+    background: rgba(2, 6, 23, 0.82);
+  }
+}

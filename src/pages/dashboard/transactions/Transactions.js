@@ -74,7 +74,7 @@ import { useSession } from '../../../context/SessionContext';
 import { useDisplayCurrency } from '../../../context/DisplayCurrencyContext';
 import { useTrustiscore, formatTrustiscoreBadgeText } from '../../../context/TrustiscoreContext';
 import { filterSidebarExchangeRates } from '../../../utils/exchangeRatesDisplay';
-import { formatWalletUsdInDisplayCurrency, getUsdPerXrpFromExchangeRates } from '../../../utils/displayCurrencyFormat';
+import { formatWalletUsdInDisplayCurrency, getUsdPerXrpFromExchangeRates, readXrpUsdRateFromExchangePayload } from '../../../utils/displayCurrencyFormat';
 import {
   formatDateForDisplayCurrency,
   getDisplayCalendar,
@@ -98,6 +98,7 @@ import HeaderProfileVerifyBadge from '../../../components/HeaderProfileVerifyBad
 import HeaderProfileAvatarNav from '../../../components/HeaderProfileAvatarNav';
 import PersonalSuiteMobileHeader from '../../../components/PersonalSuiteMobileHeader';
 import ConnectWalletModal from '../../../components/ConnectWalletModal';
+import ReownFundModal from '../../../components/ReownFundModal';
 import TransactionSummaryModal from '../../../components/TransactionSummaryModal';
 import SavingsAddMoneyModal from '../../../components/SavingsAddMoneyModal';
 import AddSavingsPlanModal, { planRequiresGoalAmount } from '../../../components/AddSavingsPlanModal';
@@ -821,11 +822,11 @@ const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSessionExpired } = useSession();
-  const { displayCurrency, formatFromUsd, exchangeRates: contextExchangeRates, exchangeQuoteDirection, isLoadingExchangeRates } = useDisplayCurrency();
+  const { displayCurrency, formatFromUsd, exchangeRates: contextExchangeRates, xrpUsdRate: contextXrpUsdRate, exchangeQuoteDirection, isLoadingExchangeRates } = useDisplayCurrency();
   const { score: trustiscoreScore, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
-  const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
+  const { account, isExternalWalletConnected, connectedWalletKind, connectedWalletLabel } = useWeb3();
   const [showBalance, setShowBalance] = useState(true);
   const [accountType, setAccountType] = useState(() => {
     const navType = location.state?.accountType;
@@ -836,6 +837,8 @@ const Transactions = () => {
   });
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
+  const [showReownFundModal, setShowReownFundModal] = useState(false);
+  const [pendingWalletFund, setPendingWalletFund] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('All');
   const [notifications, setNotifications] = useState([]);
   const [, setNotificationsTotal] = useState(0);
@@ -1846,6 +1849,8 @@ const Transactions = () => {
           const result = await response.json();
           if (result?.success && Array.isArray(result?.data?.rates)) {
             setExchangeRates(result.data.rates);
+            const liveXrpUsd = readXrpUsdRateFromExchangePayload(result);
+            if (liveXrpUsd != null) setXrpUsdSpotRate(liveXrpUsd);
             if (result?.data?.quoteDirection) {
               setExchangeQuoteDirectionLocal(result.data.quoteDirection);
             }
@@ -1869,7 +1874,11 @@ const Transactions = () => {
   }, [exchangeRates, contextExchangeRates]);
 
   useEffect(() => {
-    const fromTable = getUsdPerXrpFromExchangeRates(mergedExchangeRates, resolvedQuoteDirection);
+    const fromTable = getUsdPerXrpFromExchangeRates(
+      mergedExchangeRates,
+      resolvedQuoteDirection,
+      contextXrpUsdRate,
+    );
     if (fromTable != null && fromTable > 0) {
       setXrpUsdSpotRate(fromTable);
       setIsLoadingXrpUsdSpotRate(false);
@@ -1894,7 +1903,7 @@ const Transactions = () => {
     return () => {
       cancelled = true;
     };
-  }, [mergedExchangeRates, resolvedQuoteDirection]);
+  }, [mergedExchangeRates, resolvedQuoteDirection, contextXrpUsdRate]);
 
   // Fetch external exchange rate when send modal opens or currencies change
   useEffect(() => {
@@ -3368,6 +3377,32 @@ const Transactions = () => {
     setShowFundWalletModal(true);
   };
 
+  const openFundWithConnectedWallet = useCallback(() => {
+    setFundDepositPaymentMethod(null);
+    setFundViaAddress(false);
+    if (connectedWalletKind === 'xaman') {
+      setShowFundWalletModal(true);
+      return;
+    }
+    if (connectedWalletKind === 'metamask' || connectedWalletKind === 'walletconnect') {
+      setShowReownFundModal(true);
+      return;
+    }
+    setPendingWalletFund(true);
+    setShowConnectWalletModal(true);
+  }, [connectedWalletKind]);
+
+  useEffect(() => {
+    if (!pendingWalletFund || !isExternalWalletConnected) return;
+    setPendingWalletFund(false);
+    setShowConnectWalletModal(false);
+    if (connectedWalletKind === 'xaman') {
+      setShowFundWalletModal(true);
+      return;
+    }
+    setShowReownFundModal(true);
+  }, [pendingWalletFund, isExternalWalletConnected, connectedWalletKind]);
+
   const handleFundWallet = async (e) => {
     e.preventDefault();
     
@@ -4289,7 +4324,11 @@ const Transactions = () => {
     const rates = Array.isArray(mergedExchangeRates) ? mergedExchangeRates : [];
 
     if (fromCurrency === 'XRP' && toCurrency === 'USD') {
-      const tableRate = getUsdPerXrpFromExchangeRates(rates, resolvedQuoteDirection);
+      const tableRate = getUsdPerXrpFromExchangeRates(
+        rates,
+        resolvedQuoteDirection,
+        contextXrpUsdRate,
+      );
       if (tableRate != null && tableRate > 0) return tableRate;
       if (xrpUsdSpotRate != null && Number(xrpUsdSpotRate) > 0) return Number(xrpUsdSpotRate);
       return null;
@@ -4343,10 +4382,10 @@ const Transactions = () => {
     const raw = walletBalances?.[key];
 
     if (code === 'XRP') {
+      const amount = Number(raw || 0);
       if (raw !== undefined && raw !== null && Array.isArray(exchangeRates) && exchangeRates.length > 0) {
         const xrpToUsdRate = getExchangeRate('XRP', 'USD');
         if (xrpToUsdRate) {
-          const amount = Number(raw);
           return formatWalletFiatAmount(amount * Number(xrpToUsdRate), 'XRP', amount);
         }
         const usdRate = exchangeRates.find((r) =>
@@ -4355,11 +4394,12 @@ const Transactions = () => {
           r.code === 'USD'
         );
         if (usdRate?.rate) {
-          const amount = Number(raw);
           return formatWalletFiatAmount(amount * Number(usdRate.rate), 'XRP', amount);
         }
       }
-      return formatWalletFiatAmount(0, 'XRP', 0);
+      if (amount === 0) return formatWalletFiatAmount(0, 'XRP', 0);
+      if (isLoadingRates || isLoadingExchangeRates) return <LoadingIndicator size="sm" />;
+      return '—';
     }
 
     if (raw !== undefined && raw !== null) {
@@ -4412,7 +4452,17 @@ const Transactions = () => {
     let usdValue = amount;
     if (code === 'XRP') {
       const xrpUsd = getExchangeRate('XRP', 'USD');
-      usdValue = xrpUsd != null && Number(xrpUsd) > 0 ? amount * Number(xrpUsd) : 0;
+      if (xrpUsd != null && Number(xrpUsd) > 0) {
+        usdValue = amount * Number(xrpUsd);
+      } else if (amount === 0) {
+        usdValue = 0;
+      } else {
+        if (displayCurrency === 'XRP') {
+          return formatWalletFiatAmount(0, 'XRP', amount);
+        }
+        if (isLoadingRates || isLoadingExchangeRates || isLoadingXrpUsdSpotRate) return '…';
+        return '—';
+      }
     }
     return formatWalletFiatAmount(usdValue, code, amount);
   };
@@ -4447,7 +4497,12 @@ const Transactions = () => {
     let usdValue = amount;
     if (code === 'XRP') {
       const xrpUsd = getExchangeRate('XRP', 'USD');
-      usdValue = xrpUsd != null && Number(xrpUsd) > 0 ? Number(amount) * Number(xrpUsd) : 0;
+      usdValue =
+        xrpUsd != null && Number(xrpUsd) > 0
+          ? Number(amount) * Number(xrpUsd)
+          : amount === 0
+            ? 0
+            : null;
     }
 
     const config = WALLET_DETAILS_WALLETS[code];
@@ -4463,7 +4518,7 @@ const Transactions = () => {
     setSelectedWalletDetails({
       ...config,
       amount,
-      usdValue: Number(usdValue) || 0,
+      usdValue: usdValue == null ? null : Number(usdValue) || 0,
     });
     setShowWalletDetailsModal(true);
   };
@@ -7524,17 +7579,13 @@ const Transactions = () => {
                       <div className="my-details-row-value">
                         {linkedAccounts?.web3Wallet ? (
                           <span>{linkedAccounts.web3Wallet}</span>
-                        ) : isWalletConnectedViaAPI && isConnected && account ? (
-                          <span>XUMM (Connected)</span>
+                        ) : isExternalWalletConnected ? (
+                          <span>{connectedWalletLabel || 'Wallet'} (Connected)</span>
                         ) : (
                           <button
                             type="button"
                             className="my-details-link-btn"
-                            onClick={() => {
-                              if (!isWalletConnectedViaAPI) {
-                                setShowConnectWalletModal(true);
-                              }
-                            }}
+                            onClick={() => setShowConnectWalletModal(true)}
                           >
                             Connect Wallet
                           </button>
@@ -9503,8 +9554,7 @@ const Transactions = () => {
                   className="fund-method-option"
                   onClick={() => {
                     setShowFundMethodModal(false);
-                    setFundDepositPaymentMethod(null);
-                    setShowConnectWalletModal(true);
+                    openFundWithConnectedWallet();
                   }}
                 >
                   <div className="fund-method-option-icon">
@@ -9512,7 +9562,15 @@ const Transactions = () => {
                   </div>
                   <div className="fund-method-option-text">
                     <div className="fund-method-option-title">Fund with Wallet</div>
-                    <div className="fund-method-option-desc">Connect your crypto wallet to fund</div>
+                    <div className="fund-method-option-desc">
+                      {connectedWalletKind === 'metamask'
+                        ? 'Send USDT/USDC with MetaMask (ERC-20 / BEP-20)'
+                        : connectedWalletKind === 'walletconnect'
+                          ? 'Send USDT/USDC via WalletConnect (ERC-20 / BEP-20)'
+                          : connectedWalletKind === 'xaman'
+                            ? 'Fund with your connected XAMAN wallet'
+                            : 'Connect MetaMask, WalletConnect, or XAMAN to fund'}
+                    </div>
                   </div>
                 </button>
                 <button
@@ -9724,8 +9782,19 @@ const Transactions = () => {
 
       {/* Connect Wallet Modal */}
       <ConnectWalletModal 
-        isOpen={showConnectWalletModal && !isWalletConnectedViaAPI} 
-        onClose={() => setShowConnectWalletModal(false)} 
+        isOpen={showConnectWalletModal && !isExternalWalletConnected} 
+        onClose={() => {
+          setShowConnectWalletModal(false);
+          setPendingWalletFund(false);
+        }} 
+      />
+
+      <ReownFundModal
+        isOpen={showReownFundModal}
+        onClose={() => setShowReownFundModal(false)}
+        onCredited={() => {
+          fetchWalletBalances();
+        }}
       />
 
       {/* TransactionSummaryModal integration */}

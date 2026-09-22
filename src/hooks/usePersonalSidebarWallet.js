@@ -26,15 +26,21 @@ export function usePersonalSidebarWallet({ isSessionExpired = false, enabled = t
     setWalletBalanceRaw(result && typeof result === 'object' ? result : null);
     const addresses = extractWalletAddresses(result);
     setWalletAddressRows(buildWalletAddressRows(result));
-    if (result?.success && addresses.xrp) {
+    const notFound = String(result?.message || result?.error || '')
+      .toLowerCase()
+      .includes('not found');
+    if (addresses.xrp) {
       setWalletAddress(addresses.xrp);
       setRlusdWalletAddress(addresses.rlusd);
       setHasWallet(true);
       return true;
     }
-    setWalletAddress('');
-    setRlusdWalletAddress('');
-    setHasWallet(false);
+    if (notFound || result?.success === false) {
+      setWalletAddress('');
+      setRlusdWalletAddress('');
+      setHasWallet(false);
+      return false;
+    }
     return false;
   }, []);
 
@@ -93,10 +99,6 @@ export function usePersonalSidebarWallet({ isSessionExpired = false, enabled = t
       toast.error('Please sign in to view your wallet.');
       return;
     }
-    if (walletAddress) {
-      setShowWalletModal(true);
-      return;
-    }
     setIsLoadingWalletAddress(true);
     try {
       await refreshWalletFromBalance();
@@ -107,7 +109,7 @@ export function usePersonalSidebarWallet({ isSessionExpired = false, enabled = t
     } finally {
       setIsLoadingWalletAddress(false);
     }
-  }, [isLoadingWalletAddress, refreshWalletFromBalance, walletAddress]);
+  }, [isLoadingWalletAddress, refreshWalletFromBalance]);
 
   const handleCreateInitialWallet = useCallback(async () => {
     const token = localStorage.getItem('token');

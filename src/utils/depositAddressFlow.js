@@ -1,4 +1,5 @@
 import { getApiUrl } from './config';
+import { parseCustodialWalletBalances } from './custodialWalletBalances';
 
 /** Shared deposit-by-address UI helpers (Transactions + Dashboard). */
 
@@ -62,15 +63,22 @@ export const extractWalletAddresses = (payload, fallbackAddress = '') => {
     }
     return '';
   };
-  const xrpAddress = pick([
+  let xrpAddress = pick([
     'xrplAddress',
     'xrpl_address',
+    'classicAddress',
+    'classic_address',
     'walletAddress',
-    'address',
+    'wallet_address',
     'xrpAddress',
     'xrp_address',
+    'accountAddress',
+    'account_address',
+    'masterAddress',
+    'address',
+    'account',
   ]);
-  const rlusdAddress = pick([
+  let rlusdAddress = pick([
     'rlusdAddress',
     'rlusd_address',
     'rippleUsdAddress',
@@ -78,6 +86,37 @@ export const extractWalletAddresses = (payload, fallbackAddress = '') => {
     'rippleAddress',
     'ripple_address',
   ]);
+
+  const walletLists = sources.flatMap((src) =>
+    [src.wallets, src.accounts, src.assets].filter(Array.isArray),
+  );
+  walletLists.forEach((list) => {
+    list.forEach((w) => {
+      if (!w || typeof w !== 'object') return;
+      const c = String(w.currency || w.code || w.asset || w.symbol || '')
+        .toLowerCase()
+        .replace(/[\s_-]/g, '');
+      const addr = String(
+        w.address ||
+          w.walletAddress ||
+          w.wallet_address ||
+          w.classicAddress ||
+          w.classic_address ||
+          w.xrplAddress ||
+          w.xrpl_address ||
+          w.account ||
+          w.accountAddress ||
+          '',
+      ).trim();
+      if (!addr) return;
+      if (!xrpAddress && (c === 'xrp' || c === '' || /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(addr))) {
+        xrpAddress = addr;
+      }
+      if (!rlusdAddress && (c === 'rlusd' || c === 'rippleusd')) {
+        rlusdAddress = addr;
+      }
+    });
+  });
 
   const normalizedXrp = String(xrpAddress || fallbackAddress || '').trim();
   const normalizedRlusd = String(rlusdAddress || normalizedXrp).trim();
@@ -239,68 +278,14 @@ export function buildWalletAddressRows(apiResult) {
   return rows;
 }
 
-const isRlusdCurrencyKey = (currency) => {
-  const normalized = String(currency || '').trim().toLowerCase();
-  return normalized === 'rlusd' || normalized === 'rippleusd';
-};
-
 /** Normalize custodial wallet balances from balance/create-wallet API payloads. */
 export function parseWalletBalancesFromApi(apiResult) {
-  const empty = { xrp: 0, usdt: 0, usdc: 0, rlusd: 0 };
-  if (!apiResult || typeof apiResult !== 'object') return empty;
-
-  let balances = null;
-
-  if (apiResult?.success && apiResult?.data?.balance) {
-    balances = apiResult.data.balance;
-  } else if (apiResult?.success && apiResult?.data) {
-    const data = apiResult.data;
-    if (
-      data.xrp !== undefined ||
-      data.usdt !== undefined ||
-      data.usdc !== undefined ||
-      data.rlusd !== undefined ||
-      data.RLUSD !== undefined ||
-      data.rippleUsd !== undefined ||
-      data.ripple_usd !== undefined
-    ) {
-      balances = {
-        xrp: data.xrp || data.XRP || 0,
-        usdt: data.usdt || data.USDT || 0,
-        usdc: data.usdc || data.USDC || 0,
-        rlusd: data.rlusd ?? data.RLUSD ?? data.rippleUsd ?? data.ripple_usd ?? 0,
-      };
-    }
-  } else if (apiResult?.success && Array.isArray(apiResult?.data?.wallets)) {
-    balances = {};
-    apiResult.data.wallets.forEach((wallet) => {
-      const currency = (wallet.currency || wallet.code || '').toLowerCase();
-      const balance = wallet.balance ?? wallet.amount ?? 0;
-      if (currency === 'xrp') balances.xrp = Number(balance);
-      if (currency === 'usdt') balances.usdt = Number(balance);
-      if (currency === 'usdc') balances.usdc = Number(balance);
-      if (isRlusdCurrencyKey(currency)) balances.rlusd = Number(balance);
-    });
-  } else if (apiResult?.balance) {
-    balances = apiResult.balance;
-  }
-
-  if (!balances) return empty;
-
+  const parsed = parseCustodialWalletBalances(apiResult);
   return {
-    xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
-    usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
-    usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0,
-    rlusd:
-      balances.rlusd !== undefined && balances.rlusd !== null
-        ? Number(balances.rlusd)
-        : balances.RLUSD !== undefined && balances.RLUSD !== null
-          ? Number(balances.RLUSD)
-          : balances.rippleUsd !== undefined && balances.rippleUsd !== null
-            ? Number(balances.rippleUsd)
-            : balances.ripple_usd !== undefined && balances.ripple_usd !== null
-              ? Number(balances.ripple_usd)
-              : 0,
+    xrp: Number(parsed.XRP) || 0,
+    usdt: Number(parsed.USDT) || 0,
+    usdc: Number(parsed.USDC) || 0,
+    rlusd: Number(parsed.RLUSD) || 0,
   };
 }
 

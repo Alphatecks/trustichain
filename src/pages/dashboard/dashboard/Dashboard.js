@@ -71,6 +71,7 @@ import {
   extractDepositAddressFromApiResponse,
 } from '../../../utils/depositAddressFlow';
 import { getProfileAvatarUrl } from '../../../utils/profileAvatar';
+import { parseCustodialWalletBalances } from '../../../utils/custodialWalletBalances';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../../../utils/notificationsApi';
 import { handleLogout } from '../../../utils/logout';
 import { useSession } from '../../../context/SessionContext';
@@ -115,9 +116,16 @@ import { filterSidebarExchangeRates } from '../../../utils/exchangeRatesDisplay'
 import {
   convertUsdTotalToFiatDisplayAmount,
   formatWalletUsdInDisplayCurrency,
+  getUsdPerXrpFromExchangeRates,
   normalizeExchangeQuoteDirection,
+  readXrpUsdRateFromExchangePayload,
 } from '../../../utils/displayCurrencyFormat';
 import { formatEscrowListAmountParts } from '../../../utils/escrowDenomination';
+import {
+  formatWalletBalanceChangePercent,
+  getWalletBalanceChangePercent,
+  walletBalanceChangeTone,
+} from '../../../utils/walletBalanceChange';
 
 // Normalize company logo URL from API: accept multiple keys and turn relative paths into absolute URLs
 const normalizeCompanyLogoUrl = (data) => {
@@ -928,7 +936,7 @@ const Dashboard = () => {
   const { score: trustiscoreScore, level: trustiscoreLevel, isLoading: isTrustiscoreLoading, openTrustiscoreModal } = useTrustiscore();
   const trustiscoreBadgeText = formatTrustiscoreBadgeText(trustiscoreScore, isTrustiscoreLoading);
   const getNavBadge = useSidebarNavBadges();
-  const { account, isConnected, isWalletConnectedViaAPI } = useWeb3();
+  const { account, isExternalWalletConnected, connectedWalletLabel } = useWeb3();
   const [currentStep, setCurrentStep] = useState(0);
   const [kycComplete, setKycComplete] = useState(() =>
     readStoredBoolean('kycComplete', true)
@@ -942,7 +950,7 @@ const Dashboard = () => {
   const [businessCompanyLogoUrl, setBusinessCompanyLogoUrl] = useState('');
   const [businessSupplierId, setBusinessSupplierId] = useState('');
   const [showBalance, setShowBalance] = useState(true);
-  const { displayCurrency, setDisplayCurrency, displayCurrencyRevision, isSavingDisplayCurrency, formatFromUsd } = useDisplayCurrency();
+  const { displayCurrency, setDisplayCurrency, displayCurrencyRevision, isSavingDisplayCurrency, formatFromUsd, xrpUsdRate: contextXrpUsdRate } = useDisplayCurrency();
   const [balanceCurrencyModalOpen, setBalanceCurrencyModalOpen] = useState(false);
   const [accountType, setAccountType] = useState(() => {
     const stored = localStorage.getItem('dashboard_account_type');
@@ -1440,6 +1448,7 @@ const Dashboard = () => {
   const [businessSuiteDashboardData, setBusinessSuiteDashboardData] = useState(null);
   const [isLoadingBusinessSuiteDashboard, setIsLoadingBusinessSuiteDashboard] = useState(true);
   const [exchangeRates, setExchangeRates] = useState([]);
+  const [xrpUsdRateLocal, setXrpUsdRateLocal] = useState(null);
   const [exchangeQuoteDirection, setExchangeQuoteDirection] = useState('unitsPerUsd');
   const [isLoadingRates, setIsLoadingRates] = useState(true);
   const [portfolioPoints, setPortfolioPoints] = useState([]);
@@ -1560,11 +1569,6 @@ const Dashboard = () => {
 
   /** Same custodial wallet modal as header “View Wallet” (XRP + RLUSD rows). */
   const handleViewWalletClick = async () => {
-    if (walletAddress) {
-      setShowWalletModal(true);
-      return;
-    }
-
     setIsLoadingWalletAddress(true);
     try {
       const token = localStorage.getItem('token');
@@ -1586,23 +1590,25 @@ const Dashboard = () => {
       const result = await res.json().catch(() => ({}));
       setWalletBalanceRaw(result && typeof result === 'object' ? result : null);
       const addresses = extractWalletAddresses(result);
-      if (result?.success && addresses.xrp) {
+      if (addresses.xrp) {
         setWalletAddress(addresses.xrp);
         setRlusdWalletAddress(addresses.rlusd);
         setHasWallet(true);
         setShowWalletModal(true);
       } else {
         const msg = (result?.message || '').toLowerCase();
-        const isNotFound = msg.includes('wallet not found') || msg.includes('not found') || !result?.success;
-        setWalletAddress('');
-        setRlusdWalletAddress('');
-        setHasWallet(false);
+        const isNotFound = msg.includes('wallet not found') || msg.includes('not found') || result?.success === false;
+        if (isNotFound) {
+          setWalletAddress('');
+          setRlusdWalletAddress('');
+          setHasWallet(false);
+        }
         if (accountType === 'Personal') {
           setShowWalletModal(true);
         } else if (accountType === 'Business Suite' && isNotFound) {
           toast.error('No Business Suite wallet connected. Use Create wallet to connect your XRPL address.');
           setShowConnectBusinessWalletModal(true);
-        } else if (!showUnderReviewModalIfApplicable(result?.message)) {
+        } else if (!addresses.xrp && !showUnderReviewModalIfApplicable(result?.message)) {
           toast.error(result?.message || 'Failed to fetch wallet address.');
         }
       }
@@ -1722,6 +1728,15 @@ const Dashboard = () => {
     if (fromCurrency === toCurrency) return 1;
 
     const rates = exchangeRates && Array.isArray(exchangeRates) ? exchangeRates : [];
+    const xrpUsdRate = xrpUsdRateLocal ?? contextXrpUsdRate;
+    const usdPerXrp = getUsdPerXrpFromExchangeRates(rates, exchangeQuoteDirection, xrpUsdRate);
+
+    if (fromCurrency === 'XRP' && (toCurrency === 'USD' || toCurrency === 'RLUSD')) {
+      if (usdPerXrp != null && usdPerXrp > 0) return usdPerXrp;
+    }
+    if ((fromCurrency === 'USD' || fromCurrency === 'RLUSD') && toCurrency === 'XRP') {
+      if (usdPerXrp != null && usdPerXrp > 0) return 1 / usdPerXrp;
+    }
 
     if (rates.length > 0) {
       const directRate = rates.find(
@@ -2007,12 +2022,20 @@ const Dashboard = () => {
       getExchangeRate,
     });
 
-  const formatWalletDetailsDisplayAmount = (walletDetails) =>
-    formatWalletFiatAmount(
-      walletDetails?.usdValue,
+  const formatWalletDetailsDisplayAmount = (walletDetails) => {
+    const usdValue = walletDetails?.usdValue;
+    if (usdValue == null || !Number.isFinite(Number(usdValue))) {
+      if (displayCurrency === 'XRP' && String(walletDetails?.code || '').toUpperCase() === 'XRP') {
+        return formatWalletFiatAmount(0, 'XRP', walletDetails?.amount);
+      }
+      return isLoadingRates ? '…' : '—';
+    }
+    return formatWalletFiatAmount(
+      usdValue,
       walletDetails?.code,
       walletDetails?.amount,
     );
+  };
 
   const renderWalletListFiatAmount = (code) => {
     if (!showBalance) return '••••••';
@@ -2022,16 +2045,19 @@ const Dashboard = () => {
 
     if (code === 'XRP') {
       if (raw != null && raw !== '') {
+        const amount = Number(raw);
         const xrpToUsd = getExchangeRate('XRP', 'USD');
         if (xrpToUsd != null && Number(xrpToUsd) > 0) {
-          const amount = Number(raw);
           return formatWalletFiatAmount(amount * Number(xrpToUsd), 'XRP', amount);
+        }
+        if (amount === 0) {
+          return formatWalletFiatAmount(0, 'XRP', 0);
         }
       }
       return isLoadingWalletBalances || isLoadingRates ? (
         <LoadingIndicator size="sm" />
       ) : (
-        formatWalletFiatAmount(0, 'XRP', 0)
+        '—'
       );
     }
 
@@ -2044,6 +2070,18 @@ const Dashboard = () => {
       <LoadingIndicator size="sm" />
     ) : (
       formatWalletFiatAmount(0, code, 0)
+    );
+  };
+
+  const renderWalletListChange = (code, className) => {
+    const change = getWalletBalanceChangePercent(code, exchangeRates);
+    const tone = walletBalanceChangeTone(change);
+    return (
+      <div className={`${className} ${tone}`}>
+        {tone === 'positive' ? <TrendingUp size={14} /> : null}
+        {tone === 'negative' ? <TrendingDown size={14} /> : null}
+        <span>{formatWalletBalanceChangePercent(change)}</span>
+      </div>
     );
   };
 
@@ -2074,7 +2112,12 @@ const Dashboard = () => {
     let usdValue = amount;
     if (code === 'XRP') {
       const xrpUsd = getExchangeRate('XRP', 'USD');
-      usdValue = xrpUsd != null && Number(xrpUsd) > 0 ? Number(amount) * Number(xrpUsd) : 0;
+      usdValue =
+        xrpUsd != null && Number(xrpUsd) > 0
+          ? Number(amount) * Number(xrpUsd)
+          : amount === 0
+            ? 0
+            : null;
     }
 
     const config = WALLET_DETAILS_WALLETS[code];
@@ -2090,7 +2133,7 @@ const Dashboard = () => {
     setSelectedWalletDetails({
       ...config,
       amount,
-      usdValue: Number(usdValue) || 0,
+      usdValue: usdValue == null ? null : Number(usdValue) || 0,
     });
     setShowWalletDetailsModal(true);
   };
@@ -2990,6 +3033,7 @@ const Dashboard = () => {
           if (result?.success && Array.isArray(result?.data?.rates) && result.data.rates.length > 0) {
             console.log('Setting exchange rates:', result.data.rates);
             setExchangeRates(result.data.rates);
+            setXrpUsdRateLocal(readXrpUsdRateFromExchangePayload(result));
             setExchangeQuoteDirection(
               normalizeExchangeQuoteDirection(result?.data?.quoteDirection),
             );
@@ -2997,6 +3041,7 @@ const Dashboard = () => {
             console.warn('Unexpected exchange rates response shape. Expected data.rates as an array.', result);
             console.warn('Setting exchange rates to empty array');
             setExchangeRates([]);
+            setXrpUsdRateLocal(readXrpUsdRateFromExchangePayload(result));
           }
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -3575,71 +3620,13 @@ const Dashboard = () => {
             setHasWallet(false);
           }
 
-          // Handle different possible response structures
-          let balances = null;
-          
-          // Structure 1: { success: true, data: { balance: { xrp, usdt, usdc } } }
-          if (result?.success && result?.data?.balance) {
-            balances = result.data.balance;
-            console.log('Found balances in result.data.balance:', balances);
-          }
-          // Structure 2: { success: true, data: { xrp, usdt, usdc } }
-          else if (result?.success && result?.data) {
-            const data = result.data;
-            if (
-              data.xrp !== undefined ||
-              data.usdt !== undefined ||
-              data.usdc !== undefined ||
-              data.rlusd !== undefined ||
-              data.RLUSD !== undefined ||
-              data.rippleUsd !== undefined ||
-              data.ripple_usd !== undefined
-            ) {
-              balances = {
-                xrp: data.xrp || data.XRP || 0,
-                usdt: data.usdt || data.USDT || 0,
-                usdc: data.usdc || data.USDC || 0,
-                rlusd: data.rlusd ?? data.RLUSD ?? data.rippleUsd ?? data.ripple_usd ?? 0,
-              };
-              console.log('Found balances in result.data:', balances);
-            }
-          }
-          // Structure 3: { success: true, data: { wallets: [...] } }
-          else if (result?.success && Array.isArray(result?.data?.wallets)) {
-            balances = {};
-            result.data.wallets.forEach(wallet => {
-              const currency = (wallet.currency || wallet.code || '').toLowerCase();
-              const balance = wallet.balance || wallet.amount || 0;
-              if (currency === 'xrp') balances.xrp = Number(balance);
-              if (currency === 'usdt') balances.usdt = Number(balance);
-              if (currency === 'usdc') balances.usdc = Number(balance);
-              if (isRlusdCurrency(currency)) balances.rlusd = Number(balance);
-            });
-            console.log('Found balances from wallets array:', balances);
-          }
-          // Structure 4: Direct balance object
-          else if (result?.balance) {
-            balances = result.balance;
-            console.log('Found balances in result.balance:', balances);
-          }
-
-          if (balances) {
-            // Normalize the balance values
-            const normalizedBalances = {
-              xrp: balances.xrp !== undefined && balances.xrp !== null ? Number(balances.xrp) : 0,
-              usdt: balances.usdt !== undefined && balances.usdt !== null ? Number(balances.usdt) : 0,
-              usdc: balances.usdc !== undefined && balances.usdc !== null ? Number(balances.usdc) : 0,
-              rlusd:
-                balances.rlusd ?? balances.RLUSD ?? balances.rippleUsd ?? balances.ripple_usd
-                  ? Number(balances.rlusd ?? balances.RLUSD ?? balances.rippleUsd ?? balances.ripple_usd)
-                  : 0,
-            };
-            console.log('Setting normalized wallet balances:', normalizedBalances);
-            setWalletBalances(normalizedBalances);
-          } else {
-            console.warn('Could not extract wallet balances from API response:', result);
-            setWalletBalances({ xrp: 0, usdt: 0, usdc: 0, rlusd: 0 });
-          }
+          const parsedBalances = parseCustodialWalletBalances(result);
+          setWalletBalances({
+            xrp: parsedBalances.XRP,
+            usdt: parsedBalances.USDT,
+            usdc: parsedBalances.USDC,
+            rlusd: parsedBalances.RLUSD,
+          });
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
           console.error('Wallet balances API error response:', {
@@ -6185,10 +6172,7 @@ const Dashboard = () => {
                   <span className="mobile-wallet-amount">
                     {renderWalletListFiatAmount('XRP')}
                   </span>
-                  <div className="mobile-wallet-change positive">
-                    <TrendingUp size={14} />
-                    <span>+2.4%</span>
-                  </div>
+                    {renderWalletListChange('XRP', 'mobile-wallet-change')}
                 </div>
               </div>
               <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('RLUSD')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('RLUSD')}>
@@ -6217,9 +6201,7 @@ const Dashboard = () => {
                   <span className="mobile-wallet-amount">
                     {renderWalletListFiatAmount('RLUSD')}
                   </span>
-                  <div className="mobile-wallet-change neutral">
-                    <span>0.0%</span>
-                  </div>
+                    {renderWalletListChange('RLUSD', 'mobile-wallet-change')}
                 </div>
               </div>
               <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('USDT')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDT')}>
@@ -6248,9 +6230,7 @@ const Dashboard = () => {
                     <span className="mobile-wallet-amount">
                       {renderWalletListFiatAmount('USDT')}
                     </span>
-                  <div className="mobile-wallet-change neutral">
-                    <span>0.0%</span>
-                  </div>
+                    {renderWalletListChange('USDT', 'mobile-wallet-change')}
                 </div>
               </div>
               <div className="mobile-wallet-item" onClick={() => openWalletDetailsModal('USDC')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDC')}>
@@ -6279,10 +6259,7 @@ const Dashboard = () => {
                   <span className="mobile-wallet-amount">
                     {renderWalletListFiatAmount('USDC')}
                   </span>
-                  <div className="mobile-wallet-change positive">
-                    <TrendingUp size={14} />
-                    <span>+0.1%</span>
-                  </div>
+                    {renderWalletListChange('USDC', 'mobile-wallet-change')}
                 </div>
               </div>
               </>
@@ -7035,10 +7012,7 @@ const Dashboard = () => {
                     <span className="wallet-amount">
                       {renderWalletListFiatAmount('XRP')}
                     </span>
-                  <div className="wallet-change positive">
-                    <TrendingUp size={14} />
-                    <span>+2.4%</span>
-                    </div>
+                    {renderWalletListChange('XRP', 'wallet-change')}
                   </div>
                 </div>
                 <div className="wallet-item" onClick={() => openWalletDetailsModal('RLUSD')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('RLUSD')}>
@@ -7065,9 +7039,7 @@ const Dashboard = () => {
                     <span className="wallet-amount">
                       {renderWalletListFiatAmount('RLUSD')}
                     </span>
-                  <div className="wallet-change neutral">
-                    <span>0.0%</span>
-                    </div>
+                    {renderWalletListChange('RLUSD', 'wallet-change')}
                   </div>
                 </div>
                 <div className="wallet-item" onClick={() => openWalletDetailsModal('USDT')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDT')}>
@@ -7094,9 +7066,7 @@ const Dashboard = () => {
                     <span className="wallet-amount">
                       {renderWalletListFiatAmount('USDT')}
                     </span>
-                  <div className="wallet-change neutral">
-                    <span>0.0%</span>
-                    </div>
+                    {renderWalletListChange('USDT', 'wallet-change')}
                   </div>
                 </div>
                 <div className="wallet-item" onClick={() => openWalletDetailsModal('USDC')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openWalletDetailsModal('USDC')}>
@@ -7123,10 +7093,7 @@ const Dashboard = () => {
                     <span className="wallet-amount">
                       {renderWalletListFiatAmount('USDC')}
                     </span>
-                  <div className="wallet-change positive">
-                    <TrendingUp size={14} />
-                    <span>+0.1%</span>
-                  </div>
+                    {renderWalletListChange('USDC', 'wallet-change')}
                 </div>
                 </div>
                 </>
@@ -8392,7 +8359,7 @@ const Dashboard = () => {
                   <div className="fund-method-option-text">
                     <div className="fund-method-option-title">Fund with Wallet</div>
                     <div className="fund-method-option-desc">
-                      Send USDT/USDC via WalletConnect (ERC-20 / BEP-20)
+                      Send XRP, RLUSD, USDT, or USDC from a connected wallet
                     </div>
                   </div>
                 </button>
@@ -8825,19 +8792,7 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {isWalletConnectedViaAPI && isConnected && account && (() => {
-                  const isXamanConnected = localStorage.getItem('xamanWalletConnected') === 'true';
-                  const isWalletConnectConnected = localStorage.getItem('walletconnectWalletConnected') === 'true';
-                  const isMetamaskConnected = localStorage.getItem('metamaskWalletConnected') === 'true';
-                  const walletName = isXamanConnected
-                    ? 'XAMAN'
-                    : isWalletConnectConnected
-                      ? 'WalletConnect'
-                      : isMetamaskConnected
-                        ? 'MetaMask'
-                        : 'Wallet';
-                  
-                  return (
+                {isExternalWalletConnected && account && (
                     <div style={{
                       padding: '1rem 1.25rem',
                       margin: '0 1.25rem',
@@ -8852,15 +8807,14 @@ const Dashboard = () => {
                       <CheckCircle size={20} color="#2F74FF" />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2F74FF', marginBottom: '0.25rem' }}>
-                          {walletName} Connected
+                          {connectedWalletLabel || 'Wallet'} Connected
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
                           {account.slice(0, 6)}...{account.slice(-4)}
                         </div>
                       </div>
                     </div>
-                  );
-                })()}
+                )}
 
                 <form onSubmit={handleFundWallet} className="fund-wallet-form">
                   {STRIPE_DEPOSIT_METHODS.has(fundDepositPaymentMethod) && (
@@ -8969,6 +8923,7 @@ const Dashboard = () => {
         onClose={() => setShowWalletModal(false)}
         walletAddress={walletAddress}
         walletBalanceRaw={walletBalanceRaw}
+        walletBalances={walletBalances}
         isLoadingWalletAddress={isLoadingWalletAddress}
         isProvisioningWallets={isProvisioningMultichainWallets}
         showProvisionButton={accountType === 'Personal'}
@@ -9046,7 +9001,16 @@ const Dashboard = () => {
                 ) : null}
               </div>
 
-              <p className="wallet-details-total">{formatWalletDetailsDisplayAmount(selectedWalletDetails)}</p>
+              <p
+                className={`wallet-details-total${
+                  selectedWalletDetails.usdValue == null &&
+                  !(displayCurrency === 'XRP' && selectedWalletDetails.code === 'XRP')
+                    ? ' is-unavailable'
+                    : ''
+                }`}
+              >
+                {formatWalletDetailsDisplayAmount(selectedWalletDetails)}
+              </p>
               <p className="wallet-details-exchange-caption">
                 Exchange rate: {getWalletDetailsExchangeLabel(selectedWalletDetails.code)}
               </p>

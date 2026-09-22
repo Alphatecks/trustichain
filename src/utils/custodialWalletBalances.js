@@ -52,23 +52,53 @@ export function parseCustodialWalletBalances(apiJson) {
     }
   };
 
-  if (data?.balance && typeof data.balance === 'object') {
+  const readWalletAmount = (w) => {
+    if (w == null) return NaN;
+    if (typeof w !== 'object') return Number(w);
+    const nested = w.balance;
+    const candidates = [
+      w.availableBalance,
+      w.available_balance,
+      w.available,
+      typeof nested === 'object' && nested != null
+        ? nested.available ?? nested.amount ?? nested.value ?? nested.balance
+        : nested,
+      w.amount,
+      w.total,
+      w.value,
+      w.qty,
+    ];
+    for (const candidate of candidates) {
+      if (candidate == null || candidate === '') continue;
+      const n = Number(candidate);
+      if (Number.isFinite(n)) return n;
+    }
+    return NaN;
+  };
+
+  if (data?.balance && typeof data.balance === 'object' && !Array.isArray(data.balance)) {
     assignFromBalanceObj(data.balance);
-  } else if (data && typeof data === 'object') {
+  }
+  if (data?.balances && typeof data.balances === 'object' && !Array.isArray(data.balances)) {
+    assignFromBalanceObj(data.balances);
+  }
+  if (data && typeof data === 'object') {
     assignFromBalanceObj(data);
   }
 
-  if (Array.isArray(data?.wallets) && data.wallets.length > 0) {
-    data.wallets.forEach((w) => {
-      const currencyRaw = w.currency || w.code || '';
+  const walletLists = [data?.wallets, apiJson?.wallets, apiJson?.data?.wallets].filter(Array.isArray);
+  walletLists.forEach((list) => {
+    list.forEach((w) => {
+      const currencyRaw = w?.currency || w?.code || w?.asset || '';
       const c = String(currencyRaw).toLowerCase().replace(/[\s_-]/g, '');
-      const balance = Number(w.balance ?? w.amount ?? 0);
+      const balance = readWalletAmount(w);
+      if (!Number.isFinite(balance)) return;
       if (c === 'xrp') out.XRP = balance;
       else if (isCustodialBalanceRlusdCode(currencyRaw)) out.RLUSD = balance;
       else if (c === 'usdt') out.USDT = balance;
       else if (c === 'usdc') out.USDC = balance;
     });
-  }
+  });
 
   if (apiJson?.balance && typeof apiJson.balance === 'object') {
     assignFromBalanceObj(apiJson.balance);

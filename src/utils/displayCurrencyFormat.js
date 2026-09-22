@@ -9,11 +9,44 @@ export function normalizeExchangeQuoteDirection(value) {
   return DEFAULT_EXCHANGE_QUOTE_DIRECTION;
 }
 
-/** USD value of 1 XRP from api/exchange/rates (handles pair rows and quoteDirection). */
+/** Live XRP/USD from api/exchange/rates (`data.xrpUsdRate`, not the fiat `rates[]` list). */
+export function readXrpUsdRateFromExchangePayload(payload) {
+  if (payload == null) return null;
+  if (typeof payload === 'number') {
+    return Number.isFinite(payload) && payload > 0 ? payload : null;
+  }
+  const data = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
+  if (!data || typeof data !== 'object') return null;
+  const n = Number(data.xrpUsdRate ?? data.xrpUsd ?? data.xrp_usd_rate ?? data.usdPerXrp);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * USD value of 1 XRP from api/exchange/rates.
+ * Fiat quotes live in `data.rates`; XRP/USD is `data.xrpUsdRate` (USD per 1 XRP).
+ */
 export function getUsdPerXrpFromExchangeRates(
   exchangeRates,
   quoteDirection = DEFAULT_EXCHANGE_QUOTE_DIRECTION,
+  xrpUsdRateOrPayload,
 ) {
+  const fromPayload = readXrpUsdRateFromExchangePayload(xrpUsdRateOrPayload);
+  if (fromPayload != null) return fromPayload;
+
+  if (exchangeRates && !Array.isArray(exchangeRates) && typeof exchangeRates === 'object') {
+    const nested = readXrpUsdRateFromExchangePayload(exchangeRates);
+    if (nested != null) return nested;
+    const nestedRates = Array.isArray(exchangeRates.rates)
+      ? exchangeRates.rates
+      : Array.isArray(exchangeRates.data?.rates)
+        ? exchangeRates.data.rates
+        : null;
+    if (nestedRates) {
+      return getUsdPerXrpFromExchangeRates(nestedRates, quoteDirection);
+    }
+    return null;
+  }
+
   if (!Array.isArray(exchangeRates) || exchangeRates.length === 0) return null;
 
   const pair = exchangeRates.find(
@@ -39,9 +72,8 @@ export function getUsdPerXrpFromExchangeRates(
   const row = exchangeRates.find((r) => (r.currency || r.code || '').toUpperCase() === 'XRP');
   const n = Number(row?.rate ?? row?.value ?? row?.exchangeRate ?? row?.priceUsd ?? row?.usd);
   if (!Number.isFinite(n) || n <= 0) return null;
-
-  if (normalizeExchangeQuoteDirection(quoteDirection) === 'usdPerUnit') return n;
-  return 1 / n;
+  // XRP in rates[] is USD per 1 XRP, matching data.xrpUsdRate. Fiat quoteDirection does not apply.
+  return n;
 }
 
 /** Convert a USD/RLUSD total into another fiat using api/exchange/rates rows. */

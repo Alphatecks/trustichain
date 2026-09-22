@@ -1,21 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ChevronDown, Loader, CheckCircle, AlertCircle, Wallet } from 'lucide-react';
+import { X, ChevronDown, Loader, CheckCircle, AlertCircle, Wallet, Copy } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import toast from 'react-hot-toast';
 import {
+  DEPOSIT_ADDRESS_CURRENCIES,
   DEPOSIT_ADDRESS_CURRENCY_ICON,
   depositAddressCurrencyLabel,
   depositAddressNetworkLabel,
+  getDepositNetworksForCurrency,
 } from '../../utils/depositAddressFlow';
 import {
+  fetchDepositAddress,
   getInjectedMetaMaskProvider,
-  getReownNetworksForCurrency,
-  REOWN_EVM_CURRENCIES,
+  isReownEvmDepositPair,
   runReownEvmDeposit,
 } from '../../utils/reownDepositFlow';
 import { isWalletConnectUserRejected as isWcRejected } from '../../utils/walletConnectProvider';
 import metamaskIcon from '../../assets/images/icons/metamask-fox.svg';
+import rlusdLogo from '../../assets/images/icons/rlusd-logo.svg';
 import './index.css';
 
+const currencyIcon = (code) =>
+  code === 'RLUSD' ? rlusdLogo : DEPOSIT_ADDRESS_CURRENCY_ICON[code];
+
+const FUND_CURRENCIES = DEPOSIT_ADDRESS_CURRENCIES;
 const WALLETCONNECT_ICON =
   'https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg';
 
@@ -63,14 +71,17 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
   const [phaseExtra, setPhaseExtra] = useState({});
   const [resultStatus, setResultStatus] = useState(null);
   const [txHash, setTxHash] = useState('');
+  const [depositAddress, setDepositAddress] = useState('');
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const abortRef = useRef(null);
 
-  const networks = getReownNetworksForCurrency(currency);
+  const networks = getDepositNetworksForCurrency(currency);
+  const isEvmTransfer = isReownEvmDepositPair(currency, network);
 
   useEffect(() => {
-    const nextNetworks = getReownNetworksForCurrency(currency);
+    const nextNetworks = getDepositNetworksForCurrency(currency);
     if (!nextNetworks.includes(network)) {
-      setNetwork(nextNetworks[0]);
+      setNetwork(nextNetworks[0] || 'XRPL');
     }
   }, [currency, network]);
 
@@ -91,6 +102,36 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen || isEvmTransfer) {
+      setDepositAddress('');
+      setIsLoadingAddress(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLoadingAddress(true);
+    setDepositAddress('');
+
+    fetchDepositAddress(currency, network)
+      .then(({ address }) => {
+        if (!cancelled) setDepositAddress(address || '');
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDepositAddress('');
+          toast.error(error?.message || 'Could not load deposit address');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAddress(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isEvmTransfer, currency, network]);
+
+  useEffect(() => {
     return () => {
       abortRef.current?.abort();
     };
@@ -103,6 +144,7 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
     setResultStatus(null);
     setTxHash('');
     setIsSubmitting(false);
+    setDepositAddress('');
   };
 
   const handleClose = () => {
@@ -117,6 +159,20 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (isSubmitting) return;
+
+    if (!isEvmTransfer) {
+      if (!depositAddress) {
+        toast.error('Deposit address is not ready yet');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(depositAddress);
+        toast.success('Deposit address copied');
+      } catch (_) {
+        toast.error('Failed to copy address');
+      }
+      return;
+    }
 
     const amountNum = Number(amount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
@@ -208,13 +264,15 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
 
         <form onSubmit={handleSubmit} className="fund-wallet-form reown-fund-form">
           <p className="reown-fund-intro">
-            Send USDT/USDC to your TrustiChain deposit address. Use MetaMask in the browser, or
-            WalletConnect for mobile wallets.
+            {isEvmTransfer
+              ? 'Send USDT/USDC from MetaMask or WalletConnect to your TrustiChain deposit address.'
+              : `Send ${currency} on ${depositAddressNetworkLabel(network)} to your TrustiChain address. MetaMask cannot send XRPL assets — use this address from XAMAN or another ${currency} wallet.`}
           </p>
 
-          <div className="form-group">
-            <span className="fund-wallet-transfer-label">Wallet</span>
-            <div className="reown-fund-wallet-options">
+          {isEvmTransfer ? (
+            <div className="form-group">
+              <span className="fund-wallet-transfer-label">Wallet</span>
+              <div className="reown-fund-wallet-options">
               <button
                 type="button"
                 className={`reown-fund-wallet-option${walletSource === 'metamask' ? ' is-active' : ''}`}
@@ -244,9 +302,11 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
                   <small>Mobile &amp; other wallets</small>
                 </span>
               </button>
+              </div>
             </div>
-          </div>
+          ) : null}
 
+          {isEvmTransfer ? (
           <div className="form-group">
             <label htmlFor="reown-fund-amount">Amount</label>
             <input
@@ -257,10 +317,11 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
               placeholder="Enter amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              required
+              required={isEvmTransfer}
               disabled={isSubmitting}
             />
           </div>
+          ) : null}
 
           <div className="form-group">
             <span className="fund-wallet-transfer-label" id="reown-fund-currency-label">
@@ -282,7 +343,7 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
               >
                 <div className="fund-wallet-transfer-currency-badge is-stablecoin">
                   <img
-                    src={DEPOSIT_ADDRESS_CURRENCY_ICON[currency]}
+                    src={currencyIcon(currency)}
                     alt=""
                   />
                 </div>
@@ -291,7 +352,7 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
               </button>
               {currencyOpen && (
                 <div className="reown-fund-dropdown-menu" role="listbox">
-                  {REOWN_EVM_CURRENCIES.map((code) => (
+                  {FUND_CURRENCIES.map((code) => (
                     <button
                       key={code}
                       type="button"
@@ -304,7 +365,7 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
                       }}
                     >
                       <div className="fund-wallet-transfer-currency-badge is-stablecoin">
-                        <img src={DEPOSIT_ADDRESS_CURRENCY_ICON[code]} alt="" />
+                        <img src={currencyIcon(code)} alt="" />
                       </div>
                       <span>{depositAddressCurrencyLabel(code)}</span>
                     </button>
@@ -355,6 +416,43 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
             </div>
           </div>
 
+          {!isEvmTransfer ? (
+            <div className="reown-fund-address-card">
+              <div className="reown-fund-qr">
+                {isLoadingAddress ? (
+                  <Loader size={28} className="reown-fund-spin" />
+                ) : depositAddress ? (
+                  <QRCode value={depositAddress} size={128} bgColor="#ffffff" fgColor="#111827" />
+                ) : (
+                  <span className="reown-fund-address-empty">Address unavailable</span>
+                )}
+              </div>
+              <div className="reown-fund-address-copy">
+                <p>
+                  {isLoadingAddress
+                    ? 'Loading deposit address…'
+                    : depositAddress || 'Create your TrustiChain wallet first, then try again.'}
+                </p>
+                <button
+                  type="button"
+                  className="reown-fund-copy-btn"
+                  disabled={!depositAddress || isLoadingAddress}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(depositAddress);
+                      toast.success('Address copied');
+                    } catch (_) {
+                      toast.error('Failed to copy address');
+                    }
+                  }}
+                  aria-label="Copy deposit address"
+                >
+                  <Copy size={18} />
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {showProgress && (
             <div
               className={`reown-fund-status reown-fund-status--${
@@ -393,12 +491,21 @@ const ReownFundModal = ({ isOpen, onClose, onCredited }) => {
             <button
               type="submit"
               className="fund-wallet-btn fund-wallet-btn-primary"
-              disabled={isSubmitting || (walletSource === 'metamask' && !hasMetaMask)}
+              disabled={
+                isSubmitting ||
+                (isEvmTransfer && walletSource === 'metamask' && !hasMetaMask) ||
+                (!isEvmTransfer && (isLoadingAddress || !depositAddress))
+              }
             >
               {isSubmitting ? (
                 <>
                   <Loader size={16} className="reown-fund-spin" />
                   Processing…
+                </>
+              ) : !isEvmTransfer ? (
+                <>
+                  <Copy size={16} />
+                  Copy address
                 </>
               ) : (
                 <>
