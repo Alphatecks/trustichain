@@ -558,10 +558,11 @@ const getBeneficiaryPhone = (beneficiary) => {
   return '';
 };
 
-const SWAP_CURRENCIES = ['XRP', 'USDT', 'USDC'];
+const SWAP_CURRENCIES = ['XRP', 'RLUSD', 'USDT', 'USDC'];
 
 const SWAP_CURRENCY_ICONS = {
   XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+  RLUSD: rlusdLogo,
   USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
   USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
 };
@@ -1048,6 +1049,8 @@ const Transactions = () => {
   const [showSwapFromCurrencyDropdown, setShowSwapFromCurrencyDropdown] = useState(false);
   const [showSwapToCurrencyDropdown, setShowSwapToCurrencyDropdown] = useState(false);
   const swapQuoteTimeoutRef = useRef(null);
+  const [showSendTypeModal, setShowSendTypeModal] = useState(false);
+  const [sendKind, setSendKind] = useState(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSendPage, setShowSendPage] = useState(false);
   const [showTransactionSummaryModal, setShowTransactionSummaryModal] = useState(false);
@@ -1094,6 +1097,7 @@ const Transactions = () => {
 
   useEffect(() => {
     if (!location.state?.openSendModal) return;
+    setSendKind(null);
     setShowSendModal(true);
     const prev = location.state && typeof location.state === 'object' ? { ...location.state } : {};
     delete prev.openSendModal;
@@ -1125,6 +1129,15 @@ const Transactions = () => {
     { code: 'AUD', name: 'AUD', flag: 'au', symbol: 'A$' },
     { code: 'CNY', name: 'CNY', flag: 'cn', symbol: '¥' },
   ];
+
+  const cryptoSendCurrencies = [
+    { code: 'XRP', name: 'XRP', symbol: '' },
+    { code: 'RLUSD', name: 'RLUSD', symbol: '' },
+    { code: 'USDT', name: 'USDT', symbol: '' },
+    { code: 'USDC', name: 'USDC', symbol: '' },
+  ];
+
+  const sendCurrencyOptions = sendKind === 'crypto' ? cryptoSendCurrencies : availableCurrencies;
 
   const formattedToday = useMemo(() => {
     const { locale, timeZone } = getDisplayCalendar(displayCurrency);
@@ -1907,12 +1920,19 @@ const Transactions = () => {
 
   // Fetch external exchange rate when send modal opens or currencies change
   useEffect(() => {
-    if (showSendModal && sendForm.fromWallet && sendForm.toCurrency) {
-      fetchExternalExchangeRate(sendForm.fromWallet, sendForm.toCurrency);
-    } else if (!showSendModal) {
+    if (!showSendModal) {
       setSendExchangeRate(null);
+      return;
     }
-  }, [showSendModal, sendForm.fromWallet, sendForm.toCurrency]);
+    if (sendKind === 'crypto') {
+      setSendExchangeRate(1);
+      setIsLoadingSendRate(false);
+      return;
+    }
+    if (sendForm.fromWallet && sendForm.toCurrency) {
+      fetchExternalExchangeRate(sendForm.fromWallet, sendForm.toCurrency);
+    }
+  }, [showSendModal, sendForm.fromWallet, sendForm.toCurrency, sendKind]);
 
   // Calculate toAmount when fromAmount changes (if fromAmount was last edited)
   useEffect(() => {
@@ -1926,7 +1946,11 @@ const Transactions = () => {
 
   // Handle currency change
   const handleToCurrencyChange = (currencyCode) => {
-    setSendForm(prev => ({ ...prev, toCurrency: currencyCode }));
+    setSendForm(prev => ({
+      ...prev,
+      toCurrency: currencyCode,
+      fromWallet: sendKind === 'crypto' ? currencyCode : prev.fromWallet,
+    }));
     setShowToCurrencyDropdown(false);
     setLastEditedField(null); // Reset edit tracking when currency changes
   };
@@ -2081,6 +2105,15 @@ const Transactions = () => {
   const handleToAmountChange = (value) => {
     setLastEditedField('to');
     const numericValue = value.replace(/[^0-9.]/g, '');
+    if (sendKind === 'crypto') {
+      setSendForm(prev => ({
+        ...prev,
+        toAmount: numericValue,
+        fromAmount: numericValue,
+        fromWallet: prev.toCurrency,
+      }));
+      return;
+    }
     setSendForm(prev => ({ ...prev, toAmount: numericValue }));
     
     // Calculate fromAmount based on toAmount
@@ -2725,15 +2758,28 @@ const Transactions = () => {
   }, [addBeneficiaryTrustitag, isSessionExpired, loadBeneficiaries]);
 
   const openSendModal = useCallback((prefill = {}) => {
+    const kind = prefill.kind === 'crypto' || prefill.kind === 'fiat' ? prefill.kind : null;
+    setSendKind(kind);
     setSendForm((prev) => ({
       ...prev,
+      fromWallet: kind === 'crypto' ? 'XRP' : prev.fromWallet,
+      toCurrency: kind === 'crypto' ? 'XRP' : kind === 'fiat' ? 'EUR' : prev.toCurrency,
+      fromAmount: kind ? '' : prev.fromAmount,
+      toAmount: kind ? '' : prev.toAmount,
       recipientTrustitag: prefill.recipientTrustitag ?? '',
       recipientFullName: prefill.recipientFullName ?? '',
       recipientPhone: prefill.recipientPhone ?? '',
-      reason: prefill.reason ?? prev.reason ?? '',
+      reason: prefill.reason ?? (kind ? '' : prev.reason ?? ''),
     }));
     setShowSendModal(true);
   }, []);
+
+  const chooseSendKind = useCallback((kind) => {
+    setShowToCurrencyDropdown(false);
+    setLastEditedField(null);
+    setShowSendTypeModal(false);
+    openSendModal({ kind });
+  }, [openSendModal]);
 
   const openSendToBeneficiary = useCallback((beneficiary) => {
     const destination = getBeneficiaryDestination(beneficiary);
@@ -3808,6 +3854,7 @@ const Transactions = () => {
   const getCurrencyDisplayName = (currency) => {
     const mapping = {
       'XRP': 'XRP wallet',
+      'RLUSD': 'Ripple USD',
       'USDT': 'Tether USD',
       'USDC': 'USD Coin'
     };
@@ -3818,6 +3865,7 @@ const Transactions = () => {
   const getCurrencyBadge = (currency) => {
     const mapping = {
       'XRP': 'XRP',
+      'RLUSD': 'RLUSD',
       'USDT': 'USDT',
       'USDC': 'USDC'
     };
@@ -4343,6 +4391,18 @@ const Transactions = () => {
     if (fromCurrency === 'USD' && toCurrency === 'RLUSD') return 1;
     if (fromCurrency === 'XRP' && toCurrency === 'RLUSD') {
       return getExchangeRate('XRP', 'USD');
+    }
+    if (fromCurrency === 'RLUSD' && toCurrency === 'XRP') {
+      const usdPerXrp = getExchangeRate('XRP', 'USD');
+      if (usdPerXrp) return 1 / usdPerXrp;
+      return null;
+    }
+    // RLUSD is pegged 1:1 to USD, same as the other dollar stablecoins.
+    if (
+      (fromCurrency === 'RLUSD' && (toCurrency === 'USDT' || toCurrency === 'USDC')) ||
+      ((fromCurrency === 'USDT' || fromCurrency === 'USDC') && toCurrency === 'RLUSD')
+    ) {
+      return 1;
     }
 
     if (!rates.length) return null;
@@ -7391,7 +7451,7 @@ const Transactions = () => {
                 <button 
                   type="button" 
                   className="summary-card-btn secondary transactions-tbc-btn-send"
-                  onClick={() => setShowSendModal(true)}
+                  onClick={() => setShowSendTypeModal(true)}
                 >
                   <Send size={16} strokeWidth={2} aria-hidden />
                   Send
@@ -8749,22 +8809,10 @@ const Transactions = () => {
                     </div>
                     <div className="send-wallet-selector swap-preview-currency-selector">
                       <div className="send-currency-badge">
-                        {swapPreviewData.fromCurrency === 'XRP' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                            alt="XRP" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapPreviewData.fromCurrency === 'USDT' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
-                            alt="USDT" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapPreviewData.fromCurrency === 'USDC' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
-                            alt="USDC" 
+                        {SWAP_CURRENCY_ICONS[swapPreviewData.fromCurrency] ? (
+                          <img
+                            src={SWAP_CURRENCY_ICONS[swapPreviewData.fromCurrency]}
+                            alt={swapPreviewData.fromCurrency}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                           />
                         ) : null}
@@ -8792,22 +8840,10 @@ const Transactions = () => {
                     </div>
                     <div className="send-wallet-selector swap-preview-currency-selector">
                       <div className="send-currency-badge">
-                        {swapPreviewData.toCurrency === 'XRP' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731" 
-                            alt="XRP" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapPreviewData.toCurrency === 'USDT' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/325/small/Tether-logo.png" 
-                            alt="USDT" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                          />
-                        ) : swapPreviewData.toCurrency === 'USDC' ? (
-                          <img 
-                            src="https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389" 
-                            alt="USDC" 
+                        {SWAP_CURRENCY_ICONS[swapPreviewData.toCurrency] ? (
+                          <img
+                            src={SWAP_CURRENCY_ICONS[swapPreviewData.toCurrency]}
+                            alt={swapPreviewData.toCurrency}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                           />
                         ) : null}
@@ -8985,6 +9021,68 @@ const Transactions = () => {
         </div>
       )}
 
+      {showSendTypeModal && (
+        <div
+          className="notification-modal-overlay deposit-flow-overlay"
+          onClick={() => setShowSendTypeModal(false)}
+        >
+          <div
+            className="notification-modal fund-method-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="send-type-modal-title"
+          >
+            <div className="notification-modal-header">
+              <div className="notification-header-content">
+                <div className="notification-header-accent"></div>
+                <h2 id="send-type-modal-title">Send</h2>
+              </div>
+              <button
+                type="button"
+                className="notification-close-btn"
+                onClick={() => setShowSendTypeModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="fund-method-modal-body">
+              <p className="fund-method-modal-intro">
+                What do you want to send?
+              </p>
+              <div className="fund-method-options">
+                <button
+                  type="button"
+                  className="fund-method-option"
+                  onClick={() => chooseSendKind('fiat')}
+                >
+                  <div className="fund-method-option-icon">
+                    <DollarSign size={24} color="#0066ff" />
+                  </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Fiat</div>
+                    <div className="fund-method-option-desc">Send to a bank account in USD, EUR, GBP, and more</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="fund-method-option"
+                  onClick={() => chooseSendKind('crypto')}
+                >
+                  <div className="fund-method-option-icon">
+                    <Wallet size={24} color="#0066ff" />
+                  </div>
+                  <div className="fund-method-option-text">
+                    <div className="fund-method-option-title">Crypto</div>
+                    <div className="fund-method-option-desc">Send XRP, RLUSD, USDT, or USDC to a wallet address</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Send Modal — amount + recipient (reference UI) */}
       {showSendModal && (
         <div className="notification-modal-overlay send-modal-overlay" onClick={() => setShowSendModal(false)}>
@@ -8997,7 +9095,9 @@ const Transactions = () => {
             <div className="send-modal-header send-modal-header--v2">
               <div className="send-modal-header-leading-v2">
                 <span className="send-modal-header-accent-v2" aria-hidden />
-                <h2 id="send-modal-title">Send</h2>
+                <h2 id="send-modal-title">
+                  {sendKind === 'crypto' ? 'Send Crypto' : sendKind === 'fiat' ? 'Send Fiat' : 'Send'}
+                </h2>
               </div>
               <button
                 type="button"
@@ -9021,9 +9121,13 @@ const Transactions = () => {
                       aria-expanded={showToCurrencyDropdown}
                       aria-haspopup="listbox"
                     >
-                      <span className="send-currency-pill-flag">
+                      <span className={`send-currency-pill-flag${sendKind === 'crypto' ? ' send-currency-pill-flag--crypto' : ''}`}>
                         <img
-                          src={`https://flagcdn.com/w40/${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.flag || 'eu'}.png`}
+                          src={
+                            sendKind === 'crypto'
+                              ? WALLET_DETAILS_WALLETS[sendForm.toCurrency]?.iconUrl || WALLET_DETAILS_WALLETS.XRP.iconUrl
+                              : `https://flagcdn.com/w40/${availableCurrencies.find((c) => c.code === sendForm.toCurrency)?.flag || 'eu'}.png`
+                          }
                           alt=""
                           width={20}
                           height={14}
@@ -9034,16 +9138,24 @@ const Transactions = () => {
                     </button>
                     {showToCurrencyDropdown && (
                       <div className="send-modal-currency-dropdown send-modal-currency-dropdown--v2" role="listbox">
-                        {availableCurrencies.map((currency) => (
+                        {sendCurrencyOptions.map((currency) => (
                           <button
                             key={currency.code}
                             type="button"
                             role="option"
+                            aria-selected={sendForm.toCurrency === currency.code}
                             className={`send-modal-currency-option${sendForm.toCurrency === currency.code ? ' is-active' : ''}`}
                             onClick={() => handleToCurrencyChange(currency.code)}
                           >
-                            <span className="send-currency-flag">
-                              <img src={`https://flagcdn.com/w40/${currency.flag}.png`} alt="" />
+                            <span className={`send-currency-flag${sendKind === 'crypto' ? ' send-currency-flag--crypto' : ''}`}>
+                              <img
+                                src={
+                                  sendKind === 'crypto'
+                                    ? WALLET_DETAILS_WALLETS[currency.code]?.iconUrl
+                                    : `https://flagcdn.com/w40/${currency.flag}.png`
+                                }
+                                alt=""
+                              />
                             </span>
                             <span>{currency.code}</span>
                           </button>
@@ -9053,9 +9165,11 @@ const Transactions = () => {
                   </div>
                 </div>
                 <div className="send-amount-hero-input-row">
-                  <span className="send-amount-hero-symbol" aria-hidden>
-                    {(availableCurrencies.find((c) => c.code === sendForm.toCurrency) || availableCurrencies[1]).symbol}
-                  </span>
+                  {sendKind !== 'crypto' ? (
+                    <span className="send-amount-hero-symbol" aria-hidden>
+                      {(availableCurrencies.find((c) => c.code === sendForm.toCurrency) || availableCurrencies[1]).symbol}
+                    </span>
+                  ) : null}
                   <input
                     type="text"
                     className="send-amount-hero-input"
@@ -9069,15 +9183,27 @@ const Transactions = () => {
                 </div>
                 <p className="send-balance-line-v2">
                   Balance:{' '}
-                  {walletBalances?.usdt != null && walletBalances?.usdt !== ''
-                    ? Number(walletBalances.usdt).toLocaleString('en-US', {
+                  {sendKind === 'crypto' ? (
+                    <>
+                      {Number(getCurrencyBalance(sendForm.toCurrency) || 0).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 6,
+                      })}{' '}
+                      {sendForm.toCurrency}
+                    </>
+                  ) : walletBalances?.usdt != null && walletBalances?.usdt !== '' ? (
+                    <>
+                      {Number(walletBalances.usdt).toLocaleString('en-US', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })
-                    : '—'}{' '}
-                  USDT
+                      })}{' '}
+                      USDT
+                    </>
+                  ) : (
+                    '— USDT'
+                  )}
                 </p>
-                {sendExchangeRate && !isLoadingSendRate ? (
+                {sendKind !== 'crypto' && sendExchangeRate && !isLoadingSendRate ? (
                   <p className="send-rate-hint-v2">
                     1 {sendForm.fromWallet} ={' '}
                     {(availableCurrencies.find((c) => c.code === sendForm.toCurrency) || availableCurrencies[0]).symbol}
@@ -9090,47 +9216,63 @@ const Transactions = () => {
                 ) : null}
               </div>
 
-              <p className="send-recipient-section-title-v2">Recipient Information</p>
+              {sendKind === 'crypto' ? null : (
+                <p className="send-recipient-section-title-v2">Recipient Information</p>
+              )}
 
               <div className="send-v2-fields">
-                <label className="send-v2-label" htmlFor="send-v2-fullname">
-                  Full Name
-                </label>
-                <input
-                  id="send-v2-fullname"
-                  type="text"
-                  className="send-v2-input"
-                  placeholder="Enter your name"
-                  autoComplete="name"
-                  value={sendForm.recipientFullName}
-                  onChange={(e) =>
-                    setSendForm((prev) => ({ ...prev, recipientFullName: e.target.value }))
-                  }
-                />
+                {sendKind === 'crypto' ? null : (
+                  <>
+                    <label className="send-v2-label" htmlFor="send-v2-fullname">
+                      Full Name
+                    </label>
+                    <input
+                      id="send-v2-fullname"
+                      type="text"
+                      className="send-v2-input"
+                      placeholder="Enter your name"
+                      autoComplete="name"
+                      value={sendForm.recipientFullName}
+                      onChange={(e) =>
+                        setSendForm((prev) => ({ ...prev, recipientFullName: e.target.value }))
+                      }
+                    />
 
-                <label className="send-v2-label" htmlFor="send-v2-phone">
-                  Phone Number
-                </label>
-                <input
-                  id="send-v2-phone"
-                  type="tel"
-                  className="send-v2-input"
-                  placeholder="(+44)"
-                  autoComplete="tel"
-                  value={sendForm.recipientPhone}
-                  onChange={(e) =>
-                    setSendForm((prev) => ({ ...prev, recipientPhone: e.target.value }))
-                  }
-                />
+                    <label className="send-v2-label" htmlFor="send-v2-phone">
+                      Phone Number
+                    </label>
+                    <input
+                      id="send-v2-phone"
+                      type="tel"
+                      className="send-v2-input"
+                      placeholder="(+44)"
+                      autoComplete="tel"
+                      value={sendForm.recipientPhone}
+                      onChange={(e) =>
+                        setSendForm((prev) => ({ ...prev, recipientPhone: e.target.value }))
+                      }
+                    />
+                  </>
+                )}
 
                 <label className="send-v2-label" htmlFor="send-recipient-trustitag">
-                  Wallet Address or Bank Account
+                  {sendKind === 'crypto'
+                    ? 'Wallet Address'
+                    : sendKind === 'fiat'
+                      ? 'Bank Account'
+                      : 'Wallet Address or Bank Account'}
                 </label>
                 <input
                   id="send-recipient-trustitag"
                   type="text"
                   className="send-v2-input"
-                  placeholder="Enter Wallet Address or Bank Account"
+                  placeholder={
+                    sendKind === 'crypto'
+                      ? 'Enter wallet address'
+                      : sendKind === 'fiat'
+                        ? 'Enter bank account'
+                        : 'Enter Wallet Address or Bank Account'
+                  }
                   autoComplete="off"
                   spellCheck={false}
                   value={sendForm.recipientTrustitag}
@@ -9139,17 +9281,21 @@ const Transactions = () => {
                   }
                 />
 
-                <label className="send-v2-label" htmlFor="send-reason-note">
-                  Reason for transfer <span className="send-optional-v2">(optional)</span>
-                </label>
-                <input
-                  id="send-reason-note"
-                  type="text"
-                  className="send-v2-input"
-                  placeholder="Enter description"
-                  value={sendForm.reason}
-                  onChange={(e) => setSendForm((prev) => ({ ...prev, reason: e.target.value }))}
-                />
+                {sendKind === 'crypto' ? null : (
+                  <>
+                    <label className="send-v2-label" htmlFor="send-reason-note">
+                      Reason for transfer <span className="send-optional-v2">(optional)</span>
+                    </label>
+                    <input
+                      id="send-reason-note"
+                      type="text"
+                      className="send-v2-input"
+                      placeholder="Enter description"
+                      value={sendForm.reason}
+                      onChange={(e) => setSendForm((prev) => ({ ...prev, reason: e.target.value }))}
+                    />
+                  </>
+                )}
               </div>
 
               <button
@@ -9197,16 +9343,22 @@ const Transactions = () => {
 
             <div className="transaction-summary-content">
               <div className="transaction-details-list">
-                <div className="transaction-detail-item">
-                  <span className="transaction-detail-label">Full name</span>
-                  <span className="transaction-detail-value">{sendForm.recipientFullName.trim() || '—'}</span>
-                </div>
-                <div className="transaction-detail-item">
-                  <span className="transaction-detail-label">Phone</span>
-                  <span className="transaction-detail-value">{sendForm.recipientPhone.trim() || '—'}</span>
-                </div>
+                {sendKind === 'crypto' ? null : (
+                  <>
+                    <div className="transaction-detail-item">
+                      <span className="transaction-detail-label">Full name</span>
+                      <span className="transaction-detail-value">{sendForm.recipientFullName.trim() || '—'}</span>
+                    </div>
+                    <div className="transaction-detail-item">
+                      <span className="transaction-detail-label">Phone</span>
+                      <span className="transaction-detail-value">{sendForm.recipientPhone.trim() || '—'}</span>
+                    </div>
+                  </>
+                )}
                 <div className="transaction-detail-item transaction-detail-item--trustitag">
-                  <span className="transaction-detail-label">Wallet / Bank / Trustitag</span>
+                  <span className="transaction-detail-label">
+                    {sendKind === 'crypto' ? 'Wallet address' : sendKind === 'fiat' ? 'Bank account' : 'Wallet / Bank / Trustitag'}
+                  </span>
                   <span className="transaction-detail-value transaction-detail-trustitag">
                     {sendForm.recipientTrustitag.trim() || '—'}
                   </span>

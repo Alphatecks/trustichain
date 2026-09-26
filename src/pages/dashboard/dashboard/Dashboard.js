@@ -177,10 +177,11 @@ const businessSuiteNav = [
   { label: 'Compliance', icon: FileCheck, badge: 'Beta' }
 ];
 
-const CONVERT_CURRENCIES = ['XRP', 'USDT', 'USDC'];
+const CONVERT_CURRENCIES = ['XRP', 'RLUSD', 'USDT', 'USDC'];
 
 const CONVERT_CURRENCY_ICONS = {
   XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png?1605778731',
+  RLUSD: rlusdLogo,
   USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
   USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png?1547042389',
 };
@@ -1737,6 +1738,14 @@ const Dashboard = () => {
     if ((fromCurrency === 'USD' || fromCurrency === 'RLUSD') && toCurrency === 'XRP') {
       if (usdPerXrp != null && usdPerXrp > 0) return 1 / usdPerXrp;
     }
+    if (fromCurrency === 'RLUSD' && toCurrency === 'USD') return 1;
+    if (fromCurrency === 'USD' && toCurrency === 'RLUSD') return 1;
+    if (
+      (fromCurrency === 'RLUSD' && (toCurrency === 'USDT' || toCurrency === 'USDC')) ||
+      ((fromCurrency === 'USDT' || fromCurrency === 'USDC') && toCurrency === 'RLUSD')
+    ) {
+      return 1;
+    }
 
     if (rates.length > 0) {
       const directRate = rates.find(
@@ -2195,6 +2204,7 @@ const Dashboard = () => {
   const getCurrencyDisplayName = (currency) => {
     const mapping = {
       XRP: 'XRP wallet',
+      RLUSD: 'Ripple USD',
       USDT: 'Tether USD',
       USDC: 'USD Coin',
     };
@@ -2204,6 +2214,7 @@ const Dashboard = () => {
   const getCurrencyBadge = (currency) => {
     const mapping = {
       XRP: 'XRP',
+      RLUSD: 'RLUSD',
       USDT: 'USDT',
       USDC: 'USDC',
     };

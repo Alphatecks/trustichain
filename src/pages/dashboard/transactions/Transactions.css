@@ -2699,6 +2699,23 @@ body.transactions-page-active .landing-navbar {
   line-height: 0;
 }
 
+.send-currency-pill-flag--crypto,
+.send-currency-flag--crypto {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #111827;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-currency-pill-flag--crypto img,
+.send-currency-flag--crypto img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
 .send-modal-currency-dropdown--v2 {
   position: absolute;
   top: calc(100% + 6px);
@@ -3231,6 +3248,20 @@ body.transactions-page-active .landing-navbar {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+}
+
+.send-currency-flag.send-currency-flag--crypto {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  background: #111827;
+}
+
+.send-currency-flag.send-currency-flag--crypto img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .send-wallet-text {
