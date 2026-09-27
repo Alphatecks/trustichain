@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Search, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './SavingsWithdrawWalletModal.css';
@@ -11,14 +11,15 @@ import './SavingsWithdrawWalletModal.css';
  * @property {string} ringColor
  * @property {import('react').ElementType} Icon
  * @property {string} balanceLabel — list row (right side)
- * @property {string} confirmBalanceLabel — step 2 “Balance” amount
+ * @property {string} confirmBalanceLabel — step 2 available balance
+ * @property {number} [savedUsd] — available balance used to prefill and cap the withdrawal amount
  * @property {'blue'|'green'} [accent]
  * @property {'completed'|'active'} planStatus
  */
 
 /**
- * Savings withdraw: step 1 = select wallet, step 2 = confirm (balance + Withdraw).
- * @param {{ isOpen: boolean, onClose: () => void, onNext?: (w: object) => void, onConfirmWithdraw?: (w: object) => void|Promise<void>, isSubmitting?: boolean, wallets: SavingsWithdrawWalletOption[] }} props
+ * Savings withdraw: step 1 = select wallet, step 2 = edit amount and confirm.
+ * @param {{ isOpen: boolean, onClose: () => void, onNext?: (w: object) => void, onConfirmWithdraw?: (w: object, amount: number) => void|Promise<void>, isSubmitting?: boolean, wallets: SavingsWithdrawWalletOption[] }} props
  */
 const SavingsWithdrawWalletModal = ({
   isOpen,
@@ -31,14 +32,38 @@ const SavingsWithdrawWalletModal = ({
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(() => wallets[0]?.id ?? '');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const amountInputRef = useRef(null);
+
+  const formatEditableAmount = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    return n.toFixed(2);
+  };
+
+  const sanitizeAmountInput = (raw) => {
+    let v = String(raw ?? '').replace(/[$,]/g, '');
+    v = v.replace(/[^\d.]/g, '');
+    const parts = v.split('.');
+    if (parts.length > 2) return `${parts[0]}.${parts.slice(1).join('')}`;
+    if (parts[1] != null) return `${parts[0]}.${parts[1].slice(0, 2)}`;
+    return v;
+  };
 
   useEffect(() => {
     if (!isOpen) return;
     setStep(1);
     setQuery('');
+    setWithdrawAmount('');
     if (wallets.length === 0) return;
     setSelectedId((prev) => (wallets.some((w) => w.id === prev) ? prev : wallets[0].id));
   }, [isOpen, wallets]);
+
+  useEffect(() => {
+    if (!isOpen || step !== 2) return;
+    amountInputRef.current?.focus();
+    amountInputRef.current?.select();
+  }, [isOpen, step]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -48,9 +73,17 @@ const SavingsWithdrawWalletModal = ({
 
   const selected = useMemo(() => wallets.find((w) => w.id === selectedId) ?? null, [wallets, selectedId]);
 
+  const parsedWithdrawAmount = useMemo(() => {
+    const raw = String(withdrawAmount ?? '').replace(/[$,]/g, '').trim();
+    if (!raw) return null;
+    const n = Number.parseFloat(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [withdrawAmount]);
+
   const handleClose = () => {
     setStep(1);
     setQuery('');
+    setWithdrawAmount('');
     setSelectedId(wallets[0]?.id ?? '');
     onClose();
   };
@@ -60,10 +93,20 @@ const SavingsWithdrawWalletModal = ({
       toast.error('Select a wallet');
       return;
     }
+    setWithdrawAmount(formatEditableAmount(selected.savedUsd));
     setStep(2);
     if (onNext) {
       onNext(selected);
     }
+  };
+
+  const handleWithdrawAll = () => {
+    const formatted = formatEditableAmount(selected?.savedUsd);
+    if (!formatted) {
+      toast.error('Nothing available to withdraw');
+      return;
+    }
+    setWithdrawAmount(formatted);
   };
 
   const handleConfirmWithdraw = async () => {
@@ -71,8 +114,17 @@ const SavingsWithdrawWalletModal = ({
       toast.error('Select a wallet');
       return;
     }
+    if (parsedWithdrawAmount == null) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    const available = Number(selected.savedUsd);
+    if (Number.isFinite(available) && parsedWithdrawAmount > available + 1e-8) {
+      toast.error('Amount exceeds available balance');
+      return;
+    }
     if (typeof onConfirmWithdraw === 'function') {
-      await onConfirmWithdraw(selected);
+      await onConfirmWithdraw(selected, parsedWithdrawAmount);
       return;
     }
     toast.success('Withdrawal — coming soon');
@@ -185,8 +237,37 @@ const SavingsWithdrawWalletModal = ({
                   </div>
                 </div>
                 <div className="savings-withdraw-confirm-balance-block">
-                  <span className="savings-withdraw-confirm-balance-label">Balance</span>
-                  <span className="savings-withdraw-confirm-balance-amount">{selected.confirmBalanceLabel ?? selected.balanceLabel}</span>
+                  <label className="savings-withdraw-confirm-balance-label" htmlFor="savings-withdraw-amount">
+                    Amount
+                  </label>
+                  <div className="savings-withdraw-confirm-amount-field">
+                    <span className="savings-withdraw-confirm-amount-prefix" aria-hidden>
+                      $
+                    </span>
+                    <input
+                      ref={amountInputRef}
+                      id="savings-withdraw-amount"
+                      className="savings-withdraw-confirm-amount-input"
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      placeholder="0.00"
+                      value={withdrawAmount}
+                      disabled={isSubmitting}
+                      onChange={(e) => setWithdrawAmount(sanitizeAmountInput(e.target.value))}
+                    />
+                  </div>
+                  <span className="savings-withdraw-confirm-available">
+                    Available {selected.confirmBalanceLabel ?? selected.balanceLabel}
+                  </span>
+                  <button
+                    type="button"
+                    className="savings-withdraw-all-btn"
+                    onClick={handleWithdrawAll}
+                    disabled={isSubmitting || !formatEditableAmount(selected.savedUsd)}
+                  >
+                    Withdraw all
+                  </button>
                 </div>
               </div>
 
@@ -194,7 +275,7 @@ const SavingsWithdrawWalletModal = ({
                 type="button"
                 className="savings-withdraw-confirm-submit"
                 onClick={handleConfirmWithdraw}
-                disabled={isSubmitting}
+                disabled={isSubmitting || parsedWithdrawAmount == null}
               >
                 {isSubmitting ? 'Withdrawing…' : 'Withdraw'}
               </button>

@@ -427,7 +427,16 @@
   color: #94a3b8;
 }
 
-.savings-withdraw-confirm-balance-amount {
+.savings-withdraw-confirm-amount-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  max-width: 9.5rem;
+}
+
+.savings-withdraw-confirm-amount-prefix,
+.savings-withdraw-confirm-amount-input {
   font-size: 1.35rem;
   font-weight: 700;
   font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
@@ -435,6 +444,59 @@
   color: #111827;
   line-height: 1.15;
   letter-spacing: -0.02em;
+}
+
+.savings-withdraw-confirm-amount-input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  border-bottom: 1.5px solid #cbd5e1;
+  background: transparent;
+  text-align: right;
+  padding: 0 0 0.05rem;
+}
+
+.savings-withdraw-confirm-amount-input:focus {
+  outline: none;
+  border-bottom-color: #0066ff;
+}
+
+.savings-withdraw-confirm-amount-input:disabled {
+  opacity: 0.6;
+}
+
+.savings-withdraw-confirm-amount-input::placeholder {
+  color: #cbd5e1;
+}
+
+.savings-withdraw-confirm-available {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.savings-withdraw-all-btn {
+  margin-top: 0.35rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #0066ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.savings-withdraw-all-btn:hover {
+  color: #0052cc;
+  text-decoration: underline;
+}
+
+.savings-withdraw-all-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 .savings-withdraw-confirm-submit {
@@ -453,4 +515,9 @@
 
 .savings-withdraw-confirm-submit:hover {
   background: #0052cc;
+}
+
+.savings-withdraw-confirm-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }

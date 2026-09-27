@@ -709,6 +709,7 @@ const Savings = () => {
         Icon: plan.Icon,
         balanceLabel: fmtUsdDecimals(plan.savedUsd),
         confirmBalanceLabel: fmtUsdDecimals(plan.savedUsd),
+        savedUsd: plan.savedUsd,
         planStatus: plan.status === 'completed' ? 'completed' : 'active',
         accent: plan.status === 'completed' ? 'blue' : 'green',
       })),
@@ -762,19 +763,31 @@ const Savings = () => {
     }
   };
 
-  const submitSavingsWithdraw = async (wallet) => {
+  const submitSavingsWithdraw = async (wallet, amount) => {
     const savingsWalletId = String(wallet?.id || '').trim();
     if (!savingsWalletId) {
       toast.error('Select a savings wallet');
       return;
     }
+    const numericAmount = Number(amount);
+    const available = Number(wallet?.savedUsd);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    if (Number.isFinite(available) && numericAmount > available + 1e-8) {
+      toast.error('Amount exceeds available balance');
+      return;
+    }
+    const withdrawAll = Number.isFinite(available) && numericAmount >= available - 1e-8;
     try {
       setIsSubmittingSavingsWithdraw(true);
       const payload = await fetchSavingsWithAuth('api/savings/withdraw', {
         method: 'POST',
         body: JSON.stringify({
           savingsWalletId,
-          withdrawAll: true,
+          amount: numericAmount,
+          withdrawAll,
         }),
       });
       toast.success(payload?.message || 'Withdrawal submitted');

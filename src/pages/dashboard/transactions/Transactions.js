@@ -1009,6 +1009,7 @@ const Transactions = () => {
   const [showSavingsWithdrawModal, setShowSavingsWithdrawModal] = useState(false);
   const [showSavingsWithdrawConfirmModal, setShowSavingsWithdrawConfirmModal] = useState(false);
   const [selectedWithdrawWallet, setSelectedWithdrawWallet] = useState(null);
+  const [savingsWithdrawAmount, setSavingsWithdrawAmount] = useState('');
   const [showSavingsAddMoneyModal, setShowSavingsAddMoneyModal] = useState(false);
   const [savingsAddMoneyForm, setSavingsAddMoneyForm] = useState({
     amount: '',
@@ -1367,6 +1368,7 @@ const Transactions = () => {
       name: wallet?.name || `Wallet ${fallbackIndex + 1}`,
       percentage: `${percentageNum}%`,
       saved: formatUsdNoCents(amountUsd),
+      amountUsd,
       icon: style.icon,
       color: style.color,
       targetAmountUsd,
@@ -4027,6 +4029,17 @@ const Transactions = () => {
       toast.error('Invalid savings wallet.');
       return;
     }
+    const numericAmount = Number.parseFloat(String(savingsWithdrawAmount).replace(/[$,]/g, ''));
+    const available = Number(wallet.amountUsd);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    if (Number.isFinite(available) && numericAmount > available + 1e-8) {
+      toast.error('Amount exceeds available balance');
+      return;
+    }
+    const withdrawAll = Number.isFinite(available) && numericAmount >= available - 1e-8;
 
     setIsSubmittingSavingsWithdraw(true);
     try {
@@ -4038,7 +4051,8 @@ const Transactions = () => {
         },
         body: JSON.stringify({
           savingsWalletId,
-          withdrawAll: true,
+          amount: numericAmount,
+          withdrawAll,
         }),
       });
       const payload = await res.json().catch(() => ({}));
@@ -4049,6 +4063,7 @@ const Transactions = () => {
       toast.success(payload?.message || 'Withdrawal submitted');
       setShowSavingsWithdrawConfirmModal(false);
       setSelectedWithdrawWallet(null);
+      setSavingsWithdrawAmount('');
       await fetchWalletBalances();
       if (isSavingsDashboardActive) {
         try {
@@ -6510,6 +6525,7 @@ const Transactions = () => {
         <div className="savings-withdraw-modal-overlay" onClick={() => {
           setShowSavingsWithdrawModal(false);
           setSelectedWithdrawWallet(null);
+          setSavingsWithdrawAmount('');
         }}>
           <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <div className="savings-withdraw-modal-header">
@@ -6520,6 +6536,7 @@ const Transactions = () => {
                 onClick={() => {
                   setShowSavingsWithdrawModal(false);
                   setSelectedWithdrawWallet(null);
+                  setSavingsWithdrawAmount('');
                 }}
               >
                 <X size={20} />
@@ -6603,6 +6620,9 @@ const Transactions = () => {
                 className="savings-withdraw-next-btn"
                 onClick={() => {
                   if (selectedWithdrawWallet !== null) {
+                    const wallet = savingsWallets[selectedWithdrawWallet];
+                    const raw = Number(wallet?.amountUsd);
+                    setSavingsWithdrawAmount(Number.isFinite(raw) && raw > 0 ? raw.toFixed(2) : '');
                     setShowSavingsWithdrawModal(false);
                     setShowSavingsWithdrawConfirmModal(true);
                   }
@@ -6684,6 +6704,7 @@ const Transactions = () => {
         <div className="savings-withdraw-modal-overlay" onClick={() => {
           setShowSavingsWithdrawConfirmModal(false);
           setSelectedWithdrawWallet(null);
+          setSavingsWithdrawAmount('');
         }}>
           <div className="savings-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <div className="savings-withdraw-modal-header">
@@ -6694,6 +6715,7 @@ const Transactions = () => {
                 onClick={() => {
                   setShowSavingsWithdrawConfirmModal(false);
                   setSelectedWithdrawWallet(null);
+                  setSavingsWithdrawAmount('');
                 }}
               >
                 <X size={20} />
@@ -6723,8 +6745,44 @@ const Transactions = () => {
                     </div>
                   </div>
                   <div className="savings-withdraw-confirm-balance-section">
-                    <div className="savings-withdraw-confirm-balance-label">Balance</div>
-                    <div className="savings-withdraw-confirm-balance-amount">{savingsWallets[selectedWithdrawWallet].saved}</div>
+                    <label className="savings-withdraw-confirm-balance-label" htmlFor="transactions-savings-withdraw-amount">
+                      Amount
+                    </label>
+                    <div className="savings-withdraw-confirm-amount-field">
+                      <span className="savings-withdraw-confirm-amount-prefix" aria-hidden>$</span>
+                      <input
+                        id="transactions-savings-withdraw-amount"
+                        className="savings-withdraw-confirm-amount-input"
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        placeholder="0.00"
+                        value={savingsWithdrawAmount}
+                        disabled={isSubmittingSavingsWithdraw}
+                        onChange={(e) => {
+                          let v = e.target.value.replace(/[$,]/g, '').replace(/[^\d.]/g, '');
+                          const parts = v.split('.');
+                          if (parts.length > 2) v = `${parts[0]}.${parts.slice(1).join('')}`;
+                          else if (parts[1] != null) v = `${parts[0]}.${parts[1].slice(0, 2)}`;
+                          setSavingsWithdrawAmount(v);
+                        }}
+                      />
+                    </div>
+                    <div className="savings-withdraw-confirm-available">
+                      Available {savingsWallets[selectedWithdrawWallet].saved}
+                    </div>
+                    <button
+                      type="button"
+                      className="savings-withdraw-all-btn"
+                      disabled={isSubmittingSavingsWithdraw || !(Number(savingsWallets[selectedWithdrawWallet].amountUsd) > 0)}
+                      onClick={() => {
+                        const raw = Number(savingsWallets[selectedWithdrawWallet].amountUsd);
+                        if (!Number.isFinite(raw) || raw <= 0) return;
+                        setSavingsWithdrawAmount(raw.toFixed(2));
+                      }}
+                    >
+                      Withdraw all
+                    </button>
                   </div>
                 </div>
 
@@ -6732,7 +6790,7 @@ const Transactions = () => {
                   type="button"
                   className="savings-withdraw-confirm-btn"
                   onClick={() => submitSavingsWithdraw()}
-                  disabled={isSubmittingSavingsWithdraw}
+                  disabled={isSubmittingSavingsWithdraw || !savingsWithdrawAmount}
                 >
                   {isSubmittingSavingsWithdraw ? 'Processing…' : 'Withdraw'}
                 </button>
